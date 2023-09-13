@@ -3,8 +3,10 @@
 //Leonard Chau
 
 
+//ADD RESIN SUPPORT
+
 //As Seen on Legend - \ before "
-Layout=["'\"%&(£$);:,.",
+LAYOUT=["'\"%&(£$);:,.",
         "?PFUGQpfugq¼",
         "!VINABvinab½",
         "_LDETMldetm¾",
@@ -13,16 +15,44 @@ Layout=["'\"%&(£$);:,.",
         "#1234567890-"];
 CharLegend=[6,7,8,9,10,11,0,1,2,3,4,5];
 
+1st_Row="";
+2nd_Row="";
+3rd_Row="";
+4th_Row="";
+5th_Row="";
+6th_Row="";
+7th_Row="";
+Custom_Layout=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
+
+CustomLayout=false;//WHATS WRONG WITH THIS IF STATEMENT?
+if (CustomLayout==true){
+        Layout=Custom_Layout;
+    else
+        Layout=LAYOUT;
+    }
+
+
+//Total Cylinder Height
 Cylinder_Height=40;
+//Main Cylinder Diameter
 Cylinder_Diameter=16.5;
+//Height Drop From Top
 Cylinder_Top_Height_Offset=3;
+//Height Drop Chamfer Radius
 Cylinder_Top_Radius=2;
+//Height Drop Diameter
 Cylinder_Top_Diameter=14;
+//Inner Shaft Diameter
 Cylinder_Top_Shaft_Diameter=7.2;
+//Inner Mounting Diameter
 Cylinder_Bottom_Shaft_Diameter=14.6;
+//Max Pin Height
 Pin_Height=1.7;
+//Max Pin Width
 Pin_Width=1.7;
+//Max Minimum Diameter Across 2 Concave Characters
 Min_Final_Character_Diameter=17.4;
+//Platen Diameter
 Platen_Diameter=25.4;
 
 //Top to Bottom on Legend, Bottom to Top on Element
@@ -31,10 +61,11 @@ Cutout=[3.225,8.225,13.225,18.225,23.225,28.225,33.225];
 Cutout_Offset=0;
 Baseline_Offset=1;
 
-Typeface_="Consolas";
-Type_Size=3.3;
-Debug_No_Minkowski=true;
+Typeface_="Consolas";//As Installed on PC
+Type_Size=3.3;//Type Size
+Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 
+//Number of Facets of Cylinder
 $fn=12*10;
 
 
