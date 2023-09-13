@@ -65,6 +65,8 @@ Baselines=[Low_Baseline,Upp_Baseline,Fig_Baseline];
 
 
 /* [Resin Print Support] */
+//Generate Print Support?
+Generate_Support=true;//
 //Resin Support Cut Groove Thickness
 Resin_Support_Cut_Groove_Thickness=.1;
 //Resin Support Height
@@ -90,7 +92,7 @@ Final_Min_Character_Height_Radius = 17.49;
 
 
 /* [Global Variables] */
-//Universal Offset
+//Universal Offset - do not change
 e=.001;
 Preview_Facets = 22;
 Render_Facets = 44;
@@ -129,7 +131,7 @@ CharacterRadius=Element_Radius-.5;
 //Countersink Depth
 Positioner_Depth = 2;
 //Countersink Radius
-Positioner_Position_Radius = 2.784;
+Positioner_Support_Radius = 2.784;
 //Square Slot Width
 Square_Slot_Width = 3.937;
 //Inside Support Radius
@@ -176,7 +178,7 @@ module Cylinder (SomeElement_Radius,SomeElement_Height,SomeClip_Diameter,SomeCli
         }
         //Cutting Square Hole and Countersink
         translate([Cutout_Position_Radius,0,-e]){
-            cylinder(h=Positioner_Depth,r=Positioner_Position_Radius);
+            cylinder(h=Positioner_Depth,r=Positioner_Support_Radius);
             cube([Square_Slot_Width, Square_Slot_Width, 10], center=true);
         }
         //Subtract Sphere Clearance on Bottom
@@ -272,13 +274,13 @@ module ResinPrintSupportShape (SomeResin_Support_Cut_Groove_Thickness, SomeResin
     }
 }
 
-difference(){//Cutting Vent Holes for Build Plate
+difference(){
     union(){//Joining Resin Support
         difference(){//Cleaning up Top and Bottom of Cylinder
             union(){//Union of Cylinder and Letters
-                for (row=[0:1:2]){
+                for (row=[0:1:len(Layout)-1]){
                     for (n=[0:1:CharRenderLim]){
-                        theta=-(360/28)*n-360/(28*2);
+                        theta=-(360/len(Layout[0]))*n-360/(len(Layout[0])*2);
                         PickedChar=CharLegend[n];
                         LetterText(CharacterRadius,Element_Height,Baselines[row],BaselineOffsets[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Final_Min_Character_Height_Radius,Debug_No_Minkowski);//Placing Letters
                     }
@@ -290,8 +292,10 @@ difference(){//Cutting Vent Holes for Build Plate
         rotate([0,180,0])
         CleanupShape(Element_Radius);//Cleaning Bottom of Element
         }
+        if (Generate_Support==true)
         translate([0,0,e])
         ResinPrintSupportShape(Resin_Support_Cut_Groove_Thickness,Resin_Support_Height,Resin_Support_Thickness,Element_Radius,Resin_Support_Cut_Groove_Diameter,Cutout_Position_Radius);//Placing Resin Support
     }
     
 }
+echo(len(Layout));
