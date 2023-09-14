@@ -1,0 +1,17 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "CPI": "5",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "1.8999999999999999",
+            "Typeface_": "M+ 1m"
+        },
+        "New set 2": {
+            "CPI": "5",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "7.2000000000000002",
+            "Typeface_": "Quinze"
+        }
+    }
+}

@@ -5,7 +5,7 @@
 
 //ADD RESIN SUPPORT
 /* [Character Details] */
-//As Seen on Legend - \ before "
+//As Seen on Legend
 LAYOUT=["'\"%&(£$);:,.",
         "?PFUGQpfugq¼",
         "!VINABvinab½",
@@ -28,6 +28,11 @@ CUSTOMLAYOUT=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
 //Use Custom Layout?
 Custom_Layout=false;
 Layout= Custom_Layout==false ? LAYOUT : CUSTOMLAYOUT;
+//Tallen the Element Height?
+Tallen=false;
+//Element Height Increase
+Height_Increase=3;
+
 
 Typeface_="Consolas";//As Installed on PC
 Type_Size=3.3;//Type Size
@@ -35,7 +40,8 @@ Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 
 /* [Cylinder Details] */
 //Total Cylinder Height
-Cylinder_Height=40;
+Cylinder_Height_=40;
+Cylinder_Height= Tallen==true ? Cylinder_Height_+Height_Increase : Cylinder_Height_;
 //Main Cylinder Diameter
 Cylinder_Diameter=16.5;
 //Height Drop From Top
@@ -58,10 +64,10 @@ Min_Final_Character_Diameter=17.4;
 Platen_Diameter=25.4;
 
 /* [Character Placement Details] */
-//Top to Bottom on Legend, Bottom to Top on Element
+//[1st, 2nd, 3rd, 4th, 5th, 6th, 7th] Baseline Height
 Baseline=[1.8,6.8,11.8,16.8,21.8,26.8,31.8];
 Cutout=[3.225,8.225,13.225,18.225,23.225,28.225,33.225];
-Cutout_Offset=[0,0,0,0,0,0,0];
+Cutout_Offset=[0.6,0.6,0.6,0.6,0.6,0.6,0.6];//[0,0,0,0,0,0,0];
 Baseline_Offset=[0.6,0.6,0.6,0.6,0.6,0.6,0.6]; //,0,0,0,0,0,0];//[1,1,1,1,1,1,1];
 
 
@@ -72,6 +78,7 @@ $fn=12*10;
 
 module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeDebug){
     $fn = $preview ? 12 : 24;
+    
     minkowski(){
         difference(){
             translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBaseline+SomeBaseline_Offset])
@@ -85,7 +92,7 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
         }
         if (SomeDebug!=true)
             rotate([0,-90,SomeTheta])
-            cylinder(h=1,r2=.75,r1=0,$fn=6);
+            cylinder(h=1.5,r2=.75,r1=0,$fn=6);
     }
 }
 
@@ -97,9 +104,12 @@ difference(){
             for (n=[0:1:len(Layout[0])-1]){
                 PickedChar=CharLegend[n];
                 theta=-(360/(len(Layout[0]))*n);
-                LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Debug_No_Minkowski);
+                if (Layout[row][PickedChar] != " "){
+                    LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Debug_No_Minkowski);
+                }
+                }
             }
-        }
+        
         cylinder(h=Cylinder_Height-Cylinder_Top_Height_Offset,d=Cylinder_Diameter);
         translate([0,0,Cylinder_Height-Cylinder_Top_Radius])
         hull(){
@@ -117,6 +127,7 @@ difference(){
             }
         }
     }
+    
     translate([0,0,-.001])
     cylinder(h=Cylinder_Height+2*.001,d=Cylinder_Top_Shaft_Diameter);
     rotate_extrude(){
