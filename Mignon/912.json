@@ -13,6 +13,30 @@
             "Platen_Diameter": "25.399999999999999",
             "Type_Size": "3.2999999999999998",
             "Typeface_": "Consolas"
+        },
+        "New set 2": {
+            "1st_Row": "",
+            "2nd_Row": "",
+            "3rd_Row": "",
+            "4th_Row": "",
+            "5th_Row": "",
+            "6th_Row": "",
+            "7th_Row": "",
+            "Custom_Layout": "false",
+            "Cylinder_Bottom_Shaft_Diameter": "14.6",
+            "Cylinder_Diameter": "16.5",
+            "Cylinder_Height": "40",
+            "Cylinder_Top_Diameter": "14",
+            "Cylinder_Top_Height_Offset": "3",
+            "Cylinder_Top_Radius": "2",
+            "Cylinder_Top_Shaft_Diameter": "7.2000000000000002",
+            "Debug_No_Minkowski": "false",
+            "Min_Final_Character_Diameter": "17.399999999999999",
+            "Pin_Height": "1.7",
+            "Pin_Width": "1.7",
+            "Platen_Diameter": "25.399999999999999",
+            "Type_Size": "3.2999999999999998",
+            "Typeface_": "Consolas"
         }
     }
 }

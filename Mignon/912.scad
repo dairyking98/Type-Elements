@@ -4,7 +4,7 @@
 
 
 //ADD RESIN SUPPORT
-
+/* [Character Details] */
 //As Seen on Legend - \ before "
 LAYOUT=["'\"%&(£$);:,.",
         "?PFUGQpfugq¼",
@@ -15,6 +15,7 @@ LAYOUT=["'\"%&(£$);:,.",
         "#1234567890-"];
 CharLegend=[6,7,8,9,10,11,0,1,2,3,4,5];
 
+//Custom Layout
 1st_Row="";
 2nd_Row="";
 3rd_Row="";
@@ -22,16 +23,17 @@ CharLegend=[6,7,8,9,10,11,0,1,2,3,4,5];
 5th_Row="";
 6th_Row="";
 7th_Row="";
-Custom_Layout=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
+CUSTOMLAYOUT=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
 
-CustomLayout=false;//WHATS WRONG WITH THIS IF STATEMENT?
-if (CustomLayout==true){
-        Layout=Custom_Layout;
-    else
-        Layout=LAYOUT;
-    }
+//Use Custom Layout?
+Custom_Layout=false;
+Layout= Custom_Layout==false ? LAYOUT : CUSTOMLAYOUT;
 
+Typeface_="Consolas";//As Installed on PC
+Type_Size=3.3;//Type Size
+Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 
+/* [Cylinder Details] */
 //Total Cylinder Height
 Cylinder_Height=40;
 //Main Cylinder Diameter
@@ -47,7 +49,7 @@ Cylinder_Top_Shaft_Diameter=7.2;
 //Inner Mounting Diameter
 Cylinder_Bottom_Shaft_Diameter=14.6;
 //Max Pin Height
-Pin_Height=1.7;
+Pin_Height=1.8;
 //Max Pin Width
 Pin_Width=1.7;
 //Max Minimum Diameter Across 2 Concave Characters
@@ -55,15 +57,13 @@ Min_Final_Character_Diameter=17.4;
 //Platen Diameter
 Platen_Diameter=25.4;
 
+/* [Character Placement Details] */
 //Top to Bottom on Legend, Bottom to Top on Element
 Baseline=[1.8,6.8,11.8,16.8,21.8,26.8,31.8];
 Cutout=[3.225,8.225,13.225,18.225,23.225,28.225,33.225];
-Cutout_Offset=0;
-Baseline_Offset=1;
+Cutout_Offset=[0,0,0,0,0,0,0];
+Baseline_Offset=[0.6,0.6,0.6,0.6,0.6,0.6,0.6]; //,0,0,0,0,0,0];//[1,1,1,1,1,1,1];
 
-Typeface_="Consolas";//As Installed on PC
-Type_Size=3.3;//Type Size
-Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 
 //Number of Facets of Cylinder
 $fn=12*10;
@@ -97,7 +97,7 @@ difference(){
             for (n=[0:1:len(Layout[0])-1]){
                 PickedChar=CharLegend[n];
                 theta=-(360/(len(Layout[0]))*n);
-                LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset,Cutout[row],Cutout_Offset,Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Debug_No_Minkowski);
+                LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Debug_No_Minkowski);
             }
         }
         cylinder(h=Cylinder_Height-Cylinder_Top_Height_Offset,d=Cylinder_Diameter);
