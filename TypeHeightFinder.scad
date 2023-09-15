@@ -1,7 +1,7 @@
 Test_String="NOW IS THE TIME FOR ALL ";
 
 Type_Size=1.9;
-Typeface_="Quinze";
+Typeface_="Libertinus Mono";
 
 //BOTTOM LINE - 10 CPI
 CPI=10;
