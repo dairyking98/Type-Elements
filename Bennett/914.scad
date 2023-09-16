@@ -43,7 +43,7 @@ Element_Positioner_Pin_Radius=4.775;
 //Indicator Hole Diameter
 Indicator_Diameter=1.1;
 //Alignment Pin Hole Diameter
-Alignment_Hole_Diameter=0.97;
+Alignment_Hole_Diameter=1.94;
 //Alignment Hole Depth
 Alignment_Hole_Depth=2.4;
 //Alignment Hole Chamfer Size
@@ -83,7 +83,7 @@ Generate_Support=true;//
 //Resin Support Cut Groove Thickness
 Resin_Support_Cut_Groove_Thickness=.1;
 //Resin Support Height
-Resin_Support_Height=4;
+Resin_Support_Height=6;
 //Resin Support Chamfer Size
 Resin_Support_Thickness=2;
 //Resin Support Cut Groove Diameter
