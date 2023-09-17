@@ -39,7 +39,7 @@ Shaft_Diameter=3.483;
 //Element Positioner Pin Diameter
 Element_Positioner_Pin_Diameter=2.464;
 //Element Positioner Pin - Radial Position
-Element_Positioner_Pin_Radius=4.775;
+Element_Positioner_Pin_Radius=4.813;
 //Indicator Hole Diameter
 Indicator_Diameter=1.1;
 //Alignment Pin Hole Diameter
