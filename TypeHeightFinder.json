@@ -24,6 +24,12 @@
             "Test_String": "NOW IS THE TIME FOR ALL _",
             "Type_Size": "5.2000000000000002",
             "Typeface_": "LM Mono Light Cond 10"
+        },
+        "New set 5": {
+            "CPI": "10",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "2.8999999999999999",
+            "Typeface_": "Libertinus Mono"
         }
     }
 }

@@ -41,7 +41,7 @@ Element_Positioner_Pin_Diameter=2.464;
 //Element Positioner Pin - Radial Position
 Element_Positioner_Pin_Radius=4.813;
 //Indicator Hole Diameter
-Indicator_Diameter=1.1;
+Indicator_Diameter=2.2;
 //Alignment Pin Hole Diameter
 Alignment_Hole_Diameter=1.94;
 //Alignment Hole Depth
@@ -65,17 +65,17 @@ Shell_Size=1;
 
 /* [Character Placement Details] */
 //[Lowercase, Uppercase, Figures] Row Height
-Baseline=[15.05,9,2.95];
+Baseline=[15.05,9,2.95];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Row Height Offset
-Baseline_Offset=[0,0,0];
+Baseline_Offset=[0,0,0];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height
-Cutout=[17,10.95,4.9];
+Cutout=[17,10.95,4.9];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height Offset
-Cutout_Offset=[0,0,0];
+Cutout_Offset=[0,0,0];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height
-Alignment_Hole=[13.29,7.24,1.19];
+Alignment_Hole=[13.29,7.24,1.19];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height Offset
-Alignment_Hole_Offset=[0,0,0];
+Alignment_Hole_Offset=[0,0,0];//[-1:.05:1]
 
 /* [Resin Print Support] */
 //Generate Print Support?
@@ -157,13 +157,15 @@ union(){
             theta=-(360/(len(Layout[0]))*n+360/(2*28));
             translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Alignment_Hole[row]])
             rotate([0,-90,theta]){
-                cylinder(h=Alignment_Hole_Depth,d=Alignment_Hole_Diameter);
+                cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter);
                 translate([0,0,-1])
                 cylinder(h=1,d=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer);
                 cylinder(h=Alignment_Hole_Chamfer,d1=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer,d2=Alignment_Hole_Diameter);
                 }
-            }
+            translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Alignment_Hole[row]])
+            sphere(d=Alignment_Hole_Diameter);
         }
+    }
     }
 
     translate([0,0,-Resin_Support_Height+.001]){
@@ -197,7 +199,7 @@ union(){
             }
         }
         for (n=[0:1:3]){
-            theta=90*n+45;
+            theta=90*n;
             translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
             cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
             translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
