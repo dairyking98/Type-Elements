@@ -59,21 +59,21 @@ Countersink_Diameter=23.4;
 //Top Countersink Depth
 Top_Countersink_Depth=1.85;
 //Bottom Countersink Depth
-Bottom_Countersink_Depth=1.3;
+Bottom_Countersink_Depth=1;//1
 //Minimum Cylinder Thickness
 Shell_Size=1;
 
-/* [Character Placement Details] */
+/* [Character Placement Details (Bottom Countersink Depth as Reference)] */
 //[Lowercase, Uppercase, Figures] Row Height
-Baseline=[15.05,9,2.95];//[-1:.05:1]
+Baseline=[14.05,8,1.95];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Row Height Offset
 Baseline_Offset=[0,0,0];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height
-Cutout=[17,10.95,4.9];//[-1:.05:1]
+Cutout=[16,9.95,3.9];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height Offset
 Cutout_Offset=[0,0,0];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height
-Alignment_Hole=[13.29,7.24,1.19];//[-1:.05:1]
+Alignment_Hole=[12.29,6.24,0.19];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height Offset
 Alignment_Hole_Offset=[0,0,0];//[-1:.05:1]
 
@@ -93,17 +93,17 @@ Resin_Support_Wire_Thickness=.6;
 
 $fn=180;
 
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeDebug){
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug){
     $fn = $preview ? 12 : 24;
     
     minkowski(){
         difference(){
-            translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBaseline+SomeBaseline_Offset])
+            translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBottom_Countersink_Depth+SomeBaseline+SomeBaseline_Offset])
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
             text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
-            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout+SomeCutout_Offset])
+            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeBottom_Countersink_Depth+SomeCutout+SomeCutout_Offset])
             rotate([90,0,SomeTheta])
             cylinder(h=5,d=SomePlaten_Diameter,center=true,$fn=$preview ? 60 : 360);
         }
@@ -122,7 +122,7 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n+360/(2*28));
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Debug_No_Minkowski);
+                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski);
                     }
                 }
             }
@@ -155,14 +155,14 @@ union(){
     for (row=[0:1:len(Layout)-1]){
         for (n=[0:1:len(Layout[0])-1]){
             theta=-(360/(len(Layout[0]))*n+360/(2*28));
-            translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Alignment_Hole[row]])
+            translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
             rotate([0,-90,theta]){
                 cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter);
                 translate([0,0,-1])
                 cylinder(h=1,d=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer);
                 cylinder(h=Alignment_Hole_Chamfer,d1=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer,d2=Alignment_Hole_Diameter);
                 }
-            translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Alignment_Hole[row]])
+            translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
             sphere(d=Alignment_Hole_Diameter);
         }
     }
