@@ -1,6 +1,6 @@
 Test_String="NOW IS THE TIME FOR ALL ";
 
-Type_Size=1.9;
+Type_Size=1.9;//[1:.05:5]
 Typeface_="OpenDyslexicMono";
 
 //BOTTOM LINE - 10 CPI

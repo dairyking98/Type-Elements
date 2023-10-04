@@ -30,6 +30,12 @@
             "Test_String": "NOW IS THE TIME FOR ALL ",
             "Type_Size": "2.8999999999999999",
             "Typeface_": "Libertinus Mono"
+        },
+        "New set 6": {
+            "CPI": "10",
+            "Test_String": "The quick brown fox types NOW IS THE TIME",
+            "Type_Size": "2.7999999999999998",
+            "Typeface_": "Papyrus Pixel Mono"
         }
     }
 }

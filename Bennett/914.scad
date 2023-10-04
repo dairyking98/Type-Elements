@@ -28,6 +28,9 @@ Debug_No_Minkowski=true;
 Min_Final_Character_Diameter=32.9;
 //Platen Diameter
 Platen_Diameter=30;
+//Individual Character Height Adjustments
+Character_Modifieds="_";
+Character_Modifieds_Offset=0;//[-.1:.05:.5]
 
 /* [Element Details] */
 //Element Diameter
@@ -81,7 +84,7 @@ Alignment_Hole_Offset=[0,0,0];//[-1:.05:1]
 //Generate Print Support?
 Generate_Support=true;//
 //Resin Support Cut Groove Thickness
-Resin_Support_Cut_Groove_Thickness=.1;
+Resin_Support_Cut_Groove_Thickness=.2;
 //Resin Support Height
 Resin_Support_Height=6;
 //Resin Support Chamfer Size
@@ -93,12 +96,13 @@ Resin_Support_Wire_Thickness=.6;
 
 $fn=180;
 
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug){
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset){
     $fn = $preview ? 12 : 24;
     
     minkowski(){
         difference(){
             translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBottom_Countersink_Depth+SomeBaseline+SomeBaseline_Offset])
+            translate([0,0,SomeChar==SomeCharacter_Modifieds ?  SomeCharacter_Modifieds_Offset : 0])
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
@@ -122,7 +126,7 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n+360/(2*28));
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski);
+                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset);
                     }
                 }
             }
@@ -167,47 +171,48 @@ union(){
         }
     }
     }
-
-    translate([0,0,-Resin_Support_Height+.001]){
-        difference(){
-            cylinder(d=Element_Diameter, h=Resin_Support_Height);
-            translate([0,0,-.001])
-            cylinder(h=Resin_Support_Height+2*.001, r=Element_Diameter/2-Resin_Support_Cut_Groove_Diameter/2-Resin_Support_Cut_Groove_Thickness);
-            rotate_extrude(){
-                translate([Element_Diameter/2,Resin_Support_Height-Resin_Support_Cut_Groove_Diameter/2])
-                circle(r=Resin_Support_Cut_Groove_Diameter/2);
+    if (Generate_Support==true){
+        translate([0,0,-Resin_Support_Height+.001]){
+            difference(){
+                cylinder(d=Element_Diameter, h=Resin_Support_Height);
+                translate([0,0,-.001])
+                cylinder(h=Resin_Support_Height+2*.001, r=Element_Diameter/2-Resin_Support_Cut_Groove_Diameter/2-Resin_Support_Cut_Groove_Thickness);
+                rotate_extrude(){
+                    translate([Element_Diameter/2,Resin_Support_Height-Resin_Support_Cut_Groove_Diameter/2])
+                    circle(r=Resin_Support_Cut_Groove_Diameter/2);
+                }
             }
-        }
-    
-        rotate_extrude(){
-            polygon([[Element_Diameter/2,0], [Element_Diameter/2-Resin_Support_Thickness,0], [Element_Diameter/2-Resin_Support_Thickness,Resin_Support_Thickness], [Element_Diameter/2+Resin_Support_Thickness,Resin_Support_Thickness]]);
-        }
-        for (n=[0:1:7]){
-            theta=360/8*n;
-            translate([(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*cos(theta),(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*sin(theta),0]){
-                cylinder(h=Resin_Support_Height-1,r=Resin_Support_Wire_Thickness);
-                translate([0,0,Resin_Support_Height-1])
+        
+            rotate_extrude(){
+                polygon([[Element_Diameter/2,0], [Element_Diameter/2-Resin_Support_Thickness,0], [Element_Diameter/2-Resin_Support_Thickness,Resin_Support_Thickness], [Element_Diameter/2+Resin_Support_Thickness,Resin_Support_Thickness]]);
+            }
+            for (n=[0:1:7]){
+                theta=360/8*n;
+                translate([(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*cos(theta),(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*sin(theta),0]){
+                    cylinder(h=Resin_Support_Height-1,r=Resin_Support_Wire_Thickness);
+                    translate([0,0,Resin_Support_Height-1])
+                    cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
+                    cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+                }
+                
+                translate([Countersink_Diameter*cos(theta)/3,Countersink_Diameter*sin(theta)/3,0]){
+                cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
+                translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
                 cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
                 cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+                }
             }
-            
-            translate([Countersink_Diameter*cos(theta)/3,Countersink_Diameter*sin(theta)/3,0]){
-            cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
-            translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
-            cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
-            cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+            for (n=[0:1:3]){
+                theta=90*n;
+                translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
+                cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
+                translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
+                cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
+                cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+                }
             }
+        
         }
-        for (n=[0:1:3]){
-            theta=90*n;
-            translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
-            cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
-            translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
-            cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
-            cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
-            }
-        }
-    
     }
  
 }
