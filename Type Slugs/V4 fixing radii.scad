@@ -129,14 +129,14 @@ difference(){
     }
     
    
-//    //Side Wings
-//    rotate([-90, 0, 0]){
-//    translate([0, 0, -.001]){
-//        linear_extrude(Body_Length+.002)
-//        polygon([[Body_Width/2, Face_Thickness], [Body_Width/2+1, 0], [Body_Width/2+1, Body_Height+.001], [Body_Slot_Width/2+Wing_Thickness, Body_Height+.001]]);
-//        mirror([1, 0, 0])
-//        linear_extrude(Body_Length+.002)
-//        polygon([[Body_Width/2, Face_Thickness], [Body_Width/2+1, 0], [Body_Width/2+1, Body_Height+.001], [Body_Slot_Width/2+Wing_Thickness, Body_Height+.001]]);
-//        }
-//    }
+    //Clean Exposed Minkowski Manifold
+    rotate([-90, 0, 0]){
+    translate([0, 0, -.001]){
+        linear_extrude(Body_Length+.002)
+        polygon([[Body_Width/2, Face_Thickness], [Body_Width/2+1, 0], [Body_Width/2+1, Body_Height+.001], [Body_Slot_Width/2+Wing_Thickness, Body_Height+.001]]);
+        mirror([1, 0, 0])
+        linear_extrude(Body_Length+.002)
+        polygon([[Body_Width/2, Face_Thickness], [Body_Width/2+1, 0], [Body_Width/2+1, Body_Height+.001], [Body_Slot_Width/2+Wing_Thickness, Body_Height+.001]]);
+        }
+    }
 }
