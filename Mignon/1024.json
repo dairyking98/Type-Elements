@@ -80,7 +80,7 @@
             "Debug_No_Minkowski": "true",
             "Generate_Support": "true",
             "Height_Increase": "3",
-            "Horizontal_Weight_Adj": "0",
+            "Horizontal_Weight_Adj": "0.001",
             "Min_Final_Character_Diameter": "17.399999999999999",
             "Pin_Height": "1.8",
             "Pin_Width": "1.7",
@@ -93,7 +93,8 @@
             "Tallen": "false",
             "Type_Size": "3.2999999999999998",
             "Typeface_": "Consolas",
-            "Vertical_Weight_Adj": "0"
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
         }
     }
 }

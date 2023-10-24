@@ -53,7 +53,7 @@ SVG_Vogue_Enable=true;
 SVG_Size=2;//[0:.05:5]
 SVG_V1_Size=1;
 SVG_Scale=1/40*SVG_Size;
-SVG_V1=1/80*SVG_V1_Size;
+SVG_V1_Scale=1/80*SVG_V1_Size;
 //SVG Extrusion Height
 SVG_Depth=.05;//[0:.05:1]
 //Percentage of Length from Bottom to Top
@@ -63,9 +63,9 @@ SVG_File="AR1.svg";
 //Copyright Engraving Depth
 Copyright_Depth=.1;//[0:.01:.1]
 //Copyright Engraving Text
-Copyright_Text="© Leonard Chau 2023";
+Copyright_Text="☺ Leonard Chau 2023";
 //Copyright Text Font
-Copyright_Font="Courier Prime";
+Copyright_Font="Courier New";
 //Render Without Minkowski (fast)
 Debug_No_Minkowski=false;
 Minkowski_Multiplier=1.6;
@@ -106,12 +106,19 @@ difference(){
                 cylinder(h=Engraving_Depth*Minkowski_Multiplier, r1=sin(Draft_Angle)*Engraving_Depth*Minkowski_Multiplier, r2=0);
             }
         }
+        //Vogue Foundry Mark
         if (SVG_Vogue_Enable==true){
             minkowski(){
-            linear_extrude(SVG_Depth)
-            translate([0, Body_Length*SVG_Location, 0])
-            scale([SVG_Scale, SVG_Scale, SVG_Scale])
-            import(SVG_File, center=true);
+            linear_extrude(SVG_Depth){
+                //Arrow
+                translate([.2, Body_Length*SVG_Location+-.5, 0])
+                scale([SVG_V1_Scale, SVG_V1_Scale, SVG_V1_Scale])
+                import("vogue-foundry-arrow.svg", center=true);
+                //V
+                translate([-.5, Body_Length*SVG_Location-1.2, 0])
+                scale([SVG_V1_Scale, SVG_V1_Scale, SVG_V1_Scale])
+                import("vogue-foundry-v.svg", center=true);
+            }
             if (Debug_No_Minkowski!=true)
                 translate([0,0,-Engraving_Depth*Minkowski_Multiplier])
                 cylinder(h=Engraving_Depth*Minkowski_Multiplier, r1=sin(Draft_Angle)*Engraving_Depth*Minkowski_Multiplier, r2=0);
@@ -174,5 +181,5 @@ difference(){
     translate([0, Body_Length/2, -Bottom_Thickness+Copyright_Depth-.001])
     rotate([0, 180, -90])
     linear_extrude(Copyright_Depth)
-    text(text=Copyright_Text, font=Copyright_Font, size=Body_Slot_Width*.75, halign="center", valign="center");
+    text(text=Copyright_Text, font=Copyright_Font, size=Body_Slot_Width*.7, halign="center", valign="center");
 }
