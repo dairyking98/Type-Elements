@@ -44,8 +44,13 @@ Layout_Selection=0;//[0,1,2]
 Type_Size=3.3;//[2:.05:5] Comic Mono 3.1, Bonkersworking 2.6 , Consolas 3.3
 Typeface_="Consolas";//exactly as shown installed in PC
 Layout=SELECTIONS[Layout_Selection];
-
-
+//Individual Character Height Adjustments
+Character_Modifieds="_";
+Character_Modifieds_Offset=0;//[-.1:.05:.5]
+Horizontal_Weight_Adj=.001;//[.001:.001:.2]
+Vertical_Weight_Adj=.001;//[.001:.001:.2]
+//0 For subtractive, 1 for additive
+Weight_Adj_Mode=0;//[0, 1];
 /* [Debug] */
 //Excludes Draft Angles for Speedy Preview and Render
 Debug_No_Minkowski=true;
@@ -88,7 +93,7 @@ Fig_Baseline_Offset = 1.4;
 Platen_Diameter = 32.258;
 BaselineOffsets=[Low_Baseline_Offset,Upp_Baseline_Offset,Fig_Baseline_Offset];
 //Final Minimum Character Height Radius
-Final_Min_Character_Height_Radius = 17.49;
+SomeMin_Final_Character_Diameter = 17.49;
 
 
 /* [Global Variables] */
@@ -196,16 +201,36 @@ module Cylinder (SomeElement_Radius,SomeElement_Height,SomeClip_Diameter,SomeCli
 }
 
 //Character Processing
-module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeBaselineOffset, SomeTypeface_, SomeType_Size, SomeChar, SomeTheta, SomePlaten_Diameter,SomeFinal_Min_Character_Height_Radius,SomeDebug){
+module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeBaselineOffset, SomeTypeface_, SomeType_Size, SomeChar, SomeTheta, SomePlaten_Diameter,SomeMin_Final_Character_Diameter, SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset,SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode){
     $fn = $preview ? 12 : 24;
     minkowski(){
         difference(){
             translate([cos(SomeTheta)*SomeCharacterRadius,sin(SomeTheta)*SomeCharacterRadius,SomeElement_Height-SomeBaseline])
+            translate([0,0,SomeChar==SomeCharacter_Modifieds ?  SomeCharacter_Modifieds_Offset : 0])
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
-            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
-            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeFinal_Min_Character_Height_Radius),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeFinal_Min_Character_Height_Radius),SomeElement_Height-SomeBaseline+SomeBaselineOffset])
+            if (SomeWeight_Adj_Mode==1)
+                minkowski(){
+                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
+                    circle(r=1, $fn=44);
+                }
+            else if (SomeWeight_Adj_Mode==0)
+                difference(){
+                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                minkowski(){
+                    difference(){
+                        square([10, 10], center=true);
+                        text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    }
+                    scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
+                    circle(r=1, $fn=44);
+                    }
+                }
+                    
+                
+            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout+SomeCutout_Offset])
             rotate([90,0,SomeTheta])
             cylinder(h=5,d=SomePlaten_Diameter,center=true,$fn=$preview ? 60 : 360);
         }
@@ -282,7 +307,7 @@ difference(){
                     for (n=[0:1:CharRenderLim]){
                         theta=-(360/len(Layout[0]))*n-360/(len(Layout[0])*2);
                         PickedChar=CharLegend[n];
-                        LetterText(CharacterRadius,Element_Height,Baselines[row],BaselineOffsets[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Final_Min_Character_Height_Radius,Debug_No_Minkowski);//Placing Letters
+                        LetterText(CharacterRadius,Element_Height,Baselines[row],BaselineOffsets[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,SomeMin_Final_Character_Diameter,Character_Modifieds,Character_Modifieds_Offset,Debug_No_Minkowski,Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode);//Placing Letters
                     }
                 }
                 Cylinder(Element_Radius,Element_Height,Clip_Diameter,Clip_Height,Shaft_Diameter,Cutout_Position_Radius,Element_Height,Cutout_Hole_Diameter,Shell_Thickness,Square_Slot_Support_Height,Square_Slot_Support_Radius,Element_Facet_Multiplier);//Placing Main Cylinder Body

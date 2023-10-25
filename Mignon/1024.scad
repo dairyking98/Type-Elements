@@ -41,6 +41,9 @@ Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
 //0 For subtractive, 1 for additive
 Weight_Adj_Mode=0;//[0, 1];
+//Individual Character Height Adjustments
+Character_Modifieds="_";
+Character_Modifieds_Offset=0;//[-.1:.05:.5]
 
 /* [Cylinder Details] */
 //Total Cylinder Height
@@ -91,12 +94,13 @@ Resin_Support_Wire_Thickness=.6;
 
 
 
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode){
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeCharacter_Modifieds, SomeCharacter_Modifieds_Offset, SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode){
     $fn = $preview ? 12 : 24;
     
     minkowski(){
         difference(){
             translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBaseline+SomeBaseline_Offset])
+            translate([0,0,SomeChar==SomeCharacter_Modifieds ?  SomeCharacter_Modifieds_Offset : 0])
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
@@ -126,7 +130,7 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
         }
         if (SomeDebug!=true)
             rotate([0,-90,SomeTheta])
-            cylinder(h=1.5,r2=.75,r1=0,$fn=6);
+            cylinder(h=1.5,r2=.75,r1=0,$fn=44);
     }
 }
 
@@ -145,7 +149,7 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n);
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode);
+                        LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Character_Modifieds, Character_Modifieds_Offset, Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode);
                     }
                     }
                 }//Polygonal Shape
@@ -169,8 +173,8 @@ union(){
             }
         }
         translate([0,0,-.001])//Cut Center Shaft Hole
-        cylinder(h=Cylinder_Height+2*.001,d=Cylinder_Top_Shaft_Diameter);
-        rotate_extrude(){//Hollow Out Cylinder
+        cylinder(h=Cylinder_Height+2*.001,d=Cylinder_Top_Shaft_Diameter, $fn=360);
+        rotate_extrude($fn=360){//Hollow Out Cylinder
             polygon([[Cylinder_Bottom_Shaft_Diameter/2,0-.001],
                 [Cylinder_Bottom_Shaft_Diameter/2,Cylinder_Height-Cylinder_Top_Height_Offset-4],
                 [Cylinder_Top_Shaft_Diameter/2-.001,Cylinder_Height-Cylinder_Top_Height_Offset],

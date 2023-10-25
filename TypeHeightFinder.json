@@ -36,6 +36,15 @@
             "Test_String": "The quick brown fox types NOW IS THE TIME",
             "Type_Size": "2.7999999999999998",
             "Typeface_": "Papyrus Pixel Mono"
+        },
+        "New set 7": {
+            "CPI": "10",
+            "Horizontal_Weight_Adj": "0.019000000000000003",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "1.8999999999999999",
+            "Typeface_": "Papyrus",
+            "Vertical_Weight_Adj": "0.019000000000000003",
+            "Weight_Adj_Mode": "1"
         }
     }
 }

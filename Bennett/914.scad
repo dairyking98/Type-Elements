@@ -23,6 +23,10 @@ Typeface_="Libertinus Mono";
 Type_Size=2.85;//[1:.05:10]
 //Speedy Preview and Render with No Minkowski
 Debug_No_Minkowski=true;
+Horizontal_Weight_Adj=.001;//[.001:.001:.2]
+Vertical_Weight_Adj=.001;//[.001:.001:.2]
+//0 For subtractive, 1 for additive
+Weight_Adj_Mode=0;//[0, 1];
 
 //Max Minimum Diameter Across 2 Concave Characters
 Min_Final_Character_Diameter=32.9;
@@ -96,7 +100,7 @@ Resin_Support_Wire_Thickness=.6;
 
 $fn=180;
 
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset){
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode){
     $fn = $preview ? 12 : 24;
     
     minkowski(){
@@ -106,8 +110,27 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
-            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
-            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeBottom_Countersink_Depth+SomeCutout+SomeCutout_Offset])
+            if (SomeWeight_Adj_Mode==1)
+                minkowski(){
+                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
+                    circle(r=1, $fn=44);
+                }
+            else if (SomeWeight_Adj_Mode==0)
+                difference(){
+                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                minkowski(){
+                    difference(){
+                        square([10, 10], center=true);
+                        text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    }
+                    scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
+                    circle(r=1, $fn=44);
+                    }
+                }
+                    
+                
+            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout+SomeCutout_Offset])
             rotate([90,0,SomeTheta])
             cylinder(h=5,d=SomePlaten_Diameter,center=true,$fn=$preview ? 60 : 360);
         }
@@ -126,7 +149,7 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n+360/(2*28));
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset);
+                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode);
                     }
                 }
             }

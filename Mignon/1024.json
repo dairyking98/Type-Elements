@@ -77,10 +77,10 @@
             "Cylinder_Top_Height_Offset": "3",
             "Cylinder_Top_Radius": "2",
             "Cylinder_Top_Shaft_Diameter": "7.2000000000000002",
-            "Debug_No_Minkowski": "true",
+            "Debug_No_Minkowski": "false",
             "Generate_Support": "true",
             "Height_Increase": "3",
-            "Horizontal_Weight_Adj": "0.001",
+            "Horizontal_Weight_Adj": "0.022000000000000002",
             "Min_Final_Character_Diameter": "17.399999999999999",
             "Pin_Height": "1.8",
             "Pin_Width": "1.7",
@@ -91,9 +91,9 @@
             "Resin_Support_Thickness": "2",
             "Resin_Support_Wire_Thickness": "0.59999999999999998",
             "Tallen": "false",
-            "Type_Size": "3.2999999999999998",
-            "Typeface_": "Consolas",
-            "Vertical_Weight_Adj": "0.001",
+            "Type_Size": "1.8999999999999999",
+            "Typeface_": "Papyrus",
+            "Vertical_Weight_Adj": "0.021000000000000001",
             "Weight_Adj_Mode": "1"
         }
     }
