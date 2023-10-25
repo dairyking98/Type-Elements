@@ -35,7 +35,8 @@ Platen_Diameter=30;
 //Individual Character Height Adjustments
 Character_Modifieds="_";
 Character_Modifieds_Offset=0;//[-.1:.05:.5]
-
+//Element Print Orientation
+Flip_Orientation=true;
 /* [Element Details] */
 //Element Diameter
 Element_Diameter=31.9;
@@ -97,7 +98,6 @@ Resin_Support_Thickness=2;
 Resin_Support_Cut_Groove_Diameter=.75;
 //Resin Support Wire Thickness
 Resin_Support_Wire_Thickness=.6;
-
 $fn=180;
 
 module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode){
@@ -142,6 +142,8 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
 
 
 union(){
+    translate([0, 0, Flip_Orientation ?  Element_Height : 0])
+    rotate([0, Flip_Orientation ? 180 : 0, 0])
     difference(){
         union(){
             for (row=[0:1:len(Layout)-1]){
@@ -219,8 +221,8 @@ union(){
                 }
                 
                 translate([Countersink_Diameter*cos(theta)/3,Countersink_Diameter*sin(theta)/3,0]){
-                cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
-                translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
+                cylinder(h=Resin_Support_Height+Top_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
+                translate([0,0,Resin_Support_Height+Top_Countersink_Depth-1])
                 cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
                 cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
                 }
@@ -228,8 +230,8 @@ union(){
             for (n=[0:1:3]){
                 theta=90*n;
                 translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
-                cylinder(h=Resin_Support_Height+Bottom_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
-                translate([0,0,Resin_Support_Height+Bottom_Countersink_Depth-1])
+                cylinder(h=Resin_Support_Height+Top_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
+                translate([0,0,Resin_Support_Height+Top_Countersink_Depth-1])
                 cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
                 cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
                 }

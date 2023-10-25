@@ -217,7 +217,8 @@ module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeBa
                 minkowski(){
                     text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
-                    circle(r=1, $fn=44);
+                    //circle(r=1, $fn=44);
+                    square([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj], center=true);
                 }
             else if (SomeWeight_Adj_Mode==0)
                 difference(){
