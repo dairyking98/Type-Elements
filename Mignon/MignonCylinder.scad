@@ -30,7 +30,7 @@ LAYOUT=["&():\"!?'äöü_",
 6th_Row="";
 7th_Row="";
 CUSTOMLAYOUT=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
-include <IndexLayouts.scad>
+include <MignonIndexLayouts.scad>
 CharLegend=[7,8,9,10,11,0,1,2,3,4,5,6];
 Layout_Selection=0; //[0:English Unknown, 1:Custom Layout, 2:Deutsch 4, 3:English 4, 4:French 3, 5:International Schreibschrift, 6:Schwedisch 2]
 Layout=Layouts[Layout_Selection];
