@@ -6,15 +6,21 @@
 //ADD RESIN SUPPORT
 /* [Character Details] */
 //As Seen on Legend
-LAYOUT=["'\"%&(£$);:,.",
-        "?PFUGQpfugq¼",
+/*LAYOUT=["'\"%&(£$);:,.",
+          "?PFUGQpfugq¼",
         "!VINABvinab½",
         "_LDETMldetm¾",
         "JKOSRZkosrzj",
         "/YCHWXychwx@",
         "#1234567890-"];
-CharLegend=[6,7,8,9,10,11,0,1,2,3,4,5];
-
+LAYOUT=["&():\"!?'äöü_",
+        "§PFUGQpfugq;",
+        "JVINABvinabj",
+        "/LDETMldetm,",
+        "%KOSRZkosrz=",
+        "¾YCHWXychwx+",
+        "½¼23456789.-"];
+*/
 //Custom Layout
 1st_Row="";
 2nd_Row="";
@@ -24,26 +30,40 @@ CharLegend=[6,7,8,9,10,11,0,1,2,3,4,5];
 6th_Row="";
 7th_Row="";
 CUSTOMLAYOUT=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
-
-//Use Custom Layout?
-Custom_Layout=false;
-Layout= Custom_Layout==false ? LAYOUT : CUSTOMLAYOUT;
-//Tallen the Element Height?
+include <IndexLayouts.scad>
+CharLegend=[7,8,9,10,11,0,1,2,3,4,5,6];
+Layout_Selection=0; //[0:English Unknown, 1:Custom Layout, 2:Deutsch 4, 3:English 4, 4:French 3, 5:International Schreibschrift, 6:Schwedisch 2]
+Layout=Layouts[Layout_Selection];
 Tallen=false;
 //Element Height Increase
 Height_Increase=3;
 
 
 Typeface_="Consolas";//As Installed on PC
-Type_Size=3.3;//Type Size
+Type_Size=3.3;//[1:.05:6]
 Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
 //0 For subtractive, 1 for additive
-Weight_Adj_Mode=0;//[0, 1];
+Weight_Adj_Mode=0;//[0:None, 1:Subtractive, 2:Additive]
 //Individual Character Height Adjustments
 Character_Modifieds="_";
 Character_Modifieds_Offset=0;//[-.1:.05:.5]
+Scale_Multiplier_Text=".";
+Scale_Multiplier=1.5;
+
+//Label Text
+Cylinder_Label="Label";
+//Label Size
+Cylinder_Label_Size=0.51*Type_Size;
+//Label Font
+Cylinder_Label_Font=Typeface_;
+//Label Height Offset From Chamfer Base
+Cylinder_Label_Height_Offset=.5;
+//Spacing Between Characters (Degrees)
+Cylinder_Label_Spacing=15;
+//Label Offset From Pin (Degrees)
+Cylinder_Label_Offset=0;
 
 /* [Cylinder Details] */
 //Total Cylinder Height
@@ -54,11 +74,13 @@ Cylinder_Diameter=16.5; //GET NEW VALUE
 //Height Drop From Top
 Cylinder_Top_Height_Offset=3;
 //Height Drop Chamfer Radius
-Cylinder_Top_Radius=2;
+//Cylinder_Top_Radius=2;
+//Height Drop Chamfer Size
+Cylinder_Top_Chamfer=1.75;
 //Height Drop Diameter
-Cylinder_Top_Diameter=14;
+Cylinder_Top_Diameter=10.5;
 //Inner Shaft Diameter
-Cylinder_Top_Shaft_Diameter=7.2;
+Cylinder_Top_Shaft_Diameter=7.3;
 //Inner Mounting Diameter
 Cylinder_Bottom_Shaft_Diameter=14.6;
 //Max Pin Height
@@ -68,14 +90,17 @@ Pin_Width=1.7;
 //Max Minimum Diameter Across 2 Concave Characters
 Min_Final_Character_Diameter=17.4; //GET NEW VALUE
 //Platen Diameter
-Platen_Diameter=25.4;
+Platen_Diameter=26.5;
 
 /* [Character Placement Details] */
 //[1st, 2nd, 3rd, 4th, 5th, 6th, 7th] Baseline Height
-Baseline=[1.8,6.8,11.8,16.8,21.8,26.8,31.8];
-Cutout=[3.225,8.225,13.225,18.225,23.225,28.225,33.225];
-Cutout_Offset=[0.6,0.6,0.6,0.6,0.6,0.6,0.6];//[0,0,0,0,0,0,0];
-Baseline_Offset=[0.6,0.6,0.6,0.6,0.6,0.6,0.6]; //,0,0,0,0,0,0];//[1,1,1,1,1,1,1];
+Baseline=[2.4, 7.55, 12.7, 17.7, 22.7, 27.7, 32.55];
+Baseline_Offset=[0, 0, 0, 0, 0, 0, 0];
+Cutout=[3.3, 8.55, 13.7, 18.7, 23.7, 28.7, 33.4];
+Cutout_Offset=[0, 0, 0, 0, 0, 0, 0];
+echo(Baseline+Baseline_Offset);
+
+echo (Cutout+Cutout_Offset);
 
 
 /* [Resin Print Support] */
@@ -84,19 +109,22 @@ Generate_Support=true;
 //Resin Support Cut Groove Thickness
 Resin_Support_Cut_Groove_Thickness=.1;
 //Resin Support Height
-Resin_Support_Height=3;
+Resin_Support_Height=4;
 //Resin Support Chamfer Size
 Resin_Support_Thickness=2;
 //Resin Support Cut Groove Diameter
 Resin_Support_Cut_Groove_Diameter=.75;
 //Resin Support Wire Thickness
 Resin_Support_Wire_Thickness=.6;
+//Resin Support Contact Point Diameter
+Resin_Support_Contact_Point=.2;
+Cylinder_fn = $preview ? 360 : 360;
+$fn = $preview ? 22 : 44;
 
 
-
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeCharacter_Modifieds, SomeCharacter_Modifieds_Offset, SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode){
-    $fn = $preview ? 12 : 24;
-    
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeCharacter_Modifieds, SomeCharacter_Modifieds_Offset, SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
+    $fn = $preview ? 22 : 44;
+    x=search(SomeChar, SomeScale_Multiplier_Text);
     minkowski(){
         difference(){
             translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBaseline+SomeBaseline_Offset])
@@ -104,13 +132,14 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
-            if (SomeWeight_Adj_Mode==1)
+            scale([x==[] ? 1: SomeScale_Multiplier, x==[] ? 1: SomeScale_Multiplier, 1])
+            if (SomeWeight_Adj_Mode==2)
                 minkowski(){
                     text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
-                    circle(r=1, $fn=44);
+                    circle(r=1);
                 }
-            else if (SomeWeight_Adj_Mode==0)
+            else if (SomeWeight_Adj_Mode==1)
                 difference(){
                     text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
                 minkowski(){
@@ -119,9 +148,11 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
                         text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
                     }
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
-                    circle(r=1, $fn=44);
+                    circle(r=1);
                     }
                 }
+                 else if (SomeWeight_Adj_Mode==0)
+            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
                     
                 
             translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout+SomeCutout_Offset])
@@ -130,7 +161,7 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
         }
         if (SomeDebug!=true)
             rotate([0,-90,SomeTheta])
-            cylinder(h=1.5,r2=.75,r1=0,$fn=44);
+            cylinder(h=1.5,r2=.75,r1=0);
     }
 }
 
@@ -142,6 +173,8 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
 //Module Cylinder (SomeCylinder_Height,SomeCylinder_Top_Height_Offset,SomeCylinder_Diameter,SomeCylinder_Top_Radius,SomeCylinder_Top)
 
 union(){
+    translate([0, 0, Cylinder_Height])
+    rotate([0, 180, 0])
     difference(){
         union(){ //Place Letters onto Blank Cylinder
             for (row=[0:1:len(Layout)-1]){
@@ -149,16 +182,16 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n);
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Character_Modifieds, Character_Modifieds_Offset, Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode);
+                        LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Character_Modifieds, Character_Modifieds_Offset, Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                     }
                     }
                 }//Polygonal Shape
             linear_extrude(Cylinder_Height-Cylinder_Top_Height_Offset)
              rotate([0,0,360/24])
             regular_polygon(12,Cylinder_Diameter);
-            translate([0,0,Cylinder_Height-Cylinder_Top_Radius])
-            hull(){//Element Top
-                rotate_extrude($fn=60){
+            translate([0,0,Cylinder_Height-Cylinder_Top_Height_Offset-.001]){
+            /*hull(){//Element Top
+                rotate_extrude($fn=Cylinder_fn){
                     translate([Cylinder_Top_Diameter/2-Cylinder_Top_Radius,0,0])
                     union(){
                         intersection(){
@@ -170,11 +203,29 @@ union(){
                         square([Cylinder_Top_Radius,Cylinder_Top_Radius*2]);
                         }
                 }
+            }*/
+            //Chamfer Top
+            cylinder(d=Cylinder_Top_Diameter, h=Cylinder_Top_Height_Offset+.001, $fn=Cylinder_fn);
+            cylinder(d1=Cylinder_Top_Diameter+Cylinder_Top_Chamfer*2, d2=Cylinder_Top_Diameter, h=Cylinder_Top_Chamfer, $fn=Cylinder_fn);
+            }
+            //Label Top
+            for (n=[0:len(Cylinder_Label)-1]){
+            rotate([0,0,Cylinder_Label_Spacing*n+Cylinder_Label_Offset-(len(Cylinder_Label)-1)*Cylinder_Label_Spacing/2])
+            translate([Cylinder_Top_Diameter/2+Cylinder_Top_Chamfer, 0, Cylinder_Height-Cylinder_Top_Height_Offset])
+            rotate([45, 0, 90])
+            translate([0, Cylinder_Label_Height_Offset, -.05])
+            minkowski(){
+            linear_extrude(.09)
+            text(text=Cylinder_Label[n], size=Cylinder_Label_Size, font=Cylinder_Label_Font, valign="baseline", halign="center");
+            if (Debug_No_Minkowski!=true)
+            scale([1,1,3])
+            sphere(r=.05);
+            }
             }
         }
         translate([0,0,-.001])//Cut Center Shaft Hole
-        cylinder(h=Cylinder_Height+2*.001,d=Cylinder_Top_Shaft_Diameter, $fn=360);
-        rotate_extrude($fn=360){//Hollow Out Cylinder
+        cylinder(h=Cylinder_Height+2*.001,d=Cylinder_Top_Shaft_Diameter, $fn=Cylinder_fn);
+        rotate_extrude($fn=Cylinder_fn){//Hollow Out Cylinder
             polygon([[Cylinder_Bottom_Shaft_Diameter/2,0-.001],
                 [Cylinder_Bottom_Shaft_Diameter/2,Cylinder_Height-Cylinder_Top_Height_Offset-4],
                 [Cylinder_Top_Shaft_Diameter/2-.001,Cylinder_Height-Cylinder_Top_Height_Offset],
@@ -183,10 +234,11 @@ union(){
         rotate([90,0,90]){
             linear_extrude(){//Cut Pin
                 union(){
-                    translate([-Pin_Width/2,Pin_Width/2-Pin_Height])
-                    square([Pin_Width,Pin_Height]);
-                    translate([0,Pin_Height-Pin_Width/2])
-                    circle(d=Pin_Width, $fn=360);
+                    hull(){
+                        circle(d=Pin_Width, $fn=Cylinder_fn);
+                        translate([0,Pin_Height-Pin_Width/2])
+                        circle(d=Pin_Width, $fn=Cylinder_fn);   
+                    }
                 }
             }
         }
@@ -195,16 +247,25 @@ union(){
     if (Generate_Support==true){
     translate([0,0,-Resin_Support_Height+.001]){
         rotate_extrude(){
-                polygon([[Cylinder_Diameter/2,0], [Cylinder_Diameter/2-Resin_Support_Thickness,0], [Cylinder_Diameter/2-Resin_Support_Thickness,Resin_Support_Thickness], [Cylinder_Diameter/2+Resin_Support_Thickness,Resin_Support_Thickness]]);
+                polygon([[Cylinder_Diameter/2,0], [Cylinder_Top_Shaft_Diameter/2,0], [Cylinder_Top_Shaft_Diameter/2,Resin_Support_Thickness], [Cylinder_Diameter/2+Resin_Support_Thickness,Resin_Support_Thickness]]);
             }
-            for (n=[0:1:22]){
-                theta=360/24*n+360/24;
-                translate([(Cylinder_Diameter+Cylinder_Bottom_Shaft_Diameter)/4*cos(theta),(Cylinder_Diameter+Cylinder_Bottom_Shaft_Diameter)/4*sin(theta),1]){
-                    cylinder(h=Resin_Support_Height-2,r=Resin_Support_Wire_Thickness);
-                    translate([0,0,Resin_Support_Height-2])
-                    cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
+            for (n=[0:1:11]){
+                r1=(Cylinder_Diameter+Cylinder_Bottom_Shaft_Diameter)/4-.1;
+                theta=360/12*n+360/12;
+                translate([r1*cos(theta),r1*sin(theta),1]){
+                    cylinder(h=Resin_Support_Height-2+Cylinder_Top_Height_Offset,r=Resin_Support_Wire_Thickness);
+                    translate([0,0,Resin_Support_Height-2+Cylinder_Top_Height_Offset])
+                    cylinder(h=1, r2=Resin_Support_Contact_Point, r1=Resin_Support_Wire_Thickness);
+                }
+                r2=(Cylinder_Top_Shaft_Diameter+Cylinder_Top_Diameter)/4;
+                translate([r2*cos(theta+360/24),r2*sin(theta+360/24),1]){
+                    if (n%2==0){
+                        cylinder(h=-2+Resin_Support_Height,r=Resin_Support_Wire_Thickness);
+                        translate([0,0,-2+Resin_Support_Height])
+                        cylinder(h=1, r2=Resin_Support_Contact_Point, r1=Resin_Support_Wire_Thickness);
+                    }
                 }
             }
-    }
+        }
     }
 }

@@ -2,48 +2,75 @@
     "fileFormatVersion": "1",
     "parameterSets": {
         "New set 1": {
-            "CPI": "5",
             "Test_String": "NOW IS THE TIME FOR ALL ",
             "Type_Size": "1.8999999999999999",
             "Typeface_": "M+ 1m"
         },
         "New set 2": {
-            "CPI": "5",
             "Test_String": "NOW IS THE TIME FOR ALL ",
             "Type_Size": "7.2000000000000002",
             "Typeface_": "Quinze"
         },
         "New set 3": {
-            "CPI": "10",
             "Test_String": "NOW IS THE TIME FOR ALL ",
             "Type_Size": "1.8999999999999999",
             "Typeface_": "LM Mono Light Cond 10"
         },
         "New set 4": {
-            "CPI": "10",
             "Test_String": "NOW IS THE TIME FOR ALL _",
             "Type_Size": "5.2000000000000002",
             "Typeface_": "LM Mono Light Cond 10"
         },
         "New set 5": {
-            "CPI": "10",
             "Test_String": "NOW IS THE TIME FOR ALL ",
             "Type_Size": "2.8999999999999999",
             "Typeface_": "Libertinus Mono"
         },
         "New set 6": {
-            "CPI": "10",
             "Test_String": "The quick brown fox types NOW IS THE TIME",
             "Type_Size": "2.7999999999999998",
             "Typeface_": "Papyrus Pixel Mono"
         },
         "New set 7": {
-            "CPI": "10",
             "Horizontal_Weight_Adj": "0.019000000000000003",
             "Test_String": "NOW IS THE TIME FOR ALL ",
             "Type_Size": "1.8999999999999999",
             "Typeface_": "Papyrus",
             "Vertical_Weight_Adj": "0.019000000000000003",
+            "Weight_Adj_Mode": "1"
+        },
+        "New set 8": {
+            "Horizontal_Weight_Adj": "0.001",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "2.5499999999999998",
+            "Typeface_": "Century Schoolbook Monospace",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "0"
+        },
+        "New set 9": {
+            "Horizontal_Weight_Adj": "0.001",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "3",
+            "Typeface_": "Century Schoolbook Monospace",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "0"
+        },
+        "New set 10": {
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Test_String": "the brown fdox kjuams",
+            "Type_Size": "3.8000000000000003",
+            "Typeface_": "CMU Typewriter Text",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "New set 11": {
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "2.75",
+            "Typeface_": "Souvenir Mono Bd",
+            "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
         }
     }
