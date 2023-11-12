@@ -32,7 +32,7 @@ QWERTY=["qwertasdfgzxcvbnm,hjkl.yuiop",
 Custom_Lowercase="zxkg.pwfudhiatensorlcmy,bvqj";
 //Custom Uppercase Row
 Custom_Uppercase="ZXKG.PWFUDHIATENSORLCMY&BVQJ";
-//Custom Figures Row - Put \ before "
+//Custom Figures Row
 Custom_Figures="\"#$%_/-¢@;23456789:!^1.&'(0)";
 CUSTOM=[Custom_Lowercase,Custom_Uppercase,Custom_Figures];
 SELECTIONS=[DHIATENSOR,QWERTY,CUSTOM];
@@ -58,29 +58,20 @@ Debug_No_Minkowski=true;
 Columns_Rendered=28;//[2:1:28]
 CharRenderLim=Columns_Rendered-1;
 
+/* [Element Label] */
 //Label Text
+Cylinder_Label_Font_Override="";
 Cylinder_Label="Label";
 //Label Size
 Cylinder_Label_Size=.67*Type_Size;//[1:.05:3]
 //Label Font
-Cylinder_Label_Font=Typeface_;//"Courier New:style=bold";
+Cylinder_Label_Font= Cylinder_Label_Font_Override=="" ?  Typeface_ : Cylinder_Label_Font_Override;//"Courier New:style=bold";
 //Spacing Between Characters (Degrees)
 Cylinder_Label_Spacing=10;
 //Label Offset From Pin (Degrees)
 Cylinder_Label_Offset=0;
 
-//
-///* [Character Positioning - From Top Plane] */
-////Lowercase Baseline
-//Low_Baseline = 3.5;
-////Uppercase Baseline
-//Upp_Baseline = 9.9;
-////Figures Baseline
-//Fig_Baseline = 15.7;
-//Baseline_Offset=[0, 0, -.1];
-//Baseline=[Low_Baseline-Baseline_Offset[0],Upp_Baseline-Baseline_Offset[1],Fig_Baseline-Baseline_Offset[2]];
-//
-//echo("baselines from top", [3.5, 9.9, 15.8]);
+/* [Character Positioning] */
 //Distance From Top Plane to Baseline
 Baselines=[3.7, 9.95, 15.8];
 //Baseline Offsets
@@ -107,30 +98,14 @@ Resin_Support_Height=4;
 Resin_Support_Thickness=2;
 //Resin Support Cut Groove Diameter
 Resin_Support_Cut_Groove_Diameter=.75;
-
-
-///* [Character Platen Cutting] */
-////Offset from Lowercase Baseline
-//Low_Baseline_Offset = 1.2;
-////Offset from Uppercase Baseline
-//Upp_Baseline_Offset = 1.29;
-////Offset from Figures Baseline
-//Fig_Baseline_Offset = 1.8;
-//Cutout_Offset=[0, -.2, -0.8];
-//Cutout=[Low_Baseline_Offset+Cutout_Offset[0], Upp_Baseline_Offset+Cutout_Offset[1], Fig_Baseline_Offset+Cutout_Offset[2]];
-//
-//echo ("cutouts from top", Baseline-Cutout);
-
 //Platen Diameter
 Platen_Diameter = 32.258;
-//BaselineOffsets=[Low_Baseline_Offset,Upp_Baseline_Offset,Fig_Baseline_Offset];
 //Final Minimum Character Height Radius
 Final_Min_Character_Height_Radius = 17.49;
 
-
 /* [Global Variables] */
 //Universal Offset - do not change
-e=.001;
+e=.01;
 Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 
@@ -221,15 +196,6 @@ module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeCu
     }
 }
 
-//Cleanup Shape
-module CleanupShape (SomeElement_Radius){
-    difference(){
-    cylinder(h=5,r=SomeElement_Radius+5);
-    translate([0, 0, -.001])
-    cylinder(h=5+.002,r=SomeElement_Radius-5);
-    }
-}
-
 //Resin Print Support Shape
 module ResinPrintSupportShape (SomeResin_Support_Cut_Groove_Thickness, SomeResin_Support_Height, SomeResin_Support_Thickness,SomeElement_Radius,SomeResin_Support_Cut_Groove_Diameter,SomeCutout_Position_Radius, Some_fn){
     rotate([180,0,0]){
@@ -282,31 +248,35 @@ module ResinPrintSupportShape (SomeResin_Support_Cut_Groove_Thickness, SomeResin
 
 union(){
 difference(){
-    union(){//Union of Resin Support, Positioner Support, Label Text
-        difference(){//Hollowing of Cylinder-Letter Union
-            union(){//Union of Cylinder and Letters
+    //Union of Resin Support, Positioner Support, Label Text
+    union(){
+        //Cut Hollow, Holes, Shaft, Positioner, Clip
+        difference(){
+            //Union of Cylinder and Letters
+            union(){
                 for (row=[0:1:len(Layout)-1]){
                     for (n=[0:1:CharRenderLim]){
                         theta=-(360/len(Layout[0]))*n-360/(len(Layout[0])*2);
                         PickedChar=CharLegend[n];
+                        //Place Characters
                         LetterText(CharacterRadius,Element_Height,Baseline[row],Cutout[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Final_Min_Character_Height_Radius,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset,Horizontal_Weight_Adj,Vertical_Weight_Adj,Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                     }
                 }
-                cylinder(r=Element_Radius, h=Element_Height+Clip_Height, $fn=Cylinder_fn);
-                
-                
-
-                
+                //Place Cylinder
+                translate([0, 0, -e])
+                cylinder(r=Element_Radius, h=Element_Height+Clip_Height+e, $fn=Cylinder_fn);
             }
-            translate([0, 0, Element_Height]) {
-            difference(){
-            cylinder(r=Element_Radius+5, h=5, $fn=Cylinder_fn);
-            translate([0, 0, -.001])
-            cylinder(r=Clip_Diameter/2,h=5+.002, $fn=Cylinder_fn);
-            }    }
+            //Subtract Minkowski Leftovers and Form Clip Shaft
+            translate([0, 0, Element_Height]){
+                difference(){
+                    cylinder(r=Element_Radius+5, h=5, $fn=Cylinder_fn);
+                    translate([0, 0, -e])
+                    cylinder(r=Clip_Diameter/2,h=5+2*e, $fn=Cylinder_fn);
+                }
+            }
+            //Subtract Shaft
             translate([0,0,-e])
-            cylinder(r=Shaft_Diameter/2, h=Element_Height+3+2*e, $fn=Cylinder_fn); 
-                
+            cylinder(r=Shaft_Diameter/2, h=Element_Height+Clip_Height+2*e, $fn=Cylinder_fn); 
             //Subtract Top Holes
             for (n = [0:1:7]){
                 translate([Cutout_Position_Radius*cos(45*n),Cutout_Position_Radius*sin(45*n),Element_Height/2])
@@ -319,34 +289,29 @@ difference(){
             }
             //Hollow Out Main Body
             rotate_extrude($fn=Cylinder_fn){
-                //polygon([[Clip_Diameter/2,3.6],[Clip_Diameter/2,Element_Radius-Shell_Thickness],[Element_Radius-Shell_Thickness,Element_Height-Shell_Thickness],[Element_Radius-Shell_Thickness,Shell_Thickness],[11.1,Shell_Thickness]]);
-                //rotate([0, 90, 0])
                 difference(){
-                hull(){
-                translate([(Element_Radius-Shell_Thickness+Shaft_Diameter/2+Shell_Thickness)/2, Element_Height-Shell_Thickness-Inside_Radius])
-                circle(r=Inside_Radius);//1
-                translate([Shaft_Diameter/2+Shell_Thickness+Inside_Radius, Element_Height-Shell_Thickness-Inside_Radius-.5])
-                circle(r=Inside_Radius);//2
-                translate([Element_Radius-Shell_Thickness-Inside_Radius, Element_Height-Shell_Thickness-Inside_Radius-.5])
-                circle(r=Inside_Radius);//3
-                translate([Element_Radius-Shell_Thickness-Inside_Radius, Shell_Thickness+Inside_Radius])
-                circle(r=Inside_Radius);//4
-                translate([(Element_Radius-Shell_Thickness+Shaft_Diameter/2+Shell_Thickness)/2, Shell_Thickness+Inside_Radius])
-                circle(r=Inside_Radius);//5
-                //translate([Shaft_Diameter/2+Shell_Thickness+Inside_Radius, Shell_Thickness+Inside_Radius+2])
-                translate([Shaft_Diameter/2+Shell_Thickness+1, Shell_Thickness+1])
-                circle(r=1);//6
-                }
+                    hull(){
+                        translate([(Element_Radius-Shell_Thickness+Shaft_Diameter/2+Shell_Thickness)/2, Element_Height-Shell_Thickness-Inside_Radius])
+                        circle(r=Inside_Radius);//1
+                        translate([Shaft_Diameter/2+Shell_Thickness+Inside_Radius, Element_Height-Shell_Thickness-Inside_Radius-.5])
+                        circle(r=Inside_Radius);//2
+                        translate([Element_Radius-Shell_Thickness-Inside_Radius, Element_Height-Shell_Thickness-Inside_Radius-.5])
+                        circle(r=Inside_Radius);//3
+                        translate([Element_Radius-Shell_Thickness-Inside_Radius, Shell_Thickness+Inside_Radius])
+                        circle(r=Inside_Radius);//4
+                        translate([(Element_Radius-Shell_Thickness+Shaft_Diameter/2+Shell_Thickness)/2, Shell_Thickness+Inside_Radius])
+                        circle(r=Inside_Radius);//5
+                        translate([Shaft_Diameter/2+Shell_Thickness+1, Shell_Thickness+1])
+                        circle(r=1);//6
+                    }
                 translate([0, -25.45+2.5])
                 circle(r=25.45+Shell_Thickness);
                 }
-            }//3.6 and 11.1 for Sphere Clearance Cutout
-        //Minkowski Cleanup
-        translate([0,0,Element_Height])
-        CleanupShape(Element_Radius);
+            }
+        //Subtract Bottom Minkowski Leftovers
         rotate([0,180,0])
-        CleanupShape(Element_Radius);
-        //Cut Out Wire Clip
+        cylinder(r=Element_Radius+5, h=5);
+        //Subtract Wire Clip
         translate([0,-(Shaft_Diameter/2+Wire_Diameter/2-Wire_Clip_Shaft_Bite),Element_Height+Wire_Diameter/2])
         hull(){
             rotate([0,-90,0])
@@ -355,27 +320,23 @@ difference(){
             rotate([0,-90,0])
             cylinder(r=Wire_Diameter/2+.5,h=8,center=true, $fn=Cylinder_fn);
         }
-        
-                            //Label Text
-    for (n=[0:len(Cylinder_Label)-1]){
+        //Label Text
+        for (n=[0:len(Cylinder_Label)-1]){
             rotate([0,0,90-Cylinder_Label_Spacing*n+Cylinder_Label_Offset+(len(Cylinder_Label)-1)*Cylinder_Label_Spacing/2])
             translate([0, Cylinder_Label_Radius, Element_Height-.3])
             linear_extrude(.4)
             text(text=Cylinder_Label[n], size=Cylinder_Label_Size, font=Cylinder_Label_Font, valign="baseline", halign="center");
-            }
-        
+        }
     }
-    //Positioner Support
-    translate([Cutout_Position_Radius,0,Shell_Thickness])
-    minkowski(){
-        cube([Square_Slot_Width, Square_Slot_Width, Square_Slot_Support_Height], center=true);
-        cylinder(r=1, $fn=Cylinder_fn);
+    //translate([Cutout_Position_Radius,0,Shell_Thickness])
+    //minkowski(){
+        //cube([Square_Slot_Width, Square_Slot_Width, Square_Slot_Support_Height], center=true);
+        //cylinder(r=1, $fn=Cylinder_fn); //This failed in testing
+    //Place Positioner Support
+    translate([Cutout_Position_Radius,0,Shell_Thickness-e])
+    cylinder(h=2*e+Square_Slot_Support_Height,r=Square_Slot_Support_Radius, $fn=Cylinder_fn);
     }
-
-    
-    
-    }
-    //Positioner Hole
+    //Subtract Positioner Hole and Countersink
     translate([Cutout_Position_Radius,0,-e]){
         cylinder(h=Positioner_Depth,r=Positioner_Support_Radius, $fn=Cylinder_fn);
         cube([Square_Slot_Width, Square_Slot_Width, 10], center=true);
