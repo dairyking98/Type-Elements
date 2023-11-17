@@ -1,75 +1,188 @@
 {
     "fileFormatVersion": "1",
     "parameterSets": {
-        "New set 1": {
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "1.8999999999999999",
-            "Typeface_": "M+ 1m"
-        },
-        "New set 2": {
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "7.2000000000000002",
-            "Typeface_": "Quinze"
-        },
-        "New set 3": {
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "1.8999999999999999",
-            "Typeface_": "LM Mono Light Cond 10"
-        },
-        "New set 4": {
-            "Test_String": "NOW IS THE TIME FOR ALL _",
-            "Type_Size": "5.2000000000000002",
-            "Typeface_": "LM Mono Light Cond 10"
-        },
-        "New set 5": {
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "2.8999999999999999",
-            "Typeface_": "Libertinus Mono"
-        },
-        "New set 6": {
-            "Test_String": "The quick brown fox types NOW IS THE TIME",
-            "Type_Size": "2.7999999999999998",
-            "Typeface_": "Papyrus Pixel Mono"
-        },
-        "New set 7": {
-            "Horizontal_Weight_Adj": "0.019000000000000003",
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "1.8999999999999999",
-            "Typeface_": "Papyrus",
-            "Vertical_Weight_Adj": "0.019000000000000003",
-            "Weight_Adj_Mode": "1"
-        },
-        "New set 8": {
-            "Horizontal_Weight_Adj": "0.001",
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "2.5499999999999998",
-            "Typeface_": "Century Schoolbook Monospace",
-            "Vertical_Weight_Adj": "0.001",
-            "Weight_Adj_Mode": "0"
-        },
-        "New set 9": {
-            "Horizontal_Weight_Adj": "0.001",
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "3",
-            "Typeface_": "Century Schoolbook Monospace",
-            "Vertical_Weight_Adj": "0.001",
-            "Weight_Adj_Mode": "0"
-        },
-        "New set 10": {
+        "Century Schoolbook Mono": {
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0.15000000000000013",
             "Horizontal_Weight_Adj": "0.001",
             "Pitch": "2.6000000000000001",
-            "Test_String": "the brown fdox kjuams",
-            "Type_Size": "3.8000000000000003",
+            "Scale_Multiplier": "1.3",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "H",
+            "Type_Size": "2.6500000000000004",
+            "Typeface_": "Century Schoolbook Monospace",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "CMU Typewriter Text": {
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Scale_Multiplier": "1.2999999999999998",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": ".",
+            "Type_Size": "2.9000000000000004",
             "Typeface_": "CMU Typewriter Text",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
         },
-        "New set 11": {
+        "Open Dyslexic Mono": {
+            "Bennett_Bounding_Box": "true",
+            "Blick_Bounding_Box": "false",
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Scale_Multiplier": "1.2",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "g",
+            "Type_Size": "2.4500000000000002",
+            "Typeface_": "OpenDyslexicMono",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Alma Mono": {
+            "Character_Modifieds": ";,",
+            "Character_Modifieds_Offset": "0",
             "Horizontal_Weight_Adj": "0.001",
             "Pitch": "2.54",
-            "Test_String": "NOW IS THE TIME FOR ALL ",
-            "Type_Size": "2.75",
-            "Typeface_": "Souvenir Mono Bd",
+            "Scale_Multiplier": "1.2",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": ".",
+            "Type_Size": "2.5499999999999998",
+            "Typeface_": "Alma Mono",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Steile Zierschrift": {
+            "Character_Modifieds": ";,",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "What the fuck",
+            "Type_Size": "2.4500000000000002",
+            "Typeface_": "Bonkerworking",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Blick Script": {
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0.040000000000000036",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": ".",
+            "Type_Size": "3.6500000000000004",
+            "Typeface_": "Blick_Script",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Compagnon": {
+            "Bennett_Bounding_Box": "true",
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1.5",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "g",
+            "Type_Size": "3.0500000000000003",
+            "Typeface_": "Compagnon Light",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Monofur": {
+            "Character_Modifieds": "()",
+            "Character_Modifieds_Offset": "0.10000000000000009",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1.6000000000000001",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "Now is the time",
+            "Type_Size": "2.8500000000000001",
+            "Typeface_": "Monofur",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Souvenir Mono": {
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1.3999999999999999",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": ".",
+            "Type_Size": "2.9000000000000004",
+            "Typeface_": "Souvenir Mono",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Comic Mono": {
+            "Character_Modifieds": ";",
+            "Character_Modifieds_Offset": "0.070000000000000062",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Scale_Multiplier": "1.3999999999999999",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": ",",
+            "Type_Size": "2.5499999999999998",
+            "Typeface_": "Comic Mono",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Goudy Italic": {
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0.060000000000000053",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Scale_Multiplier": "1.5",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": ".",
+            "Type_Size": "2.5499999999999998",
+            "Typeface_": "Goudy_Italic",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Wingdings": {
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "1",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Scale_Multiplier": "0.99999999999999967",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "ACDFEGHJKLMNBZXCVUYIO{PO",
+            "Type_Size": "1.8",
+            "Typeface_": "Wingdings",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "BPDots": {
+            "Character_Modifieds": "",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "0.99999999999999922",
+            "Scale_Multiplier_Text": ".,",
+            "Test_String": ",.",
+            "Type_Size": "2.3500000000000001",
+            "Typeface_": "BPDots",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Smooth Papyrus": {
+            "Character_Modifieds": "",
+            "Character_Modifieds_Offset": "0",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1.6000000000000001",
+            "Scale_Multiplier_Text": ".,",
+            "Test_String": ",.",
+            "Type_Size": "1.8",
+            "Typeface_": "Smooth Papyrus",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
         }

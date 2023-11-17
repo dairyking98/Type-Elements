@@ -33,21 +33,21 @@ Custom_Lowercase="zxkg.pwfudhiatensorlcmy,bvqj";
 //Custom Uppercase Row
 Custom_Uppercase="ZXKG.PWFUDHIATENSORLCMY&BVQJ";
 //Custom Figures Row
-Custom_Figures="\"#$%_/-¢@;23456789:!^1.&'(0)";
+Custom_Figures="-^_(./'\"!1234567890;?%¢$)@#:";
 CUSTOM=[Custom_Lowercase,Custom_Uppercase,Custom_Figures];
 SELECTIONS=[DHIATENSOR,QWERTY,CUSTOM];
 CharLegend=[14,15,16,17,18,19,20,21,22,23,24,25,26,27,0,1,2,3,4,5,6,7,8,9,10,11,12,13];
 
 Layout_Selection=0;//[0:DHIATENSOR,1:QWERTY,2:Custom] 
 //Type Size
-Type_Size=3.3;//[1:.05:5]
-Typeface_="Consolas";//exactly as shown installed in PC
+Type_Size=3.55;//[1:.05:5]
+Typeface_="Courier New";//exactly as shown installed in PC
 Layout=SELECTIONS[Layout_Selection];
 //Individual Character Height Adjustments
 Character_Modifieds="_";
-Character_Modifieds_Offset=0;//[-.1:.05:.5]
+Character_Modifieds_Offset=1;//[-1.5:.05:1.5]
 Scale_Multiplier_Text=".";
-Scale_Multiplier=1.5;
+Scale_Multiplier=1.4;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
 Weight_Adj_Mode=0;//[0:None, 1:Subtractive, 2:Additive]
@@ -59,25 +59,27 @@ Columns_Rendered=28;//[2:1:28]
 CharRenderLim=Columns_Rendered-1;
 
 /* [Element Label] */
-//Label Text
+//Label Font Override
 Cylinder_Label_Font_Override="";
-Cylinder_Label="Label";
+//Label Text Override
+Cylinder_Label_Override="";
 //Label Size
 Cylinder_Label_Size=.67*Type_Size;//[1:.05:3]
 //Label Font
-Cylinder_Label_Font= Cylinder_Label_Font_Override=="" ?  Typeface_ : Cylinder_Label_Font_Override;//"Courier New:style=bold";
+Cylinder_Label_Font= Cylinder_Label_Font_Override== "" ?  Typeface_ : Cylinder_Label_Font_Override;//"Courier New:style=bold";
+Cylinder_Label= Cylinder_Label_Override== "" ? Typeface_ : Cylinder_Label_Override;
 //Spacing Between Characters (Degrees)
-Cylinder_Label_Spacing=10;
+Cylinder_Label_Spacing=8;
 //Label Offset From Pin (Degrees)
 Cylinder_Label_Offset=0;
 
 /* [Character Positioning] */
 //Distance From Top Plane to Baseline
-Baselines=[3.7, 9.95, 15.8];
+Baselines=[4, 10.3, 16.1];
 //Baseline Offsets
 Baseline_Offset=[0, 0, 0];//[-1:.05:1]
 //Distance from Top Plane to Cutout
-Cutouts=[2.6, 8.76, 14.7];
+Cutouts=[2.6, 8.86, 14.6];
 //Cutout Offsets
 Cutout_Offset=[0, 0, 0];//[-1:.05:1]
 Baseline=Baselines-Baseline_Offset;
