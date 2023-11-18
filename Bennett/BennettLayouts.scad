@@ -4,6 +4,6 @@ ENGLISH=["qweruiopasdftyjkl,zxcvghbnm.",
         
 BRITISH=["qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
-        "12347890\"¾$%56;?:½£@_(&-)/.¼"];
+        "12347890\"¾$%56;?:½£@_(&-)/'¼"];
         
 LAYOUTS=[ENGLISH, BRITISH, CUSTOMLAYOUT];

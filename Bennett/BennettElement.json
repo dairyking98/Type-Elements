@@ -242,7 +242,7 @@
             "Countersink_Diameter": "23.399999999999999",
             "Cutout": "[16, 9.95, 3.9]",
             "Cutout_Offset": "[0, 0, 0]",
-            "Debug_No_Minkowski": "true",
+            "Debug_No_Minkowski": "false",
             "Element_Diameter": "31.899999999999999",
             "Element_Height": "18.649999999999999",
             "Element_Positioner_Pin_Diameter": "2.464",
