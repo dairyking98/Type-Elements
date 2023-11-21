@@ -25,8 +25,8 @@ Cutout=Cutouts-Cutouts_Offset;
 
 
 Layout=ENGLISH;
-Typeface_="Consolas";
-Type_Size=2;
+Typeface_="CMU Typewriter Text";//"Consolas";
+Type_Size=3.55;//2;
 Debug_No_Minkowski=true;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
@@ -105,15 +105,15 @@ Resin_Support_Contact_Radius=.2;
 
 z_offset=Shuttle_Inner_Arc_Radius*cos(60);
 y_max=Shuttle_Inner_Arc_Radius*sin(60);
-x_max=(Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2);
-x_min=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2;
+x_max=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2;
+x_min=Shuttle_Height-x_max;
 echo("z_offset", z_offset);
 echo("y_max", y_max);
 echo("x_min", x_min);
 echo("x_max", x_max);
 union(){
     rotate([0, -90, 0])
-    translate([-Shuttle_Inner_Arc_Radius*cos(60), 0, -(Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2)])
+    translate([-Shuttle_Inner_Arc_Radius*cos(60), 0, -x_max])
     difference(){
         union(){
             difference(){
@@ -124,7 +124,7 @@ union(){
                     regular_polygon(96, 2*Shuttle_Inner_Arc_Radius+2*Shuttle_Thickness);
                     for (row = [0:1:2]){
                         for (column = [0:1:29]){
-                            LetterText (Shuttle_Inner_Arc_Radius+Shuttle_Thickness-.01, Shuttle_Height, Baseline[row], Typeface_, Type_Size, Layout[row][column], column, Shuttle_Text_Protrusion,Debug_No_Minkowski, Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                            LetterText (Shuttle_Inner_Arc_Radius+Shuttle_Thickness-.01, Shuttle_Height, Baseline[row], Typeface_, Type_Size, Layout[row][29-column], column, Shuttle_Text_Protrusion,Debug_No_Minkowski, Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                         }
                     }
                 }
@@ -173,7 +173,7 @@ union(){
     if (Resin_Support==true){
         union(){
             for (y=[-33:Resin_Support_Spacing:33])
-                for (x=[-6.7,-6.7*3/4, -6.7*1/2, -6.7*1/4, 6.7*1/4, 6.7*1/2, 6.7*3/4, 6.7]){
+                for (x=[-x_min+Resin_Support_Contact_Radius,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Radius]){
                     translate([x, y, -Resin_Support_Min_Height-.01]){
                     cylinder(h=sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-1-z_offset+Resin_Support_Min_Height, r=Resin_Support_Rod_Thickness);
                     translate([0, 0, sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-1-z_offset+Resin_Support_Min_Height]){
