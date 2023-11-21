@@ -81,15 +81,16 @@
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
         },
-        "Compagnon": {
+        "Compagnon ": {
             "Bennett_Bounding_Box": "true",
+            "Blick_Bounding_Box": "false",
             "Character_Modifieds": "_",
             "Character_Modifieds_Offset": "0",
             "Horizontal_Weight_Adj": "0.001",
             "Pitch": "2.54",
             "Scale_Multiplier": "1.5",
             "Scale_Multiplier_Text": ".",
-            "Test_String": "g",
+            "Test_String": "gNow is the time",
             "Type_Size": "3.0500000000000003",
             "Typeface_": "Compagnon Light",
             "Vertical_Weight_Adj": "0.001",
@@ -183,6 +184,23 @@
             "Test_String": ",.",
             "Type_Size": "1.8",
             "Typeface_": "Smooth Papyrus",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Tremble308": {
+            "Bennett_Bounding_Box": "false",
+            "Blick_Bounding_Box": "false",
+            "Bound_y": "3",
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0.19999999999999996",
+            "Custom_Bounding_Box": "true",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1.3",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "DHIATENSOR",
+            "Type_Size": "2.8500000000000001",
+            "Typeface_": "Tremble 308",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
         }

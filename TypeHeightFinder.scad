@@ -21,6 +21,13 @@ Blick_Bounding_Box=false;
 Bennett_Bounding_Box=false;
 translate([0, 15, 0])
 text(Test_String[1],size=Type_Size,halign="center",valign="baseline",font=Typeface_);
+Custom_Bounding_Box=false;
+Bound_x=2.54;
+Bound_y=3.43;
+
+if (Custom_Bounding_Box==true){
+translate([Bound_x/2, Bound_y/2])
+#square([Bound_x, Bound_y], center=true);}
 
 if (Blick_Bounding_Box==true){
 translate([Pitch/2, 2.5/2])
@@ -31,8 +38,8 @@ translate([Pitch/2, -.65/2])
 if (Bennett_Bounding_Box==true){
 translate([Pitch/2, 2.56/2])
 #square([2.54, 2.56], center=true);
-translate([Pitch/2, -1/2])
-#square([2.42, 1], center=true);}
+translate([Pitch/2, -.79/2])
+#square([2.42, .79], center=true);}
 
 for (n=[0:1:len(Test_String)-1]){
     x=search(Test_String[n], Scale_Multiplier_Text);

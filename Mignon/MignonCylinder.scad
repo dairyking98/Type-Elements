@@ -70,7 +70,7 @@ Cylinder_Label_Offset=0;
 Cylinder_Height_=40;
 Cylinder_Height= Tallen==true ? Cylinder_Height_+Height_Increase : Cylinder_Height_;
 //Main Cylinder Diameter
-Cylinder_Diameter=16.5; //GET NEW VALUE
+Cylinder_Diameter=18;
 //Height Drop From Top
 Cylinder_Top_Height_Offset=3;
 //Height Drop Chamfer Radius
@@ -88,16 +88,16 @@ Pin_Height=1.8;
 //Max Pin Width
 Pin_Width=1.7;
 //Max Minimum Diameter Across 2 Concave Characters
-Min_Final_Character_Diameter=17.4; //GET NEW VALUE
+Min_Final_Character_Diameter=19;
 //Platen Diameter
 Platen_Diameter=26.5;
 
 /* [Character Placement Details] */
 //[1st, 2nd, 3rd, 4th, 5th, 6th, 7th] Baseline Height
 Baseline=[2.4, 7.55, 12.7, 17.7, 22.7, 27.7, 32.55];
-Baseline_Offset=[0, 0, 0, 0, 0, 0, 0];
+Baseline_Offset=[0, 0, 0, 0, 0, 0, 0];//GET NEW OFFSETS
 Cutout=[3.3, 8.55, 13.7, 18.7, 23.7, 28.7, 33.4];
-Cutout_Offset=[0, 0, 0, 0, 0, 0, 0];
+Cutout_Offset=[0, 0, 0, 0, 0, 0, 0];//GET NEW OFFSETS
 echo(Baseline+Baseline_Offset);
 
 echo (Cutout+Cutout_Offset);

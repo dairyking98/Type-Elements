@@ -334,6 +334,7 @@ difference(){
         }
         //Series Number Text
         translate([0, -Cutout_Position_Radius+Cutout_Hole_Diameter_Top/2+1, Element_Height])
+        linear_extrude(.4)
         text(text=Series_Number, size=Series_Size, font=Series_Font, valign="baseline", halign="center");
     }
     //translate([Cutout_Position_Radius,0,Shell_Thickness])
