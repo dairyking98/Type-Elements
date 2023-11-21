@@ -199,7 +199,7 @@
             "Character_Modifieds_Offset": "0",
             "Cutouts": "[3, 8, 12]",
             "Cutouts_Offset": "[0, 0, 0]",
-            "Debug_No_Minkowski": "true",
+            "Debug_No_Minkowski": "false",
             "Horizontal_Weight_Adj": "0.001",
             "Resin_Support": "true",
             "Resin_Support_Base_Thickness": "2",

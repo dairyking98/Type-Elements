@@ -8,10 +8,10 @@ GERMAN_MOD=["wertuionklpasdcfghbvm",
         "'!+züjö.:xyä23456789q",
        "\"()Z⁄J=,;XY¢ß&%/-_§?Q"];
 
-TESTING=["wertuionklpasdcfghbvm",
-        "WERTUIONKLPASDCFGHBVM",
-        "wertuionklpasdcfghbvm",
-       "WERTUIONKLPASDCFGHBVM"];
+TESTING=["hhhhhhhhhhhhhhhhhhhhh",
+         "hhhhhhhhhhhhhhhhhhhhh",
+         "hhhhhhhhhhhhhhhhhhhhh",
+         "hhhhhhhhhhhhhhhhhhhhh"];
 Cylinder_fn = $preview ? 60 : 360;
 $fn = $preview ? 22 : 44;
 LAYOUT=TESTING;
@@ -25,7 +25,7 @@ Cutout=Cutouts-Cutout_Offset;
 
 Element_Height=18.7;
 Element_Diameter=27.15;
-Element_Shaft_Diameter=4.16;
+Element_Shaft_Diameter=3.793;//3.6+.143+.05 shaft+clearanceoffset+clearance  //4.16 scan diameter
 Element_Min_Concave=28.19;
 Element_SquareHole_Position=8.92;
 Element_SquareHole_Width=4.10;
@@ -126,11 +126,13 @@ union(){
                         Remove "-Baseline_Testing[column]"
                         Remove echo
                         
+                        Change LAYOUT=GERMAN
+                        
                         */
                         Baseline_Testing=[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
                         Cutout_Testing=[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
                             LetterText(Element_Diameter-.1,Element_Height-Baseline[row]-Baseline_Testing[column],Element_Height-Cutout[row]+Cutout_Testing[column], Typeface_,Type_Size,LAYOUT[row][column],theta*(column),Platen_Diameter,Element_Min_Concave,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
-                            echo("char=", LAYOUT[row][column], ";  baseline=", Baseline[row]-Baseline_Testing[column], "; cutout=", Cutout[row]+Cutout_Testing[column]);
+                            echo(str(" char = ", GERMAN[row][column], " ;   baseline = ", Baseline[row]-Baseline_Testing[column], " ;   cutout = ", Cutout[row]+Cutout_Testing[column], " "));
                         }
                         translate([0, 0, -.01])
                         cylinder(h=Element_Height+2*.01, d=Element_Diameter, $fn=Cylinder_fn);
