@@ -16,14 +16,14 @@ Cylinder_fn = $preview ? 60 : 360;
 $fn = $preview ? 22 : 44;
 LAYOUT=TESTING;
 //From Top Plane
-Baselines=[3.0, 7.8, 12.5, 17.3];
+Baselines=[3.55, 9.55, 15.50, 21.7];
 Baseline_Offset=[0, 0, 0, 0];
 Baseline=Baselines-Baseline_Offset;
-Cutouts=[2.5, 7.3, 12, 16.8];
+Cutouts=[2.2, 8.2, 14.2, 20.2];
 Cutout_Offset=[0, 0, 0, 0];
 Cutout=Cutouts-Cutout_Offset;
 
-Element_Height=18.7;
+Element_Height=23.42;
 Element_Diameter=27.15;
 Element_Shaft_Diameter=3.793;//3.6+.143+.05 shaft+clearanceoffset+clearance  //4.16 scan diameter
 Element_Min_Concave=28.19;
@@ -58,10 +58,22 @@ Scale_Multiplier=1.5;
 
 Resin_Support=true;
 Resin_Support_Base_Thickness=2;
-Resin_Support_Rod_Thickness=.4;
-Resin_Support_Min_Height=1;
-Resin_Support_Spacing=3;
-Resin_Support_Contact_Radius=.2;
+Resin_Support_Rod_Thickness=.8;
+Resin_Support_Min_Height=2;
+Resin_Support_Contact_Diameter=.4;
+Resin_Support_Cut_Groove_Diameter=.75;
+Resin_Support_Cut_Groove_Thickness=.2;
+
+module SupportRod (RodThickness, BaseThickness, ContactDiameter, Height){
+    union(){
+    cylinder(d1=2, d2=2+BaseThickness, h=BaseThickness);
+    cylinder(d=RodThickness, h=Height-1);
+    translate([0, 0, Height-1])
+    cylinder(d1=RodThickness, d2=ContactDiameter, h=1);
+    translate([0, 0, Height])
+    sphere(d=ContactDiameter);
+    }
+}
 
 
 module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
@@ -120,11 +132,11 @@ union(){
                         
                         Testing Stuff for locastan
                         
-                        Remove Baseline_Testing
-                        Remove Cutout_Testing
+                        Remove Baseline_Testing=...
+                        Remove Cutout_Testing=...
                         Remove "+Cutout_Testing[column]"
                         Remove "-Baseline_Testing[column]"
-                        Remove echo
+                        Remove char=..., baseline=..., cutout=..., echo(...
                         
                         Change LAYOUT=GERMAN
                         
@@ -132,7 +144,10 @@ union(){
                         Baseline_Testing=[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
                         Cutout_Testing=[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
                             LetterText(Element_Diameter-.1,Element_Height-Baseline[row]-Baseline_Testing[column],Element_Height-Cutout[row]+Cutout_Testing[column], Typeface_,Type_Size,LAYOUT[row][column],theta*(column),Platen_Diameter,Element_Min_Concave,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
-                            echo(str(" char = ", GERMAN[row][column], " ;   baseline = ", Baseline[row]-Baseline_Testing[column], " ;   cutout = ", Cutout[row]+Cutout_Testing[column], " "));
+                            char=GERMAN[row][column];
+                            baseline=Baseline[row]-Baseline_Testing[column];
+                            cutout=Cutout[row]+Cutout_Testing[column];
+                            echo(char=char,baseline=baseline, cutout=cutout);
                         }
                         translate([0, 0, -.01])
                         cylinder(h=Element_Height+2*.01, d=Element_Diameter, $fn=Cylinder_fn);
@@ -204,6 +219,50 @@ union(){
             }
     }
     if (Resin_Support==true){
+        difference(){
         
+            union(){
+                translate([0, 0, -Resin_Support_Min_Height])
+                cylinder(d=Element_Diameter, h=Resin_Support_Min_Height+.01, $fn=Cylinder_fn);
+                translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness])
+                cylinder(h=Resin_Support_Base_Thickness, d1=Element_Diameter+2, d2=2+Element_Diameter+2*Resin_Support_Base_Thickness);
+            }
+            
+            translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness-.01])
+            cylinder(d=Element_Diameter-Resin_Support_Cut_Groove_Diameter-Resin_Support_Cut_Groove_Thickness*2, h=Resin_Support_Min_Height+Resin_Support_Base_Thickness+2*.01, $fn=Cylinder_fn);
+        
+            rotate_extrude($fn=Cylinder_fn){
+                translate([Element_Diameter/2, -Resin_Support_Cut_Groove_Diameter/2])
+                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
+            }
+        }
+        translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness]){
+            for (n=[0:1:11]){
+                theta=360/12*n;
+                //SupportRod (RodThickness, BaseThickness, ContactDiameter, Height)
+                outer=Element_SquareHole_Position+1/2*Element_SquareHole_Length+Resin_Support_Contact_Diameter/2;
+                inner=Element_Shaft_Diameter/2+Resin_Support_Contact_Diameter/2;
+                middle=(outer+inner)/2;
+                squareholeinner=Element_SquareHole_Position-1/2*Element_SquareHole_Length-Resin_Support_Contact_Diameter/2;
+                rotate([0, 0, theta]){
+                    translate([0, outer, 0])
+                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                    translate([0, middle, 0])
+                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                }
+                if (n%3==0){
+                    rotate([0, 0, theta])
+                    translate([0, inner, 0])
+                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                }
+                translate([-squareholeinner, 0, 0])
+                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                translate([-Element_SquareHole_Position, Element_SquareHole_Width/2, 0])
+                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                translate([-Element_SquareHole_Position, -Element_SquareHole_Width/2, 0])
+                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                
+            }
+        }
     }
 }
