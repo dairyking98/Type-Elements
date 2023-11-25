@@ -76,6 +76,11 @@ Wire_Thickness=.6;
 Support_Height=2;
 Support_Pitch=2;
 
+Loop=true;
+Loop_Thickness=1;//[0:.01:5]
+Loop_Diameter=4;//[1:.01:5]
+Loop_Rotation=0;//[0:45:180]
+
 
 union(){
 difference(){
@@ -179,10 +184,15 @@ difference(){
     translate([0, Body_Length/2, -Bottom_Thickness-(Body_Height+1)/2])
     cube([Body_Slot_Width, Body_Length+1, Body_Height+1], center=true);
     //Copyright
-    translate([0, Body_Length/2, -Bottom_Thickness+Copyright_Depth-.001])
-    rotate([0, 180, -90])
-    linear_extrude(Copyright_Depth)
-    text(text=Copyright_Text, font=Copyright_Font, size=Body_Slot_Width*.75, halign="center", valign="center");
+//    translate([0, Body_Length/2, -Bottom_Thickness+Copyright_Depth-.001])
+//    rotate([0, 180, -90])
+//    linear_extrude(Copyright_Depth)
+//    text(text=Copyright_Text, font=Copyright_Font, size=Body_Slot_Width*.75, halign="center", valign="center");
+
+    translate([Body_Width/2-Copyright_Depth, Body_Length/2, -Face_Thickness+.1])
+    rotate([90, 0, 90])
+    linear_extrude(Copyright_Depth+.01)
+    #text(text=Copyright_Text, font=Copyright_Font, size=Body_Slot_Width*.75, halign="center", valign="center");
 }
 
     if (Resin_Support==true){
@@ -208,5 +218,13 @@ difference(){
                 }
             }
         }
-    } 
+    }
+    if (Loop==true){
+        translate([0, Body_Length/*+Loop_Diameter/2-Loop_Thickness*/, -Loop_Thickness/2])
+        rotate([0, Loop_Rotation, 0])
+        rotate_extrude($fn=360){
+            translate([Loop_Diameter/2-Loop_Thickness/2, 0])
+            circle(d=Loop_Thickness, $fn=360);
+        }
+    }
 }

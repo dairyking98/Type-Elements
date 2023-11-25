@@ -25,8 +25,8 @@ Cutout=Cutouts-Cutouts_Offset;
 
 
 Layout=ENGLISH;
-Typeface_="CMU Typewriter Text";//"Consolas";
-Type_Size=3.55;//2;
+Typeface_="Courier Prime";//"Consolas";
+Type_Size=3.00;//2;
 Debug_No_Minkowski=true;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
@@ -36,14 +36,14 @@ Weight_Adj_Mode=0;//[0:None, 1:Subtractive, 2:Additive]
 Character_Modifieds="_";
 Character_Modifieds_Offset=0;//[-.1:.05:.5]
 Scale_Multiplier_Text=".";
-Scale_Multiplier=1.5;
+Scale_Multiplier=1;
 
 Resin_Support=true;
 Resin_Support_Base_Thickness=2;
-Resin_Support_Rod_Thickness=.4;
+Resin_Support_Rod_Thickness=1.2;
 Resin_Support_Min_Height=1;
 Resin_Support_Spacing=3;
-Resin_Support_Contact_Radius=.2;
+Resin_Support_Contact_Diameter=.4;
 
  module regular_polygon(order,size){
      angles=[ for (i = [0:order-1]) i*(360/order) ];
@@ -51,17 +51,21 @@ Resin_Support_Contact_Radius=.2;
      polygon(coords);
  }
  
+ module ResinRod (h, r1, r2){
+    cylinder(h=h, r=r1);
+    translate([0, 0, h]){
+        cylinder(h=1, r1=r1, r2=r2);
+        translate([0, 0, 1])
+        sphere(r=r2);
+    }
+ }
+ 
  module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeTypeface_, SomeType_Size, SomeChar, SomeCharNo, SomeFinal_Min_Character_Height_Radius,SomeDebug, SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
     $fn = $preview ? 22 : 44;
     
             x=search(SomeChar, SomeScale_Multiplier_Text);
             angle_pitch=120/32;
-//            //-60+angle_pitch/2+angle_pitch*n for n=0:14
-//            //angle_pitch/2+angle_pitch*n for n=15:29
-//            rotation = [for (SomeCharNo <= 14) SomeCharNo
-//                 translate([cos(-60+angle_pitch/2+angle_pitch*SomeCharNo)*SomeCharacterRadius,sin(-60+angle_pitch/2+angle_pitch*SomeCharNo)*SomeCharacterRadius,SomeElement_Height-SomeBaseline])
-//                rotate([90,0,-60+angle_pitch/2+angle_pitch*SomeCharNo]);
-    minkowski(){
+            minkowski(){
             rotate([0, 0, if (SomeCharNo <= 14) -60+angle_pitch/2+angle_pitch*SomeCharNo])
         
             rotate([0, 0, if (SomeCharNo >=15) angle_pitch/2+angle_pitch*(SomeCharNo-14)])
@@ -173,44 +177,30 @@ union(){
     if (Resin_Support==true){
         union(){
             for (y=[-33:Resin_Support_Spacing:33])
-                for (x=[-x_min+Resin_Support_Contact_Radius,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Radius]){
-                    translate([x, y, -Resin_Support_Min_Height-.01]){
-                    cylinder(h=sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-1-z_offset+Resin_Support_Min_Height, r=Resin_Support_Rod_Thickness);
-                    translate([0, 0, sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-1-z_offset+Resin_Support_Min_Height]){
-                        cylinder(r1=Resin_Support_Rod_Thickness, r2=Resin_Support_Contact_Radius);
-                        translate([0, 0, 1])
-                        sphere(r=Resin_Support_Contact_Radius);
-                        }
-                    }
+                for (x=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Diameter/2]){
+                    h=sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-1-z_offset+Resin_Support_Min_Height;
+                    translate([x, y, -Resin_Support_Min_Height-.01])
+                    ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
                 }
                 for (y=[-27:Resin_Support_Spacing:27])
                 if (y>=9 || y<=-9)
                 translate([0, y, -Resin_Support_Min_Height-.01]){
-                    cylinder(h=sqrt((Shuttle_Inner_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-1-z_offset+Resin_Support_Min_Height, r=Resin_Support_Rod_Thickness);
-                    translate([0, 0, sqrt((Shuttle_Inner_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-1-z_offset+Resin_Support_Min_Height]){
-                        cylinder(r1=Resin_Support_Rod_Thickness, r2=Resin_Support_Contact_Radius);
-                        translate([0, 0, 1])
-                        sphere(r=Resin_Support_Contact_Radius);
-                    }
+                    h=sqrt((Shuttle_Inner_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-1-z_offset+Resin_Support_Min_Height;
+                    ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
                 else{
-                a=1;
-                b=-80.2;
-                c=40.1^2+y^2-(21.5/2)^2;
-                    translate([0, y, -Resin_Support_Min_Height-.01]){
-                        cylinder(h=(-b-sqrt(b^2-4*a*c))/(2*a)-1-z_offset+Resin_Support_Min_Height, r=Resin_Support_Rod_Thickness);
-                        translate([0, 0, (-b-sqrt(b^2-4*a*c))/(2*a)-1-z_offset+Resin_Support_Min_Height]){
-                            cylinder(r1=Resin_Support_Rod_Thickness, r2=Resin_Support_Contact_Radius);
-                        translate([0, 0, 1])
-                        sphere(r=Resin_Support_Contact_Radius);
-                        }
-                    }
+                    a=1;
+                    b=-80.2;
+                    c=40.1^2+y^2-(21.5/2)^2;
+                    h=(-b-sqrt(b^2-4*a*c))/(2*a)-1-z_offset+Resin_Support_Min_Height;
+                    translate([0, y, -Resin_Support_Min_Height-.01])
+                    ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
                 }
                 for (y=[-33, -30, 30, 33])
                 translate([0, y,  -Resin_Support_Min_Height-.01]){
-                    cylinder(r1=Resin_Support_Rod_Thickness, r2=Resin_Support_Contact_Radius);
+                    cylinder(r1=Resin_Support_Rod_Thickness, r2=Resin_Support_Contact_Diameter/2);
                     translate([0, 0, 1])
-                    sphere(r=Resin_Support_Contact_Radius);
+                    sphere(d=Resin_Support_Contact_Diameter);
                 }
             translate([0, 0, -Resin_Support_Min_Height]){
                 hull($fn=Cylinder_fn){

@@ -203,6 +203,43 @@
             "Typeface_": "Tremble 308",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
+        },
+        "AverageMono": {
+            "Bennett_Bounding_Box": "true",
+            "Blick_Bounding_Box": "false",
+            "Bound_x": "2.54",
+            "Bound_y": "3.4300000000000002",
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0",
+            "Custom_Bounding_Box": "false",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.54",
+            "Scale_Multiplier": "1.1999999999999997",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "⅟₰",
+            "Type_Size": "2.9500000000000002",
+            "Typeface_": "AverageMono",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
+        },
+        "Noto Sans Mono Light": {
+            "Bennett_Bounding_Box": "false",
+            "Blick_Bounding_Box": "false",
+            "Bound_x": "2.54",
+            "Bound_y": "2.8999999999999999",
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "0",
+            "Custom_Bounding_Box": "false",
+            "Helios_Bounding_Box": "true",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "2.6000000000000001",
+            "Scale_Multiplier": "1.5",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "HH",
+            "Type_Size": "2.8500000000000001",
+            "Typeface_": "Noto Sans Mono Light",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
         }
     }
 }

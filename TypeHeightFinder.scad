@@ -19,6 +19,7 @@ Pitch=2.6;//[2.54:Pica, 2.116666667:Elite, 2.6:Euro Pica, 2.3:Euro Elite]
 echo(Pitch);
 Blick_Bounding_Box=false;
 Bennett_Bounding_Box=false;
+Helios_Bounding_Box=false;
 translate([0, 15, 0])
 text(Test_String[1],size=Type_Size,halign="center",valign="baseline",font=Typeface_);
 Custom_Bounding_Box=false;
@@ -40,6 +41,13 @@ translate([Pitch/2, 2.56/2])
 #square([2.54, 2.56], center=true);
 translate([Pitch/2, -.79/2])
 #square([2.42, .79], center=true);}
+
+if (Helios_Bounding_Box==true){
+translate([Pitch/2, 2.87/2])
+#square([2.54, 2.87], center=true);
+//translate([Pitch/2, -.79/2])
+//#square([2.42, .79], center=true);
+}
 
 for (n=[0:1:len(Test_String)-1]){
     x=search(Test_String[n], Scale_Multiplier_Text);
