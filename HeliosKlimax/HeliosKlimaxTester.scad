@@ -12,43 +12,71 @@ TESTING=["HHHHHHHHHHHHHHHHHHHHH",
          "HHHHHHHHHHHHHHHHHHHHH",
          "HHHHHHHHHHHHHHHHHHHHH",
          "HHHHHHHHHHHHHHHHHHHHH"];
+         
+Layouts=[GERMAN, GERMAN_MOD];
+         
 Cylinder_fn = $preview ? 60 : 360;
 $fn = $preview ? 22 : 44;
 
-testing=false;
-Layout=GERMAN;
-LAYOUT=testing?TESTING:Layout;
+/* [Element Dimensions] */
+
 //From Top Plane
 Baselines=[3.55, 9.55, 15.50, 21.7];
+//Positive - up; Negative - down
 Baseline_Offset=[-.1, -.1, -.1, -.1];
 Baseline=Baselines-Baseline_Offset;
+//From Top Plane
 Cutouts=[2.2, 8.2, 14.2, 20.2];
+//Positive - up; Negative - down
 Cutout_Offset=[0, 0, 0, 0];
 Cutout=Cutouts-Cutout_Offset;
 
+//Height of Element
 Element_Height=23.42;
+//Diameter of Element
 Element_Diameter=27.15;
+//Diameter of Central Shaft
 Element_Shaft_Diameter=4.426;//4.1+.326 //3.6+.143+.05 shaft+clearanceoffset+clearance  //4.16 scan diameter
+//Minimum Diameter Across 2 Characters
 Element_Min_Concave=28.19;
+//Radial Position for Square Hole
 Element_SquareHole_Position=8.92;
+//Width of Square Hole
 Element_SquareHole_Width=4.426;
+//Length of Square Hole
 Element_SquareHole_Length=3.206;
+//Height of Inside Square Hole Support
 Element_SquareHole_SupportHeight=3;
+//Radial Position for Indicator
 Element_IndicatorHole_Position=10;
+//Diameter of Indicator Hole
 Element_IndicatorHole_Diameter=2;
+//Thickness of Element
 Element_Shell_Thickness=1.5;
+//Radius of Inside Corners
 Element_Inside_Radius=1;
+//Height of Element Clip
 Element_ClipHeight=3;
 Element_ClipDiameter=Element_Shaft_Diameter+2*Element_Shell_Thickness;
+//Diameter of Wire Clip
 Element_WireDiameter=.554;
+//Amount of Bite into Central Shaft
 Element_ClipBite=.7;
+//Rotation of Clip Position
 Element_ClipAngle=180;
+//Enable Speed Holes?
 Element_Speedhole=true;
+//Diameter of Speed Hole
 Element_SpeedholeDiameter=4;
+//Number of Speed Holes
 Element_SpeedholeCount=4;//[0:2:6]
+//Diameter of Platen
+Element_Platen_Diameter=30;
 
-Platen_Diameter=30;
-
+/* [Character Details] */
+testing=false;
+Layout=0;//[0:German, 1:German Mod]
+LAYOUT=testing?TESTING:Layouts[Layout];
 Typeface_="Noto Sans Mono Light";//"Consolas";
 Type_Size=2.85;//2;
 Debug_No_Minkowski=true;
@@ -62,12 +90,22 @@ Character_Modifieds_Offset=0;//[-.1:.05:.5]
 Scale_Multiplier_Text=".";
 Scale_Multiplier=1.5;
 
+/* [Resin Support] */
+//Enable Resin Support?
 Resin_Support=true;
+//Thickness of Raft
 Resin_Support_Base_Thickness=2;
+//Width of Raft Ring
+Resin_Support_Raft_Width=4;
+//Thickness of Resin Support Rod
 Resin_Support_Rod_Thickness=1;
+//Minimum Height of Resin Support
 Resin_Support_Min_Height=2;
+//Diameter of Resin Support Contact
 Resin_Support_Contact_Diameter=.6;
+//Diameter of Resin Support Cut Groove
 Resin_Support_Cut_Groove_Diameter=.75;
+//Thickness of Resin Support Cut Groove
 Resin_Support_Cut_Groove_Thickness=.2;
 
 module SupportRod (RodThickness, BaseThickness, ContactDiameter, Height){
@@ -82,7 +120,7 @@ module SupportRod (RodThickness, BaseThickness, ContactDiameter, Height){
 }
 
 
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomeElement_Platen_Diameter,SomeMin_Final_Character_Diameter,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
     $fn = $preview ? 22 : 44;
     x=search(SomeChar, SomeScale_Multiplier_Text);
     minkowski(){
@@ -116,9 +154,9 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,S
             text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
                     
                 
-            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout])
+            translate([cos(SomeTheta)*(SomeElement_Platen_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomeElement_Platen_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout])
             rotate([90,0,SomeTheta])
-            cylinder(h=5,d=SomePlaten_Diameter,center=true,$fn=$preview ? 60 : 360);
+            cylinder(h=5,d=SomeElement_Platen_Diameter,center=true,$fn=$preview ? 60 : 360);
         }
         if (SomeDebug!=true)
             rotate([0,-90,SomeTheta])
@@ -149,7 +187,7 @@ union(){
                         //END TESTING FOR LOCASTAN
                         
                         
-                            LetterText(Element_Diameter-.1,Element_Height-Baseline[row]-testingbaseline,Element_Height-Cutout[row]+testingcutout, Typeface_,Type_Size,LAYOUT[row][column],theta*(column),Platen_Diameter,Element_Min_Concave,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                            LetterText(Element_Diameter-.1,Element_Height-Baseline[row]-testingbaseline,Element_Height-Cutout[row]+testingcutout, Typeface_,Type_Size,LAYOUT[row][column],theta*(column),Element_Platen_Diameter,Element_Min_Concave,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                             
                         }
                         translate([0, 0, -.01])
@@ -245,7 +283,7 @@ union(){
                 cylinder(d=Element_Diameter, h=Resin_Support_Min_Height+.01, $fn=Cylinder_fn);
                 //Ring Chamfer
                 translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness])
-                cylinder(h=Resin_Support_Base_Thickness, d1=Element_Diameter+3, d2=3+Element_Diameter+2*Resin_Support_Base_Thickness);
+                cylinder(h=Resin_Support_Base_Thickness, d1=Element_Diameter+Resin_Support_Raft_Width, d2=Resin_Support_Raft_Width+Element_Diameter+2*Resin_Support_Base_Thickness);
             }
             
             translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness-.01])
@@ -256,11 +294,12 @@ union(){
                 circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
             }
             
+            //Drainage Holes
             for (n=[0:1:3]){
                 rotate([0, 0, 90*n])
                 translate([Element_Diameter/2, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness])
                 rotate([0, 90, 0])
-                cylinder(r=1.5, h=5, center=true);
+                cylinder(r=1.5, h=10, center=true);
             }
         }
         translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness]){

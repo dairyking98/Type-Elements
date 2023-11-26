@@ -40,10 +40,10 @@ Scale_Multiplier=1;
 
 Resin_Support=true;
 Resin_Support_Base_Thickness=2;
-Resin_Support_Rod_Thickness=1.2;
+Resin_Support_Rod_Thickness=.8;
 Resin_Support_Min_Height=1;
 Resin_Support_Spacing=3;
-Resin_Support_Contact_Diameter=.4;
+Resin_Support_Contact_Diameter=.3;
 
  module regular_polygon(order,size){
      angles=[ for (i = [0:order-1]) i*(360/order) ];
@@ -52,8 +52,8 @@ Resin_Support_Contact_Diameter=.4;
  }
  
  module ResinRod (h, r1, r2){
-    cylinder(h=h, r=r1);
-    translate([0, 0, h]){
+    cylinder(h=h-1, r=r1);
+    translate([0, 0, h-1]){
         cylinder(h=1, r1=r1, r2=r2);
         translate([0, 0, 1])
         sphere(r=r2);
@@ -176,32 +176,56 @@ union(){
     }
     if (Resin_Support==true){
         union(){
-            for (y=[-33:Resin_Support_Spacing:33])
+        
+            //Under Large Arc
+            for (y=[-30:Resin_Support_Spacing:30])
                 for (x=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Diameter/2]){
-                    h=sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-1-z_offset+Resin_Support_Min_Height;
+                    h=sqrt(Shuttle_Inner_Arc_Radius^2-y^2)-z_offset+Resin_Support_Min_Height;
                     translate([x, y, -Resin_Support_Min_Height-.01])
-                    ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
+                    ResinRod (h+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
                 }
+                
+                //Under Rib - Outer
                 for (y=[-27:Resin_Support_Spacing:27])
                 if (y>=9 || y<=-9)
                 translate([0, y, -Resin_Support_Min_Height-.01]){
-                    h=sqrt((Shuttle_Inner_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-1-z_offset+Resin_Support_Min_Height;
+                    h=sqrt((Shuttle_Inner_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-z_offset+Resin_Support_Min_Height;
                     ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
+                
+                //Under Rib - Inner
                 else{
-                    a=1;
-                    b=-80.2;
-                    c=40.1^2+y^2-(21.5/2)^2;
-                    h=(-b-sqrt(b^2-4*a*c))/(2*a)-1-z_offset+Resin_Support_Min_Height;
-                    translate([0, y, -Resin_Support_Min_Height-.01])
-                    ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
+                a=1;
+                b=-80.2;
+                c=40.1^2+y^2-(21.5/2)^2;
+                h=(-b-sqrt(b^2-4*a*c))/(2*a)-z_offset+Resin_Support_Min_Height+.01;
+            translate([0, y, -Resin_Support_Min_Height-.01])
+            ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
+                
+                //Under Rib - Outer 2
+                y_component=Shuttle_Inner_Arc_Radius*cos(30);
                 for (y=[-33, -30, 30, 33])
                 translate([0, y,  -Resin_Support_Min_Height-.01]){
-                    cylinder(r1=Resin_Support_Rod_Thickness, r2=Resin_Support_Contact_Diameter/2);
-                    translate([0, 0, 1])
-                    sphere(d=Resin_Support_Contact_Diameter);
+                    
+                    ResinRod(Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
+                
+                //Outer Corners
+                hull(){
+                for (x=[-x_min+Resin_Support_Contact_Diameter/2, x_max-Resin_Support_Contact_Diameter/2]){
+                    translate([x, y_component, -Resin_Support_Min_Height-.01])
+                    ResinRod (Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
+                    }
+                }
+                
+                hull(){
+                for (x=[-x_min+Resin_Support_Contact_Diameter/2, x_max-Resin_Support_Contact_Diameter/2]){
+                    translate([x, -y_component, -Resin_Support_Min_Height-.01])
+                    ResinRod (Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
+                    }
+                }
+                //Resin Raft
             translate([0, 0, -Resin_Support_Min_Height]){
                 hull($fn=Cylinder_fn){
                     cube([(Resin_Support_Base_Thickness+x_max)*2, (Resin_Support_Base_Thickness+y_max)*2, .01], center=true);
