@@ -201,8 +201,9 @@ union(){
                         y_max=Element_Height-Element_Shell_Thickness-Element_Inside_Radius;
                 rotate_extrude($fn=Cylinder_fn){
                     hull(){
+                    
                         //Bottom Left
-                        translate([x_min, y_min])
+                        translate([x_min, y_min+(-1/(Element_Diameter/2-Element_Shell_Thickness)*x_min+1)])
                         circle(r=Element_Inside_Radius, $fn=Cylinder_fn);
                         //Top Left
                         
@@ -225,6 +226,13 @@ union(){
                 cylinder(d=Element_Diameter+5, h=5);
                 rotate([0, 180, 0])
                 cylinder(d=Element_Diameter+5, h=5);
+                
+                //Pyramid-ing Bottom Surface
+                rotate_extrude($fn=Cylinder_fn){
+                    polygon([[0, -.01], [0, 1], [(Element_Diameter/2-Element_Shell_Thickness)+(Element_Diameter/2-Element_Shell_Thickness)*.01, -.01]]);
+                }
+//                translate([0, 0, -.01]);
+//                cylinder(h=1+.01, d1=Element_Diameter-Element_Shell_Thickness*2, d2=0);
                 
                 //Cutting Indicator Hole
                 translate([Element_IndicatorHole_Position, 0, Element_Height-Element_Shell_Thickness/2])
@@ -271,6 +279,11 @@ union(){
                 }
             }
         }
+        //Cross Section
+//        rotate([0, 90, 0])
+//        translate([-50, -50, 0])
+//        cube([100, 100, 100]);
+        
     }
     
     
@@ -312,21 +325,21 @@ union(){
                 squareholeinner=Element_SquareHole_Position-1/2*Element_SquareHole_Length-Resin_Support_Contact_Diameter/2;
                 rotate([0, 0, theta]){
                     translate([0, outer, 0])
-                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness+(-1/(Element_Diameter/2-Element_Shell_Thickness)*outer+1));
                     translate([0, middle, 0])
-                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness+(-1/(Element_Diameter/2-Element_Shell_Thickness)*middle+1));
                 }
                 if (n%3==0){
                     rotate([0, 0, theta])
                     translate([0, inner, 0])
-                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                    SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness+(-1/(Element_Diameter/2-Element_Shell_Thickness)*inner+1));
                 }
                 translate([-squareholeinner, 0, 0])
-                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness+(-1/(Element_Diameter/2-Element_Shell_Thickness)*squareholeinner+1));
                 translate([-Element_SquareHole_Position, Element_SquareHole_Width/2+Resin_Support_Contact_Diameter/2, 0])
-                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness+(-1/(Element_Diameter/2-Element_Shell_Thickness)*sqrt(Element_SquareHole_Position^2+(Element_SquareHole_Width/2+Resin_Support_Contact_Diameter/2)^2)+1));
                 translate([-Element_SquareHole_Position, -Element_SquareHole_Width/2-Resin_Support_Contact_Diameter/2, 0])
-                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness);
+                SupportRod(Resin_Support_Rod_Thickness, Resin_Support_Base_Thickness, Resin_Support_Contact_Diameter, Resin_Support_Min_Height+Resin_Support_Base_Thickness+(-1/(Element_Diameter/2-Element_Shell_Thickness)*sqrt(Element_SquareHole_Position^2+(Element_SquareHole_Width/2+Resin_Support_Contact_Diameter/2)^2)+1));
                 
             }
         }

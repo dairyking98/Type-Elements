@@ -8,7 +8,7 @@
             "Character_Modifieds_Offset": "0",
             "Cutout_Offset": "[0, 0, 0, 0]",
             "Cutouts": "[2.2, 8.2, 14.2, 20.2]",
-            "Debug_No_Minkowski": "true",
+            "Debug_No_Minkowski": "false",
             "Element_ClipAngle": "180",
             "Element_ClipBite": "0.69999999999999996",
             "Element_ClipHeight": "3",
