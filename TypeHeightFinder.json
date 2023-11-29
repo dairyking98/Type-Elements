@@ -69,13 +69,14 @@
             "Weight_Adj_Mode": "1"
         },
         "Blick Script": {
-            "Character_Modifieds": "_",
-            "Character_Modifieds_Offset": "0.040000000000000036",
+            "Blick_Bounding_Box": "true",
+            "Character_Modifieds": "_9",
+            "Character_Modifieds_Offset": "0.21999999999999997",
             "Horizontal_Weight_Adj": "0.001",
             "Pitch": "2.54",
             "Scale_Multiplier": "1",
             "Scale_Multiplier_Text": ".",
-            "Test_String": ".",
+            "Test_String": "9",
             "Type_Size": "3.6500000000000004",
             "Typeface_": "Blick_Script",
             "Vertical_Weight_Adj": "0.001",

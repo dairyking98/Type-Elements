@@ -57,9 +57,13 @@ Debug_No_Minkowski=true;
 //Number of Letter Columns Modeled
 Columns_Rendered=28;//[2:1:28]
 CharRenderLim=Columns_Rendered-1;
-Series_Number="900";
-Series_Size=3;
+Series_Number="499";
+Series_Size=1.25;
 Series_Font="Century Schoolbook Monospace";
+Series_OffsetFromHalfline=-.5;
+Series_CharacterPosition=".";
+Series_AngleSpacing=4;
+Series_Depth=.2;
 
 /* [Element Label] */
 //Label Font Override
@@ -333,9 +337,19 @@ difference(){
             text(text=Cylinder_Label[n], size=Cylinder_Label_Size, font=Cylinder_Label_Font, valign="baseline", halign="center");
         }
         //Series Number Text
+        /*TOP OF ELEMENT
         translate([0, -Cutout_Position_Radius+Cutout_Hole_Diameter_Top/2+1, Element_Height])
         linear_extrude(.4)
-        text(text=Series_Number, size=Series_Size, font=Series_Font, valign="baseline", halign="center");
+        text(text=Series_Number, size=Series_Size, font=Series_Font, valign="baseline", halign="center");*/
+        for (n=[0:1:len(Series_Number)-1]){
+            x=search(Series_CharacterPosition, Layout[1]);
+            theta=-(360/len(Layout[0]))*x[0]-360/(len(Layout[0])*2);
+            rotate([0, 0, theta-Series_AngleSpacing*(len(Series_Number)-1)/2 + Series_AngleSpacing*n])
+            translate([-Element_Radius+Series_Depth, 0, Element_Height-(Baselines[1]+Baselines[2])/2+Series_OffsetFromHalfline])
+            rotate([90, 0, -90])
+            linear_extrude(2*Series_Depth)
+            text(text=Series_Number[n], size=Series_Size, font=Series_Font, valign="baseline", halign="center");
+        }
     }
     //translate([Cutout_Position_Radius,0,Shell_Thickness])
     //minkowski(){
