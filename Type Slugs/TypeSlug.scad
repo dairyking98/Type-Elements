@@ -1,35 +1,12 @@
 //Type Slug
 //Leonard Chau
 //October 5, 2023
+/* [Global] */
 $fn= $preview ? 10 : 40;
-//B - Typeslug Width
-Body_Width=2.75;//[1:.05:5]
-//A - Typeslug Length
-Body_Length=12.0;//[5:.05:20]
-//C - Typeslug Height
-Body_Height=5;//[1:.05:10]
-//Typeslug Face Thickness
-Face_Thickness=.5;//[1:.05:3]
-//Typeslug Corner Radius
-Face_Radius=.2;//[0:.05:1]
-//Wing Radius
-Wing_Radius=2;//[0:.05:5]
-//P - Platen Shift Motion
-Platen_Shift_Motion=6.6;//[1:.05:10]
-//O - Baselines Shift Motion
-Baselines_Shift_Motion=6.6;//[1:.05:10]
-//D - Typebar Slot Width
-Body_Slot_Width=0.93;//[0:.01:3]
-//G - Typeslug Wing Minimum Thickness
-Wing_Thickness=.5;//[0:.01:3]
-//From Bottom of Slug to Lowercase Platen Centerline Cut
-Aligning_Cut=2.5;//[0:.05:5]
-////From Bottom of Slug to Lowercase Baseline
-Baseline=2;//[0:.05:5]
-//R - Platen Diameter
-Platen_Diameter=25.4;//[20:.05:40]
-//F - Typeslug Face Thickness
-Bottom_Thickness=1;//[0:.05:1]
+//Render Without Minkowski (fast)
+Debug_No_Minkowski=true;
+
+/* [Characters] */
 //Alpha - Draft Angle of Characters
 Draft_Angle=60;//[0:1:90]
 //E - Minimum Height of Characters
@@ -57,7 +34,7 @@ SVG_V1=1/80*SVG_V1_Size;
 //SVG Extrusion Height
 SVG_Depth=.05;//[0:.05:1]
 //Percentage of Length from Bottom to Top
-SVG_Location=.5;//[0:.05:1]
+SVG_Location=.55;//[0:.05:1]
 //SVG File
 SVG_File="AR1.svg";
 //Copyright Engraving Depth
@@ -66,19 +43,49 @@ Copyright_Depth=.1;//[0:.01:.1]
 Copyright_Text="© Leonard Chau 2023";
 //Copyright Text Font
 Copyright_Font="Courier Prime";
-//Render Without Minkowski (fast)
-Debug_No_Minkowski=false;
 Minkowski_Multiplier=1.6;
 
+/* [Slug Details] */
+//B - Typeslug Width
+Body_Width=2.75;//[1:.05:5]
+//A - Typeslug Length
+Body_Length=12.0;//[5:.05:20]
+//C - Typeslug Height
+Body_Height=5;//[1:.05:10]
+//Typeslug Face Thickness
+Face_Thickness=.5;//[1:.05:3]
+//Typeslug Corner Radius
+Face_Radius=.2;//[0:.05:1]
+//Wing Radius
+Wing_Radius=2;//[0:.05:5]
+//P - Platen Shift Motion
+Platen_Shift_Motion=6.6;//[1:.05:10]
+//O - Baselines Shift Motion
+Baselines_Shift_Motion=6.6;//[1:.05:10]
+//D - Typebar Slot Width
+Body_Slot_Width=0.93;//[0:.01:3]
+//G - Typeslug Wing Minimum Thickness
+Wing_Thickness=.5;//[0:.01:3]
+//From Bottom of Slug to Lowercase Platen Centerline Cut
+Aligning_Cut=3.25;//[0:.05:5]
+////From Bottom of Slug to Lowercase Baseline
+Baseline=2;//[0:.05:5]
+//R - Platen Diameter
+Platen_Diameter=25.4;//[20:.05:40]
+//F - Typeslug Face Thickness
+Bottom_Thickness=1;//[0:.05:1]
+
+/* [Resin Support] */
 Resin_Support=true;
 Raft_Thickness=2;
 Wire_Thickness=.6;
 Support_Height=2;
 Support_Pitch=2;
 
+/* [Loop] */
 Loop=true;
-Loop_Thickness=1;//[0:.01:5]
-Loop_Diameter=4;//[1:.01:5]
+Loop_Thickness=.75;//[0:.01:5]
+Loop_Diameter=Body_Width;//[1:.01:5]
 Loop_Rotation=0;//[0:45:180]
 
 
