@@ -1,3 +1,5 @@
+//Assert error message to stop OpenSCAD from freezing upon startup
+Assert=true;
 //Custom Layout
 1st_Row="";
 2nd_Row="";
@@ -117,6 +119,9 @@ module Text (Length, Width, r, c, Edge_to_Row, Edge_to_Column, Layout, Character
                 }
 }
 //projection()
+if (Assert==true)
+assert(false,"Uncheck Automatic Preview and Assert");
+else{
 translate([0,0,-1])
 linear_extrude(1)
 union(){
@@ -267,4 +272,5 @@ union(){
             }
         }
     }
+}
 }

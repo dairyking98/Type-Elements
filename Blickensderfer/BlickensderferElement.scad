@@ -30,12 +30,10 @@ DHIATENSOR=["zxkg.pwfudhiatensorlcmy,bvqj",
 QWERTY=["qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL.YUIOP",
        "\"#$%_/-¢@;23456789:!^1.&'(0)"];
-DHIATENSOR_=["zxkg.pwfudhiatensorlcmy,bvqj",
+SCANDI=["zxkg.pwfudhiatensorlcmy,bvqj",
             "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
-            "-^_(*/'\"!1234567890;?%¢$)@#:"];
-QWERTY_=["qwertasdfgzxcvbnm,hjkl.yuiop",
-        "QWERTASDFGZXCVBNM?HJKL.YUIOP",
-       "\"#$%_/-¢@;23456789:!^1*&'(0)"];
+            "-Å_(ä/'\"!1234567890;?åö$)ÄÖ:"];
+
 
 //Custom Lowercase Row
 Custom_Lowercase="zxkg.pwfudhiatensorlcmy,bvqj";
@@ -44,17 +42,19 @@ Custom_Uppercase="ZXKG.PWFUDHIATENSORLCMY&BVQJ";
 //Custom Figures Row
 Custom_Figures="-^_(./'\"!1234567890;?%¢$)@#:";
 CUSTOM=[Custom_Lowercase,Custom_Uppercase,Custom_Figures];
-SELECTIONS=[DHIATENSOR,QWERTY,DHIATENSOR_,QWERTY_,CUSTOM];
+SELECTIONS=[DHIATENSOR,QWERTY,CUSTOM];
 CharLegend=[14,15,16,17,18,19,20,21,22,23,24,25,26,27,0,1,2,3,4,5,6,7,8,9,10,11,12,13];
 
-Layout_Selection=0;//[0:DHIATENSOR,1:QWERTY,2:DHIATENSOR*,3:QWERTY*, 4:Custom] 
+Layout_Selection=0;//[0:DHIATENSOR,1:QWERTY,2:SCANDI,3:Custom] 
 //Type Size
 Type_Size=3.55;//[1:.05:5]
 Typeface_="Courier New";//exactly as shown installed in PC
 Layout=SELECTIONS[Layout_Selection];
+//Replace figure "." with "*"?
+Asterisk=true;
 //Individual Character Height Adjustments
 Character_Modifieds="_";
-Character_Modifieds_Offset=1;//[-1.5:.05:1.5]
+Character_Modifieds_Offset=0;//[-1.5:.05:1.5]
 Scale_Multiplier_Text=".";
 Scale_Multiplier=1.4;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
@@ -272,7 +272,7 @@ module ResinPrintSupportShape (SomeResin_Support_Cut_Groove_Thickness, SomeResin
 
 if (Assert==true)
 assert(false,"Uncheck Automatic Preview and Assert");
-else{
+else
 union(){
 difference(){
     //Union of Resin Support, Positioner Support, Label Text
@@ -285,8 +285,16 @@ difference(){
                     for (n=[0:1:CharRenderLim]){
                         theta=-(360/len(Layout[0]))*n-360/(len(Layout[0])*2);
                         PickedChar=CharLegend[n];
+                        
                         //Place Characters
+                        if (Asterisk==false)
                         LetterText(CharacterRadius,Element_Height,Baseline[row],Cutout[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Final_Min_Character_Height_Radius,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset,Horizontal_Weight_Adj,Vertical_Weight_Adj,Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                        else{
+                            if (row==2&&Layout[row][PickedChar]==".")
+                                LetterText(CharacterRadius,Element_Height,Baseline[row],Cutout[row],Typeface_,Type_Size,"*",theta,Platen_Diameter,Final_Min_Character_Height_Radius,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset,Horizontal_Weight_Adj,Vertical_Weight_Adj,Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                            else
+                                LetterText(CharacterRadius,Element_Height,Baseline[row],Cutout[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Final_Min_Character_Height_Radius,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset,Horizontal_Weight_Adj,Vertical_Weight_Adj,Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                        }
                     }
                 }
                 //Place Cylinder
@@ -390,4 +398,4 @@ difference(){
     if (Generate_Support==true)
         translate([0,0,e])
         ResinPrintSupportShape(Resin_Support_Cut_Groove_Thickness,Resin_Support_Height,Resin_Support_Thickness,Element_Radius,Resin_Support_Cut_Groove_Diameter,Cutout_Position_Radius, Cylinder_fn);
-}}
+}

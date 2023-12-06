@@ -18,6 +18,8 @@ Layouts=[GERMAN, GERMAN_MOD];
 Cylinder_fn = $preview ? 60 : 360;
 $fn = $preview ? 22 : 44;
 
+//Assert error message to stop OpenSCAD from freezing upon startup
+Assert=true;
 /* [Element Dimensions] */
 
 //From Top Plane
@@ -163,6 +165,10 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,S
             cylinder(h=1.5,r2=.75,r1=0);
     }
 }
+
+if (Assert==true)
+assert(false,"Uncheck Automatic Preview and Assert");
+else
 union(){
     difference(){
         union(){

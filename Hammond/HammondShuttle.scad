@@ -3,6 +3,8 @@ ENGLISH=["qazwsxedcrfvtgbyhnujmik,ol.p;-",
          "1\"@2#×3$+4%£5_¢6&*7'^8(°9).0=/"];
 Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
+//Assert error message to stop OpenSCAD from freezing upon startup
+Assert=true;
 Shuttle_Inner_Arc_Radius=38;
 Shuttle_Thickness=1;
 Shuttle_Text_Protrusion=.5;
@@ -115,6 +117,10 @@ echo("z_offset", z_offset);
 echo("y_max", y_max);
 echo("x_min", x_min);
 echo("x_max", x_max);
+
+if (Assert==true)
+assert(false,"Uncheck Automatic Preview and Assert");
+else
 union(){
     rotate([0, -90, 0])
     translate([-Shuttle_Inner_Arc_Radius*cos(60), 0, -x_max])

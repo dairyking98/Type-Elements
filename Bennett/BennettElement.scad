@@ -2,8 +2,8 @@
 //September 14, 2023
 //Leonard Chau
 
-
-
+//Assert error message to stop OpenSCAD from freezing upon startup
+Assert=true;
 /* [Character Details] */
 LAYOUT=["qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
@@ -151,7 +151,9 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
     }
 }
 
-
+if (Assert==true)
+assert(false,"Uncheck Automatic Preview and Assert");
+else
 union(){
     //Flip and Rotate Final Element
     translate([0, 0, Flip_Orientation ?  Element_Height : 0])
