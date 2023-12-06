@@ -142,9 +142,9 @@ difference(){
             difference(){
                 translate([0, Baseline, 0])
                 mirror([1, 0, 0]){
-                linear_extrude(2)
+                #linear_extrude(2)
                 text(text=Lower_Char, font=Typeface, size=Type_Size, halign="center", valign="baseline");
-                linear_extrude(2)
+                #linear_extrude(2)
                 translate([0, Baselines_Shift_Motion, 0])
                 text(text=Upper_Char, font=Typeface, size=Type_Size, halign="center", valign="baseline");
                 }

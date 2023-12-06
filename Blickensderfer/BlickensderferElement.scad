@@ -21,12 +21,21 @@
    QWERTASDFGZXCVBNM?HJKL.YUIOP
    "#$%_/-¢@;23456789:!^1.&'(0)
 */
+
+//Assert error message to stop OpenSCAD from freezing upon startup
+Assert=true;
 DHIATENSOR=["zxkg.pwfudhiatensorlcmy,bvqj",
             "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
             "-^_(./'\"!1234567890;?%¢$)@#:"];
 QWERTY=["qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL.YUIOP",
        "\"#$%_/-¢@;23456789:!^1.&'(0)"];
+DHIATENSOR_=["zxkg.pwfudhiatensorlcmy,bvqj",
+            "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+            "-^_(*/'\"!1234567890;?%¢$)@#:"];
+QWERTY_=["qwertasdfgzxcvbnm,hjkl.yuiop",
+        "QWERTASDFGZXCVBNM?HJKL.YUIOP",
+       "\"#$%_/-¢@;23456789:!^1*&'(0)"];
 
 //Custom Lowercase Row
 Custom_Lowercase="zxkg.pwfudhiatensorlcmy,bvqj";
@@ -35,10 +44,10 @@ Custom_Uppercase="ZXKG.PWFUDHIATENSORLCMY&BVQJ";
 //Custom Figures Row
 Custom_Figures="-^_(./'\"!1234567890;?%¢$)@#:";
 CUSTOM=[Custom_Lowercase,Custom_Uppercase,Custom_Figures];
-SELECTIONS=[DHIATENSOR,QWERTY,CUSTOM];
+SELECTIONS=[DHIATENSOR,QWERTY,DHIATENSOR_,QWERTY_,CUSTOM];
 CharLegend=[14,15,16,17,18,19,20,21,22,23,24,25,26,27,0,1,2,3,4,5,6,7,8,9,10,11,12,13];
 
-Layout_Selection=0;//[0:DHIATENSOR,1:QWERTY,2:Custom] 
+Layout_Selection=0;//[0:DHIATENSOR,1:QWERTY,2:DHIATENSOR*,3:QWERTY*, 4:Custom] 
 //Type Size
 Type_Size=3.55;//[1:.05:5]
 Typeface_="Courier New";//exactly as shown installed in PC
@@ -60,10 +69,16 @@ CharRenderLim=Columns_Rendered-1;
 Series_Number="499";
 Series_Size=1.25;
 Series_Font="Century Schoolbook Monospace";
+//Baseline Offset of Series Text from Between Two Baselines
 Series_OffsetFromHalfline=-.5;
+//Lowercase Character to Place Series Text Below
 Series_CharacterPosition=".";
+//Degress Between Series Numbers
 Series_AngleSpacing=4;
+//Series Text Depth
 Series_Depth=.2;
+//Place Between Lowercase and Uppercase? Otherwise, Between Uppercase and Figures
+Series_Row=0;//[0:Between lowercase and uppercase, 1:Between uppercase and figures]
 
 /* [Element Label] */
 //Label Font Override
@@ -175,7 +190,7 @@ module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeCu
             scale([x==[] ? 1: SomeScale_Multiplier, x==[] ? 1: SomeScale_Multiplier, 1])
             if (SomeWeight_Adj_Mode==2)
                 minkowski(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     //circle(r=1, $fn=44);
                     square([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj], center=true);
@@ -186,14 +201,14 @@ module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeCu
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
-                        text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                        text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     }
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     circle(r=1);
                     }
                 }
             else if (SomeWeight_Adj_Mode==0)
-            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+            text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
             
             translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeFinal_Min_Character_Height_Radius),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeFinal_Min_Character_Height_Radius),SomeElement_Height-SomeCutout])
             rotate([90,0,SomeTheta])
@@ -255,6 +270,9 @@ module ResinPrintSupportShape (SomeResin_Support_Cut_Groove_Thickness, SomeResin
     }
 }
 
+if (Assert==true)
+assert(false,"Uncheck Automatic Preview and Assert");
+else{
 union(){
 difference(){
     //Union of Resin Support, Positioner Support, Label Text
@@ -345,7 +363,7 @@ difference(){
             x=search(Series_CharacterPosition, Layout[1]);
             theta=-(360/len(Layout[0]))*x[0]-360/(len(Layout[0])*2);
             rotate([0, 0, theta-Series_AngleSpacing*(len(Series_Number)-1)/2 + Series_AngleSpacing*n])
-            translate([-Element_Radius+Series_Depth, 0, Element_Height-(Baselines[1]+Baselines[2])/2+Series_OffsetFromHalfline])
+            translate([-Element_Radius+Series_Depth, 0, Element_Height-(Baselines[Series_Row]+Baselines[Series_Row+1])/2+Series_OffsetFromHalfline])
             rotate([90, 0, -90])
             linear_extrude(2*Series_Depth)
             text(text=Series_Number[n], size=Series_Size, font=Series_Font, valign="baseline", halign="center");
@@ -372,4 +390,4 @@ difference(){
     if (Generate_Support==true)
         translate([0,0,e])
         ResinPrintSupportShape(Resin_Support_Cut_Groove_Thickness,Resin_Support_Height,Resin_Support_Thickness,Element_Radius,Resin_Support_Cut_Groove_Diameter,Cutout_Position_Radius, Cylinder_fn);
-}
+}}
