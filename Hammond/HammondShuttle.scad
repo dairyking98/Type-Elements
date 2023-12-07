@@ -276,7 +276,8 @@ union(){
                 //Under Rib - Rib Thickness
                 y_component_taper=(Shuttle_Arc_Radius+Shuttle_Taper_Step)*cos(30);
                 z_component=(Shuttle_Taper_Step)*sin(30);
-                y_component=(Shuttle_Arc_Radius)*cos(30)-.5;
+                y_component=(Shuttle_Arc_Radius)*cos(30)-.3;
+                y_component_inner=y_component-Shuttle_Rib_Width*cos(30)-.2;
                 
                 hull(){
                 translate([0, y_component,  -Resin_Support_Min_Height-.01])
@@ -287,7 +288,7 @@ union(){
                 hull(){
                 translate([0, -y_component,  -Resin_Support_Min_Height-.01])
                 ResinRod(Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
-                translate([0, -29,  -Resin_Support_Min_Height-.01])
+                translate([0, -y_component_inner,  -Resin_Support_Min_Height-.01])
                     ResinRod(Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
                 
