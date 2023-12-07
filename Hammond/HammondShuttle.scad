@@ -5,30 +5,42 @@ Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
-Shuttle_Inner_Arc_Radius=38;
+//Arc Radius of Shuttle
+Shuttle_Inner_Arc_Radius=36.52;
+//Thickness of Shuttle
 Shuttle_Thickness=1;
+//Height of Text Protrusion
 Shuttle_Text_Protrusion=.5;
+//Height of Shuttle
 Shuttle_Height=13.6;
+//Distance to Rib Plane from Top of Shuttle to Top of Rib Plane
 Shuttle_Rib_Plane=6.7;
+//Thickness of Rib
 Shuttle_Rib_Thickness=.4;
+//Width of Rib from Arc Radius
 Shuttle_Rib_Width=2.8;
-Shuttle_Square_Hole_Offset=5.6;
-Shuttle_Square_Hole_Width=2.35;
-Shuttle_Square_Hole_Length=1.8;
-Shuttle_Pin_Support_Diameter=4;
-Shuttle_Pin_Support_Height=1;
-
+//Distance from Arc Radius to Square Hole Far Edge
+Shuttle_Square_Hole_Offset=6.4;
+//Square Hole Width
+Shuttle_Square_Hole_Width=2.67;//2.54+.13
+//Square Hole Length
+Shuttle_Square_Hole_Length=1.0;
+//Square Hole Support Height
+Shuttle_Pin_Support_Height=.5;
+//Square Hole Radius
+Shuttle_Square_Hole_Radius=.4;
+//Offset For Secondary Rib Circle
+Shuttle_Rib_Circle_Offset=39;
+//Baselines for Figures, Uppercase, Lowercase
 Baselines=[3.3, 8.25, 12.75];
+//Baseline Offsets for Baselines
 Baselines_Offset=[0, 0, 0];
-Cutouts=[3.0, 8.0, 12.0];
-Cutouts_Offset=[0, 0, 0];
 Baseline=Baselines-Baselines_Offset;
-Cutout=Cutouts-Cutouts_Offset;
-
 
 Layout=ENGLISH;
-Typeface_="Courier Prime";//"Consolas";
-Type_Size=3.00;//2;
+Typeface_="OpenDyslexicMono";//"Consolas";
+Type_Size=2.45;//[1:.05:5]
+//Check for Speedy Preview
 Debug_No_Minkowski=true;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
@@ -39,12 +51,17 @@ Character_Modifieds="_";
 Character_Modifieds_Offset=0;//[-.1:.05:.5]
 Scale_Multiplier_Text=".";
 Scale_Multiplier=1;
-
+//Generate Support?
 Resin_Support=true;
+//Resin Support Raft Thickness
 Resin_Support_Base_Thickness=2;
+//Resin Support Rod Thickness
 Resin_Support_Rod_Thickness=.8;
+//Minimum Height From Raft
 Resin_Support_Min_Height=1;
+//Spacing Between Resin Support Rods
 Resin_Support_Spacing=3;
+//Resin Support Connecting Point Diameter
 Resin_Support_Contact_Diameter=.3;
 
  module regular_polygon(order,size){
@@ -59,6 +76,20 @@ Resin_Support_Contact_Diameter=.3;
         cylinder(h=1, r1=r1, r2=r2);
         translate([0, 0, 1])
         sphere(r=r2);
+    }
+ }
+ 
+ module RadiusSquare(x,y,r,fn){
+    $fn=fn;
+    hull(){
+        translate([r, r])
+        circle(r);
+        translate([x-r, r])
+        circle(r);
+        translate([r, y-r])
+        circle(r);
+        translate([x-r, y-r])
+        circle(r);
     }
  }
  
@@ -163,7 +194,7 @@ union(){
                             }
                             //Rib Circle
                             intersection(){
-                                translate([40.1, 0, 0])
+                                translate([Shuttle_Rib_Circle_Offset, 0, 0])
                                 circle(d=21.5, $fn=Cylinder_fn);
                                 circle(r=Shuttle_Inner_Arc_Radius, $fn=Cylinder_fn);
                             }
@@ -173,12 +204,22 @@ union(){
                 }
             }
             //Pin Support
-            translate([Shuttle_Inner_Arc_Radius-Shuttle_Square_Hole_Offset, 0, Shuttle_Height-Shuttle_Rib_Plane])
-            cylinder(d1=Shuttle_Pin_Support_Diameter+2, d2=Shuttle_Pin_Support_Diameter, h=Shuttle_Pin_Support_Height, $fn=Cylinder_fn);
+//            translate([Shuttle_Inner_Arc_Radius-Shuttle_Square_Hole_Offset, 0, Shuttle_Height-Shuttle_Rib_Plane])
+//            cylinder(d1=Shuttle_Pin_Support_Diameter+2, d2=Shuttle_Pin_Support_Diameter, h=Shuttle_Pin_Support_Height, $fn=Cylinder_fn);
+            translate([Shuttle_Inner_Arc_Radius-Shuttle_Square_Hole_Offset, 0, Shuttle_Height-Shuttle_Rib_Plane-.01])
+            minkowski(){
+                translate([0, -Shuttle_Square_Hole_Width/2])
+                linear_extrude(.01)
+                RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, Cylinder_fn);
+                cylinder(h=Shuttle_Pin_Support_Height-.01, r1=Shuttle_Pin_Support_Height, r2=0);
+            }
         }
         //Pin Support Hole
-        translate([Shuttle_Inner_Arc_Radius-Shuttle_Square_Hole_Offset, 0, Shuttle_Height-Shuttle_Rib_Plane-.01])
-        cube([Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, 100], center=true);
+        translate([Shuttle_Inner_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, Shuttle_Height-Shuttle_Rib_Plane-.01])
+        minkowski(){
+            cube([Shuttle_Square_Hole_Length-2*Shuttle_Square_Hole_Radius, Shuttle_Square_Hole_Width-2*Shuttle_Square_Hole_Radius, 100], center=true);
+            sphere(r=Shuttle_Square_Hole_Radius, $fn=Cylinder_fn);
+        }
     }
     if (Resin_Support==true){
         union(){
@@ -202,8 +243,8 @@ union(){
                 //Under Rib - Inner
                 else{
                 a=1;
-                b=-80.2;
-                c=40.1^2+y^2-(21.5/2)^2;
+                b=-(Shuttle_Rib_Circle_Offset)*2;
+                c=Shuttle_Rib_Circle_Offset^2+y^2-(21.5/2)^2;
                 h=(-b-sqrt(b^2-4*a*c))/(2*a)-z_offset+Resin_Support_Min_Height+.01;
             translate([0, y, -Resin_Support_Min_Height-.01])
             ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
@@ -211,24 +252,34 @@ union(){
                 
                 //Under Rib - Outer 2
                 y_component=Shuttle_Inner_Arc_Radius*cos(30);
-                for (y=[-33, -30, 30, 33])
-                translate([0, y,  -Resin_Support_Min_Height-.01]){
+                
+                hull(){
+                translate([0, y_component,  -Resin_Support_Min_Height-.01])
+                ResinRod(Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
+                translate([0, 29.5,  -Resin_Support_Min_Height-.01])
                     
-                    ResinRod(Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
+                    ResinRod(Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
+                }
+                hull(){
+                translate([0, -y_component,  -Resin_Support_Min_Height-.01])
+                ResinRod(Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
+                translate([0, -29.5,  -Resin_Support_Min_Height-.01])
+                    
+                    ResinRod(Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
                 
                 //Outer Corners
                 hull(){
                 for (x=[-x_min+Resin_Support_Contact_Diameter/2, x_max-Resin_Support_Contact_Diameter/2]){
                     translate([x, y_component, -Resin_Support_Min_Height-.01])
-                    ResinRod (Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
+                    ResinRod (Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
                     }
                 }
                 
                 hull(){
                 for (x=[-x_min+Resin_Support_Contact_Diameter/2, x_max-Resin_Support_Contact_Diameter/2]){
                     translate([x, -y_component, -Resin_Support_Min_Height-.01])
-                    ResinRod (Resin_Support_Min_Height+.01, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
+                    ResinRod (Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2);
                     }
                 }
                 //Resin Raft
