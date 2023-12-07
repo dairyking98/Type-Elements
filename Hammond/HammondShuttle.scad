@@ -247,6 +247,8 @@ union(){
         
             //Under Large Arc
             for (y=[-(round(30/Resin_Support_Spacing)+1)*Resin_Support_Spacing:Resin_Support_Spacing:(round(30/Resin_Support_Spacing)+1)*Resin_Support_Spacing]){
+            
+                if (abs(y)<=30.5)
                 for (x=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Diameter/2]){
                     h=sqrt(Shuttle_Arc_Radius^2-y^2)-z_offset+Resin_Support_Min_Height;
                     translate([x, y, -Resin_Support_Min_Height-.01])
@@ -254,14 +256,14 @@ union(){
                 }
                 
                 //Under Rib 
-                if (abs(y)>=9 && abs(y)<=27 )
+                if (abs(y)>=9 && abs(y)<=28.1 )
                 translate([0, y, -Resin_Support_Min_Height-.01]){
                     h=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-z_offset+Resin_Support_Min_Height;
                     ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
                 
                 //Under Rib - Center
-                else if (abs(y)<=27){
+                else if (abs(y)<=28.1){
                 a=1;
                 b=-(Shuttle_Rib_Circle_Offset)*2;
                 c=Shuttle_Rib_Circle_Offset^2+y^2-(21.5/2)^2;
