@@ -254,15 +254,15 @@ union(){
                 }
                 
                 //Under Rib 
-                for (y=[-27:Resin_Support_Spacing:27])
-                if (y>=9 || y<=-9)
+                for (y=[-30:Resin_Support_Spacing:30])
+                if (abs(y)>=9 && abs(y)<=27 )
                 translate([0, y, -Resin_Support_Min_Height-.01]){
                     h=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-z_offset+Resin_Support_Min_Height;
                     ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
                 
                 //Under Rib - Center
-                else{
+                else if (abs(y)<=27){
                 a=1;
                 b=-(Shuttle_Rib_Circle_Offset)*2;
                 c=Shuttle_Rib_Circle_Offset^2+y^2-(21.5/2)^2;
