@@ -246,7 +246,7 @@ union(){
         union(){
         
             //Under Large Arc
-            for (y=[-30:Resin_Support_Spacing:30])
+            for (y=[-(round(30/Resin_Support_Spacing)+1)*Resin_Support_Spacing:Resin_Support_Spacing:(round(30/Resin_Support_Spacing)+1)*Resin_Support_Spacing]){
                 for (x=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Diameter/2]){
                     h=sqrt(Shuttle_Arc_Radius^2-y^2)-z_offset+Resin_Support_Min_Height;
                     translate([x, y, -Resin_Support_Min_Height-.01])
@@ -254,7 +254,6 @@ union(){
                 }
                 
                 //Under Rib 
-                for (y=[-30:Resin_Support_Spacing:30])
                 if (abs(y)>=9 && abs(y)<=27 )
                 translate([0, y, -Resin_Support_Min_Height-.01]){
                     h=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-z_offset+Resin_Support_Min_Height;
@@ -270,6 +269,7 @@ union(){
             translate([0, y, -Resin_Support_Min_Height-.01])
             ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                 }
+            }
                 
                 //Under Rib - Rib Thickness
                 y_component_taper=(Shuttle_Arc_Radius+Shuttle_Taper_Step)*cos(30);
