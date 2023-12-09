@@ -44,6 +44,16 @@ Baselines=[3.3, 8.25, 12.75];
 //Baseline Offsets for Baselines
 Baselines_Offset=[0, 0, 0];
 Baseline=Baselines-Baselines_Offset;
+//Shuttle Label 1
+Shuttle_Label1="Leonard Chau";
+//Shuttle Label 2
+Shuttle_Label2="2023";
+//Shuttle Label Size
+Shuttle_Label_Size=1.2;
+//Shuttle Label Font
+Shuttle_Label_Font="Libertinus Mono";
+//Shuttle Label Extrusion Deptth
+Shuttle_Label_Depth=.2;
 
 Layout=ENGLISH;
 Typeface_="OpenDyslexicMono";//"Consolas";
@@ -267,6 +277,20 @@ union(){
             linear_extrude(c[a])
             polygon([[taper_inset_x, -taper_inset_y], [taper_outset_x, -taper_outset_y], (Shuttle_Arc_Radius-.01)*[cos(60+.01), -sin(60+.01)]]);
         }
+        
+        //Label
+        //angle_pitch=120/32;
+            rotate([0, 0, 120/32*.25])
+            translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, Shuttle_Height/2])
+            rotate([0, 90, 0])
+            linear_extrude(2)
+            #text(text=Shuttle_Label1, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
+            
+            rotate([0, 0, -120/32+120/32*.25])
+            translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, Shuttle_Height/2])
+            rotate([0, 90, 0])
+            linear_extrude(2)
+            #text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
     }
     
     if (Resin_Support==true){
@@ -290,9 +314,7 @@ union(){
                 
                 //Under Rib - Radius 
                 if (abs(y)<=cp1x && abs(y)>=cp2x ){
-                    echo (y);
                     h=(Shuttle_Rib_Circle_Radius^2-(abs(y)-xprime)^2)^.5+yprime-z_offset+Resin_Support_Min_Height;
-                    echo(h);
                     translate([0, y, -Resin_Support_Min_Height-.01]){
                         ResinRod(h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2); 
                     }
