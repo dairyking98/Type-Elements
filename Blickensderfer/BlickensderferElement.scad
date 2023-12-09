@@ -197,7 +197,7 @@ module LetterText (SomeCharacterRadius, SomeElement_Height, SomeBaseline, SomeCu
                 }
             else if (SomeWeight_Adj_Mode==1)
                 difference(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
