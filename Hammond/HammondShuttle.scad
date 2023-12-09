@@ -34,7 +34,7 @@ Shuttle_Rib_Circle_Offset=39;
 //Shuttle Rib Circle Radius
 Shuttle_Rib_Circle=11;
 //Rib Circle Radius to Rib
-Shuttle_Rib_Circle_Radius=4;
+Shuttle_Rib_Circle_Radius=12;
 //Degrees for Shuttle Taper
 Shuttle_Taper=2;
 //Offset From Arc Radius for Taper
