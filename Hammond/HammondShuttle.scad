@@ -16,15 +16,15 @@ Shuttle_Height=13.6;
 //Distance to Rib Plane from Top of Shuttle to Top of Rib Plane
 Shuttle_Rib_Plane=6.7;
 //Thickness of Rib
-Shuttle_Rib_Thickness=.4;
+Shuttle_Rib_Thickness=.235;//.2794 is original measurement + .06 printer offset
 //Width of Rib from Arc Radius
 Shuttle_Rib_Width=2.8;
 //Distance from Arc Radius to Square Hole Far Edge
-Shuttle_Square_Hole_Offset=6.4;//6.47 oem
+Shuttle_Square_Hole_Offset=6.4;//6.47 is OEM measurement
 //Square Hole Width
-Shuttle_Square_Hole_Width=2.67;//2.54+.13
+Shuttle_Square_Hole_Width=2.67;//2.54 OEM measurement + .13 printer offset
 //Square Hole Length
-Shuttle_Square_Hole_Length=1.0;
+Shuttle_Square_Hole_Length=2.67;
 //Square Hole Support Height
 Shuttle_Pin_Support_Height=.5;
 //Square Hole Radius
