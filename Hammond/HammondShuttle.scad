@@ -1,6 +1,12 @@
 ENGLISH=["qazwsxedcrfvtgbyhnujmik,ol.p;-",
          "QAZWSXEDCRFVTGBYHNUJMIK?OL.P:!",
          "1\"@2#×3$+4%£5_¢6&*7'^8(°9).0=/"];
+
+MATH=["qazwsxedcrfvtgbyhnujmik,ol.p·√",
+         "QAZWSXEDCRFVTGBYHNUJMIK?OL∂P:∫",
+        "1\"_2∑×3Δ+4∞[5Γ]6?*7'|8(<9)>0=/",
+         "₁αζ₂σξ₃δρ₄ψθ₅γβ₆ητ₇εφ₈κω₉λπ₀ₙ-"];
+         
 Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 //Assert error message to stop OpenSCAD from freezing upon startup
@@ -15,6 +21,8 @@ Shuttle_Thickness=1;
 Shuttle_Text_Protrusion=.5;
 //Height of Shuttle
 Shuttle_Height=13.6;
+//Height of Math Shuttle
+Shuttle_Height_Math=18;
 //Distance to Rib Plane from Top of Shuttle to Top of Rib Plane
 Shuttle_Rib_Plane=6.7;
 //Thickness of Rib
@@ -43,11 +51,14 @@ Shuttle_Taper=2;
 Shuttle_Taper_Step=.5;
 
 /* [Text Dimensions] */
-//Baselines for Figures, Uppercase, Lowercase
-Baselines=[3.3, 8.25, 12.75];
+//Baselines for Figures, Uppercase, Lowercase, Math
+Baselines=[3.3, 8.25, 12.75, 17];
 //Baseline Offsets for Baselines
-Baselines_Offset=[0, 0, 0];
-Layout=ENGLISH;
+Baselines_Offset=[0, 0, 0, 0];
+Layout_Selection=ENGLISH;
+//Enable Math Layout and Design? (4 Rows)
+Math=false;
+Layout=Math?MATH:Layout_Selection;
 Typeface_="OpenDyslexicMono";//"Consolas";
 Type_Size=2.45;//[1:.05:5]
 //Check for Speedy Preview
@@ -62,6 +73,7 @@ Character_Modifieds_Offset=0;//[-.1:.05:.5]
 Scale_Multiplier_Text=".";
 Scale_Multiplier=1;
 
+//(Math?Shuttle_Height_Math:Shuttle_Height)
 
 /* Shuttle Label] */
 //Shuttle Label 1
@@ -103,8 +115,8 @@ echo (taper_inset_x);
 //Reorientation Variables, Global Variables
 z_offset=Shuttle_Arc_Radius*cos(60);
 y_max=Shuttle_Arc_Radius*sin(60);
-x_max=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2;
-x_min=Shuttle_Height-x_max;
+x_max=(Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2;
+x_min=(Math?Shuttle_Height_Math:Shuttle_Height)-x_max;
 
 //Support Variables
 innerarcintercept=((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-z_offset^2)^.5;
@@ -208,18 +220,18 @@ union(){
                 //Join LetterText and Cylinder
                 union(){
                     translate([0, 0, -.01])
-                    linear_extrude(Shuttle_Height+.02)
+                    linear_extrude((Math?Shuttle_Height_Math:Shuttle_Height)+.02)
                     regular_polygon(96, 2*Shuttle_Arc_Radius+2*Shuttle_Thickness);
-                    for (row = [0:1:2]){
+                    for (row = [0:1:Math?3:2]){
                         for (column = [0:1:29]){
-                            LetterText (Shuttle_Arc_Radius+Shuttle_Thickness-.01, Shuttle_Height, Baseline[row], Typeface_, Type_Size, Layout[row][29-column], column, Shuttle_Text_Protrusion,Debug_No_Minkowski, Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                            LetterText (Shuttle_Arc_Radius+Shuttle_Thickness-.01, (Math?Shuttle_Height_Math:Shuttle_Height), Baseline[row], Typeface_, Type_Size, Layout[row][29-column], column, Shuttle_Text_Protrusion,Debug_No_Minkowski, Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                         }
                     }
                 }
                 
                 //Remove 2/3rds and Center
                 translate([0, 0, -5])
-                linear_extrude(Shuttle_Height+10){
+                linear_extrude((Math?Shuttle_Height_Math:Shuttle_Height)+10){
                     polygon([[Shuttle_Arc_Radius*3*cos(60), -Shuttle_Arc_Radius*3*sin(60)],[0, 0],  [Shuttle_Arc_Radius*3*cos(60), Shuttle_Arc_Radius*3*sin(60)], [0, 100], [-100, 0], [0, -100]]);
                     circle(r=Shuttle_Arc_Radius, $fn=Cylinder_fn);                
                 }
@@ -228,12 +240,12 @@ union(){
                 rotate([0, 180, 0])
                 cylinder(r=Shuttle_Arc_Radius+5, h=5);
                 //Clean Top Minkowski
-                translate([0, 0, Shuttle_Height])
+                translate([0, 0, (Math?Shuttle_Height_Math:Shuttle_Height)])
                 cylinder(r=Shuttle_Arc_Radius+5, h=5);
             }
             
             //Joining Rib
-            translate([0, 0, Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness]){
+            translate([0, 0, (Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane-Shuttle_Rib_Thickness]){
                 linear_extrude(Shuttle_Rib_Thickness){
                     difference(){
                         union(){
@@ -265,7 +277,7 @@ union(){
             }
             
             //Pin Support
-            translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset, 0, Shuttle_Height-Shuttle_Rib_Plane-.01])
+            translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset, 0, (Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane-.01])
             minkowski(){
                 translate([0, -Shuttle_Square_Hole_Width/2])
                 linear_extrude(.01)
@@ -275,7 +287,7 @@ union(){
         }
         
         //Pin Support Hole
-        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, Shuttle_Height-Shuttle_Rib_Plane-.01])
+        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, (Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane-.01])
         minkowski(){
             cube([Shuttle_Square_Hole_Length-2*Shuttle_Square_Hole_Radius, Shuttle_Square_Hole_Width-2*Shuttle_Square_Hole_Radius, 100], center=true);
             sphere(r=Shuttle_Square_Hole_Radius, $fn=Cylinder_fn);
@@ -283,8 +295,8 @@ union(){
         
         //Shuttle Taper 
         for (a=[0,1]){
-            b=[-.01, Shuttle_Height-Shuttle_Rib_Plane];
-            c=[Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness+.01, 10];
+            b=[-.01, (Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane];
+            c=[(Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane-Shuttle_Rib_Thickness+.01, 10];
             d=[-1,1];
             translate([0, 0, b[a]])
             linear_extrude(c[a])
@@ -297,13 +309,13 @@ union(){
         //Label
         //angle_pitch=120/32;
             rotate([0, 0, 120/32*.25])
-            translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, Shuttle_Height/2])
+            translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, (Math?Shuttle_Height_Math:Shuttle_Height)/2])
             rotate([0, 90, 0])
             linear_extrude(2)
             #text(text=Shuttle_Label1, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
             
             rotate([0, 0, -120/32+120/32*.25])
-            translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, Shuttle_Height/2])
+            translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, (Math?Shuttle_Height_Math:Shuttle_Height)/2])
             rotate([0, 90, 0])
             linear_extrude(2)
             #text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
@@ -384,11 +396,11 @@ union(){
                 }
                 
                 //Resin Raft
-            translate([0, 0, -Resin_Support_Min_Height]){
+            translate([(x_max-x_min)/2, 0, -Resin_Support_Min_Height]){
                 hull($fn=Cylinder_fn){
-                    cube([(Resin_Support_Base_Thickness+x_max)*2, (Resin_Support_Base_Thickness+y_max)*2, .01], center=true);
+                    cube([(Resin_Support_Base_Thickness*2+x_max+x_min), (Resin_Support_Base_Thickness+y_max)*2, .01], center=true);
                     translate([0, 0, -Resin_Support_Base_Thickness])
-                    cube([x_max*2, y_max*2, .01], center=true);
+                    cube([x_max+x_min, y_max*2, .01], center=true);
                 }
             }
         }

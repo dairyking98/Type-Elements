@@ -3,13 +3,12 @@
     "parameterSets": {
         "New set 1": {
             "Assert": "false",
-            "Baselines": "[3.3, 8.25, 12.75]",
-            "Baselines_Offset": "[0, 0, 0]",
             "Character_Modifieds": "_",
             "Character_Modifieds_Offset": "0",
             "Debug_No_Minkowski": "true",
             "Horizontal_Weight_Adj": "0.001",
-            "Resin_Support": "true",
+            "Math": "true",
+            "Resin_Support": "false",
             "Resin_Support_Base_Thickness": "2",
             "Resin_Support_Contact_Diameter": "0.29999999999999999",
             "Resin_Support_Min_Height": "1",
@@ -31,7 +30,7 @@
             "Shuttle_Text_Protrusion": "0.5",
             "Shuttle_Thickness": "1",
             "Type_Size": "2.4500000000000002",
-            "Typeface_": "OpenDyslexicMono",
+            "Typeface_": "Noto Sans Mono",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "0"
         }
