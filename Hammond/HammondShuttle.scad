@@ -94,7 +94,7 @@ Shuttle_Label_Depth=.2;
 //Generate Support?
 Resin_Support=true;
 //Resin Support Raft Thickness
-Resin_Support_Base_Thickness=2;
+Resin_Support_Base_Thickness=1.5;
 //Resin Support Rod Thickness
 Resin_Support_Rod_Thickness=.8;
 //Minimum Height From Raft
@@ -105,6 +105,8 @@ Resin_Support_Spacing=3;
 Resin_Support_Contact_Diameter=.3;
 //Resin Support Gap from Part Edges
 Resin_Support_EdgeGap=.3;
+//Resin Support Buildplate Radius
+Resin_Support_Buildplate_Radius=.8;
 
 
 Baseline=Baselines-Baselines_Offset;
@@ -146,9 +148,9 @@ cp2y=yprime+(Shuttle_Rib_Circle_Radius)*sin(theta2);
      polygon(coords);
  }
  
- module ResinRod (h1, r1, r2, h2){
+ module ResinRod (h1, r1, r2, h2, r3){
     cylinder(h=h1-1, r=r1);
-    cylinder(h=h2, r1=r1, r2=r1+h2);
+    cylinder(h=h2, r1=r3, r2=r3+h2);
     translate([0, 0, h1-1]){
         cylinder(h=1, r1=r1, r2=r2);
         if (h1>h2)
@@ -340,21 +342,21 @@ union(){
                     for (x=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Diameter/2]){
                         h=sqrt(Shuttle_Arc_Radius^2-y^2)-z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
                         translate([x, y,0])
-                        ResinRod (h+z, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness);
+                        ResinRod (h+z, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
                     }
                     
                     //Under Rib - Outer
                     if (abs(y)>cp1x && abs(y)<=innerarcintercept)
                         translate([0, y,0]){
                             h=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-y^2)-z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
-                            ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                            ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                         }
                     
                     //Under Rib - Radius 
                     if (abs(y)<=cp1x && abs(y)>cp2x){
                         h=sqrt(Shuttle_Rib_Circle_Radius^2-(abs(y)-xprime)^2)+yprime-z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
                         translate([0, y,0]){
-                            ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                            ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                         }
                     }
                     
@@ -365,7 +367,7 @@ union(){
                         c=Shuttle_Rib_Circle_Offset^2+y^2-(Shuttle_Rib_Circle)^2;
                         h=(-b-sqrt(b^2-4*a*c))/(2*a)-z_offset+Resin_Support_Min_Height+z+Resin_Support_Base_Thickness;
                     translate([0, y,0])
-                    ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                    ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                     }
                 }
                     
@@ -378,60 +380,60 @@ union(){
                     //tall part
                     hull(){
                         translate([0, -outerarcintercept+Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0);
+                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
                       
                         translate([0, -innerarcintercept-Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0);
+                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
                         }
                         //tall part
                         hull(){
                         translate([0, outerarcintercept-Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0);
+                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
                         translate([0, innerarcintercept+Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0);
+                        ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
                         }
                     
                     //buildplate part
                     hull(){
                         translate([0, -outerarcintercept+Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                         translate([0, -innerarcintercept-Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                     }
                     //buildplate part
                     hull(){
                         translate([0, outerarcintercept-Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                         translate([0, innerarcintercept+Resin_Support_EdgeGap, 0])
-                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness); 
+                        ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius); 
                     }
                     
                     //Outer Edge Supports
                     hull(){
                         for (x=[-x_min+Resin_Support_Contact_Diameter/2+Resin_Support_EdgeGap, x_max-Resin_Support_Contact_Diameter/2-Resin_Support_EdgeGap]){
                             translate([x, y_component_taper,0])
-                            ResinRod (Resin_Support_Min_Height+z_component+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0);
+                            ResinRod (Resin_Support_Min_Height+z_component+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
                             }
                     }
                     
                     hull(){
                         for (x=[-x_min+Resin_Support_Contact_Diameter/2+Resin_Support_EdgeGap, x_max-Resin_Support_Contact_Diameter/2-Resin_Support_EdgeGap]){
                             translate([x, -y_component_taper,0])
-                            ResinRod (Resin_Support_Min_Height+z_component+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0);
+                            ResinRod (Resin_Support_Min_Height+z_component+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
                             }
                     }
                     
                     hull(){
                         for (x=[-x_min+Resin_Support_Contact_Diameter/2+Resin_Support_EdgeGap, x_max-Resin_Support_Contact_Diameter/2-Resin_Support_EdgeGap]){
                             translate([x, y_component_taper,0])
-                            ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness);
+                            ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
                             }
                     }
                     
                     hull(){
                         for (x=[-x_min+Resin_Support_Contact_Diameter/2+Resin_Support_EdgeGap, x_max-Resin_Support_Contact_Diameter/2-Resin_Support_EdgeGap]){
                             translate([x, -y_component_taper,0])
-                            ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness);
+                            ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
                             }
                     }
                     

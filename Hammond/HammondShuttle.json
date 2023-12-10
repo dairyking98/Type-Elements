@@ -11,7 +11,7 @@
             "Horizontal_Weight_Adj": "0.001",
             "Math": "false",
             "Resin_Support": "true",
-            "Resin_Support_Base_Thickness": "2",
+            "Resin_Support_Base_Thickness": "1.4999999999999996",
             "Resin_Support_Contact_Diameter": "0.29999999999999999",
             "Resin_Support_EdgeGap": "0.29999999999999999",
             "Resin_Support_Min_Height": "1",
