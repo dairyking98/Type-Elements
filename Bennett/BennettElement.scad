@@ -6,9 +6,6 @@
 Assert=true;
 testing=false;
 /* [Character Details] */
-LAYOUT=["qweruiopasdftyjkl,zxcvghbnm.",
-        "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
-        "12347890\"#$%56;?:,£@_(&-)/'."];
 CharLegend=[12,22,3,11,21,2,10,20,1,9,19,0,8,18,27,17,7,26,16,6,25,15,5,24,14,4,23,13];
 
 //Custom Layout As Seen on Keyboard. Left to Right, Top to Bottom
@@ -24,7 +21,7 @@ TESTING=["HHHHHHHHHHHHHHHHHHHHHHHHHHHH",
 
 
 //Layout Selection
-Layout_Selection=1; //[0:English, 1:British, 2:Custom]
+Layout_Selection=0; //[0:English, 1:British, 2:Custom]
 Layout=testing?TESTING:LAYOUTS[Layout_Selection];
 //Typeface
 Typeface_="Compagnon Light";
@@ -61,7 +58,7 @@ Element_Positioner_Pin_Radius=4.813;
 //Indicator Hole Diameter
 Indicator_Diameter=2.2;
 //Alignment Pin Hole Diameter
-Alignment_Hole_Diameter=1.94;
+Alignment_Hole_Diameter=2;//1.94 a kiss too tight, bumping to 2.0
 //Alignment Hole Depth
 Alignment_Hole_Depth=2.4;
 //Alignment Hole Chamfer Size
@@ -134,17 +131,16 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
-            scale([x==[] ? 1: SomeScale_Multiplier, x==[] ? 1: SomeScale_Multiplier, 1])
             if (SomeWeight_Adj_Mode==2)
                 minkowski(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     //circle(r=1, $fn=44);
                     square([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj], center=true);
                 }
             else if (SomeWeight_Adj_Mode==1)
                 difference(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
@@ -155,7 +151,7 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
                     }
                 }
             else if (SomeWeight_Adj_Mode==0)
-            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+            text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     
                 
             translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout+SomeCutout_Offset])
@@ -192,7 +188,7 @@ union(){
                     
                     testingbaseline=testing?Baseline_Testing[n]:0;
                     testingcutout=testing?Cutout_Testing[n]:0;
-                    char=LAYOUT[row][n];
+                    char=ENGLISH[row][n];
                     baseline=Baseline[row]-testingcutout;
                     cutout=Cutout[row]+testingcutout;
                     if (testing==true)
