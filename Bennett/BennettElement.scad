@@ -4,6 +4,7 @@
 
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
+testing=false;
 /* [Character Details] */
 LAYOUT=["qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
@@ -17,10 +18,14 @@ Figs="12347890\"#$%56;?:,£@_(&-)/'.";
 CUSTOMLAYOUT=[Lowercase,Uppercase,Figs];
 include <BennettLayouts.scad>
 
+TESTING=["HHHHHHHHHHHHHHHHHHHHHHHHHHHH",
+        "HHHHHHHHHHHHHHHHHHHHHHHHHHHH",
+        "HHHHHHHHHHHHHHHHHHHHHHHHHHHH"];
+
 
 //Layout Selection
 Layout_Selection=1; //[0:English, 1:British, 2:Custom]
-Layout=LAYOUTS[Layout_Selection];
+Layout=testing?TESTING:LAYOUTS[Layout_Selection];
 //Typeface
 Typeface_="Compagnon Light";
 Type_Size=3.05;//[1:.05:10]
@@ -92,6 +97,18 @@ Alignment_Hole=[12.29,6.24,0.19];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height Offset
 Alignment_Hole_Offset=[0,0,0];//[-1:.05:1]
 
+/* [Shuttle Label] */
+//Shuttle Label 1
+Shuttle_Label1="Leonard Chau";
+//Shuttle Label 2
+Shuttle_Label2="2023";
+//Shuttle Label Size
+Shuttle_Label_Size=1.2;
+//Shuttle Label Font
+Shuttle_Label_Font="Libertinus Mono";
+//Shuttle Label Extrusion Deptth
+Shuttle_Label_Depth=.2;
+
 /* [Resin Print Support] */
 //Generate Print Support?
 Generate_Support=true;//
@@ -151,6 +168,11 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
     }
 }
 
+
+Baseline_Testing=[-.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .65, .7];
+Cutout_Testing=[-.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .65, .7];
+
+
 if (Assert==true)
 assert(false,"Uncheck Automatic Preview and Assert");
 else
@@ -167,7 +189,16 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n+360/(2*28));
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                    
+                    testingbaseline=testing?Baseline_Testing[n]:0;
+                    testingcutout=testing?Cutout_Testing[n]:0;
+                    char=LAYOUT[row][n];
+                    baseline=Baseline[row]-testingcutout;
+                    cutout=Cutout[row]+testingcutout;
+                    if (testing==true)
+                    echo(char=char,baseline=baseline, cutout=cutout);
+                    
+                        LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row]+testingbaseline,Cutout[row],Cutout_Offset[row]-testingcutout,Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                     }
                 }
             }
@@ -225,21 +256,30 @@ union(){
         //Cut Front Indicator Hole
         translate([Element_Diameter/2-Shell_Size-Indicator_Diameter/2,0,Element_Height-Top_Countersink_Depth-Shell_Size-.001])
         cylinder(h=5,d=Indicator_Diameter, $fn=Cylinder_fn);
-    //Cut Alignment Holes
-    for (row=[0:1:len(Layout)-1]){
-        for (n=[0:1:len(Layout[0])-1]){
-            theta=-(360/(len(Layout[0]))*n+360/(2*28));
-            translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
-            rotate([0,-90,theta]){
-                cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
-                translate([0,0,-1])
-                cylinder(h=1,d=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer, $fn=Cylinder_fn);
-                cylinder(h=Alignment_Hole_Chamfer,d1=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer,d2=Alignment_Hole_Diameter, $fn=Cylinder_fn);
-                }
-            translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
-            sphere(d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+        //Cut Alignment Holes
+        for (row=[0:1:len(Layout)-1]){
+            for (n=[0:1:len(Layout[0])-1]){
+                theta=-(360/(len(Layout[0]))*n+360/(2*28));
+                translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
+                rotate([0,-90,theta]){
+                    cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+                    translate([0,0,-1])
+                    cylinder(h=1,d=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer, $fn=Cylinder_fn);
+                    cylinder(h=Alignment_Hole_Chamfer,d1=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer,d2=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+                    }
+                translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
+                sphere(d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+            }
         }
-    }
+        //Label Text
+        translate([Shaft_Diameter/2+1.25, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
+        rotate([180, 0, 90])
+        linear_extrude(2)
+        text(text=Shuttle_Label1, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
+        translate([-Shaft_Diameter/2-1.25, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
+        rotate([180, 0, -90])
+        linear_extrude(2)
+        text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
     }
     //Generate Support Structure
     if (Generate_Support==true){
