@@ -27,7 +27,7 @@
             "Horizontal_Weight_Adj": "0.001",
             "Indicator_Diameter": "2.2000000000000002",
             "Inside_Radius": "0.5",
-            "Layout_Selection": "1",
+            "Layout_Selection": "0",
             "Lowercase": "qweruiopasdftyjkl,zxcvghbnm.",
             "Min_Final_Character_Diameter": "32.899999999999999",
             "Platen_Diameter": "30",
@@ -35,7 +35,7 @@
             "Resin_Support_Cut_Groove_Thickness": "0.20000000000000001",
             "Resin_Support_Height": "6",
             "Resin_Support_Thickness": "2",
-            "Resin_Support_Wire_Thickness": "0.59999999999999998",
+            "Resin_Support_Wire_Thickness": "1.2",
             "Scale_Multiplier": "1.5",
             "Scale_Multiplier_Text": ".",
             "Shaft_Diameter": "3.4830000000000001",
@@ -54,7 +54,7 @@
             "Uppercase": "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "0",
-            "testing": "false"
+            "testing": "true"
         }
     }
 }

@@ -114,13 +114,18 @@ Resin_Support_Cut_Groove_Thickness=.2;
 //Resin Support Height
 Resin_Support_Height=6;
 //Resin Support Chamfer Size
-Resin_Support_Thickness=2;
+Resin_Support_Thickness=2;//.001
 //Resin Support Cut Groove Diameter
 Resin_Support_Cut_Groove_Diameter=.75;
 //Resin Support Wire Thickness
-Resin_Support_Wire_Thickness=.6;
+Resin_Support_Wire_Thickness=1.2;
+Resin_Support_Contact_Point_Diameter=.3;
+Resin_Support_Buildplate_Diameter=1.2;
 $fn = $preview ? 22 : 44;
 Cylinder_fn= $preview ? 120 : 360;
+
+pyramidzoffset=1/cos(atan(2/Countersink_Diameter));
+
 module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeBottom_Countersink_Depth,SomeDebug,SomeCharacter_Modifieds,SomeCharacter_Modifieds_Offset, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
     $fn = $preview ? 22 : 44;
     x=search(SomeChar, SomeScale_Multiplier_Text);
@@ -162,6 +167,17 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
             rotate([0,-90,SomeTheta])
             cylinder(h=1.5,r2=.75,r1=0);
     }
+}
+
+module ResinRod (h,  dr, dc, t,db){
+
+cylinder(h=h-1,d=dr);
+translate([0,0,h-1])
+cylinder(h=1, d2=dc, d1=dr);
+cylinder(h=t,d2=2.4*.5+2*t,d1=2.4);
+translate([0, 0, h])
+sphere(d=dc);
+
 }
 
 
@@ -210,6 +226,11 @@ union(){
             cylinder(h=Element_Height+2*.001,d=Shaft_Diameter, $fn=Cylinder_fn);
             //Cut Bottom Countersink
             cylinder(h=Bottom_Countersink_Depth,d=Countersink_Diameter, $fn=Cylinder_fn);
+            
+            //Pyramid Top of Element
+            if (Generate_Support==true)
+            translate([0, 0, Element_Height-Top_Countersink_Depth-1])
+            cylinder(h=1+.001, d2=Countersink_Diameter, d1=0, $fn=Cylinder_fn);
             //Cut Speed Holes
             for (n=[0:1:7]){
                 theta=360/Speed_Hole_Quantity*n+360/(Speed_Hole_Quantity*2);
@@ -227,16 +248,14 @@ union(){
         translate([0,0,Element_Height-Top_Countersink_Depth])
         cylinder(h=Top_Countersink_Depth+.001,d=Countersink_Diameter, $fn=Cylinder_fn);
         //Cut Hollow Space
-//        rotate_extrude($fn=Cylinder_fn){
-//            polygon([[Shaft_Diameter/2+Shell_Size, Bottom_Countersink_Depth+Shell_Size], [Shaft_Diameter/2+Shell_Size, Element_Height-Top_Countersink_Depth-Shell_Size], [Element_Diameter/2-Shell_Size, Element_Height-Top_Countersink_Depth-Shell_Size], [Element_Diameter/2-Shell_Size, Bottom_Countersink_Depth+Shell_Size]]);
-//        }
         rotate_extrude($fn=Cylinder_fn){
             hull(){
+            dx=(Element_Diameter/2-Shell_Size-Inside_Radius)-(Shaft_Diameter/2+Shell_Size+Inside_Radius);
                     //Top Right
                     translate([Element_Diameter/2-Shell_Size-Inside_Radius, Element_Height-Shell_Size-Inside_Radius-Top_Countersink_Depth])
                     circle(r=Inside_Radius);
                     //Top Left
-                    translate([Shaft_Diameter/2+Shell_Size+Inside_Radius, Element_Height-Shell_Size-Inside_Radius-Top_Countersink_Depth])
+                    translate([Element_Diameter/2-Shell_Size-Inside_Radius-dx, Element_Height-Shell_Size-Inside_Radius-Top_Countersink_Depth-dx*(2/Countersink_Diameter)])
                     circle(r=Inside_Radius);
                     //Bottom Left
                     translate([Shaft_Diameter/2+Shell_Size+Inside_Radius, Shell_Size+Inside_Radius+Bottom_Countersink_Depth+.5])
@@ -300,26 +319,29 @@ union(){
             for (n=[0:1:7]){
                 theta=360/8*n;
                 translate([(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*cos(theta),(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*sin(theta),0]){
-                    cylinder(h=Resin_Support_Height-1,r=Resin_Support_Wire_Thickness);
-                    translate([0,0,Resin_Support_Height-1])
-                    cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
-                    cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+                ResinRod (Resin_Support_Height, Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+//                    cylinder(h=Resin_Support_Height-1,r=Resin_Support_Wire_Thickness);
+//                    translate([0,0,Resin_Support_Height-1])
+//                    cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
+//                    cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
                 }
                 translate([Countersink_Diameter*cos(theta)/3,Countersink_Diameter*sin(theta)/3,0]){
-                cylinder(h=Resin_Support_Height+Top_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
-                translate([0,0,Resin_Support_Height+Top_Countersink_Depth-1])
-                cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
-                cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+                ResinRod (Resin_Support_Height+pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Countersink_Diameter/3), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+//                cylinder(h=Resin_Support_Height+Top_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
+//                translate([0,0,Resin_Support_Height+Top_Countersink_Depth-1])
+//                cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
+//                cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
                 }
             }
             //Create Inner Ring of 4 Supports
             for (n=[0:1:3]){
                 theta=90*n;
                 translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
-                cylinder(h=Resin_Support_Height+Top_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
-                translate([0,0,Resin_Support_Height+Top_Countersink_Depth-1])
-                cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
-                cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
+                    ResinRod (Resin_Support_Height+pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Shaft_Diameter/2+1), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+//                cylinder(h=Resin_Support_Height+Top_Countersink_Depth-1,r=Resin_Support_Wire_Thickness);
+//                translate([0,0,Resin_Support_Height+Top_Countersink_Depth-1])
+//                cylinder(h=1, r2=.3, r1=Resin_Support_Wire_Thickness);
+//                cylinder(h=Resin_Support_Thickness,r2=Resin_Support_Thickness,r1=1.2);
                 }
             }
         }

@@ -20,6 +20,7 @@ $fn = $preview ? 22 : 44;
 
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
+testing=false;
 /* [Element Dimensions] */
 
 //From Top Plane
@@ -38,13 +39,27 @@ Element_Height=23.42;
 //Diameter of Element
 Element_Diameter=27.15;
 //Diameter of Central Shaft
-Element_Shaft_Diameter=4.426;//4.1+.326 //3.6+.143+.05 shaft+clearanceoffset+clearance  //4.16 scan diameter
+Element_Shaft_Diameter=3.826;
+
+//3.6 + .143 * 2 + .05 | shaft + offset + clearance  ?????
+//4.16 locastan scan diameter
+
+//4.1 locastan caliper diameter
+//3.5 rpolt caliper
+//4.1 + .326 | shaft + clearance and offset for locastan calipers
+//3.5 + .326 richard polt shaft + clearance and offset for rpolt calipers
+
+
 //Minimum Diameter Across 2 Characters
 Element_Min_Concave=28.19;
 //Radial Position for Square Hole
 Element_SquareHole_Position=8.92;
 //Width of Square Hole
-Element_SquareHole_Width=4.426;
+Element_SquareHole_Width=4.126;
+
+//4.1 + .326 | locastan caliper + clearance and offset
+//3.9 + .326 | rpolt clearance and offset
+
 //Length of Square Hole
 Element_SquareHole_Length=3.206;
 //Height of Inside Square Hole Support
@@ -76,7 +91,6 @@ Element_SpeedholeCount=4;//[0:2:6]
 Element_Platen_Diameter=30;
 
 /* [Character Details] */
-testing=false;
 Layout=0;//[0:German, 1:German Mod]
 LAYOUT=testing?TESTING:Layouts[Layout];
 Typeface_="Noto Sans Mono Light";//"Consolas";
@@ -187,6 +201,8 @@ union(){
                         char=GERMAN[row][column];
                         baseline=Baseline[row]-testingcutout;
                         cutout=Cutout[row]+testingcutout;
+                        
+                        if (testing==true)
                         echo(char=char,baseline=baseline, cutout=cutout);
                         
                         //testingbaseline, testingcutout = 0 when testing=false
