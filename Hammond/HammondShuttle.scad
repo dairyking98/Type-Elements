@@ -7,12 +7,15 @@ MATH=["qazwsxedcrfvtgbyhnujmik,ol.p·√",
         "1\"_2∑×3Δ+4∞[5Γ]6⁘*7'|8(<9)>0=/",
          "₁αζ₂σξ₃δρ₄ψθ₅γβ₆ητ₇εφ₈κω₉λπ₀ₙ-"];
          
-
  
 Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
+testing=false;
+testchar="H";
+testingoffsets=[-.7, -.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .66, .7, .75];
+echo (len(testingoffsets));
 //Global variable to prevent z-fighting
 z=.001;
 
@@ -246,7 +249,15 @@ union(){
                     regular_polygon(96, 2*Shuttle_Arc_Radius+2*Shuttle_Thickness);
                     for (row = [0:1:Math?3:2]){
                         for (column = [0:1:29]){
-                            LetterText (Shuttle_Arc_Radius+Shuttle_Thickness-z, /*Shuttle_Height-Baseline[row]/*/rib_bottomz+Baseline[row], Typeface_, Type_Size, Layout[row][29-column], column, Shuttle_Text_Protrusion,Debug_No_Minkowski, Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                        
+                            testingbaseline=testing?testingoffsets[column]:0;
+                            char=ENGLISH[row][column];
+                            baseline=Baseline[row]-testingbaseline;
+                            
+                            if (testing==true)
+                            echo(char=char,baseline=baseline);
+                        
+                            LetterText (Shuttle_Arc_Radius+Shuttle_Thickness-z, rib_bottomz+Baseline[row]+(testing?testingoffsets[column]:0), Typeface_, Type_Size, testing?testchar:Layout[row][29-column], column, Shuttle_Text_Protrusion,Debug_No_Minkowski, Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                         }
                     }
                 }
@@ -309,13 +320,10 @@ union(){
         }
         
         //Pin Support Hole
-        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, -Shuttle_Square_Hole_Width/2, (Math?Shuttle_Height_Math:Shuttle_Height)-Shuttle_Rib_Plane-z])
-        linear_extrude(20)
-    RadiusSquare(Shuttle_Square_Hole_Length,Shuttle_Square_Hole_Width,Shuttle_Square_Hole_Radius,Cylinder_fn);
-//        minkowski(){
-//            cube([Shuttle_Square_Hole_Length-2*Shuttle_Square_Hole_Radius, Shuttle_Square_Hole_Width-2*Shuttle_Square_Hole_Radius, 100], center=true);
-//            sphere(r=Shuttle_Square_Hole_Radius, $fn=Cylinder_fn);
-//        }
+        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset, 0, 0])
+        translate([0, -Shuttle_Square_Hole_Width/2, -z])
+        linear_extrude(Shuttle_Height+z)
+        RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, Cylinder_fn);
         
         //Shuttle Taper 
         for (a=[0,1]){

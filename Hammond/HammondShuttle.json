@@ -142,6 +142,7 @@
             "Typeface_": "OpenDyslexicMono",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "0",
+            "testing": "false",
             "z": "0.001"
         }
     }
