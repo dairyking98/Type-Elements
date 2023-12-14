@@ -46,6 +46,11 @@ Shuttle_Taper=2;
 //Offset From Arc Radius for Taper
 Shuttle_Taper_Step=.5;
 
+Groove=false;
+Shuttle_Groove_Depth=.5;
+Shuttle_Groove_Nub_Size=.5;
+Shuttle_Groove_Nub_Angle=29;
+
 /* [Shuttle Label] */
 //Shuttle Label 1
 Shuttle_Label1="Leonard Chau";
@@ -76,6 +81,7 @@ Resin_Support_EdgeGap=.3;
 //Resin Support Buildplate Radius
 Resin_Support_Buildplate_Radius=.8;
 
+grooverad=Shuttle_Arc_Radius+Shuttle_Groove_Depth;
 
 //Taper Variables
 taper_inset_x=(Shuttle_Arc_Radius-z)*cos(60-Shuttle_Taper);
@@ -127,7 +133,7 @@ difference(){
         difference(){
             union(){
                 difference(){
-                    circle(r=Shuttle_Arc_Radius+z, $fn=Cylinder_fn);
+                    circle(r=grooverad, $fn=Cylinder_fn);
                     circle(r=Shuttle_Arc_Radius-Shuttle_Rib_Width, $fn=Cylinder_fn);
                     polygon([[0, 0], [Shuttle_Arc_Radius*cos(60), Shuttle_Arc_Radius*sin(60)], [Shuttle_Arc_Radius*cos(60), -Shuttle_Arc_Radius*sin(60)]]);
                 }
@@ -136,7 +142,7 @@ difference(){
                 intersection(){
                     translate([Shuttle_Rib_Circle_Offset, 0, 0])
                     circle(r=Shuttle_Rib_Circle, $fn=Cylinder_fn);
-                    circle(r=Shuttle_Arc_Radius, $fn=Cylinder_fn);
+                    circle(r=grooverad, $fn=Cylinder_fn);
                 }
                 
                 //Add Rib Circle Radius
@@ -154,9 +160,13 @@ difference(){
     translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, -Shuttle_Square_Hole_Width/2, -5])
     linear_extrude(20)
     RadiusSquare(Shuttle_Square_Hole_Length,Shuttle_Square_Hole_Width,Shuttle_Square_Hole_Radius,Cylinder_fn);
+
+    translate([0, 0, -5])
+        for (n=[-2:1:2]){
+        rotate([0, 0, Shuttle_Nub_Angle*n])
+        translate([Shuttle_Arc_Radius+Shuttle_Groove_Depth, 0, 0])
+        cylinder(h=10, r=Shuttle_Groove_Nub_Size, $fn=Cylinder_fn);
+        }
     
-//    minkowski(){
-//        cube([Shuttle_Square_Hole_Length-2*Shuttle_Square_Hole_Radius, Shuttle_Square_Hole_Width-2*Shuttle_Square_Hole_Radius, 100], center=true);
-//        sphere(r=Shuttle_Square_Hole_Radius, $fn=Cylinder_fn);
-//    }
+
 }

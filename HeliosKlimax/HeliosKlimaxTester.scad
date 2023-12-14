@@ -22,7 +22,6 @@ $fn = $preview ? 22 : 44;
 Assert=true;
 testing=false;
 /* [Element Dimensions] */
-
 //From Top Plane
 Baselines=[3.55, 9.55, 15.50, 21.7];
 //Positive - up; Negative - down
@@ -33,7 +32,6 @@ Cutouts=[2.2, 8.2, 14.2, 20.2];
 //Positive - up; Negative - down
 Cutout_Offset=[0, 0, 0, 0];
 Cutout=Cutouts-Cutout_Offset;
-
 //Height of Element
 Element_Height=23.42;
 //Diameter of Element
