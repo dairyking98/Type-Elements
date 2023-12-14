@@ -21,6 +21,16 @@ LAYOUT=["&():\"!?'äöü_",
         "¾YCHWXychwx+",
         "½¼23456789.-"];
 */
+TESTING=["HHHHHHHHHHHH",
+         "HHHHHHHHHHHH",
+         "HHHHHHHHHHHH",
+         "HHHHHHHHHHHH",
+         "HHHHHHHHHHHH",
+         "HHHHHHHHHHHH",
+         "HHHHHHHHHHHH"];
+
+Assert=true;
+testing=false;
 //Custom Layout
 1st_Row="";
 2nd_Row="";
@@ -33,14 +43,16 @@ CUSTOMLAYOUT=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];
 include <MignonIndexLayouts.scad>
 CharLegend=[7,8,9,10,11,0,1,2,3,4,5,6];
 Layout_Selection=0; //[0:English Unknown, 1:Custom Layout, 2:Deutsch 4, 3:English 4, 4:French 3, 5:International Schreibschrift, 6:Schwedisch 2]
-Layout=Layouts[Layout_Selection];
+Layout=testing?TESTING:Layouts[Layout_Selection];
 Tallen=false;
 //Element Height Increase
 Height_Increase=3;
 
+Testing_Offsets=[-.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3];
 
-Typeface_="Consolas";//As Installed on PC
-Type_Size=3.3;//[1:.05:6]
+
+Typeface_="Iosevka Etoile";//As Installed on PC
+Type_Size=2.45;//[1:.05:6]
 Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
@@ -67,16 +79,16 @@ Cylinder_Label_Offset=0;
 
 /* [Cylinder Details] */
 //Total Cylinder Height
-Cylinder_Height_=40;
+Cylinder_Height_=40.5;
 Cylinder_Height= Tallen==true ? Cylinder_Height_+Height_Increase : Cylinder_Height_;
 //Main Cylinder Diameter
-Cylinder_Diameter=18;
+Cylinder_Diameter=18.64;
 //Height Drop From Top
 Cylinder_Top_Height_Offset=3;
 //Height Drop Chamfer Radius
 //Cylinder_Top_Radius=2;
 //Height Drop Chamfer Size
-Cylinder_Top_Chamfer=1.75;
+Cylinder_Top_Chamfer=2;
 //Height Drop Diameter
 Cylinder_Top_Diameter=10.5;
 //Inner Shaft Diameter
@@ -88,7 +100,7 @@ Pin_Height=1.8;
 //Max Pin Width
 Pin_Width=1.7;
 //Max Minimum Diameter Across 2 Concave Characters
-Min_Final_Character_Diameter=19;
+Min_Final_Character_Diameter=19.4;
 //Platen Diameter
 Platen_Diameter=26.5;
 
@@ -122,40 +134,39 @@ Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 
 
-module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCutout,SomeCutout_Offset, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeCharacter_Modifieds, SomeCharacter_Modifieds_Offset, SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
+module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,SomeType_Size,SomeChar,SomeTheta,SomePlaten_Diameter,SomeMin_Final_Character_Diameter,SomeCharacter_Modifieds, SomeCharacter_Modifieds_Offset, SomeDebug, SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj, SomeWeight_Adj_Mode, SomeScale_Multiplier, SomeScale_Multiplier_Text){
     $fn = $preview ? 22 : 44;
     x=search(SomeChar, SomeScale_Multiplier_Text);
     minkowski(){
         difference(){
-            translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBaseline+SomeBaseline_Offset])
+            translate([cos(SomeTheta)*SomeElement_Diameter/2,sin(SomeTheta)*SomeElement_Diameter/2,SomeBaseline])
             translate([0,0,SomeChar==SomeCharacter_Modifieds ?  SomeCharacter_Modifieds_Offset : 0])
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
-            scale([x==[] ? 1: SomeScale_Multiplier, x==[] ? 1: SomeScale_Multiplier, 1])
             if (SomeWeight_Adj_Mode==2)
                 minkowski(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     circle(r=1);
                 }
             else if (SomeWeight_Adj_Mode==1)
                 difference(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
-                        text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                        text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     }
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     circle(r=1);
                     }
                 }
                  else if (SomeWeight_Adj_Mode==0)
-            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+            text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     
                 
-            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout+SomeCutout_Offset])
+            translate([cos(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomePlaten_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout])
             rotate([90,0,SomeTheta])
             cylinder(h=5,d=SomePlaten_Diameter,center=true,$fn=$preview ? 60 : 360);
         }
@@ -172,6 +183,9 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeBaseline_Offset,SomeCut
  }
 //Module Cylinder (SomeCylinder_Height,SomeCylinder_Top_Height_Offset,SomeCylinder_Diameter,SomeCylinder_Top_Radius,SomeCylinder_Top)
 
+if (Assert==true)
+assert(false,"Uncheck Automatic Preview and Assert");
+else
 union(){
     translate([0, 0, Cylinder_Height])
     rotate([0, 180, 0])
@@ -182,7 +196,17 @@ union(){
                     PickedChar=CharLegend[n];
                     theta=-(360/(len(Layout[0]))*n);
                     if (Layout[row][PickedChar] != " "){
-                        LetterText(Cylinder_Diameter-1,Baseline[row],Baseline_Offset[row],Cutout[row],Cutout_Offset[row],Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Character_Modifieds, Character_Modifieds_Offset, Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                    
+                    testingbaseline=testing?Testing_Offsets[PickedChar]:0;
+                        testingcutout=testing?Testing_Offsets[PickedChar]:0;
+                        char=Layouts[Layout_Selection][row][PickedChar];
+                        baseline=Baseline[row]-testingcutout;
+                        cutout=Cutout[row]+testingcutout;
+                        
+                        if (testing==true)
+                        echo(char=char,baseline=baseline, cutout=cutout);
+                    
+                        LetterText(Cylinder_Diameter-1,Baseline[row]+Baseline_Offset[row]-testingbaseline,Cutout[row]+Cutout_Offset[row]+testingcutout,Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Character_Modifieds, Character_Modifieds_Offset, Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                     }
                     }
                 }//Polygonal Shape

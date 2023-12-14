@@ -93,8 +93,8 @@ Element_Platen_Diameter=30;
 /* [Character Details] */
 Layout=0;//[0:German, 1:German Mod]
 LAYOUT=testing?TESTING:Layouts[Layout];
-Typeface_="Noto Sans Mono Light";//"Consolas";
-Type_Size=2.85;//2;
+Typeface_="Average Mono";//"Consolas";
+Type_Size=3;//2;
 Debug_No_Minkowski=true;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
@@ -146,28 +146,27 @@ module LetterText (SomeElement_Diameter,SomeBaseline,SomeCutout, SomeTypeface_,S
             rotate([90,0,90+SomeTheta])
             mirror([1,0,0])
             linear_extrude(2)
-            scale([x==[] ? 1: SomeScale_Multiplier, x==[] ? 1: SomeScale_Multiplier, 1])
             if (SomeWeight_Adj_Mode==2)
                 minkowski(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     //circle(r=1, $fn=44);
                     square([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj], center=true);
                 }
             else if (SomeWeight_Adj_Mode==1)
                 difference(){
-                    text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                    text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
-                        text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+                        text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     }
                     scale([SomeHorizontal_Weight_Adj, SomeVertical_Weight_Adj])
                     circle(r=1);
                     }
                 }
             else if (SomeWeight_Adj_Mode==0)
-            text(SomeChar,size=SomeType_Size,halign="center",valign="baseline",font=SomeTypeface_);
+            text(SomeChar,size=x==[] ? SomeType_Size:SomeType_Size*SomeScale_Multiplier,halign="center",valign="baseline",font=SomeTypeface_);
                     
                 
             translate([cos(SomeTheta)*(SomeElement_Platen_Diameter/2+SomeMin_Final_Character_Diameter/2),sin(SomeTheta)*(SomeElement_Platen_Diameter/2+SomeMin_Final_Character_Diameter/2),SomeCutout])
