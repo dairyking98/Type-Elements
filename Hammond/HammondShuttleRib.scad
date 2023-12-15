@@ -163,7 +163,7 @@ difference(){
 
     translate([0, 0, -5])
         for (n=[-2:1:2]){
-        rotate([0, 0, Shuttle_Nub_Angle*n])
+        rotate([0, 0, Shuttle_Groove_Nub_Angle*n])
         translate([Shuttle_Arc_Radius+Shuttle_Groove_Depth, 0, 0])
         cylinder(h=10, r=Shuttle_Groove_Nub_Size, $fn=Cylinder_fn);
         }

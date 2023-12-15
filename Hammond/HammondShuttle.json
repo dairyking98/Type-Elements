@@ -150,6 +150,7 @@
             "Character_Modifieds_Offset": "0",
             "Debug_No_Minkowski": "true",
             "Groove": "true",
+            "Horizontal": "true",
             "Horizontal_Weight_Adj": "0.001",
             "Math": "false",
             "Resin_Support": "true",

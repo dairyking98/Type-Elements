@@ -118,7 +118,9 @@ Resin_Support_Contact_Diameter=.3;
 Resin_Support_EdgeGap=.3;
 //Resin Support Buildplate Radius
 Resin_Support_Buildplate_Radius=.8;
-
+Horizontal=false;
+Resin_Support_Cut_Groove_Diameter=.5;
+Resin_Support_Cut_Groove_Min_Thickness=.2;
 
 Baseline=Baselines+Baselines_Offset;
 //Taper Variables
@@ -243,8 +245,9 @@ if (Assert==true)
 assert(false,"Uncheck Automatic Preview and Assert");
 else
 union(){
-    rotate([0, -90, 0])
-    translate([-Shuttle_Arc_Radius*cos(60), 0, -x_max])
+    rotate([0, Horizontal?0:-90, 0])//fixxx
+    translate([Horizontal?0:-Shuttle_Arc_Radius*cos(60), 0, Horizontal?0:-x_max])
+    
     difference(){
         union(){
             difference(){
@@ -379,7 +382,7 @@ union(){
             text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
     }
     
-    if (Resin_Support==true){
+    if (Resin_Support==true && Horizontal==false){
         union(){
             translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness]){
                 //Under Large Arc
@@ -499,5 +502,30 @@ union(){
                 
             }
         }
+    }
+    //Horizontal Resin Support
+    if (Resin_Support==true && Horizontal==true){
+    rotate([0, 0, -60])
+    difference(){
+        rotate_extrude(angle=120, $fn=Cylinder_fn)
+        polygon([
+        [Shuttle_Arc_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness],//1
+                [Shuttle_Arc_Radius, 0],//2
+                [Shuttle_Arc_Radius+Shuttle_Thickness, 0],//3
+                [Shuttle_Arc_Radius+Shuttle_Thickness, -Resin_Support_Min_Height],//4
+                [Shuttle_Arc_Radius+Shuttle_Thickness+Resin_Support_Base_Thickness+1, -Resin_Support_Min_Height],//5
+                [Shuttle_Arc_Radius+Shuttle_Thickness+1,-Resin_Support_Min_Height-Resin_Support_Base_Thickness],//6
+            ]);
+            translate([0, 0, -Resin_Support_Cut_Groove_Diameter/2])
+            rotate_extrude($fn=Cylinder_fn)
+            translate([Shuttle_Arc_Radius+Resin_Support_Cut_Groove_Diameter/2+Resin_Support_Cut_Groove_Min_Thickness, 0])
+            hull(){
+            circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
+            translate([2, 0, 0])
+            circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
+            }
+            
+        }
+    
     }
 }
