@@ -245,8 +245,8 @@ if (Assert==true)
 assert(false,"Uncheck Automatic Preview and Assert");
 else
 union(){
-    rotate([0, Horizontal?0:-90, 0])//fixxx
-    translate([Horizontal?0:-Shuttle_Arc_Radius*cos(60), 0, Horizontal?0:-x_max])
+    rotate([0, Horizontal?0:-90, 0])
+    translate([-Shuttle_Arc_Radius*cos(60), 0, Horizontal?0:-x_max])
     
     difference(){
         union(){
@@ -505,16 +505,17 @@ union(){
     }
     //Horizontal Resin Support
     if (Resin_Support==true && Horizontal==true){
+    translate([-Shuttle_Arc_Radius*cos(60),0,0])
     rotate([0, 0, -60])
     difference(){
         rotate_extrude(angle=120, $fn=Cylinder_fn)
         polygon([
-        [Shuttle_Arc_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness],//1
+        [Shuttle_Arc_Radius, -Resin_Support_Cut_Groove_Diameter-Resin_Support_Base_Thickness],//1
                 [Shuttle_Arc_Radius, 0],//2
                 [Shuttle_Arc_Radius+Shuttle_Thickness, 0],//3
-                [Shuttle_Arc_Radius+Shuttle_Thickness, -Resin_Support_Min_Height],//4
-                [Shuttle_Arc_Radius+Shuttle_Thickness+Resin_Support_Base_Thickness+1, -Resin_Support_Min_Height],//5
-                [Shuttle_Arc_Radius+Shuttle_Thickness+1,-Resin_Support_Min_Height-Resin_Support_Base_Thickness],//6
+                [Shuttle_Arc_Radius+Shuttle_Thickness, -Resin_Support_Cut_Groove_Diameter],//4
+                [Shuttle_Arc_Radius+Shuttle_Thickness+Resin_Support_Base_Thickness, -Resin_Support_Cut_Groove_Diameter],//5
+                [Shuttle_Arc_Radius+Shuttle_Thickness,-Resin_Support_Cut_Groove_Diameter-Resin_Support_Base_Thickness],//6
             ]);
             translate([0, 0, -Resin_Support_Cut_Groove_Diameter/2])
             rotate_extrude($fn=Cylinder_fn)
