@@ -12,7 +12,11 @@ Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
+//Vertical or Horizontal Orientation?
+Horizontal=false;
+//Apply Testing Baselines?
 testing=false;
+//Testing Character
 testchar="H";
 testingoffsets=[-.7, -.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .66, .7, .75];
 echo (len(testingoffsets));
@@ -104,22 +108,23 @@ Shuttle_Label_Depth=.2;
 /* [Support Structure] */
 //Generate Support?
 Resin_Support=true;
-//Resin Support Raft Thickness
+////Vertical Resin Support Raft Thickness
 Resin_Support_Base_Thickness=1.5;
-//Resin Support Rod Thickness
+//Vertical Resin Support Rod Thickness
 Resin_Support_Rod_Thickness=.8;
-//Minimum Height From Raft
+//Vertical Minimum Height From Raft
 Resin_Support_Min_Height=1;
-//Spacing Between Resin Support Rods
+//Vertical Spacing Between Resin Support Rods
 Resin_Support_Spacing=3;
-//Resin Support Connecting Point Diameter
+//Vertical Resin Support Connecting Point Diameter
 Resin_Support_Contact_Diameter=.3;
-//Resin Support Gap from Part Edges
+//Vertical Resin Support Gap from Part Edges
 Resin_Support_EdgeGap=.3;
-//Resin Support Buildplate Radius
+//Vertical Resin Support Buildplate Radius
 Resin_Support_Buildplate_Radius=.8;
-Horizontal=false;
+//Horizontal Resin Support Cut Groove Diameter
 Resin_Support_Cut_Groove_Diameter=.5;
+//Horizontal Resin Support Cut Groove Minimum Thickness
 Resin_Support_Cut_Groove_Min_Thickness=.2;
 
 Baseline=Baselines+Baselines_Offset;
