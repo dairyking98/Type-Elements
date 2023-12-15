@@ -3,6 +3,7 @@ $fn = $preview ? 22 : 44;
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
 //Global variable to prevent z-fighting
+3d=false;
 z=.001;
 
 /* [Shuttle Dimensions] */
@@ -128,7 +129,8 @@ cp2y=yprime+(Shuttle_Rib_Circle_Radius)*sin(theta2);
     }
  }
 
-difference(){
+module 2d_rib(){
+    difference(){
         difference(){
             union(){
                 difference(){
@@ -155,15 +157,21 @@ difference(){
             
         polygon([[Shuttle_Arc_Radius*3*cos(60), -Shuttle_Arc_Radius*3*sin(60)],[0, 0],  [Shuttle_Arc_Radius*3*cos(60), Shuttle_Arc_Radius*3*sin(60)], [0, 100], [-100, 0], [0, -100]]);
         }
-    
-    translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, -Shuttle_Square_Hole_Width/2, -5])
-    RadiusSquare(Shuttle_Square_Hole_Length,Shuttle_Square_Hole_Width,Shuttle_Square_Hole_Radius,Cylinder_fn);
+        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset, 0, 0])
+        translate([0, -Shuttle_Square_Hole_Width/2, -z])
+        RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, Cylinder_fn);
 
         for (n=[-2:1:2]){
         rotate([0, 0, Shuttle_Groove_Nub_Angle*n])
         translate([Shuttle_Arc_Radius+Shuttle_Groove_Depth, 0, 0])
         circle(r=Shuttle_Groove_Nub_Size, $fn=Cylinder_fn);
         }
-    
-
+    }
 }
+
+translate([-Shuttle_Arc_Radius*sin(60),0,0])
+if (3d==false)
+2d_rib();
+else
+linear_extrude(1)
+2d_rib();

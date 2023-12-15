@@ -357,7 +357,8 @@ union(){
             translate([0, -Shuttle_Square_Hole_Width/2, -z])
             linear_extrude(Shuttle_Height+z)
             RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, Cylinder_fn);
-        }
+            }
+        
             
         //Shuttle Taper 
         for (a=[0,1]){
@@ -512,8 +513,8 @@ union(){
     if (Resin_Support==true && Horizontal==true){
     translate([-Shuttle_Arc_Radius*cos(60),0,0])
     rotate([0, 0, -60])
+    rotate_extrude(angle=120, $fn=Cylinder_fn)
     difference(){
-        rotate_extrude(angle=120, $fn=Cylinder_fn)
         polygon([
         [Shuttle_Arc_Radius, -Resin_Support_Cut_Groove_Diameter-Resin_Support_Base_Thickness],//1
                 [Shuttle_Arc_Radius, 0],//2
@@ -522,16 +523,13 @@ union(){
                 [Shuttle_Arc_Radius+Shuttle_Thickness+Resin_Support_Base_Thickness, -Resin_Support_Cut_Groove_Diameter],//5
                 [Shuttle_Arc_Radius+Shuttle_Thickness,-Resin_Support_Cut_Groove_Diameter-Resin_Support_Base_Thickness],//6
             ]);
-            translate([0, 0, -Resin_Support_Cut_Groove_Diameter/2])
-            rotate_extrude($fn=Cylinder_fn)
-            translate([Shuttle_Arc_Radius+Resin_Support_Cut_Groove_Diameter/2+Resin_Support_Cut_Groove_Min_Thickness, 0])
-            hull(){
-            circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
-            translate([2, 0, 0])
-            circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
+            translate([Shuttle_Arc_Radius+Resin_Support_Cut_Groove_Diameter/2+Resin_Support_Cut_Groove_Min_Thickness, -Resin_Support_Cut_Groove_Diameter/2]){
+                hull(){
+                    circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
+                    translate([2, 0, -Resin_Support_Cut_Groove_Diameter/2])
+                    circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cylinder_fn);
+                }
             }
-            
         }
-    
     }
 }

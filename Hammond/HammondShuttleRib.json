@@ -41,6 +41,7 @@
             "z": "0.001"
         },
         "New set 2": {
+            "3d": "true",
             "Assert": "true",
             "Groove": "false",
             "Resin_Support": "true",
