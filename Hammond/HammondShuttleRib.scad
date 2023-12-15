@@ -129,7 +129,6 @@ cp2y=yprime+(Shuttle_Rib_Circle_Radius)*sin(theta2);
  }
 
 difference(){
-    linear_extrude(Shuttle_Rib_Thickness){
         difference(){
             union(){
                 difference(){
@@ -156,16 +155,14 @@ difference(){
             
         polygon([[Shuttle_Arc_Radius*3*cos(60), -Shuttle_Arc_Radius*3*sin(60)],[0, 0],  [Shuttle_Arc_Radius*3*cos(60), Shuttle_Arc_Radius*3*sin(60)], [0, 100], [-100, 0], [0, -100]]);
         }
-    }
+    
     translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, -Shuttle_Square_Hole_Width/2, -5])
-    linear_extrude(20)
     RadiusSquare(Shuttle_Square_Hole_Length,Shuttle_Square_Hole_Width,Shuttle_Square_Hole_Radius,Cylinder_fn);
 
-    translate([0, 0, -5])
         for (n=[-2:1:2]){
         rotate([0, 0, Shuttle_Groove_Nub_Angle*n])
         translate([Shuttle_Arc_Radius+Shuttle_Groove_Depth, 0, 0])
-        cylinder(h=10, r=Shuttle_Groove_Nub_Size, $fn=Cylinder_fn);
+        circle(r=Shuttle_Groove_Nub_Size, $fn=Cylinder_fn);
         }
     
 
