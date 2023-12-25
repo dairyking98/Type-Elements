@@ -1,5 +1,5 @@
 //Assert error message to stop OpenSCAD from freezing upon startup
-Assert=true;
+Assert=false;
 //Custom Layout
 1st_Row="";
 2nd_Row="";
@@ -13,7 +13,7 @@ include <MignonIndexLayouts.scad>
 
 CharLegend=[7,8,9,10,11,0,1,2,3,4,5,6];
 //Layout Selection
-Layout_Selection=2; //[0:American?, 1:Custom Layout, 2:Deutsch 4, 3:English 4, 4:French 3, 5:International Schreibschrift, 6:Schwedisch 2]
+Layout_Selection=0; //[0:English 2,1:Custom Layout,2:English 3,3:English 4,4:German 2,5:German 4,6:German-French,7:German Fraktur - Gothic,8:German Fraktur - Prof. Stiehl,9:Bohemian 3,10:Bulgarian,11:Cyrillic,12:Danish 2,13:Danish 3,14:Esperanto,15:French 3,16:Georgian,17:Greek (new ortography),18:Dutch 2,19:Italian 3,20:Croatian-Slovenian,21:Latvian,22:Lithuanian,23:Polish 2,24:Portuguese 2,25:Romanian 1,26:Russian (new ortography),27:Russian 3,28:Spanish-American,29:International Script,30:Swedish 2,31:Ukrainian,32:Hungarian 2]
 Layout=Layouts[Layout_Selection];
 //Index Length
 Length=133;
