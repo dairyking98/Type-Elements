@@ -1,12 +1,3 @@
-ENGLISH2=[
-        "'\"%&(£$);:,.",
-        "?PFUGQpfugq¼",
-        "!VINABvinab½",
-        "_LDETMldetm¾",
-        "JKOSRZkosrzj",
-        "/YCHWXychwx@",
-        "#1234567890-"];
-
 //Custom Layout
 /*1st_Row="";
 2nd_Row="";
@@ -16,6 +7,15 @@ ENGLISH2=[
 6th_Row="";
 7th_Row="";
 CUSTOMLAYOUT=[1st_Row,2nd_Row,3rd_Row,4th_Row,5th_Row,6th_Row,7th_Row];*/
+
+ENGLISH2=[
+        "'\"%&(£$);:,.",
+        "?PFUGQpfugq¼",
+        "!VINABvinab½",
+        "_LDETMldetm¾",
+        "JKOSRZkosrzj",
+        "/YCHWXychwx@",
+        "#1234567890-"];
 
 ENGLISH3=[
         "()&'\".,:¼½¾⅛",
@@ -297,8 +297,8 @@ UNGARISCH2=[
         "+%23456789§-"];
 
 Layouts=[
-ENGLISH2,
 CUSTOMLAYOUT,
+ENGLISH2,
 ENGLISH3,
 ENGLISH4,
 DEUTSCH2,
@@ -333,6 +333,6 @@ UNGARISCH2
 ];
 
 /*
-Layout_Selection=0; //[0:English 2,1:Custom Layout,2:English 3,3:English 4,4:German 2,5:German 4,6:German-French,7:German Fraktur - Gothic,8:German Fraktur - Prof. Stiehl,9:Bohemian 3,10:Bulgarian,11:Cyrillic,12:Danish 2,13:Danish 3,14:Esperanto,15:French 3,16:Georgian,17:Greek (new ortography),18:Dutch 2,19:Italian 3,20:Croatian-Slovenian,21:Latvian,22:Lithuanian,23:Polish 2,24:Portuguese 2,25:Romanian 1,26:Russian (new ortography),27:Russian 3,28:Spanish-American,29:International Script,30:Swedish 2,31:Ukrainian,32:Hungarian 2]
+Layout_Selection=0; //[0:Custom Layout,1:English 2,2:English 3,3:English 4,4:German 2,5:German 4,6:German-French,7:German Fraktur - Gothic,8:German Fraktur - Prof. Stiehl,9:Bohemian 3,10:Bulgarian,11:Cyrillic,12:Danish 2,13:Danish 3,14:Esperanto,15:French 3,16:Georgian,17:Greek (new ortography),18:Dutch 2,19:Italian 3,20:Croatian-Slovenian,21:Latvian,22:Lithuanian,23:Polish 2,24:Portuguese 2,25:Romanian 1,26:Russian (new ortography),27:Russian 3,28:Spanish-American,29:International Script,30:Swedish 2,31:Ukrainian,32:Hungarian 2]
 Layout=Layouts[Layout_Selection];
 */
