@@ -1,6 +1,6 @@
 Test_String="NOW IS THE TIME FOR ALL ";
 
-Type_Size=1.9;//[1:.05:5]
+Type_Size=1.9;//[1:.05:10]
 Typeface_="OpenDyslexicMono";
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
@@ -15,7 +15,8 @@ Scale_Multiplier=1.4;
 pica=25.4/10;
 echo(is_string(pica));
 elite=25.4/12;
-Pitch=2.6;//[2.54:Pica, 2.116666667:Elite, 2.6:Euro Pica, 2.3:Euro Elite]
+Pitch_Custom=6;
+Pitch=2.6;//[2.54:Pica, 2.116666667:Elite, 2.6:Euro Pica, 2.3:Euro Elite, 6:Custom]
 echo(Pitch);
 Blick_Bounding_Box=false;
 Bennett_Bounding_Box=false;

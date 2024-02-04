@@ -241,6 +241,26 @@
             "Typeface_": "Noto Sans Mono Light",
             "Vertical_Weight_Adj": "0.001",
             "Weight_Adj_Mode": "1"
+        },
+        "New set 1": {
+            "Bennett_Bounding_Box": "false",
+            "Blick_Bounding_Box": "false",
+            "Bound_x": "2.54",
+            "Bound_y": "3.4300000000000002",
+            "Character_Modifieds": "_",
+            "Character_Modifieds_Offset": "1",
+            "Custom_Bounding_Box": "false",
+            "Helios_Bounding_Box": "false",
+            "Horizontal_Weight_Adj": "0.001",
+            "Pitch": "6",
+            "Pitch_Custom": "6",
+            "Scale_Multiplier": "1.3999999999999999",
+            "Scale_Multiplier_Text": ".",
+            "Test_String": "NOW IS THE TIME FOR ALL ",
+            "Type_Size": "5",
+            "Typeface_": "Average Mono",
+            "Vertical_Weight_Adj": "0.001",
+            "Weight_Adj_Mode": "1"
         }
     }
 }

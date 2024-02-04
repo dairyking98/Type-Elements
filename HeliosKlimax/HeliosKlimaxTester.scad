@@ -24,11 +24,12 @@ testing=false;
 /* [Element Dimensions] */
 //From Top Plane
 Baselines=[3.55, 9.55, 15.50, 21.7];
+//Baselines=[4.15, 9.15, 15.50, 21.7];//after Locastan Test
 //Positive - up; Negative - down
 Baseline_Offset=[-.1, -.1, -.1, -.1];
 Baseline=Baselines-Baseline_Offset;
 //From Top Plane
-Cutouts=[2.2, 8.2, 14.2, 20.2];
+Cutouts=[2.2, 8.2, 14.2, 20.2];//.05
 //Positive - up; Negative - down
 Cutout_Offset=[0, 0, 0, 0];
 Cutout=Cutouts-Cutout_Offset;
@@ -192,12 +193,12 @@ union(){
                         
                         //TESTING FOR LOCASTAN
                         Baseline_Testing=[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
-                        Cutout_Testing=[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
+                        Cutout_Testing=0;//[-.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5];
                         testingbaseline=testing?Baseline_Testing[column]:0;
                         testingcutout=testing?Cutout_Testing[column]:0;
                         char=GERMAN[row][column];
-                        baseline=Baseline[row]-testingcutout;
-                        cutout=Cutout[row]+testingcutout;
+                        baseline=Baseline[row]+testingbaseline;
+                        cutout=Cutout[row]/*-testingcutout*/;
                         
                         if (testing==true)
                         echo(char=char,baseline=baseline, cutout=cutout);
@@ -206,7 +207,7 @@ union(){
                         //END TESTING FOR LOCASTAN
                         
                         
-                            LetterText(Element_Diameter-.1,Element_Height-Baseline[row]-testingbaseline,Element_Height-Cutout[row]+testingcutout, Typeface_,Type_Size,LAYOUT[row][column],theta*(column),Element_Platen_Diameter,Element_Min_Concave,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
+                            LetterText(Element_Diameter-.1,Element_Height-Baseline[row]-testingbaseline,Element_Height-Cutout[row]/*+testingcutout*/, Typeface_,Type_Size,LAYOUT[row][column],theta*(column),Element_Platen_Diameter,Element_Min_Concave,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
                             
                         }
                         translate([0, 0, -.01])

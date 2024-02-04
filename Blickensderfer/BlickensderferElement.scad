@@ -34,6 +34,8 @@ SCANDI=["zxkg.pwfudhiatensorlcmy,bvqj",
             "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
             "-Å_(ä/'\"!1234567890;?åö$)ÄÖ:"];
 
+            hebrew="זךכגװפףץצדהעאתןנםשרלסמיטבוקח";
+
 
 //Custom Lowercase Row
 Custom_Lowercase="zxkg.pwfudhiatensorlcmy,bvqj";
