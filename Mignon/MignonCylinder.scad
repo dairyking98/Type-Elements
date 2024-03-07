@@ -30,7 +30,9 @@ TESTING=["HHHHHHHHHHHH",
          "HHHHHHHHHHHH"];
 
 Assert=false;
-testing=false;
+testing_layout=false;
+testing_baseline=true;
+testing_cutout=true;
 //Custom Layout
 1st_Row="";
 2nd_Row="";
@@ -44,7 +46,7 @@ include <MignonIndexLayouts.scad>
 CharLegend=[7,8,9,10,11,0,1,2,3,4,5,6];
 Layout_Selection=0; //[0:Custom Layout,1:English 2,2:English 3,3:English 4,4:German 2,5:German 4,6:German-French,7:German Fraktur - Gothic,8:German Fraktur - Prof. Stiehl,9:Bohemian 3,10:Bulgarian,11:Cyrillic,12:Danish 2,13:Danish 3,14:Esperanto,15:French 3,16:Georgian,17:Greek (new ortography),18:Dutch 2,19:Italian 3,20:Croatian-Slovenian,21:Latvian,22:Lithuanian,23:Polish 2,24:Portuguese 2,25:Romanian 1,26:Russian (new ortography),27:Russian 3,28:Spanish-American,29:International Script,30:Swedish 2,31:Ukrainian,32:Hungarian 2]
 
-Layout=testing?TESTING:Layouts[Layout_Selection];
+Layout=testing_layout?TESTING:Layouts[Layout_Selection];
 Tallen=false;
 //Element Height Increase
 Height_Increase=3;
@@ -198,13 +200,13 @@ union(){
                     theta=-(360/(len(Layout[0]))*n);
                     if (Layout[row][PickedChar] != " "){
                     
-                    testingbaseline=testing?Testing_Offsets[PickedChar]:0;
-                        testingcutout=testing?Testing_Offsets[PickedChar]:0;
+                    testingbaseline=testing_baseline?Testing_Offsets[PickedChar]:0;
+                        testingcutout=testing_cutout?Testing_Offsets[PickedChar]:0;
                         char=Layouts[Layout_Selection][row][PickedChar];
                         baseline=Baseline[row]-testingcutout;
                         cutout=Cutout[row]+testingcutout;
                         
-                        if (testing==true)
+                        if (testing_layout==true)
                         echo(char=char,baseline=baseline, cutout=cutout);
                     
                         LetterText(Cylinder_Diameter-1,Baseline[row]+Baseline_Offset[row]-testingbaseline,Cutout[row]+Cutout_Offset[row]+testingcutout,Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Character_Modifieds, Character_Modifieds_Offset, Debug_No_Minkowski, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
