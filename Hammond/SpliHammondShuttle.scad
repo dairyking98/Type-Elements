@@ -401,10 +401,10 @@ module ResinRod(a){
 module ArcSupportXSection(){
     difference(){
     polygon([[0, 0], /*[-RaftThickness, RaftThickness], [0, RaftThickness],*/ [0, RaftThickness+MinRodHeight], [Shuttle_Thickness, RaftThickness+MinRodHeight], [Shuttle_Thickness, RaftThickness], [Shuttle_Thickness+RaftThickness, RaftThickness], [Shuttle_Thickness, 0]]);
-    translate([0, Shuttle_Thickness+RaftThickness-CutGroove/2])
-    circle(d=CutGroove);
-    translate([Shuttle_Thickness, Shuttle_Thickness+RaftThickness-CutGroove/2])
-    circle(d=CutGroove);
+    translate([0, MinRodHeight+RaftThickness-CutGroove/2])
+    circle(d=CutGroove, $fn=cyl_fn);
+    translate([Shuttle_Thickness, MinRodHeight+RaftThickness-CutGroove/2])
+    circle(d=CutGroove, $fn=cyl_fn);
     
     }
 }
@@ -451,7 +451,7 @@ module ArrangeResinRods(Tube, RodH){
             }
         
         difference(){
-        rotate_extrude()
+        rotate_extrude($fn=cyl_fn)
         translate([OD/2-Shuttle_Thickness, -RaftThickness-MinRodHeight, 0])
         ArcSupportXSection();
         IsolateArcSlice(1);
@@ -486,7 +486,7 @@ module FinalPrint(){
 }
 
 
-FinalPrint();
+ResinRight();
 //if(Generate_Right_Shuttle==true)
 //RightShuttleAssembled();
 //if(Generate_Left_Shuttle==true)
