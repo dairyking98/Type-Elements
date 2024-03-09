@@ -56,6 +56,7 @@ Spoke_Thickness=2.2;
 Spoke_Height=8.3;
 Spoke_Count=5;
 Spoke_Spacing=45/4;
+OuterSpokeChamferSize=1.5;
 
 Rib_Diameter=46.8;
 Rib_Thickness=2.6;
@@ -150,9 +151,9 @@ module Rib(){
 
 module IsolateCenterSlice(x){
     rotate([0, 0, Theta_Offset+Theta+Finger_Offset])
-    translate([0, 0,-z])
+    translate([0, 0,-z-5])
     rotate_extrude(angle=360-Theta, $fn=cyl_fn)
-    square([OD/2-Shuttle_Thickness/2+z+x, Shuttle_Width+2*z]);
+    square([OD/2-Shuttle_Thickness/2+z+x, Shuttle_Width+2*z+10]);
 }
 
 module SpokeShape(){
@@ -160,8 +161,19 @@ module SpokeShape(){
     circle(d=1, $fn=cyl_fn);
 }
 
-module SpokeChamfer(){
+module OuterSpokeChamfer(){
+    hull($fn=cyl_fn){
+        translate([0, 0, OuterSpokeChamferSize])
+        linear_extrude(z)
+        SpokeShape();
+        scale([(Spoke_Thickness+2*OuterSpokeChamferSize)/Spoke_Thickness, (Spoke_Height+2*OuterSpokeChamferSize)/Spoke_Height])
+        linear_extrude(z)
+        SpokeShape();
+    }
+}
 
+module InnerSpokeChamferProfile(){
+polygon([[Folder_OD/2, 0], [Folder_OD/2, Folder_Thickness], [Folder_OD/2+Folder_Thickness/2, Folder_Thickness/2]]);
 }
 
 module ArrangeSpokes(){
@@ -170,10 +182,16 @@ module ArrangeSpokes(){
             union(){
             for (i=[0:1:Spoke_Count-1]){
                 translate([0, 0, Folder_Thickness/2])
-                rotate([90, 0, 90+Spoke_Spacing*i])
-                linear_extrude(OD/2-Shuttle_Thickness/2)
-                SpokeShape();
+                rotate([90, 0, 90+Spoke_Spacing*i]){
+                    linear_extrude(OD/2-Shuttle_Thickness)
+                    SpokeShape();
+                    translate([0, 0, OD/2-Shuttle_Thickness+z])
+                    rotate([180, 0, 0])
+                    OuterSpokeChamfer();
+                }
             }
+            rotate_extrude(angle=45)
+            InnerSpokeChamferProfile();
         }
         IsolateCenterSlice(1);
     }
@@ -335,11 +353,11 @@ module ArrangeResinRods(){
 
 
 
-
-
+//OuterSpokeChamfer();
+//ArrangeSpokes();
 
 
 if(Generate_Right_Shuttle==true)
 RightShuttleAssembled();
-if(Generate_Left_Shuttle==true)
-LeftShuttleAssembled();
+//if(Generate_Left_Shuttle==true)
+//LeftShuttleAssembled();
