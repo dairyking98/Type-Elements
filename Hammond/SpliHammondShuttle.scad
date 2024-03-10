@@ -9,6 +9,7 @@ cyl_fn=360;
 text_fn=30;
 mink_fn=20;
 z=.01;
+resin_fn=20;
 
 Generate_Left_Shuttle=true;
 Generate_Right_Shuttle=true;
@@ -47,10 +48,10 @@ Folder_Thickness=9.525;// 3/8 thick
 Folder_ID=9.6;
 Folder_OD=18.762;
 Folder_Clearance=.5;
-Folder_SquashClearance=.1;
+Folder_SquashClearance=0;
 
 Glyph_Depth=.8;
-Finger_Thickness=1.5875;// 1/16 inch finger width separating the 2 shuttles
+Finger_Thickness=1.8;// 
 
 Spoke_Thickness=2.2;
 Spoke_Height=8.3;
@@ -87,7 +88,7 @@ Arc_Offset=2.62;
 Spoke_Offset=asin(Spoke_Thickness/(2*(OD-2*Shuttle_Thickness)/2));
 
 /* [Resin Support] */
-RodDiameter=1.5;
+RodDiameter=1.0;
 ContactDiameter=.6;
 RaftThickness=2;
 RaftRadius=2;
@@ -120,6 +121,8 @@ module IsolateArcSlice(a){
     rotate_extrude(angle=a*(360-15*Char_Theta-Char_Theta/2+Finger_Offset), $fn=cyl_fn)
     //translate([OD/2-Shuttle_Thickness, 0])
     square([OD, 100]);
+    translate([OD/2-Shuttle_Thickness-z, 0, -50])
+    cube([10, Finger_Thickness/2 ,100]);
     
 }
 
@@ -219,21 +222,33 @@ polygon([[Folder_OD/2, 0], [Folder_OD/2, Folder_Thickness], [Folder_OD/2+Folder_
 }
 
 module ArrangeSpokes(){
-    difference(){
-        rotate([0, 0, Theta_Offset+Finger_Offset])
-            union(){
-            for (i=[0:1:Spoke_Count-1]){
-                translate([0, 0, Folder_Thickness/2])
-                rotate([90, 0, 90+Spoke_Spacing*i]){
-                    linear_extrude(OD/2-Shuttle_Thickness)
-                    SpokeShape();
-                    translate([0, 0, OD/2-Shuttle_Thickness+z])
-                    rotate([180, 0, 0])
-                    OuterSpokeChamfer();
+    union(){
+        difference(){
+            rotate([0, 0, Theta_Offset+Finger_Offset])
+                union(){
+                for (i=[0:1:Spoke_Count-1]){
+                    translate([0, 0, Folder_Thickness/2])
+                    rotate([90, 0, 90+Spoke_Spacing*i]){
+                        linear_extrude(OD/2-Shuttle_Thickness)
+                        SpokeShape();
+                        translate([0, 0, OD/2-Shuttle_Thickness+z])
+                        rotate([180, 0, 0])
+                        OuterSpokeChamfer();
+                    }
                 }
             }
+            IsolateCenterSlice(1);
         }
-        IsolateCenterSlice(1);
+        
+        rotate([0, 0, Theta_Offset+Finger_Offset])
+        translate([OD/2-Shuttle_Thickness, 0, Folder_Thickness/2])
+        rotate([0, -90, 0])
+        hull($fn=cyl_fn){
+            translate([Spoke_Height/2, 0])
+            cylinder(r1=OuterSpokeChamferSize, r2=0, h=OuterSpokeChamferSize, $fn=cyl_fn);
+            translate([-Spoke_Height/2, 0])
+            cylinder(r1=OuterSpokeChamferSize, r2=0, h=OuterSpokeChamferSize, $fn=cyl_fn);
+        }
     }
 }
 
@@ -267,7 +282,7 @@ module CenterAssembled(Tube_OD){
                 Rib();
                 ArrangeSpokes();
             }
-            IsolateCenterSlice(0);
+            IsolateCenterSlice(-2*OuterSpokeChamferSize);
             ArrangePinHole();
             cylinder(h=100, d=Tube_OD, $fn=cyl_fn, center=true);
         }
@@ -329,7 +344,7 @@ module TextRing(){
 
 module LocateLogo(a){
     rotate([0, 0, a*(Theta_Offset+Finger_Offset)])
-    translate([((OD/2-Shuttle_Thickness)+Folder_ID/2)/2, a*LogoDepth, Folder_Thickness/2])
+    translate([((OD/2-Shuttle_Thickness-OuterSpokeChamferSize)+Folder_ID/2+Folder_Clearance)/2, a*LogoDepth, Folder_Thickness/2])
     rotate([90, 0, a<0?180:0])
     children();
 }
@@ -405,6 +420,10 @@ module ArcSupportXSection(){
     circle(d=CutGroove, $fn=cyl_fn);
     translate([Shuttle_Thickness, MinRodHeight+RaftThickness-CutGroove/2])
     circle(d=CutGroove, $fn=cyl_fn);
+    translate([CutGroove/2, MinRodHeight+RaftThickness-CutGroove/2])
+    circle(d=CutGroove/2, $fn=cyl_fn);
+    translate([Shuttle_Thickness-CutGroove/2, MinRodHeight+RaftThickness-CutGroove/2])
+    circle(d=CutGroove/2, $fn=cyl_fn);
     
     }
 }
@@ -418,12 +437,12 @@ module ArrangeResinRods(Tube, RodH){
         ResinRod(RodH);
         }
         
-        for (i=[Pin1, Pin2]){
+        for (i=[Pin1+Finger_Offset, Pin2+Finger_Offset]){
             rotate([0, 0, i])
             translate([Pin_Radius, 0, 0])
             for (j=[0:90:360])
             rotate([0, 0, j])
-            translate([ContactDiameter*1.5, 0, 0])
+            translate([Posthole_ID/2+ContactDiameter/2, 0, 0])
             ResinRod(RodH);
         }
         
@@ -464,7 +483,7 @@ module ResinLeft(){
     union(){
         translate([0, 0, ResSupportOffsets[0]])
         LeftShuttleAssembled();
-        ArrangeResinRods(OD_OuterTube, ResSupportOffsets[0]);
+        ArrangeResinRods(OD_OuterTube, ResSupportOffsets[0], $fn=resin_fn);
     }
 }
 
@@ -473,7 +492,7 @@ module ResinRight(){
         translate([0, 0, Folder_Thickness+ResSupportOffsets[1]])
         rotate([180, 0, 0])
         RightShuttleAssembled();
-        ArrangeResinRods(OD_InnerTube, ResSupportOffsets[1]);
+        ArrangeResinRods(OD_InnerTube, ResSupportOffsets[1], $fn=resin_fn);
     }
 }
 
@@ -484,9 +503,9 @@ module FinalPrint(){
         rotate([0, 0, 180])
         ResinRight();
 }
-
-
-ResinRight();
+FinalPrint();
+//LeftShuttleAssembled();
+//ResinRight();
 //if(Generate_Right_Shuttle==true)
 //RightShuttleAssembled();
 //if(Generate_Left_Shuttle==true)
