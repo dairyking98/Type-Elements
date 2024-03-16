@@ -1,0 +1,40 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "AssembleRotate": "false",
+            "CountersinkDepth": "2",
+            "CountersinkDiameter": "7",
+            "FastnerDiameter": "4",
+            "HingeClearanceDiameter": "10",
+            "HingeHoleDiameter": "4.7000000000000002",
+            "HingeHole_X": "38.100000000000001",
+            "HingeHole_Y": "6",
+            "Hinge_X": "23",
+            "Hinge_Y": "13",
+            "JawSlot": "3.1000000000000001",
+            "JawSlot_X": "13.699999999999999",
+            "JawSlot_YOffset": "3.1000000000000001",
+            "JawWidth": "7.7000000000000002",
+            "Jaw_X": "67.5",
+            "Jaw_Y": "12.6",
+            "MaxJawBite": "10.9",
+            "PinToAxis": "34",
+            "PlateGap": "3.5",
+            "PlateStep": "2",
+            "PlateThickness": "4",
+            "PostDiameter": "5",
+            "PostHeight": "12",
+            "PostOrPad": "false",
+            "ProngCount": "3",
+            "ProngRadius": "2",
+            "ProngWidth": "2",
+            "RingID": "14",
+            "RingIDTop": "11.300000000000001",
+            "RingThickness": "0.5",
+            "SlotDepth": "0.5",
+            "cyl_fn": "360",
+            "z": "0.01"
+        }
+    }
+}

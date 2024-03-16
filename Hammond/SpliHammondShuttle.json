@@ -53,7 +53,7 @@
             "Assert": "true",
             "Baseline_Gaps": "[9.45, 4.725, 0]",
             "Baseline_Offset": "-1.8999999999999999",
-            "BuildplateDiameter": "3",
+            "BuildplateDiameter": "2",
             "CharMod": "⅌",
             "CharModFont": "Noto Sans Mono",
             "CharModSize": "2.5",
@@ -75,7 +75,7 @@
             "Logo": "true",
             "LogoDepth": "0.10000000000000001",
             "MinRodHeight": "2",
-            "No_Chamfer": "true",
+            "No_Chamfer": "false",
             "OD": "75",
             "OD_InnerTube": "6",
             "OD_OuterTube": "7",
@@ -102,6 +102,7 @@
             "cyl_fn": "360",
             "mink_fn": "20",
             "resin_fn": "20",
+            "testing": "true",
             "text_fn": "30",
             "z": "0.01"
         }
