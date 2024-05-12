@@ -15,8 +15,8 @@ Scale_Multiplier=1.4;
 pica=25.4/10;
 echo(is_string(pica));
 elite=25.4/12;
-Pitch_Custom=6;
-Pitch=2.6;//[2.54:Pica, 2.116666667:Elite, 2.6:Euro Pica, 2.3:Euro Elite, 6:Custom]
+Pitch_Custom=6;//.01
+Pitch=2.6;//[2.54:Pica, 2.116666667:Elite, 2.6:Euro Pica, 2.3:Euro Elite, Pitch_Custom:Custom]
 echo(Pitch);
 Blick_Bounding_Box=false;
 Bennett_Bounding_Box=false;

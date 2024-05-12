@@ -4,7 +4,11 @@
 
 //Assert error message to stop OpenSCAD from freezing upon startup
 Assert=true;
-testing=false;
+testing_baseline=false;
+testing_cutout=false;
+testing_layout=false;
+testing_console=false;
+z=.001;
 /* [Character Details] */
 CharLegend=[12,22,3,11,21,2,10,20,1,9,19,0,8,18,27,17,7,26,16,6,25,15,5,24,14,4,23,13];
 
@@ -22,7 +26,7 @@ TESTING=["HHHHHHHHHHHHHHHHHHHHHHHHHHHH",
 
 //Layout Selection
 Layout_Selection=0; //[0:English, 1:British, 2:Custom]
-Layout=testing?TESTING:LAYOUTS[Layout_Selection];
+Layout=testing_layout?TESTING:LAYOUTS[Layout_Selection];
 //Typeface
 Typeface_="Compagnon Light";
 Type_Size=3.05;//[1:.05:10]
@@ -52,7 +56,7 @@ Element_Height=18.65;
 //Shaft Diameter
 Shaft_Diameter=3.483;
 //Element Positioner Pin Diameter
-Element_Positioner_Pin_Diameter=2.464;
+Element_Positioner_Pin_Diameter=2.564;
 //Element Positioner Pin - Radial Position
 Element_Positioner_Pin_Radius=4.813;
 //Indicator Hole Diameter
@@ -62,7 +66,7 @@ Alignment_Hole_Diameter=2;//1.94 a kiss too tight, bumping to 2.0
 //Alignment Hole Depth
 Alignment_Hole_Depth=2.4;
 //Alignment Hole Chamfer Size
-Alignment_Hole_Chamfer=0;
+Alignment_Hole_Chamfer=0;//.01
 //Speed Hole Diameter
 Speed_Hole_Diameter=6.1;
 //Speed Hole - Radial Position
@@ -86,7 +90,7 @@ Baseline=[14.05,8,1.95];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Row Height Offset
 Baseline_Offset=[0,0,0];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height
-Cutout=[16,9.95,3.9];//[-1:.05:1]
+Cutout=[15.5,9.9,3.4];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height Offset
 Cutout_Offset=[0,0,0];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height
@@ -202,12 +206,12 @@ union(){
                     theta=-(360/(len(Layout[0]))*n+360/(2*28));
                     if (Layout[row][PickedChar] != " "){
                     
-                    testingbaseline=testing?Baseline_Testing[n]:0;
-                    testingcutout=testing?Cutout_Testing[n]:0;
+                    testingbaseline=testing_baseline?Baseline_Testing[n]:0;
+                    testingcutout=testing_cutout?Cutout_Testing[n]:0;
                     char=ENGLISH[row][n];
-                    baseline=Baseline[row]-testingcutout;
+                    baseline=Baseline[row]-testingbaseline;
                     cutout=Cutout[row]+testingcutout;
-                    if (testing==true)
+                    if (testing_console==true)
                     echo(char=char,baseline=baseline, cutout=cutout);
                     
                         LetterText(Element_Diameter-1,Baseline[row],Baseline_Offset[row]+testingbaseline,Cutout[row],Cutout_Offset[row]-testingcutout,Typeface_,Type_Size,Layout[row][PickedChar],theta,Platen_Diameter,Min_Final_Character_Diameter,Bottom_Countersink_Depth,Debug_No_Minkowski,Character_Modifieds,Character_Modifieds_Offset, Horizontal_Weight_Adj, Vertical_Weight_Adj, Weight_Adj_Mode, Scale_Multiplier, Scale_Multiplier_Text);
@@ -278,9 +282,16 @@ union(){
                 translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
                 rotate([0,-90,theta]){
                     cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
-                    translate([0,0,-1])
-                    cylinder(h=1,d=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer, $fn=Cylinder_fn);
-                    cylinder(h=Alignment_Hole_Chamfer,d1=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer,d2=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+//                    translate([0,0,-1])
+//                    cylinder(h=1,d=Alignment_Hole_Diameter/*+2*Alignment_Hole_Chamfer*/, $fn=Cylinder_fn);
+                    hull(){
+                    translate([0, 0, Alignment_Hole_Chamfer])
+                    cylinder(h=z, d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+                    translate([0, 0, -1])
+                    scale([1, (Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer)/Alignment_Hole_Diameter, 1])
+                    cylinder(h=1, d=Alignment_Hole_Diameter, $fn=Cylinder_fn);
+                    }
+//                    %cylinder(h=Alignment_Hole_Chamfer,d1=Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer,d2=Alignment_Hole_Diameter, $fn=Cylinder_fn);
                     }
                 translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Bottom_Countersink_Depth+Alignment_Hole[row]])
                 sphere(d=Alignment_Hole_Diameter, $fn=Cylinder_fn);

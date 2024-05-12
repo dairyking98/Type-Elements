@@ -44,7 +44,7 @@ Custom_Uppercase="ZXKG.PWFUDHIATENSORLCMY&BVQJ";
 //Custom Figures Row
 Custom_Figures="-^_(./'\"!1234567890;?%¢$)@#:";
 CUSTOM=[Custom_Lowercase,Custom_Uppercase,Custom_Figures];
-SELECTIONS=[DHIATENSOR,QWERTY,CUSTOM];
+SELECTIONS=[DHIATENSOR,QWERTY,SCANDI,CUSTOM];
 CharLegend=[14,15,16,17,18,19,20,21,22,23,24,25,26,27,0,1,2,3,4,5,6,7,8,9,10,11,12,13];
 
 Layout_Selection=0;//[0:DHIATENSOR,1:QWERTY,2:SCANDI,3:Custom] 

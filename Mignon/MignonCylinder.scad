@@ -109,7 +109,7 @@ Platen_Diameter=26.5;
 
 /* [Character Placement Details] */
 //[1st, 2nd, 3rd, 4th, 5th, 6th, 7th] Baseline Height
-Baseline=[2.4, 7.55, 12.7, 17.7, 22.7, 27.7, 32.55];
+Baseline=[3.05, 7.55, 13.45, 18.75, 23.8, 28.9, 33.7];
 Baseline_Offset=[0, 0, 0, 0, 0, 0, 0];//GET NEW OFFSETS
 Cutout=[3.3, 8.55, 13.7, 18.7, 23.7, 28.7, 33.4];
 Cutout_Offset=[0, 0, 0, 0, 0, 0, 0];//GET NEW OFFSETS
@@ -130,9 +130,9 @@ Resin_Support_Thickness=2;
 //Resin Support Cut Groove Diameter
 Resin_Support_Cut_Groove_Diameter=.75;
 //Resin Support Wire Thickness
-Resin_Support_Wire_Thickness=.6;
+Resin_Support_Wire_Thickness=1.2;
 //Resin Support Contact Point Diameter
-Resin_Support_Contact_Point=.2;
+Resin_Support_Contact_Point=.3;
 Cylinder_fn = $preview ? 360 : 360;
 $fn = $preview ? 22 : 44;
 
@@ -203,7 +203,7 @@ union(){
                     testingbaseline=testing_baseline?Testing_Offsets[PickedChar]:0;
                         testingcutout=testing_cutout?Testing_Offsets[PickedChar]:0;
                         char=Layouts[Layout_Selection][row][PickedChar];
-                        baseline=Baseline[row]-testingcutout;
+                        baseline=Baseline[row]-testingbaseline;
                         cutout=Cutout[row]+testingcutout;
                         
                         if (testing_layout==true)
@@ -280,16 +280,16 @@ union(){
                 r1=(Cylinder_Diameter+Cylinder_Bottom_Shaft_Diameter)/4-.1;
                 theta=360/12*n+360/12;
                 translate([r1*cos(theta),r1*sin(theta),1]){
-                    cylinder(h=Resin_Support_Height-2+Cylinder_Top_Height_Offset,r=Resin_Support_Wire_Thickness);
+                    cylinder(h=Resin_Support_Height-2+Cylinder_Top_Height_Offset,d=Resin_Support_Wire_Thickness);
                     translate([0,0,Resin_Support_Height-2+Cylinder_Top_Height_Offset])
-                    cylinder(h=1, r2=Resin_Support_Contact_Point, r1=Resin_Support_Wire_Thickness);
+                    cylinder(h=1, d2=Resin_Support_Contact_Point, d1=Resin_Support_Wire_Thickness);
                 }
                 r2=(Cylinder_Top_Shaft_Diameter+Cylinder_Top_Diameter)/4;
                 translate([r2*cos(theta+360/24),r2*sin(theta+360/24),1]){
                     if (n%2==0){
-                        cylinder(h=-2+Resin_Support_Height,r=Resin_Support_Wire_Thickness);
+                        cylinder(h=-2+Resin_Support_Height,d=Resin_Support_Wire_Thickness);
                         translate([0,0,-2+Resin_Support_Height])
-                        cylinder(h=1, r2=Resin_Support_Contact_Point, r1=Resin_Support_Wire_Thickness);
+                        cylinder(h=1, d2=Resin_Support_Contact_Point, d1=Resin_Support_Wire_Thickness);
                     }
                 }
             }
