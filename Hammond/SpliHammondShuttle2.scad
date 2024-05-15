@@ -43,8 +43,8 @@ CharModSize=2.7;
 /* [Dimensions] */
 Posthole_ID=1.92;// 5/64 wire rod
 PostholeID_ResinOffset=.25;
-OD_InnerTube=6.000;// 5mm ID x 6mm OD tube
-OD_OuterTube=7.000;// 6mm ID x 7mm OD tube
+OD_InnerTube=5.842+.17;//measurement + clearance
+OD_OuterTube=6.6548+.17;//measurement + clearance
 
 Tube_Clearance=.05;
 
@@ -52,11 +52,12 @@ OD=76.2;
 Shuttle_Thickness=1.6;
 Shuttle_Width=13.26;
 Folder_Thickness=9.525;// 3/8 thick
-Folder_ID=9.6;
+Folder_ID=12;//9.6;
 Folder_OD=18.762;
 Folder_Clearance=.2;
-Folder_SquashClearance=.2;//.5 for Full 3D
-FolderLocation=.2;//.2 for Full 3D, .5 for metal tube
+Folder_SquashClearance=.84;//.5 for Full 3D
+FolderLocation=.5;//.2 for Full 3D, .5 for metal tube
+Tube_ChamferSize=.5;
 
 Glyph_Depth=.8;
 Finger_Thickness=1.8;// 
@@ -430,6 +431,11 @@ module LogoText(){
     text(text=Line, size=LineSize, font=LineFont, halign="center", valign="center", $fn=text_fn);
 }
 
+module TubeChamfer(Tube_OD){
+    translate([0, 0, -z])
+    cylinder(h=Tube_ChamferSize+z, d1=Tube_OD+2*Tube_ChamferSize, d2=Tube_OD, $fn=cyl_fn);
+}
+
 module LeftShuttleAssembled(){
     union(){
         difference(){
@@ -440,6 +446,9 @@ module LeftShuttleAssembled(){
             CenterAssembled(OD_OuterTube);
             translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2])
             cylinder(h=10, d=Folder_ID+Folder_Clearance, $fn=cyl_fn);
+            translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2])
+            rotate([180, 0, 0])
+            TubeChamfer(OD_OuterTube);
             if (Logo==true){
                 LocateLogo(1)
                 LogoText();
@@ -459,6 +468,11 @@ module RightShuttleAssembled(){
             CenterAssembled(OD_InnerTube);
             translate([0, 0, -z])
             cylinder(h=Folder_Thickness*FolderLocation+z+Folder_SquashClearance/2, d=Folder_ID+Folder_Clearance, $fn=cyl_fn);
+            translate([0, 0, Folder_Thickness*FolderLocation+Folder_SquashClearance/2])
+            TubeChamfer(OD_InnerTube);
+            
+            
+            
             LocateLogo(-1)
             LogoText();
         }
@@ -587,9 +601,11 @@ module ArrangeResinRods(Tube, RodH){
     
         for (i=[0:360/folderdiv:360]){
         //if (i>Theta+Finger_Offset+Theta_Offset)
-        rotate([0, 0, i])
-        translate([(Folder_ID/2+Tube/2)/2, 0, 0])
+        rotate([0, 0, i]){
+        translate([(Tube+ContactDiameter)/2, 0, 0])
         ResinRod(RodH);
+        translate([(Folder_ID-ContactDiameter)/2, 0, 0])
+        ResinRod(RodH);}
         }
         
         //Pinhole Supports
@@ -605,7 +621,14 @@ module ArrangeResinRods(Tube, RodH){
         //Folder Supports 
         rotate([0, 0, Finger_Offset+Theta_Offset]){
             for (i=[0:Theta/thetadiv:Theta]){
-                for (j=[(Folder_ID/2+Tube/2)/2+((Folder_OD/2)-(Folder_ID/2+Tube/2)/2)/2:((Folder_OD/2)-(Folder_ID/2+Tube/2)/2)/2:Folder_OD/2]){
+                for (j=[
+//                (Folder_ID/2+Tube/2)/2+((Folder_OD/2)-(Folder_ID/2+Tube/2)/2)/2
+//                :((Folder_OD/2)-(Folder_ID/2+Tube/2)/2)/2
+//                :Folder_OD/2
+                (Folder_OD+Folder_ID)/4
+                :(((Folder_OD-ContactDiameter)/2)-((Folder_OD+Folder_ID)/4))
+                :(Folder_OD-ContactDiameter)/2
+                ]){
                     rotate([0, 0, i])
                     translate([j, 0, 0])
                     if (i<(Pin1-Theta_Offset)-5 || i>(Pin1-Theta_Offset)+5)
@@ -1055,7 +1078,7 @@ module Assemble(){
 
 //Assemble();
 //Assemble2();
-FinalPrint3();
+FinalPrint();
 //ResinLeft3();
 //ResinRight3();
 //FinalPrint2();
