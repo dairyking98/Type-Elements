@@ -1,3 +1,0 @@
-//Embosser
-
-import("Leo.svg");
