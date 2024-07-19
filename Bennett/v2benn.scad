@@ -28,8 +28,8 @@ include <BennettLayouts.scad>
 Layout_Selection=0; //[0:English, 1:British, 2:Custom]
 Layout=LAYOUTS[Layout_Selection];
 //Typeface
-Typeface_="Compagnon Light";
-Type_Size=3.05;//[1:.05:10]
+Typeface_="FreeMono";
+Type_Size=3.00;//[1:.05:10]
 //Speedy Preview and Render with No Minkowski
 Debug_No_Minkowski=true;
 //Max Minimum Diameter Across 2 Concave Characters
@@ -38,7 +38,7 @@ Min_Final_Character_Diameter=32.9;
 Platen_Diameter=30;
 //Individual Character Height Adjustments
 Character_Modifieds="_";
-Character_Modifieds_Offset=0;//[-1.5:.05:1.5]
+Character_Modifieds_Offset=.1;//[-1.5:.05:1.5]
 Scale_Multiplier_Text=".";
 Scale_Multiplier=1.0;
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
@@ -84,9 +84,9 @@ Inside_Radius=.5;
 
 /* [Character Placement Details (Bottom Countersink Depth as Reference)] */
 //[Lowercase, Uppercase, Figures] Row Height
-Baseline=[14.95,8.8,2.35];//[-1:.05:1]
+Baseline=[15.25,9.1,2.65];//[-1:.05:1][14.95,8.8,2.35]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height
-Cutout=[16.35,10.65,4.5];//[-1:.05:1]
+Cutout=[16.35,10.65,4.50];//[-1:.05:1][16.35,10.65,4.5]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height
 Alignment_Hole=[13.29,7.24,1.19];//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height Offset
@@ -94,13 +94,14 @@ Testing_Offsets=[-.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.
 
 /* [Shuttle Label] */
 //Shuttle Label 1
-Shuttle_Label1="Leonard Chau";
+Shuttle_Label1a="Leonard";
+Shuttle_Label1b="Chau";
 //Shuttle Label 2
-Shuttle_Label2="2023";
+Shuttle_Label2="2024";
 //Shuttle Label Size
-Shuttle_Label_Size=1.2;
+Shuttle_Label_Size=1.7;
 //Shuttle Label Font
-Shuttle_Label_Font="Libertinus Mono";
+Shuttle_Label_Font="OCR\\-A II";
 //Shuttle Label Extrusion Deptth
 Shuttle_Label_Depth=.2;
 
@@ -269,14 +270,18 @@ module AlignmentHoles(){
 }
 
 module LabelText(){
-    translate([Shaft_Diameter/2+1.25, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
+    translate([Shaft_Diameter/2+1.5, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
+    rotate([180, 0, 90])
+    linear_extrude(2){
+    text(text=Shuttle_Label1b, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="center");
+    translate([0, 2.25, 0])
+    text(text=Shuttle_Label1a, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="center");
+    
+    }
+    translate([-Shaft_Diameter/2-1.75, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
     rotate([180, 0, 90])
     linear_extrude(2)
-    text(text=Shuttle_Label1, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
-    translate([-Shaft_Diameter/2-1.25, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
-    rotate([180, 0, -90])
-    linear_extrude(2)
-    text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
+    text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="center");
     
 }
 
@@ -319,7 +324,7 @@ module RoofTaper(){
 
 
 module IndicatorHole(){
-    translate([Element_Diameter/2-Shell_Size-Indicator_Diameter/2,0,Element_Height-Top_Countersink_Depth-Shell_Size-z])
+    translate([Element_Diameter/2-Shell_Size-Indicator_Diameter/2,0,Element_Height-Top_Countersink_Depth-Shell_Size-z-1])
     cylinder(h=5,d=Indicator_Diameter, $fn=cyl_fn);
 }
 

@@ -16,7 +16,7 @@ pica=25.4/10;
 echo(is_string(pica));
 elite=25.4/12;
 Pitch_Custom=6;//.01
-Pitch=2.6;//[2.54:Pica, 2.116666667:Elite, 2.6:Euro Pica, 2.3:Euro Elite, Pitch_Custom:Custom]
+Pitch=2.6;//[2.54:2.54 mm 10pitch, 2.116666667:2.12 mm 12pitch, 2.6:2.6 mm, 2.3:2.3 mm, 1.69:1.69 mm 15pitch, 2.032:2.03 mm 12.5pitch]
 echo(Pitch);
 Blick_Bounding_Box=false;
 Bennett_Bounding_Box=false;
@@ -54,7 +54,7 @@ for (n=[0:1:len(Test_String)-1]){
     x=search(Test_String[n], Scale_Multiplier_Text);
     y=search(Test_String[n], Character_Modifieds);
     translate([Pitch/2+Pitch*n,0,0])
-    translate([0,Test_String[n]==Character_Modifieds ?  Character_Modifieds_Offset : 0])
+    //translate([0,Test_String[n]==Character_Modifieds ?  Character_Modifieds_Offset : 0])
     translate([0, y==[] ? 0 : Character_Modifieds_Offset, 0])
     linear_extrude(1)
     //text(Test_String[n],size=Type_Size,halign="center",valign="baseline",font=Typeface_);
