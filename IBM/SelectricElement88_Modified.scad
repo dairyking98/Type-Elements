@@ -4,33 +4,53 @@
 /* --------- START --------- */
 // Keyboard layout
 
-LOWER_CASE = str(
+LOWER_CASE88 = str(
     "1234567890-=",
     "qwertyuiop½",
     "asdfghjkl;'",
     "zxcvbnm,./"
 );
 
-UPPER_CASE = str(
+UPPER_CASE88 = str(
     "!@#$%¢&*()_+",
     "QWERTYUIOP¼",
     "ASDFGHJKL:\"",
     "ZXCVBNM,.?"
 );
 
+LOWER_CASE_COMPOSER = str(
+    "1234567890-=",
+    "qwertyuiop?",
+    "asdfghjkl][",
+    "zxcvbnm,.;"
+);
+
+UPPER_CASE_COMPOSER = str(
+    "!†+$%/&*()—@",
+    "QWERTYUIOP¾",
+    "ASDFGHJKL¼½",
+    "ZXCVBNM‘’:"
+);
+
 COMPOSER_PITCH_LIST=[
-    ["A", 8], ["B", 7], ["C", 7], ["D", 8], ["E", 7], ["F", 7], ["G", 8], ["H", 8],
-    ["I", 4], ["J", 5], ["K", 8], ["L", 7], ["M", 9], ["N", 8], ["O", 8], ["P", 6],
-    ["Q", 8], ["R", 8], ["S", 6], ["T", 7], ["U", 8], ["V", 8], ["W", 9], ["X", 8],
-    ["Y", 8], ["Z", 7], ["a", 5], ["b", 6], ["c", 5], ["d", 6], ["e", 5], ["f", 4],
-    ["g", 5], ["h", 6], ["i", 3], ["j", 3], ["k", 6], ["l", 3], ["m", 9], ["n", 6],
-    ["o", 6], ["p", 6], ["q", 6], ["r", 4], ["s", 4], ["t", 4], ["u", 6], ["v", 5],
-    ["w", 8], ["x", 6], ["y", 6], ["z", 5], [".", 3], [",", 3], [":", 4], [";", 3],
-    ["'", 3], ["*", 6], ["†", 6], ["(", 4], [")", 4], ["!", 4], ["$", 6], ["+", 6],
-    ["/", 4], ["?", 5], ["-", 3], ["¾", 8], ["½", 8], ["&", 8], ["_", 8], ["%", 8],
-    ["=", 6], ["[", 5], ["]", 6], ["@", 8], ["¼", 8], ["0", 6], ["1", 6], ["2", 6],
-    ["3", 6], ["4", 6], ["5", 6], ["6", 6], ["7", 6], ["8", 6], ["9", 6], [" ", 3]
+
+    ["M", 9], ["W", 9],
+    
+    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["_", 8], ["%", 8], ["@", 8], ["¼", 8],
+    
+    ["B", 7], ["C", 7], ["E", 7], ["F", 7], ["L", 7], ["T", 7], ["Z", 7],
+    
+    ["P", 6], ["S", 6], ["b", 6], ["d", 6], ["h", 6], ["k", 6], ["m", 6], ["n", 6], ["o", 6], ["p", 6], ["q", 6], ["u", 6], ["x", 6], ["y", 6], ["*", 6], ["†", 6], ["$", 6], ["+", 6], ["=", 6], ["0", 6], ["1", 6], ["2", 6], ["3", 6], ["4", 6], ["5", 6], ["6", 6], ["7", 6], ["8", 6], ["9", 6],
+    
+    ["J", 5], ["a", 5], ["c", 5], ["e", 5], ["g", 5], ["v", 5], ["?", 5], ["[", 5], ["]", 5], ["z", 5],
+    
+    ["I", 4], ["f", 4], ["r", 4], ["s", 4], ["t", 4], [":", 4], ["(", 4], [")", 4], ["!", 4], ["/", 4], ["(", 4], ["—", 4], //longer dash?
+    
+    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], [" ", 3], ["'", 3] //apostrophe not native to Composer
+
 ];
+
+
 
 /* [Create Parameters] */
 //Turns off minkowski() (TAPERED TEXT) for fast preview
@@ -41,6 +61,10 @@ COMPOSER=false;
 COMPOSER_CENTER_OFFSET=3;//.01
 //Render mode
 GENMODE=0;//[0:Render, 1:ResinPrint, 2:TestString]
+
+UPPER_CASE=COMPOSER?UPPER_CASE_COMPOSER:UPPER_CASE88;
+LOWER_CASE=COMPOSER?LOWER_CASE_COMPOSER:LOWER_CASE88;
+
 /* [Testing Stuff] */
 //Generate cross section
 XSECTION=false;
@@ -71,9 +95,11 @@ TYPEBALL_FONT = "Vogue";
 // (Note that this is multiplied by faceScale=2.25 in LetterText())
 LETTER_HEIGHT = 2.75;
 
-TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
+TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
 
 CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+
+echo(TESTSTRINGPICAS);
 
 // Offset each glyph by this amount, making the characters heavier or lighter
 CHARACTER_WEIGHT_ADJUSTMENT = 0;
@@ -86,6 +112,10 @@ TRIM_DESCENDERS = true;
 
 
 /* [Label Stuff] */
+//Enable label
+LABEL=true;
+//Enable arrow
+ARROW=true;
 //Label for number label
 LABEL_NO = "10";
 //Label override for typeface label (leave blank to adopt font name)
@@ -393,9 +423,13 @@ module TypeBall()
     {
         HollowBall();
         if (SLOT) Slot();
-        Notch();
-        Del();
-        FontName();
+        if (LABEL==true){
+            Notch();
+            FontName();
+        }
+        if (ARROW==true){
+            Del();
+        }
     }
 }
 
@@ -614,7 +648,7 @@ module TopFace()
         translate([0, 0, TYPEBALL_TOP_ABOVE_CENTRE - TYPEBALL_TOP_THICKNESS - RIB_HEIGHT - EPSILON])
         cylinder(r=BOSS_INNER_RAD,h=TYPEBALL_TOP_THICKNESS*2+RIB_HEIGHT, $fn=360);
         
-        Del();
+        //Del();
     }   
 }
 
@@ -716,9 +750,10 @@ module TextGaugeComposer(str, unitdist)
         translate([8,8])
         translate([CUMULATIVETESTSTRINGPICAS[i]*unitdist,-LETTER_HEIGHT/2])
         scale([0.5,0.5,0.1])
-        //offset(CHARACTER_WEIGHT_ADJUSTMENT)
+        offset(CHARACTER_WEIGHT_ADJUSTMENT)
         text(size=LETTER_HEIGHT * faceScale, font=TYPEBALL_FONT, halign="left", str[i]);
+        echo(CUMULATIVETESTSTRINGPICAS[i]);
     }
 }
 
-function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec); newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
+function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
