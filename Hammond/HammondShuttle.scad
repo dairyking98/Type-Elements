@@ -82,7 +82,7 @@ echo(IsMath);
      
 /* [Text Dimensions] */
 //Baselines for Lowercase, Uppercase, Figures, and Math FROM BOTTOM RIB PLANE
-Baseline=[3.74, -1.21, -5.71, -9.07];
+Baseline=[3.74, -1.21, -5.71, -9.89];//Math ??? step between fig and math measure
 Typeface_="Iosevka Fixed Slab";//"Consolas";
 Type_Size=3.10;//[1:.05:5]
 //Check for Speedy Preview
@@ -118,7 +118,8 @@ Shuttle_Height=IsMath==0?NormalShuttle_Height:MathShuttle_Height;
 //Distance From Top of Shuttle to BOTTOM of RIB PLANE
 Shuttle_Rib_Plane=6.7;
 //Thickness of Rib
-Shuttle_Rib_Thickness=.24;/*
+Shuttle_Rib_Thickness=.24;//.01
+/*
 .2794 is original measurement + .06 printer offset
 
 */
@@ -179,6 +180,8 @@ Shuttle_Label_Depth=.2;
 /* [Support Structure] */
 //Generate Support?
 Resin_Support=true;
+//Resin Support Orientation
+Resin_Support_Orientation=0;//[0:Vertical, 1:Horizontal]
 ////Vertical Resin Support Raft Thickness
 Resin_Support_Base_Thickness=1.5;
 //Vertical Resin Support Rod Thickness
@@ -199,6 +202,11 @@ Resin_Support_Buildplate_Radius=.8;
 Resin_Support_Cut_Groove_Diameter=.5;
 //Horizontal Resin Support Cut Groove Minimum Thickness
 Resin_Support_Cut_Groove_Min_Thickness=.2;
+
+
+TipInterference=1.2;//.1
+
+
 
 //Taper Variables
 taper_inset_x=(Shuttle_Arc_Radius-z)*cos(angle_pitch*16-Shuttle_Taper);
@@ -427,8 +435,8 @@ module Groove(){
             cylinder(h=Shuttle_Rib_Thickness+2*z, r=Shuttle_Groove_Nub_Size, $fn=cyl_fn);
             }
         }
-        translate([Shuttle_Arc_Radius+Shuttle_Thickness/2, 0,-50])
-        cylinder(h=100, d=Groove_RetainingPinDiameter, $fn=cyl_fn);
+        //translate([Shuttle_Arc_Radius+Shuttle_Thickness/2, 0,-50])
+        //#cylinder(h=100, d=Groove_RetainingPinDiameter, $fn=cyl_fn);
     }
 }
 
@@ -843,20 +851,21 @@ module HorizResinPrint(){
 }
 
 module ResinRod2(h){
+    $fn=resin_fn;
     union(){
         translate([0, 0, -2-Resin_Support_Base_Thickness])
         cylinder(r1=Resin_Support_Buildplate_Radius, r2=Resin_Support_Buildplate_Radius+Resin_Support_Base_Thickness, h=Resin_Support_Base_Thickness);
         translate([0, 0, -Resin_Support_Base_Thickness-2])
-        cylinder(d=Resin_Support_Rod_Thickness, h=h+Resin_Support_Base_Thickness);
-        translate([0, 0, h-2])
+        cylinder(d=Resin_Support_Rod_Thickness, h=h+Resin_Support_Base_Thickness-Resin_Support_Contact_Diameter/2+TipInterference);
+        translate([0, 0, h-2-Resin_Support_Contact_Diameter/2+TipInterference])
         cylinder(d1=Resin_Support_Rod_Thickness, d2=Resin_Support_Contact_Diameter, h=2);
-        translate([0, 0, h])
+        translate([0, 0, h-Resin_Support_Contact_Diameter/2+TipInterference])
         sphere(d=Resin_Support_Contact_Diameter);
     }
 }
 
 module HorizResinSupport2(){
-$fn=resin_fn;
+    $fn=resin_fn;
     translate([-z_offset, 0, 0])
     union(){
         
@@ -960,17 +969,62 @@ module HorizResinPrint2(){
         rotate([180, 0, 0])
         RibbedShuttle();
         if (Resin_Support==true)
+        
         HorizResinSupport2();
         }
     
 }
 
+module HorizGroovedResin(){
+    thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+    translate([-z_offset, 0, 0])
+    union(){
+        GroovedShuttle();
+                //Outer Supports
+        for (theta=[-60:120/22:60])
+        for (x=[Anvil_OD/2+Resin_Support_Contact_Diameter/2, Anvil_OD/2+Shuttle_Thickness-Resin_Support_Contact_Diameter/2])
+        if (abs(theta) <59.9|| x ==Anvil_OD/2+Shuttle_Thickness)
+        if (abs(theta)> 1)//remove center
+        rotate([0, 0, theta])
+        translate([x, 0, 0])
+        ResinRod2(0);
+        
+        for (theta=[thetamax/2*180/PI,-thetamax/2*180/PI])
+        rotate([0, 0, theta])
+        translate([Anvil_OD/2+Resin_Support_Contact_Diameter/2, 0, 0])
+        ResinRod2(0);
+        
+        for (theta=[60-atan(Resin_Support_Contact_Diameter/Anvil_OD),-60+atan(Resin_Support_Contact_Diameter/Anvil_OD)])//
+        for (xxx=[Anvil_OD/2+Shuttle_Taper_Step+Resin_Support_Contact_Diameter/2, Anvil_OD/2+Shuttle_Thickness-Resin_Support_Contact_Diameter/2])
+        rotate([0, 0, theta])
+        translate([xxx, 0, 0])
+        ResinRod2(0);
+    }
+}
+
+module ResinPrint(){
+   // if (Resin_Support==1)
+        if (Resin_Support_Orientation==0)
+        VertResinPrint2();
+//        if (Resin_Support_Orientation==1)// && Groove==0)
+//        HorizResinPrint2();
+        if (Resin_Support_Orientation==1)
+        HorizGroovedResin();
+}
+
 //RibAssembled();
 //RibbedShuttle();
 if (Assert==false)
+ResinPrint(); 
+//Rib();
+//HorizResinPrint2();
+
+//GroovedShuttle();
+
+//HorizGroovedResin();
 //difference(){
 //VertResinPrint2();
-VertResinPrint2();
+//VertResinPrint2();
 
 //Groove();
 

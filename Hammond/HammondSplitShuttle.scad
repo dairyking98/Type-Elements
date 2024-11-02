@@ -13,8 +13,7 @@ resin_fn=20;
 testing=false;
 testingchar=".";
 
-Generate_Left_Shuttle=true;
-Generate_Right_Shuttle=true;
+GenStyle = 1; //[0:Normal, 1:ResinPrint, 2:ResinPrintL, 3:ResinPrintR, 4:NormalL, 5:NormalR]
 
 /* [Character Details] */
 //Layout as "stamped"
@@ -22,9 +21,18 @@ Generate_Right_Shuttle=true;
 //        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
 //        "¾%⅞⅝½⅜1⅛2¢3⅌4$56“7”8’9[0]¼*⅓†⅔"];
 
-LAYOUT=["?zxqkjgdmpcfld,.taherisounwyv:",
-        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
-        "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔"];
+IDEAL=["?zxqkjgdmpcfld,.taherisounwyv:",
+       "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+       "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔"];
+        
+QWERTY = ["qazwsxedcrfvtgbyhnujmik,ol.p;-",
+          "QAZWSXEDCRFVTGBYHNUJMIK?OL.P:!",
+          "1\"@2#⅌3$+4%£5_¢6&*7'§8(°9).0=/"];
+          
+LAYOUTS = [[0, IDEAL],
+            [1, QWERTY]];
+layoutselection = 0; //[0:Ideal, 1:Qwerty]
+LAYOUT=LAYOUTS[layoutselection][1];
 
 Typeface="Average Mono";
 Typesize=2.95;
@@ -97,8 +105,8 @@ LogoDepth=.3;
 /* [Constants] */
 Theta_Offset=8.3;
 Theta=115.8;
-Pin1=72.3;
-Pin2=112.0;
+Pin1=72.3;//.01
+Pin2=112.0;//.01
 Pin_Radius=7.6895;
 
 Finger_Offset=asin((Finger_Thickness/2)/((OD-2*Shuttle_Thickness)/2))/2;//why /2????
@@ -111,13 +119,14 @@ Spoke_Offset=asin(Spoke_Thickness/(2*(OD-2*Shuttle_Thickness)/2));
 arc=(15*Char_Theta+Char_Theta/2)-Finger_Offset;
 
 /* [Resin Support] */
-RodDiameter=1.0;
-ContactDiameter=.4;
-RaftThickness=2;
-RaftRadius=2;
-MinRodHeight=2;
-CutGroove=1;
-BuildplateDiameter=2;
+RodDiameter=1.0;//.1
+ContactDiameter=.4;//.1
+RaftThickness=2;//.1
+RaftRadius=2;//.1
+MinRodHeight=2;//.1
+BuildplateDiameter=2;//.1
+TipLength=1.8;//.1
+TipInterference=1.2;//.1
 folderdiv=12;
 thetadiv=3;
 ribdiv=8;
@@ -646,10 +655,10 @@ module ResinRod2(h){
     $fn=resin_fn;
     union(){
         cylinder(d1=BuildplateDiameter, d2=BuildplateDiameter+RaftThickness*2, h=RaftThickness);
-        cylinder(d=RodDiameter, h=h-2);
-        translate([0, 0, h-2])
-        cylinder(d1=RodDiameter, d2=ContactDiameter, h=2);
-        translate([0, 0, h])
+        cylinder(d=RodDiameter, h=h-TipLength-ContactDiameter/2+TipInterference);
+        translate([0, 0, h-TipLength-ContactDiameter/2+TipInterference])
+        cylinder(d1=RodDiameter, d2=ContactDiameter, h=TipLength);
+        translate([0, 0, h-ContactDiameter/2+TipInterference])
         sphere(d=ContactDiameter);
     }
 }
@@ -768,7 +777,7 @@ module ArrangeRods2(s){
         for (y=[-5:2.5:5]){
         z=Folder_ID/2-((Folder_ID/2)^2-y^2)^.5;
             translate([-x+s, y, 0])
-            #ResinRod2(zzoffset-Folder_ID/2+z);}
+            ResinRod2(zzoffset-Folder_ID/2+z);}
     
 }
 
@@ -791,12 +800,31 @@ module VResPrint(){
 //translate([0, 21, 0])
     VPrintL();
     //translate([0, -21, 0])
-    translate([-20, 0, 0])
+    //translate([-20, 0, 0])
+    translate([0, 41, 0])
     VPrintR();
 }
 
+if (Assert == false){
+
+if (GenStyle==1)
 VResPrint();
 
+if (GenStyle==0)
+Assemble();
+
+if (GenStyle==2)
+VPrintL();
+
+if (GenStyle==3)
+VPrintR();
+
+if (GenStyle==4)
+LeftShuttleAssembled();
+
+if (GenStyle==5)
+RightShuttleAssembled();
+}
 
 
 
