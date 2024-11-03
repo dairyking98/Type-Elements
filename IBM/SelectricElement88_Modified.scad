@@ -1,9 +1,8 @@
 
-// Usage: copy this commented code to a separate file, customize as needed for each typeface. Everything below in this file will be common to all projects.
-
 /* --------- START --------- */
 // Keyboard layout
 
+// US Selectric 88 character
 LOWER_CASE88 = str(
     "1234567890-=",
     "qwertyuiop½",
@@ -18,6 +17,7 @@ UPPER_CASE88 = str(
     "ZXCVBNM,.?"
 );
 
+// US Selectric Composer
 LOWER_CASE_COMPOSER = str(
     "1234567890-=",
     "qwertyuiop?",
@@ -26,7 +26,7 @@ LOWER_CASE_COMPOSER = str(
 );
 
 UPPER_CASE_COMPOSER = str(
-    "!†+$%/&*()—@",
+    "!†+$%/&*()–@",
     "QWERTYUIOP¾",
     "ASDFGHJKL¼½",
     "ZXCVBNM‘’:"
@@ -36,7 +36,7 @@ COMPOSER_PITCH_LIST=[
 
     ["M", 9], ["W", 9], ["m", 9],
     
-    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["—", 8],
+    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8],
     
     ["B", 7], ["C", 7], ["E", 7], ["F", 7], ["L", 7], ["T", 7], ["Z", 7],
     
@@ -59,6 +59,7 @@ MINK_OFF=true;
 COMPOSER=false;
 //Amount of offset from center of left edge of text 
 COMPOSER_CENTER_OFFSET=3;//.01
+COMPOSER_VERT_OFFSET=0.5; // Vertical offset for Composer elements 
 //Render mode
 GENMODE=0;//[0:Render, 1:ResinPrint, 2:TestString]
 
@@ -71,7 +72,7 @@ XSECTION=false;
 //Cross section angle
 XSECTIONTHETA=0;//30
 //String for type test
-TESTSTRING="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()—@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
+TESTSTRING="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
 //CPI spacing for type test
 TESTCPI=10;
 //Render only specific characters
@@ -81,9 +82,6 @@ SPECIFICRENDERLIST=":";
 //Unit spacing for type test of Composer
 UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
 UNITDIST=25.4/UNITSPERINCH;
-
-// enable to skip slow rendering of letters on the ball
-//PREVIEW_LABEL = true;
 
 // The name of the font, as understood by the system.
 // Note: if the system doesn't recognize the font it
@@ -102,7 +100,7 @@ CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
 echo(TESTSTRINGPICAS);
 
 // Offset each glyph by this amount, making the characters heavier or lighter
-CHARACTER_WEIGHT_ADJUSTMENT = 0;
+CHARACTER_WEIGHT_ADJUSTMENT = -0.05;
 
 // balance the vertical smear with extra horizontal weight
 HORIZONTAL_WEIGHT_ADJUSTMENT = 0.2;
@@ -116,7 +114,7 @@ TRIM_DESCENDERS = true;
 LABEL=true;
 //Enable arrow
 ARROW=true;
-//Label for number label
+//Label for number label. Disabled in Composer mode
 LABEL_NO = "10";
 //Label override for typeface label (leave blank to adopt font name)
 LABEL_TEXT_OVERRIDE="";
@@ -128,9 +126,6 @@ LABEL_FONT_OVERRIDE="";
 NO_LABEL_SIZE=2;
 //Font size for typeface label 
 FONT_LABEL_SIZE=2;
-
-// Lower-level stuff that should be common to all balls is in a separate file
-//include <SelectricElement88.scad>
 
 // -------------------
 // Render
@@ -234,7 +229,7 @@ TOP_ROW_ADJUSTMENT = -0.3;
 SLOT = true;
 
 TYPEBALL_RAD = 33.4 / 2;
-INSIDE_RAD = 14.5;//.01 //originally 28.15 / 2;
+INSIDE_RAD = 14.3;//.01 //originally 28.15 / 2;
 INSIDE_CURVE_START = 3.3;//.01 //originally 2
 TYPEBALL_HEIGHT = 21.5;
 TYPEBALL_TOP_ABOVE_CENTRE = 11.4; // Flat top is this far above the sphere centre
@@ -252,11 +247,11 @@ SKIRT_HEIGHT = TYPEBALL_HEIGHT - TYPEBALL_TOP_ABOVE_CENTRE+ TYPEBALL_SKIRT_TOP_B
 TOOTH_PEAK_OFFSET_FROM_CENTRE = 6.1; // Lateral offset of the tilt ring detent pawl
 
 // Parameters for the centre boss that goes onto tilt ring spigot (upper ball socket)
-BOSS_INNER_RAD = 4.35;
+BOSS_INNER_RAD = 4.4; // Originally 4.35
 BOSS_OUTER_RAD = 5.8;
 BOSS_HEIGHT = 8.07;
 NOTCH_ANGLE = 131.8; // Must be exact! If not, ball doesn't detent correctly
-NOTCH_WIDTH = 1.1; // Should be no slop here, either
+NOTCH_WIDTH = 1.40; // Should be no slop here, either
 NOTCH_DEPTH = 2;
 NOTCH_HEIGHT = 2.2;
 SLOT_ANGLE = NOTCH_ANGLE + 180;
@@ -353,9 +348,11 @@ module Labels()
 {
     offset(r=0.12)
     {
-        translate([-0.1,14,0])
+        // Disable Label No for Composer balls
+        if (COMPOSER==false) { 
+            translate([-0.1,14,0])
         text(LABEL_NO, size=NO_LABEL_SIZE, font=LABEL_NO_FONT_OVERRIDE==""?TYPEBALL_FONT:LABEL_NO_FONT_OVERRIDE, halign="center");
-
+    }
         translate([0,0.6,0])
         text(LABEL_TEXT_OVERRIDE==""?TYPEBALL_FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?TYPEBALL_FONT:LABEL_FONT_OVERRIDE, halign="center");
         
@@ -495,7 +492,7 @@ module GlobalPosition(r, latitude, longitude, rotAdjust)
 }
 
 //// generate reversed embossed text, tapered outwards to ball surface, face curved to match platen
-module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiameter=40)
+module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiameter=PLATEN_DIA)
 {
     $fn = $preview ? 12 : 24;
     faceScale = 2.25;
@@ -512,7 +509,7 @@ module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiam
             minkowski()
             {
                 if (COMPOSER==true){
-                    translate([-COMPOSER_CENTER_OFFSET, 0, 0])
+                    translate([-COMPOSER_CENTER_OFFSET, COMPOSER_VERT_OFFSET, 0])
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="left", someLetter);
                     
                 }
