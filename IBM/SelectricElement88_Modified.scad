@@ -372,7 +372,10 @@ module Labels()
 module ResinPrint(){
     translate([0,0, -TYPEBALL_SKIRT_TOP_BELOW_CENTRE + SKIRT_HEIGHT])
     TypeBall();
-    
+    ResinRodAssemble();
+}
+
+module ResinRodAssemble(){
     color("purple"){
         for (i=[0:CHARACTERS_PER_LATITUDE - 1])
         {
