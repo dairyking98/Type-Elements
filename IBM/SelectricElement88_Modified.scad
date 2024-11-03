@@ -327,7 +327,6 @@ module Render(){
 
 //Resin support rod
 module ResinRod(h){
-    color("purple")
     union(){
         translate([0, 0, -RAFTH-MINRODH]){
             cylinder(h=RAFTH, d1=RAFTD, d2=RAFTD+2*RAFTH);
@@ -337,6 +336,15 @@ module ResinRod(h){
         }
         translate([0, 0, h])
         sphere(d=TIP);
+    }
+}
+
+module ResinTip(p){
+    hull(){
+        sphere(d=ROD);
+        translate(p)
+        sphere(d=TIP);
+        
     }
 }
 
@@ -356,8 +364,6 @@ module Labels()
         translate([0,0.6,0])
         text(LABEL_TEXT_OVERRIDE==""?TYPEBALL_FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?TYPEBALL_FONT:LABEL_FONT_OVERRIDE, halign="center");
         
-//        translate([0,-1.6,0])
-//        text("Mono", size=2, font=TYPEBALL_FONT, halign="center");
     }
 }
 
@@ -367,22 +373,55 @@ module ResinPrint(){
     translate([0,0, -TYPEBALL_SKIRT_TOP_BELOW_CENTRE + SKIRT_HEIGHT])
     TypeBall();
     
-    for (i=[0:CHARACTERS_PER_LATITUDE - 1])
-    {
-        rotate([0, 0, i * CHARACTER_LONGITUDE])
-        translate([(INSIDE_RAD+TYPEBALL_SKIRT_BOTTOM_RAD)/2, 0, 0])
-        ResinRod(-.2);
-    }
-    for (i=[0:RIBS-1]){
-        if (i!=4){
-            rotate([0, 0, i * 360/11])
-            translate([(BOSS_OUTER_RAD+BOSS_INNER_RAD)/2, 0, 0])
-            ResinRod(SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE-BOSS_HEIGHT-.2);
+    color("purple"){
+        for (i=[0:CHARACTERS_PER_LATITUDE - 1])
+        {
+            rotate([0, 0, i * CHARACTER_LONGITUDE])
+            {
+                translate([(INSIDE_RAD+TYPEBALL_SKIRT_BOTTOM_RAD)/2, 0, 0])
+                ResinRod(-.2);
+                
+                hull(){
+                        translate([(INSIDE_RAD+TYPEBALL_SKIRT_BOTTOM_RAD)/2, 0, -TIPH])
+                        sphere(d=ROD);
+                        rotate([0, 0, CHARACTER_LONGITUDE])
+                        translate([(INSIDE_RAD+TYPEBALL_SKIRT_BOTTOM_RAD)/2, 0, -MINRODH])
+                        sphere(d=ROD);
+                }
+            }
         }
-        
-        rotate([0, 0, i * 360/11])
-        translate([0, 9, 0])
-        ResinRod(SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE - TYPEBALL_TOP_THICKNESS - RIB_HEIGHT-.5);
+        for (i=[0:RIBS-1]){
+            
+            rotate([0, 0, i * 360/11])
+            translate([0, 9, 0])
+            {
+                ResinRod(SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE - TYPEBALL_TOP_THICKNESS - RIB_HEIGHT-.5);
+                
+                if (i==1){
+                    translate([0, 0, SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE-BOSS_HEIGHT-.2-(9-BOSS_OUTER_RAD-ROD)-1])
+                    ResinTip([.3, -(9-BOSS_OUTER_RAD), 9-(BOSS_OUTER_RAD+BOSS_INNER_RAD)/2-ROD+1]);
+                }
+                
+                else if(i==2){
+                    translate([0, 0, SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE-BOSS_HEIGHT-.2-(9-BOSS_OUTER_RAD-ROD)-1])        
+                    ResinTip([1.2, -(9-BOSS_OUTER_RAD)-.1, 9-(BOSS_OUTER_RAD+BOSS_INNER_RAD)/2-ROD+1]);}
+                    
+                else {
+                    translate([0, 0, SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE-BOSS_HEIGHT-.2-(9-BOSS_OUTER_RAD-ROD)-1])
+                    ResinTip([0, -(9-BOSS_OUTER_RAD), 9-(BOSS_OUTER_RAD+BOSS_INNER_RAD)/2-ROD+1]);
+                }
+            }
+            
+            rotate([0, 0, i * 360/11])
+            
+            hull(){
+                translate([0, 9, 0])
+                sphere(d=ROD);
+                rotate([0, 0, 360/11])
+                translate([0, 9, 6])
+                sphere(d=ROD);
+            }
+        }
     }
 }
 
