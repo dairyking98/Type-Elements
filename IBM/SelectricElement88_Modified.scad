@@ -71,6 +71,8 @@ UPPER_CASE=COMPOSER?UPPER_CASE_COMPOSER:UPPER_CASE88;
 LOWER_CASE=COMPOSER?LOWER_CASE_COMPOSER:LOWER_CASE88;
 
 /* [Testing Stuff] */
+//Generate center rays
+RAYS=false;
 //Generate cross section
 XSECTION=false;
 //Cross section angle
@@ -330,6 +332,8 @@ module Render(){
         translate([0, -50, -50])
         cube(100);
     }
+    if (RAYS==true)
+    Rays();
 }
 
 
@@ -495,6 +499,28 @@ charmapComposer =
     29, 43, 12, 27, 26, 14, 17, 21, 34, 32, 11 ];
     
 charmap=COMPOSER?charmapComposer:charmap88;
+
+module Rays(){
+    ROWCHARS = CHARACTERS_PER_LATITUDE/2;
+    
+    for ( l=[0:3] )
+    {
+        tiltAngle = (2-l) * TILT_ANGLE + (l==0?TOP_ROW_ADJUSTMENT:0);
+        
+        for ( p=[0:ROWCHARS-1] )
+        {
+            
+            GlobalPosition(TYPEBALL_RAD, tiltAngle, (5-p)*CHARACTER_LONGITUDE, ROW_TILT_ADJUST[l])
+            #cylinder(d=.1, h=20);
+        }
+        
+        for ( p=[0:ROWCHARS-1] )
+        {
+            GlobalPosition(TYPEBALL_RAD, tiltAngle, (ROWCHARS+5-p)*CHARACTER_LONGITUDE, ROW_TILT_ADJUST[l])
+            #cylinder(d=.1, h=20);
+        }
+    }
+}
 
 module SelectricLayout88()
 {
