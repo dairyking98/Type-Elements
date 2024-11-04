@@ -58,8 +58,12 @@ MINK_OFF=true;
 //Turns on Composer layout and left alignment
 COMPOSER=false;
 //Amount of offset from center of left edge of text 
-COMPOSER_CENTER_OFFSET=3;//.01
-COMPOSER_VERT_OFFSET=0.5; // Vertical offset for Composer elements 
+COMPOSER_CENTER_OFFSET=1.45;//.01 //was 3
+// Vertical offset for Composer elements 
+COMPOSER_VERT_OFFSET=0.5;
+//Composer characters to be centered not left aligned
+COMPOSER_CENTER_CHARS="1";
+
 //Render mode
 GENMODE=0;//[0:Render, 1:ResinPrint, 2:TestString]
 
@@ -528,6 +532,8 @@ module GlobalPosition(r, latitude, longitude, rotAdjust)
     z = r * sin(latitude); 
     
     rotate([0, 0, longitude])
+    rotate([0, 0, COMPOSER?asin(COMPOSER_CENTER_OFFSET/TYPEBALL_RAD):0])
+    
     translate([x, y, z])
     rotate([0, 90 - latitude - rotAdjust, 0])
     children();
@@ -550,16 +556,17 @@ module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiam
             offset(CHARACTER_WEIGHT_ADJUSTMENT)
             minkowski()
             {
-                if (COMPOSER==true){
-                    translate([-COMPOSER_CENTER_OFFSET, COMPOSER_VERT_OFFSET, 0])
+                if (COMPOSER==true && search(someLetter, COMPOSER_CENTER_CHARS)==[]){
+                    //translate([-COMPOSER_CENTER_OFFSET, COMPOSER_VERT_OFFSET, 0])
+                    //rotate([0, atan(COMPOSER_CENTER_OFFSET/TYPEBALL_RAD), 0])
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="left", someLetter);
                     
                 }
                 
-                if (COMPOSER==false){
+                if (COMPOSER==false || search(someLetter, COMPOSER_CENTER_CHARS)!=[]){
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="center", someLetter);
                 }
-                if (MINK_OFF==false)
+                //if (MINK_OFF==false)
                 polygon([[-HORIZONTAL_WEIGHT_ADJUSTMENT/2,0],[HORIZONTAL_WEIGHT_ADJUSTMENT/2,0],[HORIZONTAL_WEIGHT_ADJUSTMENT/2,EPSILON],[-HORIZONTAL_WEIGHT_ADJUSTMENT/2,EPSILON]]);
             }
 
