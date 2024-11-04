@@ -557,7 +557,7 @@ module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiam
             minkowski()
             {
                 if (COMPOSER==true && search(someLetter, COMPOSER_CENTER_CHARS)==[]){
-                    //translate([-COMPOSER_CENTER_OFFSET, COMPOSER_VERT_OFFSET, 0])
+                    translate([0, COMPOSER_VERT_OFFSET, 0])
                     //rotate([0, atan(COMPOSER_CENTER_OFFSET/TYPEBALL_RAD), 0])
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="left", someLetter);
                     
@@ -566,6 +566,7 @@ module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiam
                 if (COMPOSER==false || search(someLetter, COMPOSER_CENTER_CHARS)!=[]){
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="center", someLetter);
                 }
+                translate([0, COMPOSER==true?COMPOSER_VERT_OFFSET:0, 0])
                 //if (MINK_OFF==false)
                 polygon([[-HORIZONTAL_WEIGHT_ADJUSTMENT/2,0],[HORIZONTAL_WEIGHT_ADJUSTMENT/2,0],[HORIZONTAL_WEIGHT_ADJUSTMENT/2,EPSILON],[-HORIZONTAL_WEIGHT_ADJUSTMENT/2,EPSILON]]);
             }
