@@ -481,8 +481,8 @@ module TypeBall()
     {
         HollowBall();
         if (SLOT) Slot();
-        if (LABEL==true){
             Notch();
+        if (LABEL==true){
             FontName();
         }
         if (ARROW==true){
