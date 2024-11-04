@@ -58,7 +58,7 @@ MINK_OFF=true;
 //Turns on Composer layout and left alignment
 COMPOSER=false;
 //Amount of offset from center of left edge of text 
-COMPOSER_CENTER_OFFSET=1.45;//.01 //was 3
+COMPOSER_CENTER_OFFSET=3.5;//.01 //was 3
 // Vertical offset for Composer elements 
 COMPOSER_VERT_OFFSET=0.5;
 //Composer characters to be centered not left aligned
@@ -221,6 +221,9 @@ $fn = FACETS;
 
 // --- probably shouldn't mess with stuff below ---
 
+
+DETENT_TEETH_CLOCK_OFFSET=1.5;
+
 // Parameters have been tuned for printing on a Creality Halot One resin printer, using Sunlu ABS-Like resin
 
 // angle between the four rows of type
@@ -254,7 +257,7 @@ TOOTH_PEAK_OFFSET_FROM_CENTRE = 6.1; // Lateral offset of the tilt ring detent p
 BOSS_INNER_RAD = 4.4; // Originally 4.35
 BOSS_OUTER_RAD = 5.8;
 BOSS_HEIGHT = 8.07;
-NOTCH_ANGLE = 131.8; // Must be exact! If not, ball doesn't detent correctly
+NOTCH_ANGLE = 131.8+DETENT_TEETH_CLOCK_OFFSET; // Must be exact! If not, ball doesn't detent correctly
 NOTCH_WIDTH = 1.40; // Should be no slop here, either
 NOTCH_DEPTH = 2;
 NOTCH_HEIGHT = 2.2;
@@ -268,7 +271,6 @@ RIB_LENGTH = 8.75;//.01
 RIB_WIDTH = 2;
 RIB_HEIGHT = 2.5;
 
-DETENT_TEETH_CLOCK_OFFSET=0;
 
 // Character layout
 CHARACTERS_PER_LATITUDE = 22;   // For Selectric I and II. 4 x 22 = 88 characters total.
