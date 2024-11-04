@@ -58,7 +58,7 @@ MINK_OFF=true;
 //Turns on Composer layout and left alignment
 COMPOSER=false;
 //Amount of offset from center of left edge of text 
-COMPOSER_CENTER_OFFSET=3.5;//.01 //was 3
+COMPOSER_CENTER_OFFSET=2.5;//.01 //was 3
 // Vertical offset for Composer elements 
 COMPOSER_VERT_OFFSET=0.5;
 //Composer characters to be centered not left aligned
@@ -222,7 +222,7 @@ $fn = FACETS;
 // --- probably shouldn't mess with stuff below ---
 
 
-DETENT_TEETH_CLOCK_OFFSET=1.5;
+DETENT_TEETH_CLOCK_OFFSET=-1.5;
 
 // Parameters have been tuned for printing on a Creality Halot One resin printer, using Sunlu ABS-Like resin
 
