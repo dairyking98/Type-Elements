@@ -258,7 +258,7 @@ TOOTH_PEAK_OFFSET_FROM_CENTRE = 6.1; // Lateral offset of the tilt ring detent p
 // Parameters for the centre boss that goes onto tilt ring spigot (upper ball socket)
 BOSS_INNER_RAD = 4.4; // Originally 4.35
 BOSS_OUTER_RAD = 5.8;
-BOSS2_OUTER_RAD=7.8;
+BOSS2_OUTER_RAD=6.9;
 BOSS_HEIGHT = 8.07;
 BOSS2_HEIGHT=5;//.1
 BOSS2=true;
