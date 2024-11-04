@@ -268,6 +268,8 @@ RIB_LENGTH = 8.75;//.01
 RIB_WIDTH = 2;
 RIB_HEIGHT = 2.5;
 
+DETENT_TEETH_CLOCK_OFFSET=0;
+
 // Character layout
 CHARACTERS_PER_LATITUDE = 22;   // For Selectric I and II. 4 x 22 = 88 characters total.
 CHARACTER_LONGITUDE = 360 / CHARACTERS_PER_LATITUDE; // For Selectric I and II
@@ -383,7 +385,7 @@ module ResinRodAssemble(){
     color("purple"){
         for (i=[0:CHARACTERS_PER_LATITUDE - 1])
         {
-            rotate([0, 0, i * CHARACTER_LONGITUDE])
+            rotate([0, 0, i * CHARACTER_LONGITUDE+DETENT_TEETH_CLOCK_OFFSET])
             {
                 translate([(INSIDE_RAD+TYPEBALL_SKIRT_BOTTOM_RAD)/2, 0, 0])
                 ResinRod(-.2);
@@ -532,7 +534,7 @@ module GlobalPosition(r, latitude, longitude, rotAdjust)
     z = r * sin(latitude); 
     
     rotate([0, 0, longitude])
-    rotate([0, 0, COMPOSER?asin(COMPOSER_CENTER_OFFSET/TYPEBALL_RAD):0])
+    //rotate([0, 0, COMPOSER?asin(COMPOSER_CENTER_OFFSET/TYPEBALL_RAD):0])
     
     translate([x, y, z])
     rotate([0, 90 - latitude - rotAdjust, 0])
@@ -557,7 +559,7 @@ module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiam
             minkowski()
             {
                 if (COMPOSER==true && search(someLetter, COMPOSER_CENTER_CHARS)==[]){
-                    translate([0, COMPOSER_VERT_OFFSET, 0])
+                    translate([-COMPOSER_CENTER_OFFSET, COMPOSER_VERT_OFFSET, 0])
                     //rotate([0, atan(COMPOSER_CENTER_OFFSET/TYPEBALL_RAD), 0])
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="left", someLetter);
                     
@@ -566,7 +568,7 @@ module LetterText(someTypeSize, someHeight, typeballFont, someLetter, platenDiam
                 if (COMPOSER==false || search(someLetter, COMPOSER_CENTER_CHARS)!=[]){
                     text(size=someTypeSize * faceScale, font=typeballFont, halign="center", someLetter);
                 }
-                translate([0, COMPOSER==true?COMPOSER_VERT_OFFSET:0, 0])
+                translate([/*search(someLetter, COMPOSER_CENTER_CHARS)!=[]?COMPOSER_CENTER_*/0, COMPOSER==true?COMPOSER_VERT_OFFSET:0, 0])
                 //if (MINK_OFF==false)
                 polygon([[-HORIZONTAL_WEIGHT_ADJUSTMENT/2,0],[HORIZONTAL_WEIGHT_ADJUSTMENT/2,0],[HORIZONTAL_WEIGHT_ADJUSTMENT/2,EPSILON],[-HORIZONTAL_WEIGHT_ADJUSTMENT/2,EPSILON]]);
             }
@@ -651,6 +653,7 @@ module DetentTeethSkirt()
         cylinder(r2=TYPEBALL_SKIRT_TOP_RAD, r1=TYPEBALL_SKIRT_BOTTOM_RAD, h=SKIRT_HEIGHT, $fn=160);
         
         translate([0,0, TYPEBALL_SKIRT_TOP_BELOW_CENTRE - SKIRT_HEIGHT-EPSILON])
+        rotate([0, 0, DETENT_TEETH_CLOCK_OFFSET])
         DetentTeeth();
     }
 }
