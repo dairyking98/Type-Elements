@@ -574,6 +574,8 @@
         },
         "New set 11": {
             "ARROW": "true",
+            "BOSS2_HEIGHT": "5.5",
+            "BOSS2_OUTER_RAD": "6.9000000000000004",
             "BOSS_HEIGHT": "8.0700000000000003",
             "BOSS_INNER_RAD": "4.4000000000000004",
             "BOSS_OUTER_RAD": "5.7999999999999998",
@@ -587,7 +589,7 @@
             "DETENT_TEETH_CLOCK_OFFSET": "-1.5",
             "EPSILON": "0.001",
             "FONT_LABEL_SIZE": "2",
-            "GENMODE": "0",
+            "GENMODE": "1",
             "HORIZONTAL_WEIGHT_ADJUSTMENT": "0.20000000000000001",
             "INSIDE_CURVE_START": "3.2999999999999998",
             "INSIDE_RAD": "14.300000000000001",
@@ -633,7 +635,7 @@
             "TYPEBALL_TOP_ABOVE_CENTRE": "11.4",
             "TYPEBALL_TOP_THICKNESS": "1.6499999999999999",
             "UNITSPERINCH": "72",
-            "XSECTION": "false",
+            "XSECTION": "true",
             "XSECTIONTHETA": "0"
         }
     }

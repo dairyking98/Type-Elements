@@ -258,7 +258,10 @@ TOOTH_PEAK_OFFSET_FROM_CENTRE = 6.1; // Lateral offset of the tilt ring detent p
 // Parameters for the centre boss that goes onto tilt ring spigot (upper ball socket)
 BOSS_INNER_RAD = 4.4; // Originally 4.35
 BOSS_OUTER_RAD = 5.8;
+BOSS2_OUTER_RAD=7.8;
 BOSS_HEIGHT = 8.07;
+BOSS2_HEIGHT=5;//.1
+BOSS2=true;
 NOTCH_ANGLE = 131.8+DETENT_TEETH_CLOCK_OFFSET; // Must be exact! If not, ball doesn't detent correctly
 NOTCH_WIDTH = 1.40; // Should be no slop here, either
 NOTCH_DEPTH = 2;
@@ -268,6 +271,7 @@ SLOT_WIDTH = 1.9;
 SLOT_DEPTH = 0.4;
 
 // Inside reinforcement ribs
+RIB=false;
 RIBS = 11;
 RIB_LENGTH = 8.75;//.01
 RIB_WIDTH = 2;
@@ -410,7 +414,10 @@ module ResinRodAssemble(){
             rotate([0, 0, i * 360/11])
             translate([0, 9, 0])
             {
-                ResinRod(SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE - TYPEBALL_TOP_THICKNESS - RIB_HEIGHT-.5);
+                withrib=SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE - TYPEBALL_TOP_THICKNESS - RIB_HEIGHT-.5;
+                withoutrib=withrib+.6;
+                
+                ResinRod(RIB?withrib:withoutrib);
                 
                 if (i==1){
                     translate([0, 0, SKIRT_HEIGHT-TYPEBALL_SKIRT_TOP_BELOW_CENTRE+TYPEBALL_TOP_ABOVE_CENTRE-BOSS_HEIGHT-.2-(9-BOSS_OUTER_RAD-ROD)-1])
@@ -627,6 +634,7 @@ module HollowBall()
                 translate([0,0,-20+INSIDE_CURVE_START])
                 cylinder(r=INSIDE_RAD, h=20, $fn=$preview ? 60 : 360); // needs to be smooth!
             }
+            if (RIB==true)
             Ribs();
         }
         difference(){
@@ -761,7 +769,12 @@ module CentreBoss()
     translate([0,0, TYPEBALL_TOP_ABOVE_CENTRE - BOSS_HEIGHT])
     difference()
     {
+        union(){
         cylinder(r=BOSS_OUTER_RAD, h=BOSS_HEIGHT);
+        if (BOSS2==true)
+        translate([0, 0, BOSS_HEIGHT-BOSS2_HEIGHT])
+        cylinder(r=BOSS2_OUTER_RAD, h=BOSS2_HEIGHT);
+        }
 
         translate([0,0,-EPSILON])
         cylinder(r=BOSS_INNER_RAD, h=BOSS_HEIGHT+2*EPSILON, $fn=360);
