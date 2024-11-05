@@ -71,7 +71,7 @@ PLATEN_OD=45;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.4;
+DRIVE_NOTCH_WIDTH=1.15;
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
@@ -112,7 +112,7 @@ LOWER_CASE_COMPOSER = str(
 
 //lowercase composer layout on machine; left to right, top to bottom
 UPPER_CASE_COMPOSER = str(
-    "!†+$%/&*()_@",
+    "!†+$%/&*()–@",
     "QWERTYUIOP¾",
     "ASDFGHJKL¼½",
     "ZXCVBNM‘’:"
@@ -129,7 +129,7 @@ S1288="";
 COMPOSERMAP88="
 s10928’‘/+$S!()†*.,634
 
-iatb75¾_½CLIATB&%?-[cl
+iatb75¾–½CLIATB&%?-[cl
 
 nrodwkXVUMHNRODWKxvumh
 
