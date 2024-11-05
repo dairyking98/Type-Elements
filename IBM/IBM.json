@@ -1,0 +1,37 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "BOSS_H": "8.0700000000000003",
+            "DETENT_SKIRT_CLOCK_OFFSET": "1.5",
+            "ELEMENT_OAT": "22",
+            "FONT": "Arial",
+            "FONTSIZE": "2",
+            "FONT_WEIGHT_OFFSET": "0",
+            "LONGITUDE_SPACING": "[32.8, 16.4, 0, -16.4]",
+            "LOWERCASE88": "1234567890-=qwertyuiop½asdfghjkl;'zxcvbnm,.\/",
+            "MAX_OD": "34.899999999999999",
+            "MINK_ON": "false",
+            "PLATEN_OD": "45",
+            "RENDER": "true",
+            "RENDER_MODE": "0",
+            "RENDER_VARIANT": "0",
+            "SELECTIVE_RENDER": "false",
+            "SELECTIVE_RENDER_CHARS": ":a",
+            "SHAFT_ID": "8.8000000000000007",
+            "SKIRT_BOTTOM_OD": "30.199999999999999",
+            "SKIRT_TOP_OD": "32.299999999999997",
+            "SPHERE_OD": "33.399999999999999",
+            "TOPFLAT_TO_CENTER": "11.4",
+            "UPPERCASE88": "!@#$%¢&*()_+QWERTYUIOP¼ASDFGHJKL:\"ZXCVBNM,.?",
+            "XSECTION": "false",
+            "XSECTION_THETA": "-90",
+            "X_POS_OFFSET_COMPOSER": "1.4999999999999996",
+            "X_WEIGHT_ADJUSTMENT": "0.01",
+            "Y_POS_OFFSET_S12": "-0.59999999999999998",
+            "Y_WEIGHT_ADJUSTMENT": "0.01",
+            "mink_fn": "20",
+            "z": "0.001"
+        }
+    }
+}

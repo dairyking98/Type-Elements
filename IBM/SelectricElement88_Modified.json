@@ -589,7 +589,6 @@
             "DETENT_TEETH_CLOCK_OFFSET": "-1.5",
             "EPSILON": "0.001",
             "FONT_LABEL_SIZE": "2",
-            "GENMODE": "1",
             "HORIZONTAL_WEIGHT_ADJUSTMENT": "0.20000000000000001",
             "INSIDE_CURVE_START": "3.2999999999999998",
             "INSIDE_RAD": "14.300000000000001",
@@ -637,6 +636,10 @@
             "UNITSPERINCH": "72",
             "XSECTION": "true",
             "XSECTIONTHETA": "0"
+        },
+        "New set 12": {
+            "NOTCH_DEPTH": "2",
+            "XSECTION": "true"
         }
     }
 }
