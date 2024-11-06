@@ -82,6 +82,13 @@ DETENT_VALLEY_TO_CENTER=6;
 DETENT_SKIRT_CLOCK_OFFSET=2.01;
 
 
+/* [Character Polar Positioning Offsets] */
+//individual platen cutout adjustment angles
+PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
+//individual baseline adjustment angles
+BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
+
+
 /* [Character Mapping] */
 
 //lowercase layout on machine; left to right, top to bottom
@@ -246,7 +253,7 @@ module Text(char){
 
 //platen cutout
 module PlatenCutout(char){
-            rotate([0, -GetLong(char), GetLat(char)])
+            rotate([0, -GetLong(char)-PLATEN_LONGITUDE_OFFSETS[GetRow(char)], GetLat(char)])
             translate([SPHERE_R+PLATEN_R+TYPE_ALTITUDE, 0, 0])
             rotate([90, 0, 0])
             cylinder(d=PLATEN_OD, h=10, center=true, $fn=cyl_fn);
@@ -254,7 +261,7 @@ module PlatenCutout(char){
 
 //position extruded character
 module PositionText(char){
-    rotate([90 - GetLong(char), 0, 90 + GetLat(char)])
+    rotate([90 - GetLong(char) - BASELINE_LONGITUDE_OFFSETS[GetRow(char)], 0, 90 + GetLat(char)])
     translate([0, 0, SPHERE_R+z])
     linear_extrude(6)
     Text(char);
@@ -287,6 +294,9 @@ function GetLat(char)= CHAR_LAT_LONG[search(char, CHAR_LAT_LONG)[0]][2]*LATITUDE
 
 //get longitude function with char input
 function GetLong(char)= LONGITUDE_SPACING[CHAR_LAT_LONG[search(char, CHAR_LAT_LONG)[0]][1]];
+
+//get row number function with char input
+function GetRow(char) = CHAR_LAT_LONG[search(char, CHAR_LAT_LONG)[0]][1];
 
 //minkowski single character
 module SingleMinkowski(char){
