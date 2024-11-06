@@ -158,6 +158,29 @@ DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
 DETENT_SKIRT_CLOCK_OFFSET=2.51;
 
+/* [Label Stuff] */
+
+//Enable label
+LABEL=true;
+//Enable arrow
+ARROW=true;
+//Label for number label. Disabled in Composer mode
+LABEL_NO = "10";
+//Label override for typeface label (leave blank to adopt font name)
+LABEL_TEXT_OVERRIDE="";
+//Font override for number label (leave blank to adopt element typeface)
+LABEL_NO_FONT_OVERRIDE="";
+//Font override for typeface label (leave blank to adopt element typeface)
+LABEL_FONT_OVERRIDE="";
+//Font size for number label
+NO_LABEL_SIZE=2;
+//Font size for typeface label 
+FONT_LABEL_SIZE=2;
+//arrow from center 
+DEL_BASE_FROM_CENTRE = 8.2;
+//depth of arrow
+DEL_DEPTH = 0.6;
+
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
@@ -418,6 +441,10 @@ module SolidCleanup(){
     //web
     if (WEB==true)
     ArrangeWeb();
+    if (ARROW==true)
+    Del();
+    if (LABEL==true)
+    FontName();
 }
 //subtractive parts - inner radius
 module HollowProfile(){
@@ -692,6 +719,39 @@ module Render(){
             translate([0, -50, -50])
             cube(100);
         }
+    }
+}
+
+// Alignment marker triangle on top face
+module Del()
+{
+    translate([DEL_BASE_FROM_CENTRE, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    color("white")  // TODO red triangle for Composer typeball
+    linear_extrude(DEL_DEPTH+z)
+    polygon(points=[[3.4,0],[0.4,1.3],[0.4,-1.3]]);
+}
+
+// Emboss a label onto top face
+module FontName()
+{
+    translate([-8.5, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    rotate([0,0,270])
+    linear_extrude(DEL_DEPTH+0.01)
+    Labels();
+}
+
+// Labels on the top of the ball, cosmetic
+module Labels()
+{
+    {
+        // Disable Label No for Composer balls
+        if (RENDER_MODE!=0) { 
+            translate([-0.1,14,0])
+        text(LABEL_NO, size=NO_LABEL_SIZE, font=LABEL_NO_FONT_OVERRIDE==""?FONT:LABEL_NO_FONT_OVERRIDE, halign="center");
+    }
+        translate([0,0.6,0])
+        text(LABEL_TEXT_OVERRIDE==""?FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?FONT:LABEL_FONT_OVERRIDE, halign="center");
+        
     }
 }
 
