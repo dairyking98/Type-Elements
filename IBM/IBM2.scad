@@ -17,7 +17,7 @@ RENDER=false;
 //render selection?
 RENDER_MODE=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
 //render variant?
-RENDER_VARIANT=0;//[0:plain, 1:resin print, 2:type test]
+RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print top down]
 //turn on minkowski?
 MINK_ON=false;
 //cross section?
@@ -116,6 +116,8 @@ TOPFLAT_TO_CENTER=11.0;//was 11.4;
 TOPFLAT_THICKNESS=4.5;
 //shaft ID
 SHAFT_ID=8.8;
+//shaft r
+SHAFT_R=SHAFT_ID/2;
 //top shaft chamfer
 TOP_CHAMFER=.7;
 //inside ID
@@ -125,7 +127,9 @@ INSIDE_ID=28.15;
 BOSS_TO_CENTER=2.5;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
 //center to CENTER_TO_TOP of element
 CENTER_TO_TOP=11;//TOPFLAT_TO_CENTER = 11;
-//center to floor of element
+//top flat radius
+TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
+//center to floor (detent teeth) of element
 FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
 //boss OD
 BOSS_OD=11.6;
@@ -176,8 +180,6 @@ BOSS_R=BOSS_OD/2;
 DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 //center to roof of element
 ROOF=CENTER_TO_TOP-TOPFLAT_THICKNESS;
-//top flat radius
-TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 
 /* [Character Mapping] */
 
@@ -578,6 +580,33 @@ module ResinPrint(){
     ResinRodAssemble();
 }
 
+//assemble resin print 2
+module ResinPrint2(){
+    rotate([0, 180, 0])
+    translate([0, 0 , -TOPFLAT_TO_CENTER])
+    SubtractFromFull();
+
+    
+    
+    ResinRodAssemble2();
+}
+
+module ResinRodAssemble2(){
+    //outer top flat supports
+    for (i=[0:21])
+    rotate([0, 0, i*360/21])
+    translate([TOPFLAT_R-TIP_D/2, 0, 0])
+    ResinRod(0, 0);
+        for (i=[0:21])
+    rotate([0, 0, i*360/21+360/42])
+    translate([(SHAFT_R+TOP_CHAMFER+TOPFLAT_R)/2, 0, 0])
+    ResinRod(0, 0);
+            for (i=[0:11])
+    rotate([0, 0, i*360/11+360/22])
+    translate([SHAFT_R+TOP_CHAMFER+TIP_D/2, 0, 0])
+    ResinRod(0, 0);
+}
+
 //monospaced type test gauge
 module TextGauge(str, pitch)
 {
@@ -656,6 +685,8 @@ module Render(){
                 if (RENDER_MODE==1)
                     TextGauge(TESTSTRING, TESTCPI);
             }
+            if (RENDER_VARIANT==3)
+                ResinPrint2();
             if (XSECTION==true && RENDER_VARIANT!=2)
             rotate([0, 0, XSECTION_THETA-90])
             translate([0, -50, -50])
