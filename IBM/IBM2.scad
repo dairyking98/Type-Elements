@@ -64,17 +64,23 @@ UNITDIST=25.4/UNITSPERINCH;
 //element typeface
 FONT="Arial";
 //element type size
-FONTSIZE=2.4;//.05
+FONT_SIZE=2.4;//.05
+// Composer font Cap Height in points, use instead of FONT_SIZE!
+COMPOSER_CAP_HEIGHT=7;
+FONTSIZE=RENDER_MODE==0?COMPOSER_CAP_HEIGHT/2.834:FONT_SIZE;
 //secondary element typeface
 FONT2="Times New Roman";
 //secondary type size
-FONT2SIZE=2.4;//.05
+FONT2_SIZE=2.4;//.05
+// Composer font 2 Cap Height in points, use instead of FONT_SIZE!
+COMPOSER2_CAP_HEIGHT=7;
+FONT2SIZE=RENDER_MODE==0?COMPOSER2_CAP_HEIGHT/2.834:FONT2_SIZE;
 //list of chars to adopt font2 parameters
 FONT2CHARS="";
 //custom horizontal alignment characters
 CUSTOMHALIGNCHARS="";
 //custom horizontal alignment characters offset
-CUSTOMHALIGNOFFSET=1;
+CUSTOMHALIGNOFFSET=0.5;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
@@ -315,7 +321,7 @@ union(){
 module Text(char, font, size, customhalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER:0+customhalign, Y_POS_OFFSET, 0])
+        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:0, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
@@ -370,7 +376,7 @@ module AssembleMinkowski(){
         plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
-        size=search(char, FONT2CHARS)==[]?FONT2SIZE:FONTSIZE;
+        size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
