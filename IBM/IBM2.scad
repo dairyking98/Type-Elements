@@ -241,6 +241,22 @@ ASDFGHJKL:\"
 ZXCVBNM,.?
 ";
 
+//lowercase selectric 3 layout on machine; left to right, top to bottom
+LOWERCASE96="
+±1234567890-=
+qwertyuiop½[
+ASDFGHJKL;'
+ZXCVBNM,./
+";
+
+//uppercase selectric 3 layout on machine; left to right, top to bottom
+UPPERCASE96="
+°!@#$%¢&*()_+
+QWERTYUIOP¼]
+ASDFGHJKL:\"
+ZXCVBNM.,?
+";
+
 //uppercase composer layout on machine; left to right, top to bottom
 LOWERCASECOMPOSER88 ="
 1234567890-=
@@ -263,6 +279,7 @@ S12CASES88=[LOWERCASE88, UPPERCASE88];
 COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
 //custom 88 layout array
 CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
+S3CASES96=[LOWERCASE96, UPPERCASE96];
 
 //set keyboard layout for character mapping
 CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
@@ -273,6 +290,14 @@ S12_LC_HEMISPHERE88="
 bhkentlcdux
 wsi'.½oarvm
 -yqp=j/,;fg
+";
+
+//lowercase hemisphere of selectric 3 element from the top moving counter clockwise, top to bottom
+S3_LC_HEMISPHERE96="
+z2752064893/
+;'istecbku§=
+vmwdornaxh½±
+-1.jpqyflg],
 ";
 
 //lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
@@ -454,8 +479,8 @@ module HollowProfile(){
         circle(r=HOLLOW_R);
         translate([BOSS_R, 0, 0])
         square(1);
-        translate([BOSS_R+HOLLOW_R, CENTER_TO_TOP-TOPFLAT_THICKNESS-HOLLOW_R, 0])
-        scale([1, 1])
+        translate([BOSS_R+HOLLOW_R*2, CENTER_TO_TOP-TOPFLAT_THICKNESS-HOLLOW_R, 0])
+        scale([2, 1])
         circle(r=HOLLOW_R);
 
     }
