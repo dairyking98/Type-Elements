@@ -32,8 +32,8 @@ FONTSIZE=2.4;//.05
 FONT_WEIGHT_OFFSET=0;//.01
 X_WEIGHT_ADJUSTMENT=.01;
 Y_WEIGHT_ADJUSTMENT=.01;
-X_POS_OFFSET_COMPOSER=1.5;//.1
-Y_POS_OFFSET_COMPOSER=-1;
+X_POS_OFFSET_COMPOSER=1.71;//.01
+Y_POS_OFFSET_COMPOSER=-1.01;//.01
 Y_POS_OFFSET_S12=-.5;
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 H_ALIGNMENT=RENDER_MODE==0?"left":"center";
@@ -71,7 +71,7 @@ PLATEN_OD=45;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.4;
+DRIVE_NOTCH_WIDTH=1.15;
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
@@ -79,7 +79,7 @@ DRIVE_NOTCH_THETA_=131.8;
 //detent valley from center
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
-DETENT_SKIRT_CLOCK_OFFSET=1.5;
+DETENT_SKIRT_CLOCK_OFFSET=2.01;
 
 
 /* [Character Mapping] */
@@ -112,7 +112,7 @@ LOWER_CASE_COMPOSER = str(
 
 //lowercase composer layout on machine; left to right, top to bottom
 UPPER_CASE_COMPOSER = str(
-    "!†+$%/&*()_@",
+    "!†+$%/&*()–@",
     "QWERTYUIOP¾",
     "ASDFGHJKL¼½",
     "ZXCVBNM‘’:"
@@ -129,7 +129,7 @@ S1288="";
 COMPOSERMAP88="
 s10928’‘/+$S!()†*.,634
 
-iatb75¾_½CLIATB&%?-[cl
+iatb75¾–½CLIATB&%?-[cl
 
 nrodwkXVUMHNRODWKxvumh
 
