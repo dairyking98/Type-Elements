@@ -37,6 +37,7 @@ Y_POS_OFFSET_COMPOSER=-1.01;//.01
 Y_POS_OFFSET_S12=-.5;
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 H_ALIGNMENT=RENDER_MODE==0?"left":"center";
+MINKOWSKI_ANGLE=60;
 
 
 /* [Typeball Dimensions] */
@@ -80,7 +81,8 @@ DRIVE_NOTCH_THETA_=131.8;
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
 DETENT_SKIRT_CLOCK_OFFSET=2.01;
-
+//minkowski bottom radius size
+MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 
 /* [Character Polar Positioning Offsets] */
 //individual platen cutout adjustment angles
@@ -309,7 +311,7 @@ module SingleMinkowski(char){
         if (MINK_ON==true){
             rotate([90 - GetLong(char), 0, 90 + GetLat(char)])
             translate([0, 0, -2])
-            cylinder(d1=1.75, d2=0, h=2, $fn=mink_fn);
+            cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
         }
     }
 }
