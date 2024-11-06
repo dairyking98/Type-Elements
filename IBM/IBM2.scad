@@ -2,6 +2,7 @@
 //Leonard Chau      November 4, 2024       t(-.-t)
 
 /* [Global Parameters] */
+
 z=.001;
 $fn=$preview?44:44;
 mink_fn=20;
@@ -10,6 +11,7 @@ cyl_fn=360;
 surface_fn=120;
 
 /* [Rendering] */
+
 //render something?
 RENDER=false;
 //render selection?
@@ -27,6 +29,7 @@ SELECTIVE_RENDER=false;
 SELECTIVE_RENDER_CHARS="sine";
 
 /* [Typeface Stuff] */
+
 //element typeface
 FONT="Arial";
 //element type size
@@ -53,6 +56,7 @@ MINKOWSKI_ANGLE=60;
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 
 /* [Typeball Dimensions] */
+
 //sphere diameter
 SPHERE_OD=33.4;
 //sphere radius
@@ -104,6 +108,7 @@ DETENT_VALLEY_TO_CENTER=6;
 DETENT_SKIRT_CLOCK_OFFSET=2.01;
 
 /* [Character Polar Positioning Offsets] */
+
 //individual platen cutout adjustment angles
 PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 //individual baseline adjustment angles
@@ -129,7 +134,26 @@ TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 
 /* [Character Mapping] */
 
-//lowercase layout on machine; left to right, top to bottom
+//use custom keyboard layout?
+CUSTOM=false;
+
+//lowercase layout for custom keyboard
+CUSTOMLOWERCASE88="
+============
+===========
+===========
+==========
+";
+
+//uppercase layout for custom keyboard
+CUSTOMUPPERCASE88="
+++++++++++++
++++++++++++
++++++++++++
+++++++++++
+";
+
+//lowercase selectric 1/2 layout on machine; left to right, top to bottom
 LOWERCASE88="
 1234567890-=
 qwertyuiop½
@@ -137,7 +161,7 @@ asdfghjkl;'
 zxcvbnm,./
 ";
 
-//uppercase layout on machine; left to right, top to bottom
+//uppercase selectric 1/2 layout on machine; left to right, top to bottom
 UPPERCASE88="
 !@#$%¢&*()_+
 QWERTYUIOP¼
@@ -146,7 +170,7 @@ ZXCVBNM,.?
 ";
 
 //uppercase composer layout on machine; left to right, top to bottom
-LOWER_CASE_COMPOSER ="
+LOWERCASECOMPOSER88 ="
 1234567890-=
 qwertyuiop?
 asdfghjkl][
@@ -154,7 +178,7 @@ zxcvbnm,.;
 ";
 
 //lowercase composer layout on machine; left to right, top to bottom
-UPPER_CASE_COMPOSER ="
+UPPERCASECOMPOSER88 ="
 !†+$%/&*()–@
 QWERTYUIOP¾
 ASDFGHJKL¼½
@@ -164,9 +188,11 @@ ZXCVBNM‘’:
 //selectric 1/2 layout array
 S12CASES88=[LOWERCASE88, UPPERCASE88];
 //composer layout array
-COMPOSERCASES88=[LOWER_CASE_COMPOSER,UPPER_CASE_COMPOSER];
+COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
+//custom 88 layout array
+CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 
-//set keyboard layout
+//set keyboard layout for character mapping
 CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
 
 //lowercase hemisphere of selectric 1/2 element from the top moving clockwise, top to bottom
@@ -185,9 +211,8 @@ xvumhnrodwk
 =]zpyefgq;j
 ";
 
-//set lowercase hemisphere
+//set lowercase hemisphere 
 LC_HEMISPHERE88=RENDER_MODE==0?COMPOSER_LC_HEMISPHERE88:S12_LC_HEMISPHERE88;
-
 
 //create lowercase layout to element hemisphere map
 LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i], LC_HEMISPHERE88)];
@@ -227,8 +252,8 @@ UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  
 //mm distance per composer unit
 UNITDIST=25.4/UNITSPERINCH;
 
-
 /* [Resin Supports] */
+
 //tip diameter
 TIP_D=.8;
 //tip inset
@@ -246,12 +271,8 @@ BASE_H=2;
 //minimum support height
 MIN_ROD_H=2;
 
-
-
-
-
-
 /* [Experimental Web] */
+
 //web?
 WEB=false;
 //web ID
@@ -331,16 +352,20 @@ module AssembleMinkowski(){
     rotate([0, 0, -5*LATITUDE_SPACING])
     for (case_int=[0:1])
     for (hemi_int=[0:43]){
-    char=CASES88[case_int][hemi_int];
-    latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
-    longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
-    plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
-    base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
-    if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-    SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
-    else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
-    else
-    SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
+    
+        char=CUSTOM==true?CUSTOMCASES88[case_int][hemi_int]:CASES88[case_int][hemi_int];
+        latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
+        longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
+        plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+        base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+        
+        if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
+        SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
+        
+        else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
+        
+        else
+        SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
     }
 }
 
@@ -468,39 +493,38 @@ module ResinRodAssemble(){
         rotate([0, 0, i*360/11]){
         
         if (i!=4){
-        //boss supports
-        translate([BOSS_R, 0, 0])
-        ResinRod(FLOOR+BOSS_TO_CENTER, -45);
-        //boss roof support supports
-        hull(){
-            translate([BOSS_R-ResinXOffset(-45), 0, 12])
-            sphere(d=ROD_D);
-            translate([(BOSS_OD+INSIDE_ID)/4, 0, 8])
-            sphere(d=ROD_D);
-        }
-        //roof support supports
-        hull(){
-            translate([(BOSS_OD+INSIDE_ID)/4, 0, 4])
-            sphere(d=ROD_D);
-            rotate([0, 0, 360/11])
-            translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
-            sphere(d=ROD_D);
-        }
-        if (i!=3)
-        //boss support supports
-        hull(){
-            translate([BOSS_R-ResinXOffset(-45), 0, 1])
-            sphere(d=ROD_D);
-            rotate([0, 0, 360/11])
-            translate([BOSS_R-ResinXOffset(-45), 0, 7])
-            sphere(d=ROD_D);
-        }
+            //boss supports
+            translate([BOSS_R, 0, 0])
+            ResinRod(FLOOR+BOSS_TO_CENTER, -45);
+            //boss roof support supports
+            hull(){
+                translate([BOSS_R-ResinXOffset(-45), 0, 12])
+                sphere(d=ROD_D);
+                translate([(BOSS_OD+INSIDE_ID)/4, 0, 8])
+                sphere(d=ROD_D);
+            }
+            //roof support supports
+            hull(){
+                translate([(BOSS_OD+INSIDE_ID)/4, 0, 4])
+                sphere(d=ROD_D);
+                rotate([0, 0, 360/11])
+                translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
+                sphere(d=ROD_D);
+            }
+            if (i!=3)
+            //boss support supports
+                hull(){
+                    translate([BOSS_R-ResinXOffset(-45), 0, 1])
+                    sphere(d=ROD_D);
+                    rotate([0, 0, 360/11])
+                    translate([BOSS_R-ResinXOffset(-45), 0, 7])
+                    sphere(d=ROD_D);
+                }
         }
         
         //roof supports
         translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
         ResinRod(FLOOR+ROOF, 0);
-        
         }
         
         
@@ -525,10 +549,6 @@ module ResinRodAssemble(){
             }
         }
     }
-    
-
-
-        
 }
 
 //assemble resin print
