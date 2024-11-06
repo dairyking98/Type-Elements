@@ -88,7 +88,7 @@ X_WEIGHT_ADJUSTMENT=.01;
 //y weight adjustment 0+
 Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
-X_POS_OFFSET_COMPOSER=1.71;//.01
+X_POS_OFFSET_COMPOSER=1.86;//.01
 //y vert alignment offset for composer
 Y_POS_OFFSET_COMPOSER=-1.5;//1.01;//.01
 //y vert alignment offset for selectric 1/2
@@ -144,7 +144,7 @@ PLATEN_OD=45;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.15;
+DRIVE_NOTCH_WIDTH=1.10;
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
@@ -152,7 +152,7 @@ DRIVE_NOTCH_THETA_=131.8;
 //detent valley from center
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
-DETENT_SKIRT_CLOCK_OFFSET=2.01;
+DETENT_SKIRT_CLOCK_OFFSET=2.51;
 
 /* [Character Polar Positioning Offsets] */
 
