@@ -49,6 +49,8 @@ Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 H_ALIGNMENT=RENDER_MODE==0?"left":"center";
 //minkowski draft angle
 MINKOWSKI_ANGLE=60;
+//minkowski bottom radius size
+MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 
 
 /* [Typeball Dimensions] */

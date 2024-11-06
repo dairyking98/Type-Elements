@@ -40,20 +40,23 @@ Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
 X_POS_OFFSET_COMPOSER=1.71;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.01;//.01
+Y_POS_OFFSET_COMPOSER=-1.5;//1.01;//.01
 //y vert alignment offset for selectric 1/2
-Y_POS_OFFSET_S12=-.5;
+Y_POS_OFFSET_S12=-1.5;
 //y pos offset
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 //h alignment 
 H_ALIGNMENT=RENDER_MODE==0?"left":"center";
 //minkowski draft angle
 MINKOWSKI_ANGLE=60;
-
+//minkowski bottom radius size
+MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 
 /* [Typeball Dimensions] */
 //sphere diameter
 SPHERE_OD=33.4;
+//sphere radius
+SPHERE_R=SPHERE_OD/2;
 //character-concave to character-concave diameter
 MAX_OD=34.9;
 //sphere center to top flat
@@ -105,7 +108,24 @@ DETENT_SKIRT_CLOCK_OFFSET=2.01;
 PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
-
+//skirt large radius
+SKIRT_TOP_R=SKIRT_TOP_OD/2;
+//center to skirt of element
+CENTER_TO_SKIRT=(SPHERE_R^2-SKIRT_TOP_R^2)^.5;
+//platen radius
+PLATEN_R=PLATEN_OD/2;
+//height of letter
+TYPE_ALTITUDE=(MAX_OD-SPHERE_OD)/2;
+//inside radius
+INSIDE_R=INSIDE_ID/2;
+//inside boss radius
+BOSS_R=BOSS_OD/2;
+//compensated drive notch theta
+DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
+//center to roof of element
+ROOF=CENTER_TO_TOP-TOPFLAT_THICKNESS;
+//top flat radius
+TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 
 /* [Character Mapping] */
 
@@ -153,7 +173,7 @@ CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
 S12_LC_HEMISPHERE88="
 90652z48731
 bhkentlcdux
-½oarvmwsi'.
+wsi'.½oarvm
 -yqp=j/,;fg
 ";
 
@@ -229,27 +249,7 @@ MIN_ROD_H=2;
 
 
 
-/* [Calculated Variables] */
-//sphere radius
-SPHERE_R=SPHERE_OD/2;
-//skirt large radius
-SKIRT_TOP_R=SKIRT_TOP_OD/2;
-//center to skirt of element
-CENTER_TO_SKIRT=(SPHERE_R^2-SKIRT_TOP_R^2)^.5;
-//platen radius
-PLATEN_R=PLATEN_OD/2;
-//height of letter
-TYPE_ALTITUDE=(MAX_OD-SPHERE_OD)/2;
-//inside radius
-INSIDE_R=INSIDE_ID/2;
-//inside boss radius
-BOSS_R=BOSS_OD/2;
-//compensated drive notch theta
-DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
-//center to roof of element
-ROOF=CENTER_TO_TOP-TOPFLAT_THICKNESS;
-//top flat radius
-TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
+
 
 /* [Experimental Web] */
 //web?
@@ -351,7 +351,7 @@ module AssembleMinkowski(){
 module SolidCleanup(){
     //top flat
     translate([0, 0, TOPFLAT_TO_CENTER])
-    cylinder(r=TOPFLAT_R+2*z, h=10);
+    cylinder(r=TOPFLAT_R+2, h=10);
     //center shaft
     cylinder(d=SHAFT_ID, h=40, center=true, $fn=cyl_fn);
     //center shaft top chamfer
