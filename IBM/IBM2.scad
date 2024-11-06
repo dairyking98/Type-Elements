@@ -371,7 +371,7 @@ module AssembleMinkowski(){
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
         size=search(char, FONT2CHARS)==[]?FONT2SIZE:FONTSIZE;
-        customhalign=search(char, CUSTOMHALIGNCHARS)==[]?CUSTOMHALIGNOFFSET:0;
+        customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
         SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset);
