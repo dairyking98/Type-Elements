@@ -27,6 +27,37 @@ XSECTION_THETA=0;
 SELECTIVE_RENDER=false;
 //selective render chars?
 SELECTIVE_RENDER_CHARS="sine";
+//character and point array for type testing composer
+COMPOSER_PITCH_LIST=[
+
+    ["M", 9], ["W", 9], ["m", 9],
+    
+    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8],
+    
+    ["B", 7], ["C", 7], ["E", 7], ["F", 7], ["L", 7], ["T", 7], ["Z", 7],
+    
+    ["P", 6], ["S", 6], ["b", 6], ["d", 6], ["h", 6], ["k", 6], ["n", 6], ["o", 6], ["p", 6], ["q", 6], ["u", 6], ["x", 6], ["y", 6], ["*", 6], ["†", 6], ["$", 6], ["+", 6], ["=", 6], ["0", 6], ["1", 6], ["2", 6], ["3", 6], ["4", 6], ["5", 6], ["6", 6], ["7", 6], ["8", 6], ["9", 6], ["]", 6],
+    
+    ["J", 5], ["a", 5], ["c", 5], ["e", 5], ["g", 5], ["v", 5], ["?", 5], ["[", 5], ["z", 5],
+    
+    ["I", 4], ["f", 4], ["r", 4], ["s", 4], ["t", 4], [":", 4], ["(", 4], [")", 4], ["!", 4], ["/", 4], ["(", 4],
+    
+    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], [" ", 3], ["'", 3] //apostrophe not native to Composer
+
+];
+
+//string for type test
+TESTSTRING="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
+//picas per character array
+TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
+//cumulative picas per character array
+CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+//cpi spacing for type test
+TESTCPI=10;
+//unit spacing for type test of Composer
+UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
+//mm distance per composer unit
+UNITDIST=25.4/UNITSPERINCH;
 
 /* [Typeface Stuff] */
 
@@ -40,6 +71,10 @@ FONT2="Times New Roman";
 FONT2SIZE=2.4;//.05
 //list of chars to adopt font2 parameters
 FONT2CHARS="";
+//custom horizontal alignment characters
+CUSTOMHALIGNCHARS="";
+//custom horizontal alignment characters offset
+CUSTOMHALIGNOFFSET=1;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
@@ -81,7 +116,7 @@ TOP_CHAMFER=.7;
 INSIDE_ID=28.15;
 //shaft boss height
 //BOSS_H=8.62;//was 8.07; now redundant replaced by BOSS_TO_CENTER
-BOSS_TO_CENTER=2.5;//TOPFLAT_TO_CENTER-BOSS_H = 2.38;
+BOSS_TO_CENTER=2.5;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
 //center to CENTER_TO_TOP of element
 CENTER_TO_TOP=11;//TOPFLAT_TO_CENTER = 11;
 //center to floor of element
@@ -201,7 +236,7 @@ CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 //set keyboard layout for character mapping
 CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
 
-//lowercase hemisphere of selectric 1/2 element from the top moving clockwise, top to bottom
+//lowercase hemisphere of selectric 1/2 element from the top moving counter clockwise, top to bottom
 S12_LC_HEMISPHERE88="
 90652z48731
 bhkentlcdux
@@ -209,7 +244,7 @@ wsi'.½oarvm
 -yqp=j/,;fg
 ";
 
-//lowercase hemisphere of composer element from the top moving clockwise, top to bottom
+//lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
 COMPOSER_LC_HEMISPHERE88="
 .,634s10928
 ?-[cliatb75
@@ -226,37 +261,7 @@ LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i
 //create latitude, longitude integer array for one hemisphere
 LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
-//character and point array for type testing composer
-COMPOSER_PITCH_LIST=[
 
-    ["M", 9], ["W", 9], ["m", 9],
-    
-    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8],
-    
-    ["B", 7], ["C", 7], ["E", 7], ["F", 7], ["L", 7], ["T", 7], ["Z", 7],
-    
-    ["P", 6], ["S", 6], ["b", 6], ["d", 6], ["h", 6], ["k", 6], ["n", 6], ["o", 6], ["p", 6], ["q", 6], ["u", 6], ["x", 6], ["y", 6], ["*", 6], ["†", 6], ["$", 6], ["+", 6], ["=", 6], ["0", 6], ["1", 6], ["2", 6], ["3", 6], ["4", 6], ["5", 6], ["6", 6], ["7", 6], ["8", 6], ["9", 6], ["]", 6],
-    
-    ["J", 5], ["a", 5], ["c", 5], ["e", 5], ["g", 5], ["v", 5], ["?", 5], ["[", 5], ["z", 5],
-    
-    ["I", 4], ["f", 4], ["r", 4], ["s", 4], ["t", 4], [":", 4], ["(", 4], [")", 4], ["!", 4], ["/", 4], ["(", 4],
-    
-    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], [" ", 3], ["'", 3] //apostrophe not native to Composer
-
-];
-
-//string for type test
-TESTSTRING="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
-//picas per character array
-TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
-//cumulative picas per character array
-CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
-//cpi spacing for type test
-TESTCPI=10;
-//unit spacing for type test of Composer
-UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
-//mm distance per composer unit
-UNITDIST=25.4/UNITSPERINCH;
 
 /* [Resin Supports] */
 
@@ -307,10 +312,10 @@ union(){
 }
 
 //2d text
-module Text(char, font, size){
+module Text(char, font, size, customhalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER:0, Y_POS_OFFSET, 0])
+        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER:0+customhalign, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
@@ -335,12 +340,12 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, font, size, latitude, longitude, plat_offset, base_offset){
+module SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
             linear_extrude(6)
-            Text(char, font, size);
+            Text(char, font, size, customhalign);
             PlatenCutout(latitude, longitude+plat_offset);
             
         }
@@ -366,14 +371,15 @@ module AssembleMinkowski(){
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
         size=search(char, FONT2CHARS)==[]?FONT2SIZE:FONTSIZE;
+        customhalign=search(char, CUSTOMHALIGNCHARS)==[]?CUSTOMHALIGNOFFSET:0;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, latitude, longitude, plat_offset, base_offset);
+        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, latitude, longitude, plat_offset, base_offset);
+        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset);
     }
 }
 
