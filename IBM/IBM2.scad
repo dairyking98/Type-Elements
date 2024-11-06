@@ -126,8 +126,8 @@ ZXCVBNM,.?
 ";
 
 //uppercase composer layout on machine; left to right, top to bottom
-LOWER_CASE_COMPOSER =
-"1234567890-=
+LOWER_CASE_COMPOSER ="
+1234567890-=
 qwertyuiop?
 asdfghjkl][
 zxcvbnm,.;
@@ -149,7 +149,7 @@ COMPOSERCASES88=[LOWER_CASE_COMPOSER,UPPER_CASE_COMPOSER];
 //set keyboard layout
 CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
 
-//lowercase hemisphere of selectric 1/2 element
+//lowercase hemisphere of selectric 1/2 element from the top moving clockwise, top to bottom
 S12_LC_HEMISPHERE88="
 90652z48731
 bhkentlcdux
@@ -157,7 +157,7 @@ bhkentlcdux
 -yqp=j/,;fg
 ";
 
-//lowercase hemisphere of composer element
+//lowercase hemisphere of composer element from the top moving clockwise, top to bottom
 COMPOSER_LC_HEMISPHERE88="
 .,634s10928
 ?-[cliatb75
@@ -169,47 +169,11 @@ xvumhnrodwk
 LC_HEMISPHERE88=RENDER_MODE==0?COMPOSER_LC_HEMISPHERE88:S12_LC_HEMISPHERE88;
 
 
-//selectric 1/2 element map starting at arrow, moving counter clockwise from the top, from top to bottom
-S12MAP88="
-z48731()¢%@Z$*&#!90652
-
-tlcduxBHKENTLCDUXbhken
-
-½oarvmWSI\".¼OARVMwsi'.
-
-j/,;fg_YQP+J?,:FG-yqp=
-
-";
-//composer element map starting at arrow, moving counter clockwise from the top, from top to bottom
-COMPOSERMAP88="
-s10928’‘/+$S!()†*.,634
-
-iatb75¾–½CLIATB&%?-[cl
-
-nrodwkXVUMHNRODWKxvumh
-
-efgq;j@¼ZPYEFGQ:J=]zpy
-";
-
-//set element map
-MAP88=RENDER_MODE==0?COMPOSERMAP88:S12MAP88;
-
-
-//create lowercase layout to element map
+//create lowercase layout to element hemisphere map
 LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i], LC_HEMISPHERE88)];
 
-echo (LC_LAYOUT_TO_HEMISPHERE_MAP);
-
-
-//array for character, latitude integer, and longitude integer
-CHAR_LAT_LONG=[for (i=[0:1]) for (j=[0:len(CASES88[0])-1]) 
-
-    [CASES88[i][j], ceil(search(CASES88[i][j], str(MAP88))[0]/22+.001)-1, search(CASES88[i][j], str(MAP88))[0]%22]
-
-];
-
-//print master array to console
-echo(CHAR_LAT_LONG);
+//create latitude, longitude integer array for one hemisphere
+LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
 //character and point array for type testing composer
 COMPOSER_PITCH_LIST=[
@@ -236,18 +200,12 @@ TESTSTRING="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUI
 TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
 //cumulative picas per character array
 CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
-
 //cpi spacing for type test
 TESTCPI=10;
 //unit spacing for type test of Composer
 UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
-
-
-
 //mm distance per composer unit
 UNITDIST=25.4/UNITSPERINCH;
-
-
 
 
 /* [Resin Supports] */
@@ -267,8 +225,6 @@ BASE_D=4;
 BASE_H=2;
 //minimum support height
 MIN_ROD_H=2;
-
-
 
 
 
@@ -309,6 +265,8 @@ WEB_OD=TOPFLAT_R*2-2;
 
 echo("Top flat to boss must measure at 8.5mm or element is incorrectly represented. Adjust BOSS_TO_CENTER until print yields 8.5mm boss height.");
 
+//cumulative sum vector fuction for composer type test pitch array
+function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
 //make solid element
 module FullBody(){
@@ -333,79 +291,61 @@ module Text(char){
 }
 
 //platen cutout
-module PlatenCutout(char){
-            rotate([0, -GetLong(char)-PLATEN_LONGITUDE_OFFSETS[GetRow(char)], GetLat(char)])
+module PlatenCutout(latitude, longitude){
+            rotate([0, -longitude, latitude])
             translate([SPHERE_R+PLATEN_R+TYPE_ALTITUDE, 0, 0])
             rotate([90, 0, 0])
             cylinder(d=PLATEN_OD, h=10, center=true, $fn=cyl_fn);
 }
 
-
-
 //position extruded character
-module PositionText(char){
-    rotate([90 - GetLong(char) - BASELINE_LONGITUDE_OFFSETS[GetRow(char)], 0, 90 + GetLat(char)])
+module PositionText(latitude, longitude){
+    rotate([90 - longitude, 0, 90 + latitude])
     translate([0, 0, SPHERE_R+z])
-    linear_extrude(6)
-    Text(char);
+    children();
+//    linear_extrude(6)
+//    Text(char);
 }
-
-//render code
-module Render(){
-    if (RENDER==true){
-        difference(){
-            if (RENDER_VARIANT==0)
-                SubtractFromFull();
-            if (RENDER_VARIANT==1)
-                ResinPrint();
-            if (RENDER_VARIANT==2){
-                if (RENDER_MODE==0)
-                    TextGaugeComposer(TESTSTRING, UNITDIST);
-                if (RENDER_MODE==1)
-                    TextGauge(TESTSTRING, TESTCPI);
-            }
-            if (XSECTION==true && RENDER_VARIANT!=2)
-            rotate([0, 0, XSECTION_THETA-90])
-            translate([0, -50, -50])
-            cube(100);
-        }
-    }
-}
-
-//get latitude function with char input
-function GetLat(char)= CHAR_LAT_LONG[search(char, CHAR_LAT_LONG)[0]][2]*LATITUDE_SPACING;
-
-//get longitude function with char input
-function GetLong(char)= LONGITUDE_SPACING[CHAR_LAT_LONG[search(char, CHAR_LAT_LONG)[0]][1]];
-
-//get row number function with char input
-function GetRow(char) = CHAR_LAT_LONG[search(char, CHAR_LAT_LONG)[0]][1];
 
 //minkowski single character
-module SingleMinkowski(char){
+module SingleMinkowski(char, latitude, longitude, plat_offset, base_offset){
     minkowski(){
         difference(){
-            PositionText(char);
-            PlatenCutout(char);
+            PositionText(latitude, longitude+base_offset)
+            linear_extrude(6)
+            Text(char);
+            PlatenCutout(latitude, longitude+plat_offset);
             
         }
         if (MINK_ON==true){
-            rotate([90 - GetLong(char), 0, 90 + GetLat(char)])
+            rotate([90 - longitude, 0, 90 + latitude])
             translate([0, 0, -2])
             cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
         }
     }
 }
 
+
 //assemble minkowski characters
 module AssembleMinkowski(){
-    for (i=[0:len(CHAR_LAT_LONG)-1])
-    if (SELECTIVE_RENDER==true && search(CHAR_LAT_LONG[i][0], SELECTIVE_RENDER_CHARS)!= [])
-    SingleMinkowski(CHAR_LAT_LONG[i][0]);
-    else if (SELECTIVE_RENDER==true && search(CHAR_LAT_LONG[i][0], SELECTIVE_RENDER_CHARS)== []) {}
+    rotate([0, 0, -5*LATITUDE_SPACING])
+    for (case_int=[0:1])
+    for (hemi_int=[0:43]){
+    char=CASES88[case_int][hemi_int];
+    latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
+    longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
+    plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+    base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+    if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
+    SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
+    else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
     else
-    SingleMinkowski(CHAR_LAT_LONG[i][0]);
+    SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
+    }
 }
+
+
+
 
 //subtractive parts
 module SolidCleanup(){
@@ -432,7 +372,6 @@ module SolidCleanup(){
     if (WEB==true)
     ArrangeWeb();
 }
-
 //subtractive parts - inner radius
 module HollowProfile(){
     hull(){
@@ -661,6 +600,28 @@ module ArrangeWeb(){
     for (i=[0:11])
     rotate([0, 0, i*360/11+360/22])
     ExtrudedWeb();
+}
+
+//render code
+module Render(){
+    if (RENDER==true){
+        difference(){
+            if (RENDER_VARIANT==0)
+                SubtractFromFull();
+            if (RENDER_VARIANT==1)
+                ResinPrint();
+            if (RENDER_VARIANT==2){
+                if (RENDER_MODE==0)
+                    TextGaugeComposer(TESTSTRING, UNITDIST);
+                if (RENDER_MODE==1)
+                    TextGauge(TESTSTRING, TESTCPI);
+            }
+            if (XSECTION==true && RENDER_VARIANT!=2)
+            rotate([0, 0, XSECTION_THETA-90])
+            translate([0, -50, -50])
+            cube(100);
+        }
+    }
 }
 
 ///EXECUTE CODE:
