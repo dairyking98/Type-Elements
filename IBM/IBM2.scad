@@ -34,6 +34,12 @@ SELECTIVE_RENDER_CHARS="sine";
 FONT="Arial";
 //element type size
 FONTSIZE=2.4;//.05
+//secondary element typeface
+FONT2="Times New Roman";
+//secondary type size
+FONT2SIZE=2.4;//.05
+//list of chars to adopt font2 parameters
+FONT2CHARS="";
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
@@ -140,9 +146,9 @@ CUSTOM=false;
 //lowercase layout for custom keyboard
 CUSTOMLOWERCASE88="
 ============
-===========
-===========
-==========
+==X====X===
+=X=========
+=====X====
 ";
 
 //uppercase layout for custom keyboard
@@ -301,12 +307,12 @@ union(){
 }
 
 //2d text
-module Text(char){
+module Text(char, font, size){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
         translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER:0, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
-        text(char, size=FONTSIZE, font=FONT, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
+        text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
     }
 }
@@ -329,12 +335,12 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, latitude, longitude, plat_offset, base_offset){
+module SingleMinkowski(char, font, size, latitude, longitude, plat_offset, base_offset){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
             linear_extrude(6)
-            Text(char);
+            Text(char, font, size);
             PlatenCutout(latitude, longitude+plat_offset);
             
         }
@@ -358,14 +364,16 @@ module AssembleMinkowski(){
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
         plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+        font=search(char, FONT2CHARS)==[]?FONT:FONT2;
+        size=search(char, FONT2CHARS)==[]?FONT2SIZE:FONTSIZE;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
+        SingleMinkowski(char, font, size, latitude, longitude, plat_offset, base_offset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, latitude, longitude, plat_offset, base_offset);
+        SingleMinkowski(char, font, size, latitude, longitude, plat_offset, base_offset);
     }
 }
 
