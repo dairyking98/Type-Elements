@@ -202,6 +202,8 @@ Resin_Support_Buildplate_Radius=.8;
 Resin_Support_Cut_Groove_Diameter=.5;
 //Horizontal Resin Support Cut Groove Minimum Thickness
 Resin_Support_Cut_Groove_Min_Thickness=.2;
+SupportGrooveThickness=.5;
+SupportGrooveR=.5*(Shuttle_Thickness-SupportGrooveThickness);
 
 
 TipInterference=1.2;//.1
@@ -984,7 +986,7 @@ module HorizGroovedResin(){
         for (theta=[-60:120/22:60])
         for (x=[Anvil_OD/2+Resin_Support_Contact_Diameter/2, Anvil_OD/2+Shuttle_Thickness-Resin_Support_Contact_Diameter/2])
         if (abs(theta) <59.9|| x ==Anvil_OD/2+Shuttle_Thickness)
-        if (abs(theta)> 1)//remove center
+        //if (abs(theta)> 1)//remove center
         rotate([0, 0, theta])
         translate([x, 0, 0])
         ResinRod2(0);
@@ -1002,14 +1004,48 @@ module HorizGroovedResin(){
     }
 }
 
+module HorizGroovedResin2(){
+    thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+    translate([-z_offset, 0, 0])
+    union(){
+        GroovedShuttle();
+        difference(){
+        rotate([0, 0, -60])
+        rotate_extrude(angle=120, $fn=360)
+        Resin2Profile();//
+        translate([0, 0, -Resin_Support_Min_Height])
+        ShuttleTaper();
+        }
+    }
+}
+
+
+module Resin2Profile(){
+    translate([Anvil_OD/2, 0, 0])
+    difference(){
+        polygon([[0,0], 
+        [Shuttle_Thickness, 0], [Shuttle_Thickness, -Resin_Support_Min_Height], 
+        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius+Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
+        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
+        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
+        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius-Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
+        [0, -Resin_Support_Min_Height]]);
+        translate([Shuttle_Thickness, -SupportGrooveR, 0])
+        circle(r=SupportGrooveR, $fn=resin_fn);
+        translate([0, -SupportGrooveR, 0])
+        circle(r=SupportGrooveR, $fn=resin_fn);
+    }
+}
+
+
 module ResinPrint(){
-   // if (Resin_Support==1)
+    if (Resin_Support==1)
         if (Resin_Support_Orientation==0)
         VertResinPrint2();
 //        if (Resin_Support_Orientation==1)// && Groove==0)
 //        HorizResinPrint2();
         if (Resin_Support_Orientation==1)
-        HorizGroovedResin();
+        HorizGroovedResin2();
 }
 
 //RibAssembled();

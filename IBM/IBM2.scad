@@ -27,6 +27,8 @@ XSECTION_THETA=0;
 SELECTIVE_RENDER=false;
 //selective render chars?
 SELECTIVE_RENDER_CHARS="sine";
+//enable rays?
+RAYS=false;
 //character and point array for type testing composer
 COMPOSER_PITCH_LIST=[
 
@@ -91,12 +93,14 @@ Y_WEIGHT_ADJUSTMENT=.01;
 X_POS_OFFSET_COMPOSER=1.86;//.01
 //y vert alignment offset for composer
 Y_POS_OFFSET_COMPOSER=-1.5;//1.01;//.01
+//x horiz alignment offset for selectric 1/2
+X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
 Y_POS_OFFSET_S12=-1.5;
 //y pos offset
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 //h alignment 
-H_ALIGNMENT=RENDER_MODE==0?"left":"center";
+H_ALIGNMENT="left";//RENDER_MODE==0?"left":"center";
 //minkowski draft angle
 MINKOWSKI_ANGLE=60;
 //minkowski bottom radius size
@@ -356,6 +360,15 @@ echo("Top flat to boss must measure at 8.5mm or element is incorrectly represent
 //cumulative sum vector fuction for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
+//rays
+module Rays(){
+    for (lat=[0:21])
+    for (long=[0:3])
+    rotate([0, LONGITUDE_SPACING[long], lat*LATITUDE_SPACING])
+    rotate([0, 90, 0])
+    #cylinder(r=.1, h=20);
+}
+
 //make solid element
 module FullBody(){
 union(){
@@ -371,7 +384,7 @@ union(){
 module Text(char, font, size, customhalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:0, Y_POS_OFFSET, 0])
+        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:X_POS_OFFSET_S12, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
@@ -517,6 +530,9 @@ module SubtractFromFull(){
         FullBody();
         SolidCleanup();
     }
+    
+    if (RAYS==true)
+    Rays();
 }
 
 //resin support tip, angle input
@@ -566,7 +582,7 @@ module ResinRodAssemble(){
     for (i=[0:11]){
         rotate([0, 0, i*360/11]){
             hull(){
-                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 4])
+                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 6])
                     sphere(d=ROD_D);
                     rotate([0, 0, 360/11])
                     translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
