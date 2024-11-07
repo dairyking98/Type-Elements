@@ -565,7 +565,13 @@ module ResinRodAssemble(){
     //boss supports
     for (i=[0:11]){
         rotate([0, 0, i*360/11]){
-        
+            hull(){
+                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 4])
+                    sphere(d=ROD_D);
+                    rotate([0, 0, 360/11])
+                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
+                    sphere(d=ROD_D);
+            }
         if (i!=4){
             //boss supports
             translate([BOSS_R, 0, 0])
@@ -578,13 +584,7 @@ module ResinRodAssemble(){
                 sphere(d=ROD_D);
             }
             //roof support supports
-            hull(){
-                translate([(BOSS_OD+INSIDE_ID)/4, 0, 4])
-                sphere(d=ROD_D);
-                rotate([0, 0, 360/11])
-                translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
-                sphere(d=ROD_D);
-            }
+            
             if (i!=3)
             //boss support supports
                 hull(){
