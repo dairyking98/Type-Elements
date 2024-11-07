@@ -20,6 +20,10 @@ RENDER_MODE=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
 RENDER_VARIANT=0;//[0:plain, 1:resin print, 2:type test]
 //turn on minkowski?
 MINK_ON=false;
+//minkowski draft angle
+MINKOWSKI_ANGLE=60;
+//minkowski bottom radius size
+MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
 XSECTION=false;
 XSECTION_THETA=0;
@@ -88,7 +92,7 @@ X_WEIGHT_ADJUSTMENT=.01;
 //y weight adjustment 0+
 Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
-X_POS_OFFSET_COMPOSER=1.86;//.01
+X_POS_OFFSET_COMPOSER=2.01;//.01
 //y vert alignment offset for composer
 Y_POS_OFFSET_COMPOSER=-1.5;//1.01;//.01
 //y vert alignment offset for selectric 1/2
@@ -97,10 +101,7 @@ Y_POS_OFFSET_S12=-1.5;
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 //h alignment 
 H_ALIGNMENT=RENDER_MODE==0?"left":"center";
-//minkowski draft angle
-MINKOWSKI_ANGLE=60;
-//minkowski bottom radius size
-MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
+
 
 /* [Typeball Dimensions] */
 
@@ -122,7 +123,7 @@ TOP_CHAMFER=.7;
 INSIDE_ID=28.15;
 //shaft boss height
 //BOSS_H=8.62;//was 8.07; now redundant replaced by BOSS_TO_CENTER
-BOSS_TO_CENTER=2.5;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
+BOSS_TO_CENTER=2.8;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
 //center to CENTER_TO_TOP of element
 CENTER_TO_TOP=11;//TOPFLAT_TO_CENTER = 11;
 //center to floor of element
@@ -148,11 +149,11 @@ DRIVE_NOTCH_WIDTH=1.10;
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
-DRIVE_NOTCH_THETA_=131.8;
+DRIVE_NOTCH_THETA_=131.0;
 //detent valley from center
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
-DETENT_SKIRT_CLOCK_OFFSET=2.51;
+DETENT_SKIRT_CLOCK_OFFSET=3.01;
 
 /* [Character Polar Positioning Offsets] */
 
