@@ -17,7 +17,7 @@ RENDER=false;
 //render selection?
 RENDER_MODE=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
 //render variant?
-RENDER_VARIANT=0;//[0:plain, 1:resin print, 2:type test]
+RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print top down]
 //turn on minkowski?
 MINK_ON=false;
 //minkowski draft angle
@@ -31,6 +31,8 @@ XSECTION_THETA=0;
 SELECTIVE_RENDER=false;
 //selective render chars?
 SELECTIVE_RENDER_CHARS="sine";
+//enable rays?
+RAYS=false;
 //character and point array for type testing composer
 COMPOSER_PITCH_LIST=[
 
@@ -95,6 +97,8 @@ Y_WEIGHT_ADJUSTMENT=.01;
 X_POS_OFFSET_COMPOSER=2.01;//.01
 //y vert alignment offset for composer
 Y_POS_OFFSET_COMPOSER=-1.5;//1.01;//.01
+//x horiz alignment offset for selectric 1/2
+X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
 Y_POS_OFFSET_S12=-1.5;
 //y pos offset
@@ -117,6 +121,8 @@ TOPFLAT_TO_CENTER=11.0;//was 11.4;
 TOPFLAT_THICKNESS=4.5;
 //shaft ID
 SHAFT_ID=8.8;
+//shaft r
+SHAFT_R=SHAFT_ID/2;
 //top shaft chamfer
 TOP_CHAMFER=.7;
 //inside ID
@@ -126,7 +132,9 @@ INSIDE_ID=28.15;
 BOSS_TO_CENTER=2.8;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
 //center to CENTER_TO_TOP of element
 CENTER_TO_TOP=11;//TOPFLAT_TO_CENTER = 11;
-//center to floor of element
+//top flat radius
+TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
+//center to floor (detent teeth) of element
 FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
 //boss OD
 BOSS_OD=11.6;
@@ -155,6 +163,29 @@ DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
 DETENT_SKIRT_CLOCK_OFFSET=3.01;
 
+/* [Label Stuff] */
+
+//Enable label
+LABEL=true;
+//Enable arrow
+ARROW=true;
+//Label for number label. Disabled in Composer mode
+LABEL_NO = "10";
+//Label override for typeface label (leave blank to adopt font name)
+LABEL_TEXT_OVERRIDE="";
+//Font override for number label (leave blank to adopt element typeface)
+LABEL_NO_FONT_OVERRIDE="";
+//Font override for typeface label (leave blank to adopt element typeface)
+LABEL_FONT_OVERRIDE="";
+//Font size for number label
+NO_LABEL_SIZE=2;
+//Font size for typeface label 
+FONT_LABEL_SIZE=2;
+//arrow from center 
+DEL_BASE_FROM_CENTRE = 8.2;
+//depth of arrow
+DEL_DEPTH = 0.6;
+
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
@@ -177,8 +208,6 @@ BOSS_R=BOSS_OD/2;
 DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 //center to roof of element
 ROOF=CENTER_TO_TOP-TOPFLAT_THICKNESS;
-//top flat radius
-TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 
 /* [Character Mapping] */
 
@@ -217,6 +246,22 @@ ASDFGHJKL:\"
 ZXCVBNM,.?
 ";
 
+//lowercase selectric 3 layout on machine; left to right, top to bottom
+LOWERCASE96="
+±1234567890-=
+qwertyuiop½[
+ASDFGHJKL;'
+ZXCVBNM,./
+";
+
+//uppercase selectric 3 layout on machine; left to right, top to bottom
+UPPERCASE96="
+°!@#$%¢&*()_+
+QWERTYUIOP¼]
+ASDFGHJKL:\"
+ZXCVBNM.,?
+";
+
 //uppercase composer layout on machine; left to right, top to bottom
 LOWERCASECOMPOSER88 ="
 1234567890-=
@@ -239,6 +284,7 @@ S12CASES88=[LOWERCASE88, UPPERCASE88];
 COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
 //custom 88 layout array
 CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
+S3CASES96=[LOWERCASE96, UPPERCASE96];
 
 //set keyboard layout for character mapping
 CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
@@ -249,6 +295,14 @@ S12_LC_HEMISPHERE88="
 bhkentlcdux
 wsi'.½oarvm
 -yqp=j/,;fg
+";
+
+//lowercase hemisphere of selectric 3 element from the top moving counter clockwise, top to bottom
+S3_LC_HEMISPHERE96="
+z2752064893/
+;'istecbku§=
+vmwdornaxh½±
+-1.jpqyflg],
 ";
 
 //lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
@@ -304,8 +358,17 @@ WEB_OD=TOPFLAT_R*2-2;
 
 echo("Top flat to boss must measure at 8.5mm or element is incorrectly represented. Adjust BOSS_TO_CENTER until print yields 8.5mm boss height.");
 
-//cumulative sum vector fuction for composer type test pitch array
+//cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
+
+//rays
+module Rays(){
+    for (lat=[0:21])
+    for (long=[0:3])
+    rotate([0, LONGITUDE_SPACING[long], lat*LATITUDE_SPACING])
+    rotate([0, 90, 0])
+    #cylinder(r=.1, h=20);
+}
 
 //make solid element
 module FullBody(){
@@ -322,7 +385,7 @@ union(){
 module Text(char, font, size, customhalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:0, Y_POS_OFFSET, 0])
+        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:X_POS_OFFSET_S12, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
@@ -417,6 +480,10 @@ module SolidCleanup(){
     //web
     if (WEB==true)
     ArrangeWeb();
+    if (ARROW==true)
+    Del();
+    if (LABEL==true)
+    FontName();
 }
 //subtractive parts - inner radius
 module HollowProfile(){
@@ -426,8 +493,8 @@ module HollowProfile(){
         circle(r=HOLLOW_R);
         translate([BOSS_R, 0, 0])
         square(1);
-        translate([BOSS_R+HOLLOW_R, CENTER_TO_TOP-TOPFLAT_THICKNESS-HOLLOW_R, 0])
-        scale([1, 1])
+        translate([BOSS_R+HOLLOW_R*2, CENTER_TO_TOP-TOPFLAT_THICKNESS-HOLLOW_R, 0])
+        scale([2, 1])
         circle(r=HOLLOW_R);
 
     }
@@ -464,6 +531,9 @@ module SubtractFromFull(){
         FullBody();
         SolidCleanup();
     }
+    
+    if (RAYS==true)
+    Rays();
 }
 
 //resin support tip, angle input
@@ -512,7 +582,13 @@ module ResinRodAssemble(){
     //boss supports
     for (i=[0:11]){
         rotate([0, 0, i*360/11]){
-        
+            hull(){
+                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 6])
+                    sphere(d=ROD_D);
+                    rotate([0, 0, 360/11])
+                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
+                    sphere(d=ROD_D);
+            }
         if (i!=4){
             //boss supports
             translate([BOSS_R, 0, 0])
@@ -525,13 +601,7 @@ module ResinRodAssemble(){
                 sphere(d=ROD_D);
             }
             //roof support supports
-            hull(){
-                translate([(BOSS_OD+INSIDE_ID)/4, 0, 4])
-                sphere(d=ROD_D);
-                rotate([0, 0, 360/11])
-                translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
-                sphere(d=ROD_D);
-            }
+            
             if (i!=3)
             //boss support supports
                 hull(){
@@ -579,6 +649,33 @@ module ResinPrint(){
     ResinRodAssemble();
 }
 
+//assemble resin print 2
+module ResinPrint2(){
+    rotate([0, 180, 0])
+    translate([0, 0 , -TOPFLAT_TO_CENTER])
+    SubtractFromFull();
+
+    
+    
+    ResinRodAssemble2();
+}
+
+module ResinRodAssemble2(){
+    //outer top flat supports
+    for (i=[0:21])
+    rotate([0, 0, i*360/21])
+    translate([TOPFLAT_R-TIP_D/2, 0, 0])
+    ResinRod(0, 0);
+        for (i=[0:21])
+    rotate([0, 0, i*360/21+360/42])
+    translate([(SHAFT_R+TOP_CHAMFER+TOPFLAT_R)/2, 0, 0])
+    ResinRod(0, 0);
+            for (i=[0:11])
+    rotate([0, 0, i*360/11+360/22])
+    translate([SHAFT_R+TOP_CHAMFER+TIP_D/2, 0, 0])
+    ResinRod(0, 0);
+}
+
 //monospaced type test gauge
 module TextGauge(str, pitch)
 {
@@ -607,7 +704,7 @@ module TextGaugeComposer(str, unitdist)
     }
 }
 
-//cumulative sum vector fuction for composer type test pitch array
+//cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
 //2d web shape
@@ -657,11 +754,46 @@ module Render(){
                 if (RENDER_MODE==1)
                     TextGauge(TESTSTRING, TESTCPI);
             }
+            if (RENDER_VARIANT==3)
+                ResinPrint2();
             if (XSECTION==true && RENDER_VARIANT!=2)
             rotate([0, 0, XSECTION_THETA-90])
             translate([0, -50, -50])
             cube(100);
         }
+    }
+}
+
+// Alignment marker triangle on top face
+module Del()
+{
+    translate([DEL_BASE_FROM_CENTRE, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    color("white")  // TODO red triangle for Composer typeball
+    linear_extrude(DEL_DEPTH+z)
+    polygon(points=[[3.4,0],[0.4,1.3],[0.4,-1.3]]);
+}
+
+// Emboss a label onto top face
+module FontName()
+{
+    translate([-8.5, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    rotate([0,0,270])
+    linear_extrude(DEL_DEPTH+0.01)
+    Labels();
+}
+
+// Labels on the top of the ball, cosmetic
+module Labels()
+{
+    {
+        // Disable Label No for Composer balls
+        if (RENDER_MODE!=0) { 
+            translate([-0.1,14,0])
+        text(LABEL_NO, size=NO_LABEL_SIZE, font=LABEL_NO_FONT_OVERRIDE==""?FONT:LABEL_NO_FONT_OVERRIDE, halign="center");
+    }
+        translate([0,0.6,0])
+        text(LABEL_TEXT_OVERRIDE==""?FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?FONT:LABEL_FONT_OVERRIDE, halign="center");
+        
     }
 }
 
