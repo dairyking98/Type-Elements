@@ -116,7 +116,7 @@ SPHERE_R=SPHERE_OD/2;
 //character-concave to character-concave diameter
 MAX_OD=34.9;
 //sphere center to top flat
-TOPFLAT_TO_CENTER=11;//was 11.4;
+TOPFLAT_TO_CENTER=11.0;//was 11.4;
 //thickness of top flat
 TOPFLAT_THICKNESS=4.5;
 //shaft ID
