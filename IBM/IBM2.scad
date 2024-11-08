@@ -96,7 +96,7 @@ Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
 X_POS_OFFSET_COMPOSER=1.21;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.3;//1.01;//.01
+Y_POS_OFFSET_COMPOSER=-0.91;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
@@ -116,7 +116,7 @@ SPHERE_R=SPHERE_OD/2;
 //character-concave to character-concave diameter
 MAX_OD=34.9;
 //sphere center to top flat
-TOPFLAT_TO_CENTER=10.85;//was 11.4;
+TOPFLAT_TO_CENTER=11;//was 11.4;
 //thickness of top flat
 TOPFLAT_THICKNESS=4.5;
 //shaft ID
@@ -131,7 +131,7 @@ INSIDE_ID=28.15;
 //BOSS_H=8.62;//was 8.07; now redundant replaced by BOSS_TO_CENTER
 BOSS_TO_CENTER=2.5;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
 //center to CENTER_TO_TOP of element
-CENTER_TO_TOP=10.85;//TOPFLAT_TO_CENTER = 11;
+CENTER_TO_TOP=11;//TOPFLAT_TO_CENTER = 11;
 //top flat radius
 TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 //center to floor (detent teeth) of element
