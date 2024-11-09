@@ -96,7 +96,7 @@ Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
 X_POS_OFFSET_COMPOSER=1.21;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-0.91;//1.01;//.01
+Y_POS_OFFSET_COMPOSER=-1.01;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
