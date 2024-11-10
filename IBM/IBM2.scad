@@ -20,6 +20,10 @@ RENDER_MODE=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
 RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print top down]
 //turn on minkowski?
 MINK_ON=false;
+//minkowski draft angle
+MINKOWSKI_ANGLE=60;
+//minkowski bottom radius size
+MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
 XSECTION=false;
 XSECTION_THETA=0;
@@ -90,9 +94,9 @@ X_WEIGHT_ADJUSTMENT=.01;
 //y weight adjustment 0+
 Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
-X_POS_OFFSET_COMPOSER=1.86;//.01
+X_POS_OFFSET_COMPOSER=1.21;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.5;//1.01;//.01
+Y_POS_OFFSET_COMPOSER=-1.01;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
@@ -100,11 +104,8 @@ Y_POS_OFFSET_S12=-1.5;
 //y pos offset
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 //h alignment 
-H_ALIGNMENT="left";//RENDER_MODE==0?"left":"center";
-//minkowski draft angle
-MINKOWSKI_ANGLE=60;
-//minkowski bottom radius size
-MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
+H_ALIGNMENT=RENDER_MODE==0?"left":"center";
+
 
 /* [Typeball Dimensions] */
 
@@ -156,11 +157,11 @@ DRIVE_NOTCH_WIDTH=1.10;
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
-DRIVE_NOTCH_THETA_=131.8;
+DRIVE_NOTCH_THETA_=131.0;
 //detent valley from center
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
-DETENT_SKIRT_CLOCK_OFFSET=2.51;
+DETENT_SKIRT_CLOCK_OFFSET=0.01;
 
 /* [Label Stuff] */
 
@@ -357,7 +358,7 @@ WEB_OD=TOPFLAT_R*2-2;
 
 echo("Top flat to boss must measure at 8.5mm or element is incorrectly represented. Adjust BOSS_TO_CENTER until print yields 8.5mm boss height.");
 
-//cumulative sum vector fuction for composer type test pitch array
+//cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
 //rays
@@ -703,7 +704,7 @@ module TextGaugeComposer(str, unitdist)
     }
 }
 
-//cumulative sum vector fuction for composer type test pitch array
+//cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
 //2d web shape
