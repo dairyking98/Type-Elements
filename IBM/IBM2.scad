@@ -99,7 +99,7 @@ FONT2CHARS="";
 //custom horizontal alignment characters
 CUSTOMHALIGNCHARS="";
 //custom horizontal alignment characters offset
-CUSTOMHALIGNOFFSET=0.5;
+CUSTOMHALIGNOFFSET=-0.2;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
@@ -110,7 +110,7 @@ Y_WEIGHT_ADJUSTMENT=.01;
 X_POS_OFFSET_COMPOSER_=1.21;
 X_POS_OFFSET_COMPOSER=CUTOUT_TEST==false?X_POS_OFFSET_COMPOSER_:0;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.01;//1.01;//.01
+Y_POS_OFFSET_COMPOSER=-1.21;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
@@ -210,7 +210,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
+PLATEN_LONGITUDE_OFFSETS=[-1.5, -1.5, -0.75, -0.75];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -680,7 +680,7 @@ module ResinRodAssemble(){
         
         
     //for notch supports
-    n=10;//degrees off from notch 
+    n=11;//degrees off from notch 
     l=[3, 5];
     k=[n, -n];
     if (i==4)
