@@ -116,7 +116,7 @@ SPHERE_R=SPHERE_OD/2;
 //character-concave to character-concave diameter
 MAX_OD=34.9;
 //sphere center to top flat
-TOPFLAT_TO_CENTER=11.0;//was 11.4;
+TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
 TOPFLAT_THICKNESS=4.5;
 //shaft ID
@@ -127,14 +127,19 @@ SHAFT_R=SHAFT_ID/2;
 TOP_CHAMFER=.7;
 //inside ID
 INSIDE_ID=28.15;
+//calculated calue of sphere center to boss face
+BOSS_TO_CENTER_=2.5;//leo's calculated value. dave's was 2.38 (calculated);
+
 //shaft boss height
 //BOSS_H=8.62;//was 8.07; now redundant replaced by BOSS_TO_CENTER
-BOSS_TO_CENTER=2.5;//////TOPFLAT_TO_CENTER-BOSS_H = 2.38;
-//center to CENTER_TO_TOP of element
-CENTER_TO_TOP=11;//TOPFLAT_TO_CENTER = 11;
+
+echo("Top flat to boss face must measure at 8.5mm (Leo's measured value) or element is incorrectly represented. Adjust SNOOT_DROOP_COMPENSATION up,lowering height of boss, until print yields 8.5mm boss height.");
+
+//dave's top flat to boss face/BOSS_HEIGHT/BOSS_H was 8.07
+
 //top flat radius
 TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
-//center to floor (detent teeth) of element
+//center to detent teeth tips of element
 FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
 //boss OD
 BOSS_OD=11.6;
@@ -143,7 +148,9 @@ SKIRT_TOP_OD=32.3;
 //skirt bottom OD
 SKIRT_BOTTOM_OD=30.2;
 //overall thickness of element
-//ELEMENT_OAT=21.7;//was 22.0; now redundant - FLOOR + CENTER_TO_TOP = OAT
+echo(str(FLOOR+TOPFLAT_TO_CENTER, " = 21.7? Leo's measured overall thickness?"));
+//ELEMENT_OAT=21.7;//leo's measured value. dave's was 22.0; 
+//now redundant - FLOOR + CENTER_TO_TOP = OAT
 //angle between characters
 LATITUDE_SPACING=360/22;
 //angle between rows
@@ -192,6 +199,20 @@ DEL_DEPTH = 0.6;
 PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
+
+//make an element with varying platen cutouts?
+CUTOUT_TEST=false;
+//interval of angle offsets to test
+CUTOUT_TEST_ANGLE_INT=.1;
+//CUTOUT_TEST_ANGLE_ARRAY_MAP=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -11, -10, -9, -8, -7, -6];
+CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
+CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
+echo (CUTOUT_TEST_ANGLE_ARRAY);
+
+
+
+//SOME CALCULATED VARIABLES:
+
 //skirt large radius
 SKIRT_TOP_R=SKIRT_TOP_OD/2;
 //center to skirt of element
@@ -207,7 +228,7 @@ BOSS_R=BOSS_OD/2;
 //compensated drive notch theta
 DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 //center to roof of element
-ROOF=CENTER_TO_TOP-TOPFLAT_THICKNESS;
+ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
 
 /* [Character Mapping] */
 
@@ -216,19 +237,33 @@ CUSTOM=false;
 
 //lowercase layout for custom keyboard
 CUSTOMLOWERCASE88="
-============
-==X====X===
-=X=========
-=====X====
+
+||||||||||||
+|||||||||||
+|||||||||||
+||||||||||
+
 ";
+
+//============
+//==X====X===
+//=X=========
+//=====X====
 
 //uppercase layout for custom keyboard
 CUSTOMUPPERCASE88="
-++++++++++++
-+++++++++++
-+++++++++++
-++++++++++
+
+||||||||||||
+|||||||||||
+|||||||||||
+||||||||||
+
 ";
+
+//++++++++++++
+//+++++++++++
+//+++++++++++
+//++++++++++
 
 //lowercase selectric 1/2 layout on machine; left to right, top to bottom
 LOWERCASE88="
@@ -322,7 +357,9 @@ LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i
 //create latitude, longitude integer array for one hemisphere
 LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
-
+/* [Resin Printing Offsets] */
+SNOOT_DROOP_COMPENSATION=.6;
+BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
 /* [Resin Supports] */
 
@@ -356,7 +393,6 @@ WEB_OR=2;
 //web OD
 WEB_OD=TOPFLAT_R*2-2;
 
-echo("Top flat to boss must measure at 8.5mm or element is incorrectly represented. Adjust BOSS_TO_CENTER until print yields 8.5mm boss height.");
 
 //cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
@@ -435,8 +471,15 @@ module AssembleMinkowski(){
     for (hemi_int=[0:43]){
     
         char=CUSTOM==true?CUSTOMCASES88[case_int][hemi_int]:CASES88[case_int][hemi_int];
+        compkbchar=COMPOSERCASES88[case_int][hemi_int];
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
+        plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
+        
+        if (CUTOUT_TEST==true){
+            echo (str("composer keyboard char = ", compkbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
+        }
+            
         plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
@@ -444,12 +487,12 @@ module AssembleMinkowski(){
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset);
+        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset);
+        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
     }
 }
 
@@ -464,7 +507,7 @@ module SolidCleanup(){
     //center shaft
     cylinder(d=SHAFT_ID, h=40, center=true, $fn=cyl_fn);
     //center shaft top chamfer
-    translate([0, 0, CENTER_TO_TOP-TOP_CHAMFER])
+    translate([0, 0, TOPFLAT_TO_CENTER-TOP_CHAMFER])
     cylinder(d1=SHAFT_ID, d2=SHAFT_ID+2*TOP_CHAMFER, h=TOP_CHAMFER, $fn=surface_fn);
     //inside radius
     translate([0, 0, -20])
@@ -488,12 +531,12 @@ module SolidCleanup(){
 //subtractive parts - inner radius
 module HollowProfile(){
     hull(){
-        translate([-HOLLOW_R+INSIDE_R, CENTER_TO_TOP-TOPFLAT_THICKNESS-2*HOLLOW_R, 0])
+        translate([-HOLLOW_R+INSIDE_R, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-2*HOLLOW_R, 0])
         scale([1, 2])
         circle(r=HOLLOW_R);
         translate([BOSS_R, 0, 0])
         square(1);
-        translate([BOSS_R+HOLLOW_R*2, CENTER_TO_TOP-TOPFLAT_THICKNESS-HOLLOW_R, 0])
+        translate([BOSS_R+HOLLOW_R*2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-HOLLOW_R, 0])
         scale([2, 1])
         circle(r=HOLLOW_R);
 
@@ -590,12 +633,21 @@ module ResinRodAssemble(){
                     sphere(d=ROD_D);
             }
         if (i!=4){
-            //boss supports
-            translate([BOSS_R, 0, 0])
-            ResinRod(FLOOR+BOSS_TO_CENTER, -45);
+        
+        
+            //boss supports (outer corner)
+//            translate([BOSS_R, 0, 0])
+//            ResinRod(FLOOR+BOSS_TO_CENTER, -45);
+            
+            //boss supports (directly under)
+            translate([(BOSS_R+SHAFT_ID/2)/2, 0, 0])
+            ResinRod(FLOOR+BOSS_TO_CENTER, 0);
+            
+            
             //boss roof support supports
             hull(){
-                translate([BOSS_R-ResinXOffset(-45), 0, 12])
+//                translate([BOSS_R-ResinXOffset(-45), 0, 12])//couter corner
+                translate([(BOSS_R+SHAFT_ID/2)/2, 0, 12])//directly under
                 sphere(d=ROD_D);
                 translate([(BOSS_OD+INSIDE_ID)/4, 0, 8])
                 sphere(d=ROD_D);
@@ -605,10 +657,12 @@ module ResinRodAssemble(){
             if (i!=3)
             //boss support supports
                 hull(){
-                    translate([BOSS_R-ResinXOffset(-45), 0, 1])
+//                    translate([BOSS_R-ResinXOffset(-45), 0, 1])//outer corner
+                    translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 1])//directly under
                     sphere(d=ROD_D);
                     rotate([0, 0, 360/11])
-                    translate([BOSS_R-ResinXOffset(-45), 0, 7])
+//                    translate([BOSS_R-ResinXOffset(-45), 0, 7])//outer corner
+                    translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 7])//directly under
                     sphere(d=ROD_D);
                 }
         }
@@ -627,15 +681,21 @@ module ResinRodAssemble(){
         for (j=[0, 1]){
             //notch supports
             rotate([0, 0, DRIVE_NOTCH_THETA+k[j]])
-            translate([BOSS_R, 0, 0])
-            ResinRod(FLOOR+BOSS_TO_CENTER, -45);
+//            translate([BOSS_R, 0, 0])//outer corners
+            translate([(BOSS_R+SHAFT_ID/2)/2, 0, 0])//directly under
+            
+            
+//            ResinRod(FLOOR+BOSS_TO_CENTER, -45);//outer corners
+            ResinRod(FLOOR+BOSS_TO_CENTER, 0);//directly under
             //notch support supports
             hull(){
                 rotate([0, 0, DRIVE_NOTCH_THETA-k[j]])
-                translate([BOSS_R-ResinXOffset(-45), 0, 12])
+//                translate([BOSS_R-ResinXOffset(-45), 0, 12])//outer corners
+                translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 12])//directly under
                 sphere(d=ROD_D);
                 rotate([0, 0, l[j]*360/11])
-                translate([BOSS_R-ResinXOffset(-45), 0, 7])
+//                translate([BOSS_R-ResinXOffset(-45), 0, 7])//outer corners
+                translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 7])//directly under
                 sphere(d=ROD_D);
             }
         }
@@ -722,7 +782,7 @@ module ExtrudedWeb(){
     translate([0, 0, ROOF-1])
     linear_extrude(6)
     2dWeb();
-    translate([0, 0, CENTER_TO_TOP-TOP_CHAMFER])
+    translate([0, 0, TOPFLAT_TO_CENTER-TOP_CHAMFER])
     hull(){
     linear_extrude(z)
     2dWeb();
