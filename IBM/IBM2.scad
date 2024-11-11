@@ -65,6 +65,19 @@ UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  
 //mm distance per composer unit
 UNITDIST=25.4/UNITSPERINCH;
 
+/* [Composer Testing Stuff] */
+//make an element with varying platen cutouts?
+CUTOUT_TEST=false;
+//interval of angle offsets to test
+CUTOUT_TEST_ANGLE_INT=.1;
+//CUTOUT_TEST_ANGLE_ARRAY_MAP=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -11, -10, -9, -8, -7, -6];
+CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
+CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
+echo (CUTOUT_TEST_ANGLE_ARRAY);
+
+
+
+
 /* [Typeface Stuff] */
 
 //element typeface
@@ -94,7 +107,8 @@ X_WEIGHT_ADJUSTMENT=.01;
 //y weight adjustment 0+
 Y_WEIGHT_ADJUSTMENT=.01;
 //x horiz alignment offset for composer
-X_POS_OFFSET_COMPOSER=1.21;//.01
+X_POS_OFFSET_COMPOSER_=1.21;
+X_POS_OFFSET_COMPOSER=CUTOUT_TEST==false?X_POS_OFFSET_COMPOSER_:0;//.01
 //y vert alignment offset for composer
 Y_POS_OFFSET_COMPOSER=-1.01;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
@@ -104,7 +118,7 @@ Y_POS_OFFSET_S12=-1.5;
 //y pos offset
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
 //h alignment 
-H_ALIGNMENT=RENDER_MODE==0?"left":"center";
+H_ALIGNMENT=RENDER_MODE==0?(CUTOUT_TEST==true?"center":"left"):"center";
 
 
 /* [Typeball Dimensions] */
@@ -200,14 +214,6 @@ PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
-//make an element with varying platen cutouts?
-CUTOUT_TEST=false;
-//interval of angle offsets to test
-CUTOUT_TEST_ANGLE_INT=.1;
-//CUTOUT_TEST_ANGLE_ARRAY_MAP=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -11, -10, -9, -8, -7, -6];
-CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
-CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
-echo (CUTOUT_TEST_ANGLE_ARRAY);
 
 
 
