@@ -110,7 +110,7 @@ Y_WEIGHT_ADJUSTMENT=.01;
 X_POS_OFFSET_COMPOSER_=1.21;
 X_POS_OFFSET_COMPOSER=CUTOUT_TEST==false?X_POS_OFFSET_COMPOSER_:0;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.01;//1.01;//.01
+Y_POS_OFFSET_COMPOSER=-1.21;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
@@ -680,7 +680,7 @@ module ResinRodAssemble(){
         
         
     //for notch supports
-    n=10;//degrees off from notch 
+    n=11;//degrees off from notch 
     l=[3, 5];
     k=[n, -n];
     if (i==4)
