@@ -99,7 +99,7 @@ FONT2CHARS="";
 //custom horizontal alignment characters
 CUSTOMHALIGNCHARS="";
 //custom horizontal alignment characters offset
-CUSTOMHALIGNOFFSET=0.5;
+CUSTOMHALIGNOFFSET=-0.2;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
