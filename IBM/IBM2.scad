@@ -132,7 +132,7 @@ MAX_OD=34.9;
 //sphere center to top flat
 TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
-TOPFLAT_THICKNESS=4.5;
+TOPFLAT_THICKNESS=2.5;
 //shaft ID
 SHAFT_ID=8.8;
 //shaft r
@@ -157,6 +157,8 @@ TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
 //boss OD
 BOSS_OD=11.6;
+//boss minimum clearange
+BOSS_CLEARANCE=2.5;//.1
 //skirt top OD
 SKIRT_TOP_OD=32.3;
 //skirt bottom OD
@@ -525,7 +527,7 @@ module SolidCleanup(){
     cylinder(d=INSIDE_ID, h=20+BOSS_TO_CENTER, $fn=surface_fn);
     //roof ish area
     rotate_extrude($fn=surface_fn)
-    HollowProfile();
+    HollowProfile2();
     //notch
     Notch();
     //detent teeth
@@ -550,6 +552,24 @@ module HollowProfile(){
         translate([BOSS_R+HOLLOW_R*2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-HOLLOW_R, 0])
         scale([2, 1])
         circle(r=HOLLOW_R);
+
+    }
+}
+
+
+//HollowProfile2();
+//subtractive parts - inner radius : experimental
+module HollowProfile2(){
+    newroofr=1;
+    hull(){
+        translate([-newroofr+INSIDE_R, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+        circle(r=newroofr);
+        translate([BOSS_R, 0, 0])
+        square([INSIDE_R-BOSS_R, 1]);
+        translate([BOSS_R+newroofr, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+        circle(r=newroofr);
+        translate([(INSIDE_R+BOSS_R)/2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-newroofr])
+        circle(r=newroofr);
 
     }
 }
@@ -794,8 +814,8 @@ circle(r=WEB_OR);
 
 //extruded web hole
 module ExtrudedWeb(){
-    translate([0, 0, ROOF-1])
-    linear_extrude(6)
+    translate([0, 0, ROOF-3])
+    linear_extrude(8)
     2dWeb();
     translate([0, 0, TOPFLAT_TO_CENTER-TOP_CHAMFER])
     hull(){
