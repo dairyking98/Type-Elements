@@ -267,7 +267,7 @@
             "WEB": "false",
             "WEB_IR": "1",
             "WEB_OR": "2",
-            "XSECTION": "false",
+            "XSECTION": "true",
             "XSECTION_THETA": "0",
             "X_POS_OFFSET_COMPOSER_": "1.21",
             "X_POS_OFFSET_S12": "1.25",

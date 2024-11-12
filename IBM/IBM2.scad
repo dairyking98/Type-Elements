@@ -591,7 +591,7 @@ module SubtractFromFull(){
 }
 
 //resin support tip, angle input, tip d
-module ReResinTip(a1,d){
+module ResinTip(a1,d){
     rotate([0, a1, 0])
     hull(){
         sphere(d=d);
@@ -621,7 +621,7 @@ module ResinRod(h, a1, d){
     }
     //tip
     translate([0, 0, h-TIP_D/2+TIP_IN])
-    ReResinTip(a1, d);
+    ResinTip(a1, d);
 }
 
 //assemble resin support rods
@@ -631,7 +631,7 @@ module ResinRodAssemble(){
         //detent teeth supports
         rotate([0, 0, i*LATITUDE_SPACING+DETENT_SKIRT_CLOCK_OFFSET])
         translate([(SKIRT_BOTTOM_OD+INSIDE_ID)/4, 0, 0])
-        ResinRod(0, 0, ROD_D);
+        ResinRod(0, 0, TIP_D);
     
     //boss supports
     for (i=[0:11]){
@@ -648,11 +648,11 @@ module ResinRodAssemble(){
         
             //boss supports (outer corner)
 //            translate([BOSS_R, 0, 0])
-//            ResinRod(FLOOR+BOSS_TO_CENTER, -45, ROD_D);
+//            ResinRod(FLOOR+BOSS_TO_CENTER, -45, TIP_D);
             
             //boss supports (directly under)
             translate([(BOSS_R+SHAFT_ID/2)/2, 0, 0])
-            ResinRod(FLOOR+BOSS_TO_CENTER, 0, ROD_D);
+            ResinRod(FLOOR+BOSS_TO_CENTER, 0, TIP_D);
             
             
             //boss roof support supports
@@ -680,7 +680,7 @@ module ResinRodAssemble(){
         
         //roof supports
         translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
-        ResinRod(FLOOR+ROOF, 0, ROD_D);
+        ResinRod(FLOOR+ROOF, 0, TIP_D);
         }
         
         
@@ -696,7 +696,7 @@ module ResinRodAssemble(){
             translate([(BOSS_R+SHAFT_ID/2)/2, 0, 0])//directly under
             
             
-//            ResinRod(FLOOR+BOSS_TO_CENTER, -45, ROD_D);//outer corners
+//            ResinRod(FLOOR+BOSS_TO_CENTER, -45, TIP_NOTCHD);//outer corners
             ResinRod(FLOOR+BOSS_TO_CENTER, 0, TIP_NOTCHD);//directly under
             //notch support supports
             hull(){
@@ -740,15 +740,15 @@ module ResinRodAssemble2(){
     for (i=[0:21])
     rotate([0, 0, i*360/21])
     translate([TOPFLAT_R-TIP_D/2, 0, 0])
-    ResinRod(0, 0, ROD_D);
+    ResinRod(0, 0, TIP_D);
         for (i=[0:21])
     rotate([0, 0, i*360/21+360/42])
     translate([(SHAFT_R+TOP_CHAMFER+TOPFLAT_R)/2, 0, 0])
-    ResinRod(0, 0, ROD_D);
+    ResinRod(0, 0, TIP_D);
             for (i=[0:11])
     rotate([0, 0, i*360/11+360/22])
     translate([SHAFT_R+TOP_CHAMFER+TIP_D/2, 0, 0])
-    ResinRod(0, 0, ROD_D);
+    ResinRod(0, 0, TIP_D);
 }
 
 //monospaced type test gauge
