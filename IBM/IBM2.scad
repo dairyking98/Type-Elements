@@ -103,14 +103,14 @@ CUSTOMHALIGNOFFSET=-0.2;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
-X_WEIGHT_ADJUSTMENT=.01;
+X_WEIGHT_ADJUSTMENT=.0;//.01
 //y weight adjustment 0+
-Y_WEIGHT_ADJUSTMENT=.01;
+Y_WEIGHT_ADJUSTMENT=.0;//.01
 //x horiz alignment offset for composer
-X_POS_OFFSET_COMPOSER_=1.21;
+X_POS_OFFSET_COMPOSER_=1.20;
 X_POS_OFFSET_COMPOSER=CUTOUT_TEST==false?X_POS_OFFSET_COMPOSER_:0;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.21;//1.01;//.01
+Y_POS_OFFSET_COMPOSER=-1.30;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
@@ -170,19 +170,19 @@ LATITUDE_SPACING=360/22;
 //angle between rows
 LONGITUDE_SPACING=[32.8, 16.4, 0, -16.4];
 //platen diameter
-PLATEN_OD=45;
+PLATEN_OD=40;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.10;
+DRIVE_NOTCH_WIDTH=1.10;//.01
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
-DRIVE_NOTCH_THETA_=131.0;
+DRIVE_NOTCH_THETA_=131.0;//.01
 //detent valley from center
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
-DETENT_SKIRT_CLOCK_OFFSET=0.01;
+DETENT_SKIRT_CLOCK_OFFSET=0;//.01
 
 /* [Label Stuff] */
 
