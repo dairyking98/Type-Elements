@@ -371,6 +371,10 @@ BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
 //tip diameter
 TIP_D=.8;
+//notch tip diameter
+TIP_NOTCHD=.5;
+//deg offset from notch for notch supports
+TIP_NOTCHOFFSET=12;
 //tip inset
 TIP_IN=.4;
 //tip height
@@ -430,6 +434,7 @@ module Text(char, font, size, customhalign){
         translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:X_POS_OFFSET_S12, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
+        if (X_WEIGHT_ADJUSTMENT>0 || Y_WEIGHT_ADJUSTMENT>0)
         square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
     }
 }
@@ -595,6 +600,16 @@ module ResinTip(a1){
     }
 }
 
+//resin support tip, angle input, custom tip d
+module ResinTipCustom(a1,d){
+    rotate([0, a1, 0])
+    hull(){
+        sphere(d=d);
+        translate([0, 0, -TIP_H])
+        sphere(d=ROD_D);
+    }
+}
+
 //get rotated resin support tip x offset function
 function ResinXOffset(a1)= sin(a1)*TIP_H;
 
@@ -617,6 +632,27 @@ module ResinRod(h, a1){
     //tip
     translate([0, 0, h-TIP_D/2+TIP_IN])
     ResinTip(a1);
+}
+
+//custom tip diameter resin support rod
+module ResinRodCustomTip(h, a1, d){
+    xoffset = ResinXOffset(a1);
+    translate([-xoffset, 0]){
+        //base
+        translate([0, 0, -MIN_ROD_H-BASE_H-TIP_H])
+        cylinder(d1=BASE_D, d2=BASE_D+2*BASE_H, h=BASE_H);
+        
+        //rod
+        hull(){
+            translate([0, 0, -TIP_H+h-TIP_D/2+TIP_IN])
+            sphere(d=ROD_D);
+            translate([0, 0, -MIN_ROD_H-BASE_H+ROD_D/2-TIP_H])
+            sphere(d=ROD_D);
+        }
+    }
+    //tip
+    translate([0, 0, h-TIP_D/2+TIP_IN])
+    ResinTipCustom(a1, d);
 }
 
 //assemble resin support rods
@@ -680,7 +716,7 @@ module ResinRodAssemble(){
         
         
     //for notch supports
-    n=11;//degrees off from notch 
+    n=TIP_NOTCHOFFSET;//degrees off from notch 
     l=[3, 5];
     k=[n, -n];
     if (i==4)
@@ -692,7 +728,7 @@ module ResinRodAssemble(){
             
             
 //            ResinRod(FLOOR+BOSS_TO_CENTER, -45);//outer corners
-            ResinRod(FLOOR+BOSS_TO_CENTER, 0);//directly under
+            ResinRodCustomTip(FLOOR+BOSS_TO_CENTER, 0, TIP_NOTCHD);//directly under
             //notch support supports
             hull(){
                 rotate([0, 0, DRIVE_NOTCH_THETA-k[j]])
@@ -710,20 +746,24 @@ module ResinRodAssemble(){
 
 //assemble resin print
 module ResinPrint(){
+    union(){
     translate([0, 0 , FLOOR])
     SubtractFromFull();
     ResinRodAssemble();
+    }
 }
 
 //assemble resin print 2
 module ResinPrint2(){
     rotate([0, 180, 0])
     translate([0, 0 , -TOPFLAT_TO_CENTER])
+    union(){
     SubtractFromFull();
 
     
     
     ResinRodAssemble2();
+    }
 }
 
 module ResinRodAssemble2(){
