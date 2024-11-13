@@ -100,6 +100,10 @@ FONT2CHARS="";
 CUSTOMHALIGNCHARS="";
 //custom horizontal alignment characters offset
 CUSTOMHALIGNOFFSET=-0.2;
+//custom vertical alignment characters
+CUSTOMVALIGNCHARS="";
+//custom vertical alignment characters offset
+CUSTOMVALIGNOFFSET=-0.2;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
@@ -177,7 +181,7 @@ PLATEN_OD=40;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.10;//.01
+DRIVE_NOTCH_WIDTH=1.12;//.01
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
@@ -367,7 +371,7 @@ LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i
 LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
 /* [Resin Printing Offsets] */
-SNOOT_DROOP_COMPENSATION=.6;
+SNOOT_DROOP_COMPENSATION=.52;//.01
 BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
 /* [Resin Supports] */
@@ -431,10 +435,10 @@ union(){
 }
 
 //2d text
-module Text(char, font, size, customhalign){
+module Text(char, font, size, customhalign, customvalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:X_POS_OFFSET_S12, Y_POS_OFFSET, 0])
+        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:X_POS_OFFSET_S12, Y_POS_OFFSET+customvalign, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         if (X_WEIGHT_ADJUSTMENT>0 || Y_WEIGHT_ADJUSTMENT>0)
@@ -460,12 +464,12 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset){
+module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
             linear_extrude(6)
-            Text(char, font, size, customhalign);
+            Text(char, font, size, customhalign, customvalign);
             PlatenCutout(latitude, longitude+plat_offset);
             
         }
@@ -499,14 +503,15 @@ module AssembleMinkowski(){
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
         size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
+        customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
     }
 }
 
