@@ -117,6 +117,7 @@ X_POS_OFFSET_S12=1.25;//.01
 Y_POS_OFFSET_S12=-1.5;
 //y pos offset
 Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
+X_POS_OFFSET=RENDER_MODE==0?X_POS_OFFSET_COMPOSER:X_POS_OFFSET_S12;
 //h alignment 
 H_ALIGNMENT=RENDER_MODE==0?(CUTOUT_TEST==true?"center":"left"):"center";
 
@@ -787,14 +788,17 @@ module TextGauge(str, pitch)
 //composer type test gauge
 module TextGaugeComposer(str, unitdist)
 {
+
     color("red")
     for ( i = [0:len(str)-1] )
     {
+        font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
+        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         translate([8,8])
         translate([CUMULATIVETESTSTRINGPICAS[i]*unitdist,0])
         
         offset(FONT_WEIGHT_OFFSET)
-        text(size=FONTSIZE, font=FONT, halign="left", str[i]);
+        text(size=size, font=font, halign="left", str[i]);
         echo(CUMULATIVETESTSTRINGPICAS[i]);
     }
 }
