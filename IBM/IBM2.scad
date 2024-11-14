@@ -26,10 +26,15 @@ MINKOWSKI_ANGLE=60;
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
 XSECTION=false;
+//cross section angle?
 XSECTION_THETA=0;
-//selective render?
+
+
+
+/* [Testing Stuff] */
+//whitelist render of characters?
 SELECTIVE_RENDER=false;
-//selective render chars?
+//whitelisted characters to render?
 SELECTIVE_RENDER_CHARS="sine";
 //enable rays?
 RAYS=false;
@@ -52,20 +57,7 @@ COMPOSER_PITCH_LIST=[
 
 ];
 
-//string for type test
-TESTSTRING="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
-//picas per character array
-TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
-//cumulative picas per character array
-CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
-//cpi spacing for type test
-TESTCPI=10;
-//unit spacing for type test of Composer
-UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
-//mm distance per composer unit
-UNITDIST=25.4/UNITSPERINCH;
 
-/* [Composer Testing Stuff] */
 //make an element with varying platen cutouts?
 CUTOUT_TEST=false;
 //interval of angle offsets to test
@@ -73,27 +65,30 @@ CUTOUT_TEST_ANGLE_INT=.1;
 //CUTOUT_TEST_ANGLE_ARRAY_MAP=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -11, -10, -9, -8, -7, -6];
 CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
 CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
-echo (CUTOUT_TEST_ANGLE_ARRAY);
-
-
 
 
 /* [Typeface Stuff] */
 
 //element typeface
 FONT="Arial";
-//element type size
+//selectric I/II type size
 FONT_SIZE=2.4;//.05
 // Composer font Cap Height in points, use instead of FONT_SIZE!
 COMPOSER_CAP_HEIGHT=7;
-FONTSIZE=RENDER_MODE==0?COMPOSER_CAP_HEIGHT/2.834:FONT_SIZE;
+//all font sizes
+ALLFONTSIZES=[COMPOSER_CAP_HEIGHT/2.834, FONT_SIZE];
+//global font size
+FONTSIZE=ALLFONTSIZES[RENDER_MODE];
 //secondary element typeface
 FONT2="Times New Roman";
 //secondary type size
 FONT2_SIZE=2.4;//.05
 // Composer font 2 Cap Height in points, use instead of FONT_SIZE!
 COMPOSER2_CAP_HEIGHT=7;
-FONT2SIZE=RENDER_MODE==0?COMPOSER2_CAP_HEIGHT/2.834:FONT2_SIZE;
+//all font2 sizes
+ALLFONT2SIZES=[COMPOSER2_CAP_HEIGHT/2.834, FONT2_SIZE];
+//global font2 size
+FONT2SIZE=ALLFONT2SIZES[RENDER_MODE];
 //list of chars to adopt font2 parameters
 FONT2CHARS="";
 //custom horizontal alignment characters
@@ -115,11 +110,18 @@ Y_POS_OFFSET_COMPOSER=-1.30;//1.01;//.01
 X_POS_OFFSET_S12=1.25;//.01
 //y vert alignment offset for selectric 1/2
 Y_POS_OFFSET_S12=-1.5;
-//y pos offset
-Y_POS_OFFSET=RENDER_MODE==0?Y_POS_OFFSET_COMPOSER:Y_POS_OFFSET_S12;
-X_POS_OFFSET=RENDER_MODE==0?X_POS_OFFSET_COMPOSER:X_POS_OFFSET_S12;
+//all y offsets
+ALLYOFFSETS=[Y_POS_OFFSET_COMPOSER, Y_POS_OFFSET_S12];
+//all x offsets
+ALLXOFFSETS=[X_POS_OFFSET_COMPOSER, X_POS_OFFSET_S12];
+//global y offset
+Y_POS_OFFSET=ALLYOFFSETS[RENDER_MODE];
+//global x offset
+X_POS_OFFSET=ALLXOFFSETS[RENDER_MODE];
+//all h alignments
+ALLHALIGNMENTS=["left", "center"];
 //h alignment 
-H_ALIGNMENT=RENDER_MODE==0?(CUTOUT_TEST==true?"center":"left"):"center";
+H_ALIGNMENT=CUTOUT_TEST==true?"center":ALLHALIGNMENTS[RENDER_MODE];
 
 
 /* [Typeball Dimensions] */
@@ -133,7 +135,7 @@ MAX_OD=34.9;
 //sphere center to top flat
 TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
-TOPFLAT_THICKNESS=2.5;
+TOPFLAT_THICKNESS=3;
 //shaft ID
 SHAFT_ID=8.8;
 //shaft r
@@ -167,7 +169,7 @@ SKIRT_TOP_OD=32.3;
 //skirt bottom OD
 SKIRT_BOTTOM_OD=30.2;
 //overall thickness of element
-echo(str(FLOOR+TOPFLAT_TO_CENTER, " = 21.7? Leo's measured overall thickness?"));
+echo(str(FLOOR+TOPFLAT_TO_CENTER, " (modeled) = 21.7 (measured)? Leo's measured overall thickness?"));
 //ELEMENT_OAT=21.7;//leo's measured value. dave's was 22.0; 
 //now redundant - FLOOR + CENTER_TO_TOP = OAT
 //angle between characters
@@ -241,7 +243,7 @@ DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 //center to roof of element
 ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
 
-/* [Character Mapping] */
+/* [Character Mapping - 88char] */
 
 //use custom keyboard layout?
 CUSTOM=false;
@@ -256,11 +258,6 @@ CUSTOMLOWERCASE88="
 
 ";
 
-//============
-//==X====X===
-//=X=========
-//=====X====
-
 //uppercase layout for custom keyboard
 CUSTOMUPPERCASE88="
 
@@ -271,10 +268,10 @@ CUSTOMUPPERCASE88="
 
 ";
 
-//++++++++++++
-//+++++++++++
-//+++++++++++
-//++++++++++
+//custom 88 layout array
+CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
+
+/* [Character Mapping - Selectric I/II 88char] */
 
 //lowercase selectric 1/2 layout on machine; left to right, top to bottom
 LOWERCASE88="
@@ -292,21 +289,48 @@ ASDFGHJKL:\"
 ZXCVBNM,.?
 ";
 
-//lowercase selectric 3 layout on machine; left to right, top to bottom
-LOWERCASE96="
-±1234567890-=
-qwertyuiop½[
-ASDFGHJKL;'
-ZXCVBNM,./
+//selectric 1/2 layout array
+S12CASES88=[LOWERCASE88, UPPERCASE88];
+
+//lowercase hemisphere of selectric 1/2 element from the top moving counter clockwise, top to bottom
+S12_LC_HEMISPHERE88="
+90652z48731
+bhkentlcdux
+wsi'.½oarvm
+-yqp=j/,;fg
 ";
 
-//uppercase selectric 3 layout on machine; left to right, top to bottom
-UPPERCASE96="
-°!@#$%¢&*()_+
-QWERTYUIOP¼]
-ASDFGHJKL:\"
-ZXCVBNM.,?
-";
+
+//SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
+////lowercase selectric 3 layout on machine; left to right, top to bottom
+//LOWERCASE96="
+//±1234567890-=
+//qwertyuiop½[
+//ASDFGHJKL;'
+//ZXCVBNM,./
+//";
+//
+////uppercase selectric 3 layout on machine; left to right, top to bottom
+//UPPERCASE96="
+//°!@#$%¢&*()_+
+//QWERTYUIOP¼]
+//ASDFGHJKL:\"
+//ZXCVBNM.,?
+//";
+//
+//
+//S3CASES96=[LOWERCASE96, UPPERCASE96];
+
+
+//lowercase hemisphere of selectric 3 element from the top moving counter clockwise, top to bottom
+//S3_LC_HEMISPHERE96="
+//z2752064893/
+//;'istecbku§=
+//vmwdornaxh½±
+//-1.jpqyflg],
+//";
+
+/* [Character Mapping - Composer 88char] */
 
 //uppercase composer layout on machine; left to right, top to bottom
 LOWERCASECOMPOSER88 ="
@@ -324,33 +348,6 @@ ASDFGHJKL¼½
 ZXCVBNM‘’:
 ";
 
-//selectric 1/2 layout array
-S12CASES88=[LOWERCASE88, UPPERCASE88];
-//composer layout array
-COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
-//custom 88 layout array
-CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
-S3CASES96=[LOWERCASE96, UPPERCASE96];
-
-//set keyboard layout for character mapping
-CASES88=RENDER_MODE==0?COMPOSERCASES88:S12CASES88;
-
-//lowercase hemisphere of selectric 1/2 element from the top moving counter clockwise, top to bottom
-S12_LC_HEMISPHERE88="
-90652z48731
-bhkentlcdux
-wsi'.½oarvm
--yqp=j/,;fg
-";
-
-//lowercase hemisphere of selectric 3 element from the top moving counter clockwise, top to bottom
-S3_LC_HEMISPHERE96="
-z2752064893/
-;'istecbku§=
-vmwdornaxh½±
--1.jpqyflg],
-";
-
 //lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
 COMPOSER_LC_HEMISPHERE88="
 .,634s10928
@@ -359,8 +356,24 @@ xvumhnrodwk
 =]zpyefgq;j
 ";
 
+//composer layout array
+COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
+
+
+
+//all keyboard layouts
+ALL88CASES=[COMPOSERCASES88, S12CASES88];
+
+//all hemisphere layouts
+ALL88HEMIS=[COMPOSER_LC_HEMISPHERE88, S12_LC_HEMISPHERE88];
+
+
+
+//set keyboard layout for character mapping
+CASES88=ALL88CASES[RENDER_MODE];
+
 //set lowercase hemisphere 
-LC_HEMISPHERE88=RENDER_MODE==0?COMPOSER_LC_HEMISPHERE88:S12_LC_HEMISPHERE88;
+LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
 
 //create lowercase layout to element hemisphere map
 LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i], LC_HEMISPHERE88)];
@@ -368,8 +381,49 @@ LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i
 //create latitude, longitude integer array for one hemisphere
 LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
+/* [ Type Testing Stuff] */
+
+//custom string for type test
+TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
+
+
+TESTARRAY_88KBLAYOUT =[
+"1234567890-=",
+"qwertyuiop?",
+"asdfghjkl][",
+"zxcvbnm,.;", 
+"!†+$%/&*()–@",
+"QWERTYUIOP¾",
+"ASDFGHJKL¼½",
+"ZXCVBNM‘’:
+"];
+
+TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
+
+//preset for type testing strings?
+TESTSTRING_SELECTION=0;//[0:Custom, 1:Composer Keyboard Layout ]
+
+TESTARRAY=TESTARRAYS[TESTSTRING_SELECTION];
+
+//composer picas per character array
+//TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
+//cumulative sum vector function for composer type test pitch array
+function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
+//composer cumulative picas per character array
+//CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+//cpi spacing for type test of selectric I/II
+TESTCPI=10;
+//unit spacing for type test of Composer
+UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
+//mm distance per composer unit
+UNITDIST=25.4/UNITSPERINCH;
+
+
+
 /* [Resin Printing Offsets] */
+//amount to compensate for vat-facing boss face !CRITICAL FEATURE!
 SNOOT_DROOP_COMPENSATION=.6;
+//modeled boss to center value
 BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
 /* [Resin Supports] */
@@ -409,8 +463,6 @@ WEB_OR=2;
 WEB_OD=TOPFLAT_R*2-2;
 
 
-//cumulative sum vector function for composer type test pitch array
-function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
 //rays
 module Rays(){
@@ -436,7 +488,7 @@ union(){
 module Text(char, font, size, customhalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([RENDER_MODE==0?X_POS_OFFSET_COMPOSER+customhalign:X_POS_OFFSET_S12, Y_POS_OFFSET, 0])
+        translate([X_POS_OFFSET+customhalign, Y_POS_OFFSET, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         if (X_WEIGHT_ADJUSTMENT>0 || Y_WEIGHT_ADJUSTMENT>0)
@@ -544,37 +596,37 @@ module SolidCleanup(){
     if (LABEL==true)
     FontName();
 }
-//subtractive parts - inner radius
-module HollowProfile(){
-    hull(){
-        translate([-HOLLOW_R+INSIDE_R, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-2*HOLLOW_R, 0])
-        scale([1, 2])
-        circle(r=HOLLOW_R);
-        translate([BOSS_R, 0, 0])
-        square(1);
-        translate([BOSS_R+HOLLOW_R*2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-HOLLOW_R, 0])
-        scale([2, 1])
-        circle(r=HOLLOW_R);
-
-    }
-}
-
-
-//subtractive parts - inner radius : experimental
-module HollowProfile2(){
-    newroofr=1;
-    hull(){
-        translate([-newroofr+INSIDE_R, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
-        circle(r=newroofr);
-        translate([BOSS_R, 0, 0])
-        square([INSIDE_R-BOSS_R, 1]);
-        translate([BOSS_R+newroofr, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
-        circle(r=newroofr);
-        translate([(INSIDE_R+BOSS_R)/2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-newroofr])
-        circle(r=newroofr);
-
-    }
-}
+////subtractive parts - inner radius
+//module HollowProfile(){
+//    hull(){
+//        translate([-HOLLOW_R+INSIDE_R, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-2*HOLLOW_R, 0])
+//        scale([1, 2])
+//        circle(r=HOLLOW_R);
+//        translate([BOSS_R, 0, 0])
+//        square(1);
+//        translate([BOSS_R+HOLLOW_R*2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-HOLLOW_R, 0])
+//        scale([2, 1])
+//        circle(r=HOLLOW_R);
+//
+//    }
+//}
+//
+//
+////subtractive parts - inner radius : experimental
+//module HollowProfile2(){
+//    newroofr=1;
+//    hull(){
+//        translate([-newroofr+INSIDE_R, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+//        circle(r=newroofr);
+//        translate([BOSS_R, 0, 0])
+//        square([INSIDE_R-BOSS_R, 1]);
+//        translate([BOSS_R+newroofr, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+//        circle(r=newroofr);
+//        translate([(INSIDE_R+BOSS_R)/2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-newroofr])
+//        circle(r=newroofr);
+//
+//    }
+//}
 
 //subtractive parts - inner radius : experimental
 module HollowProfile3(){
@@ -821,12 +873,10 @@ module TextGaugeComposer(str, unitdist)
         
         offset(FONT_WEIGHT_OFFSET)
         text(size=size, font=font, halign="left", str[i]);
-        echo(CUMULATIVETESTSTRINGPICAS[i]);
+        //echo(CUMULATIVETESTSTRINGPICAS[i]);
     }
 }
 
-//cumulative sum vector function for composer type test pitch array
-function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 
 //2d web shape
 module 2dWeb(){
@@ -871,7 +921,7 @@ module Render(){
                 ResinPrint();
             if (RENDER_VARIANT==2){
                 if (RENDER_MODE==0)
-                    TextGaugeComposer(TESTSTRING, UNITDIST);
+                    ArrangeComposerLines(TESTARRAY);
                 if (RENDER_MODE==1)
                     TextGauge(TESTSTRING, TESTCPI);
             }
@@ -916,6 +966,45 @@ module Labels()
         text(LABEL_TEXT_OVERRIDE==""?FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?FONT:LABEL_FONT_OVERRIDE, halign="center");
         
     }
+}
+//TextGaugeComposerLine(TESTSTRING, UNITDIST);
+
+//create array of picas per test string character function
+function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) COMPOSER_PITCH_LIST[search(string[i], COMPOSER_PITCH_LIST)[0]][1]];
+
+//composer type test gauge line with string input
+module TextGaugeComposerLine(str, unitdist)
+{
+TESTSTRINGPICAS = TestStringPicas(str);
+CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+    if(is_string(str)==true){
+    color("red")
+    for ( i = [0:len(str)-1] )
+    {
+        font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
+        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
+        translate([CUMSUMTESTSTRINGPICAS[i]*unitdist,0])
+        
+        offset(FONT_WEIGHT_OFFSET)
+        text(size=size, font=font, halign="left", str[i]);
+        //echo(CUMULATIVETESTSTRINGPICAS[i]);
+    }
+    }
+}
+
+
+module ArrangeComposerLines(arrayOfStrings){
+    lines=len(arrayOfStrings)-1;
+    columns=2;
+    translate([10, -10, 0])
+    for (line=[0:lines]){
+    stringinline=arrayOfStrings[line];
+    
+    translate([0, -8*line, ])
+    TextGaugeComposerLine(stringinline, UNITDIST);
+    }
+    //echo(lines);
+    //echo(arrayOfStrings);
 }
 
 ///EXECUTE CODE:
