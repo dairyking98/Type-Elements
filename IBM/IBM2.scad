@@ -596,11 +596,11 @@ module SolidCleanup(){
     //web
     if (WEB==true)
     ArrangeWeb();
-    if (ARROW==true)
-    Del();
-    if (LABEL==true)
-        if (WEB==false) //disable label when web is enabled
-        FontName();
+    if (WEB==false){
+        if (ARROW==true)
+        Del();
+        if (LABEL==true)
+        FontName();}
 }
 ////subtractive parts - inner radius
 //module HollowProfile(){
