@@ -21,7 +21,7 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 //turn on minkowski?
 MINK_ON=false;
 //minkowski draft angle
-MINKOWSKI_ANGLE=60;
+MINKOWSKI_ANGLE=85;//.5
 //minkowski bottom radius size
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
@@ -126,6 +126,43 @@ X_POS_OFFSET=ALLXOFFSETS[RENDER_MODE];
 ALLHALIGNMENTS=["left", "center"];
 //h alignment 
 H_ALIGNMENT=CUTOUT_TEST==true?"center":ALLHALIGNMENTS[RENDER_MODE];
+
+/* [ Type Testing Stuff] */
+
+//custom string for type test
+TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
+
+
+TESTARRAY_88KBLAYOUT =[
+"1234567890-=",
+"qwertyuiop?",
+"asdfghjkl][",
+"zxcvbnm,.;", 
+"!†+$%/&*()–@",
+"QWERTYUIOP¾",
+"ASDFGHJKL¼½",
+"ZXCVBNM‘’:
+"];
+
+TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
+
+//preset for type testing strings?
+TESTSTRING_SELECTION=0;//[0:Custom, 1:Composer Keyboard Layout ]
+
+TESTARRAY=TESTARRAYS[TESTSTRING_SELECTION];
+
+//composer picas per character array
+//TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
+//cumulative sum vector function for composer type test pitch array
+function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
+//composer cumulative picas per character array
+//CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+//cpi spacing for type test of selectric I/II
+TESTCPI=10;
+//unit spacing for type test of Composer
+UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
+//mm distance per composer unit
+UNITDIST=25.4/UNITSPERINCH;
 
 
 /* [Typeball Dimensions] */
@@ -385,43 +422,6 @@ LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i
 //create latitude, longitude integer array for one hemisphere
 LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
-/* [ Type Testing Stuff] */
-
-//custom string for type test
-TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
-
-
-TESTARRAY_88KBLAYOUT =[
-"1234567890-=",
-"qwertyuiop?",
-"asdfghjkl][",
-"zxcvbnm,.;", 
-"!†+$%/&*()–@",
-"QWERTYUIOP¾",
-"ASDFGHJKL¼½",
-"ZXCVBNM‘’:
-"];
-
-TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
-
-//preset for type testing strings?
-TESTSTRING_SELECTION=0;//[0:Custom, 1:Composer Keyboard Layout ]
-
-TESTARRAY=TESTARRAYS[TESTSTRING_SELECTION];
-
-//composer picas per character array
-//TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
-//cumulative sum vector function for composer type test pitch array
-function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
-//composer cumulative picas per character array
-//CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
-//cpi spacing for type test of selectric I/II
-TESTCPI=10;
-//unit spacing for type test of Composer
-UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
-//mm distance per composer unit
-UNITDIST=25.4/UNITSPERINCH;
-
 
 
 /* [Resin Printing Offsets] */
@@ -455,7 +455,7 @@ MIN_ROD_H=2;
 
 /* [Experimental Web] */
 
-//web?
+//web? disables label if checked
 WEB=false;
 //web ID
 WEB_ID=BOSS_OD+1;
@@ -599,7 +599,8 @@ module SolidCleanup(){
     if (ARROW==true)
     Del();
     if (LABEL==true)
-    FontName();
+        if (WEB==false) //disable label when web is enabled
+        FontName();
 }
 ////subtractive parts - inner radius
 //module HollowProfile(){
