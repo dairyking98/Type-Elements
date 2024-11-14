@@ -95,6 +95,10 @@ FONT2CHARS="";
 CUSTOMHALIGNCHARS="";
 //custom horizontal alignment characters offset
 CUSTOMHALIGNOFFSET=-0.2;
+//custom vertical alignment characters
+CUSTOMVALIGNCHARS="";
+//custom vertical alignment characters offset
+CUSTOMVALIGNOFFSET=-0.2;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
@@ -181,7 +185,7 @@ PLATEN_OD=40;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.10;//.01
+DRIVE_NOTCH_WIDTH=1.12;//.01
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
@@ -422,7 +426,7 @@ UNITDIST=25.4/UNITSPERINCH;
 
 /* [Resin Printing Offsets] */
 //amount to compensate for vat-facing boss face !CRITICAL FEATURE!
-SNOOT_DROOP_COMPENSATION=.6;
+SNOOT_DROOP_COMPENSATION=.52;
 //modeled boss to center value
 BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
@@ -485,10 +489,10 @@ union(){
 }
 
 //2d text
-module Text(char, font, size, customhalign){
+module Text(char, font, size, customhalign, customvalign){
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([X_POS_OFFSET+customhalign, Y_POS_OFFSET, 0])
+        translate([X_POS_OFFSET+customhalign, Y_POS_OFFSET+customvalign, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         if (X_WEIGHT_ADJUSTMENT>0 || Y_WEIGHT_ADJUSTMENT>0)
@@ -514,12 +518,12 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset, base_offset){
+module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
             linear_extrude(6)
-            Text(char, font, size, customhalign);
+            Text(char, font, size, customhalign, customvalign);
             PlatenCutout(latitude, longitude+plat_offset);
             
         }
@@ -553,14 +557,15 @@ module AssembleMinkowski(){
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
         size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
+        customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
     }
 }
 
