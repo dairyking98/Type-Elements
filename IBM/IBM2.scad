@@ -160,6 +160,8 @@ FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
 BOSS_OD=11.6;
 //boss minimum clearange
 BOSS_CLEARANCE=2.5;//.1
+//boss step thicknesss
+BOSS_STEP=1;//.1
 //skirt top OD
 SKIRT_TOP_OD=32.3;
 //skirt bottom OD
@@ -528,7 +530,7 @@ module SolidCleanup(){
     cylinder(d=INSIDE_ID, h=20+BOSS_TO_CENTER, $fn=surface_fn);
     //roof ish area
     rotate_extrude($fn=surface_fn)
-    HollowProfile2();
+    HollowProfile3();
     //notch
     Notch();
     //detent teeth
@@ -558,7 +560,6 @@ module HollowProfile(){
 }
 
 
-//HollowProfile2();
 //subtractive parts - inner radius : experimental
 module HollowProfile2(){
     newroofr=1;
@@ -573,6 +574,25 @@ module HollowProfile2(){
         circle(r=newroofr);
 
     }
+}
+
+//subtractive parts - inner radius : experimental
+module HollowProfile3(){
+    newroofr=1;
+    hull(){
+        translate([-newroofr+INSIDE_R, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+        circle(r=newroofr);
+        translate([BOSS_R+BOSS_STEP, 0, 0])
+        square([INSIDE_R-BOSS_R-BOSS_STEP, 1]);
+        translate([BOSS_R+newroofr+BOSS_STEP, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+        circle(r=newroofr);
+        translate([(INSIDE_R+BOSS_R+BOSS_STEP)/2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-newroofr])
+        circle(r=newroofr);
+
+    }
+    
+    translate([BOSS_R, 0, 0])
+    square([BOSS_STEP+z, BOSS_TO_CENTER+BOSS_CLEARANCE]);
 }
 
 //detent tooth profile
@@ -657,15 +677,17 @@ module ResinRodAssemble(){
     //boss supports
     for (i=[0:11]){
         rotate([0, 0, i*360/11]){
+        
+            //roof-roof support-supports
             hull(){
-                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 6])
+                    translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 6])
                     sphere(d=ROD_D);
                     rotate([0, 0, 360/11])
-                    translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
+                    translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 0])
                     sphere(d=ROD_D);
             }
+            
         if (i!=4){
-        
         
             //boss supports (outer corner)
 //            translate([BOSS_R, 0, 0])
@@ -676,18 +698,18 @@ module ResinRodAssemble(){
             ResinRod(FLOOR+BOSS_TO_CENTER, 0, TIP_D);
             
             
-            //boss roof support supports
+            //boss-roof support-supports
             hull(){
 //                translate([BOSS_R-ResinXOffset(-45), 0, 12])//couter corner
                 translate([(BOSS_R+SHAFT_ID/2)/2, 0, 12])//directly under
                 sphere(d=ROD_D);
-                translate([(BOSS_OD+INSIDE_ID)/4, 0, 8])
+                translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 8])
                 sphere(d=ROD_D);
             }
-            //roof support supports
+
             
             if (i!=3)
-            //boss support supports
+            //boss-boss support-supports
                 hull(){
 //                    translate([BOSS_R-ResinXOffset(-45), 0, 1])//outer corner
                     translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 1])//directly under
@@ -700,7 +722,7 @@ module ResinRodAssemble(){
         }
         
         //roof supports
-        translate([(BOSS_OD+INSIDE_ID)/4, 0, 0])
+        translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 0])
         ResinRod(FLOOR+ROOF, 0, TIP_D);
         }
         
