@@ -248,8 +248,12 @@ LABEL_NO_FONT_OVERRIDE="";
 LABEL_FONT_OVERRIDE="";
 //Font size for number label
 NO_LABEL_SIZE=2;
+//Vertical offset for number label. +up -down
+NO_LABEL_OFFSET=0;//0.25
 //Font size for typeface label 
 FONT_LABEL_SIZE=2;
+//Vertical offset for font label. +up -down
+FONT_LABEL_OFFSET=0;//0.25
 //arrow from center 
 DEL_BASE_FROM_CENTRE = 8.2;
 //depth of arrow
@@ -965,10 +969,10 @@ module Labels()
     {
         // Disable Label No for Composer balls
         if (RENDER_MODE!=0) { 
-            translate([-0.1,14,0])
+            translate([-0.1+NO_LABEL_OFFSET,14,0])
         text(LABEL_NO, size=NO_LABEL_SIZE, font=LABEL_NO_FONT_OVERRIDE==""?FONT:LABEL_NO_FONT_OVERRIDE, halign="center");
     }
-        translate([0,0.6,0])
+        translate([0,0.6+FONT_LABEL_OFFSET,0])
         text(LABEL_TEXT_OVERRIDE==""?FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?FONT:LABEL_FONT_OVERRIDE, halign="center");
         
     }
