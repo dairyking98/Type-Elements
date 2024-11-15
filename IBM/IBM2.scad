@@ -114,7 +114,7 @@ X_POS_OFFSET_COMPOSER=CUTOUT_TEST==false?X_POS_OFFSET_COMPOSER_:0;//.01
 //y vert alignment offset for composer
 Y_POS_OFFSET_COMPOSER=-1.30;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
-X_POS_OFFSET_S12=1.25;//.01
+X_POS_OFFSET_S12=0;//.01
 //y vert alignment offset for selectric 1/2
 Y_POS_OFFSET_S12=-1.5;
 //all y offsets
