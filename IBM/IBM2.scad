@@ -204,7 +204,7 @@ CUSTOM_TEST_STRING=false;
 
 //Match test array to Composer Language unless custom is checked.
 TESTARRAY=
-    (CUSTOM_TEST_STRING==true)  ? TESTSTRING_CUSTOM:
+    (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
     (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
     (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
     (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
