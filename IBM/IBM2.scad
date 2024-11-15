@@ -678,6 +678,7 @@ union(){
 
 //2d text
 module Text(char, font, size, customhalign, customvalign){
+    $fn = mink_fn;
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
         translate([X_POS_OFFSET+customhalign, Y_POS_OFFSET+customvalign, 0])
