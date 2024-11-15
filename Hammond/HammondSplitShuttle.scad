@@ -3,7 +3,7 @@
 //February 17, 2024
         
 /* [Checks] */
-Assert=true;
+Render=false;
 No_Chamfer=true;
 cyl_fn=360;
 text_fn=30;
@@ -50,11 +50,11 @@ CharModSize=2.7;
 
 /* [Dimensions] */
 Posthole_ID=1.92;// 5/64 wire rod
+//resin offset fot pin holes
 PostholeID_ResinOffset=.25;
 OD_InnerTube_=5.842;//measurement + clearance
 OD_OuterTube_=6.6548;//measurement + clearance
 
-Tube_Clearance=.05;
 
 OD=75.0;
 Shuttle_Thickness=1.6;
@@ -63,8 +63,7 @@ Folder_Thickness=9.525;// 3/8 thick
 Folder_ID=12;//9.6;
 Folder_OD=18.762;
 Folder_Clearance=0.4;
-Folder_SquashClearance=.2794;//.0001 //.5 for Full 3D
-Folder_UpsideDownOffset=.0889;
+Folder_SquashClearance=.3683;//.2794;//.0001 //.5 for Full 3D
 FolderLocation=.5;//.2 for Full 3D, .5 for metal tube
 Tube_ChamferSize=.5;
 
@@ -146,10 +145,6 @@ ResSupportOffsets=[Arc_Offset,Shuttle_Width-Arc_Offset-Folder_Thickness];
 slopeangle=Theta+45;
 yint=sin(slopeangle)*Spoke_Thickness/2;
 r=sin(slopeangle)*(Folder_OD/2-yint)/(1-sin(slopeangle));
-//y=
-//line=slope*x;
-//x^2+y^2=(r+Folder_OD/2)^2
-//(x-x1)^2+(y-y1)^2=
 
 
 
@@ -162,7 +157,6 @@ module IsolateArcSlice(a){
     rotate([0, 0, a*(15*Char_Theta+Char_Theta/2+Finger_Offset)])
     translate([0, 0,-50])
     rotate_extrude(angle=a*(360-15*Char_Theta-Char_Theta/2+Finger_Offset), $fn=cyl_fn)
-    //translate([OD/2-Shuttle_Thickness, 0])
     square([OD, 100]);
     translate([OD/2-Shuttle_Thickness-z, 0, -50])
     cube([10, Finger_Thickness/2 ,100]);
@@ -181,9 +175,7 @@ module Rib(){
     union(){
         hull($fn=cyl_fn){
             difference(){
-    //        scale([Rib_Diameter, Rib_Diameter, Rib_Thickness])
-    //        sphere(d=1, $fn=cyl_fn);
-            
+        
                 hull($fn=cyl_fn){
                     rotate_extrude()
                     translate([Rib_Diameter/2-.5, 0])
@@ -214,26 +206,6 @@ module Rib(){
             translate([0, 0, Folder_Thickness/2])
             cylinder(h=z, d=Folder_OD, $fn=cyl_fn, center=true);
         }
-            
-//            translate([Folder_OD/2, 0, -Folder_Thickness*FolderLocation])
-//            rotate_extrude($fn=cyl_fn)
-//            polygon([[0, 0], [0, Folder_Thickness], [Folder_Thickness*FolderLocation, Folder_Thickness*FolderLocation]]);
-//             rotate([0, 0, Finger_Offset+Theta_Offset+Theta])
-//        translate([Folder_OD/2-Folder_OD/8, 0])
-//        sphere(r=Folder_OD/8, $fn=cyl_fn);
-//        }
-            
-//        
-//            rotate([0, 0, Theta_Offset+Finger_Offset+Theta])
-//            translate([Folder_OD/2-Folder_Thickness*FolderLocation, 0, -Folder_Thickness*FolderLocation])
-//            rotate_extrude($fn=cyl_fn)
-//            polygon([[0, 0], [0, Folder_Thickness], [Folder_Thickness*FolderLocation, Folder_Thickness*FolderLocation]]);
-//        }
-
-//            rotate([0, 0, Theta_Offset+Finger_Offset+45])
-//            translate([Folder_OD/2, 0, 0])
-//            rotate([45, 0, -90])
-//            #cube([Folder_Thickness, Folder_Thickness, Folder_Thickness], center=true);
     }
 }
 
@@ -410,9 +382,9 @@ module LeftShuttleAssembled(){
         }
         difference(){
             CenterAssembled(OD_OuterTube);
-            translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2-Folder_UpsideDownOffset])
+            translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2])
             cylinder(h=10, d=Folder_ID+Folder_Clearance*2, $fn=cyl_fn);
-            translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2-Folder_UpsideDownOffset])
+            translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2])
             rotate([180, 0, 0])
             TubeChamfer(OD_OuterTube);
             translate([0, 0, -z])
@@ -450,27 +422,6 @@ module RightShuttleAssembled(){
     }
 }
 
-module ResinRod(a){
-    union(){
-        translate([0, 0, -MinRodHeight-RaftThickness])
-        cylinder(d1=BuildplateDiameter, d2=BuildplateDiameter+RaftThickness*2, h=RaftThickness);
-        
-        hull(){
-            translate([0, 0, -MinRodHeight-RaftThickness])
-            cylinder(h=z, d=RodDiameter);
-            translate([0, 0, a-2-z])
-            cylinder(h=z, d=RodDiameter);
-        }
-        
-        hull(){
-            translate([0, 0, a-2])
-            cylinder(h=z, d=RodDiameter);
-            translate([0, 0, a])
-            sphere(d=ContactDiameter);
-            
-        }
-    }
-}
 
 module ArcSupportXSection(){
     difference(){
@@ -487,191 +438,130 @@ module ArcSupportXSection(){
     }
 }
 
-module ArrangeResinRods(Tube, RodH, side){
-    color("lightgreen")
-    union(){
-    
-    //Folder Ring Supports
-    
-        if (side=="right"){
-            for (i=[0:360/folderdiv-6:360]){
-            //if (i>Theta+Finger_Offset+Theta_Offset)
-            rotate([0, 0, i]){
-            translate([(Tube+ContactDiameter)/2, 0, 0])
-            ResinRod(RodH);
-            translate([(Folder_ID-ContactDiameter)/2, 0, 0])
-            ResinRod(RodH);}
-            }
-        }
-        
-        if (side=="left"){
-            for (i=[140:360/folderdiv-6:360]){
-            //if (i>Theta+Finger_Offset+Theta_Offset)
-            rotate([0, 0, i]){
-            translate([(Folder_ID-ContactDiameter)/2, 0, 0])
-            ResinRod(RodH+Folder_Thickness/2+Folder_SquashClearance/2);}
-            }
-            for (i=[0:360/folderdiv:360]){
-            //if (i>Theta+Finger_Offset+Theta_Offset)
-            rotate([0, 0, i])
-            translate([(Tube+ContactDiameter)/2+Tube_ChamferSize, 0, 0])
-            ResinRod(RodH+Folder_Thickness/2+Folder_SquashClearance/2);
-            }
-        }
-        
-        //Pinhole Supports
-        for (i=[Pin1+Finger_Offset, Pin2+Finger_Offset]){
-            rotate([0, 0, i])
-            translate([Pin_Radius, 0, 0])
-            for (j=[0:90:360])
-            rotate([0, 0, j])
-            translate([(Posthole_ID+PostholeID_ResinOffset)/2+ContactDiameter/2, 0, 0])
-            ResinRod(RodH);
-        }
-
-        //Folder Supports 
-        rotate([0, 0, Finger_Offset+Theta_Offset]){
-            for (i=[0:Theta/thetadiv:Theta]){
-                for (j=[
-//                (Folder_ID/2+Tube/2)/2+((Folder_OD/2)-(Folder_ID/2+Tube/2)/2)/2
-//                :((Folder_OD/2)-(Folder_ID/2+Tube/2)/2)/2
-//                :Folder_OD/2
-                (Folder_OD+Folder_ID+Folder_Clearance*2)/4
-                :(((Folder_OD-ContactDiameter)/2)-((Folder_OD+Folder_ID+Folder_Clearance*2)/4))
-                :(Folder_OD-ContactDiameter)/2
-                ]){
-                    rotate([0, 0, i])
-                    translate([j, 0, 0])
-                    if (i<(Pin1-Theta_Offset)-5 || i>(Pin1-Theta_Offset)+5)
-                    ResinRod(RodH);
-                }
-            }
-            
-            //Folder Supports Intermediate
-            rotate([0, 0, Theta/(2*thetadiv)])
-            for (i=[0:1:thetadiv-1]){
-            rotate([0, 0, i*Theta/thetadiv])
-                translate([Folder_OD/2, 0])
-                ResinRod(RodH);
-            }
-            
-            //Folder Supports Corners
-            for (i=[0, Theta])
-            rotate([0, 0, i])
-            translate([Folder_ID/2+Folder_Clearance*2, 0])
-            ResinRod(RodH);
-        }
-        
-        //Rib Supports
-        
-        
-        rotate([0, 0, Theta_Offset+Finger_Offset])
-                union(){
-                for (i=[0:1:Spoke_Count-1]){
-                    rotate([0, 0, Spoke_Spacing*i]){
-                        for (j=[Folder_OD/2+1:(OD/2-Shuttle_Thickness-OuterSpokeChamferSize-(Folder_OD/2+1))/ribdiv:OD/2-Shuttle_Thickness-OuterSpokeChamferSize]){
-                            translate([j, 0, 0])
-                            ResinRod(RodH+(Folder_Thickness-Spoke_Height)/2);
-                        }
-                    }
-                }
-            }
-        
-        //Arc Support
-//        difference(){
-//        rotate_extrude($fn=cyl_fn)
-//        translate([OD/2-Shuttle_Thickness, -RaftThickness-MinRodHeight, 0])
-//        ArcSupportXSection();
-//        IsolateArcSlice(1);
-//        }
-
-
-rotate([0, 0, Finger_Offset])
-            rotate([0, 0, Finger_Offset])
-            for (i=[0:arc/arcdiv:arc]){
-                for (j=[OD/2-ContactDiameter/2, OD/2-Shuttle_Thickness+ContactDiameter/2]){
-                    rotate([0, 0, i])
-                    translate([j, 0, 0])
-                    ResinRod(0);
-                }
-            }
-
-    
-    }
-}
-
-module ResinLeft(){
-    $fn=resin_fn;
-    union(){
-    color("lightblue")
-        translate([0, 0, ResSupportOffsets[0]])
-        LeftShuttleAssembled();
-        ArrangeResinRods(OD_OuterTube, ResSupportOffsets[0], "right", $fn=resin_fn);
-    }
-}
-
-module ResinLeft2(){
-    union(){
-        color("lightblue")
-        translate([0, 0, -Arc_Offset+Shuttle_Width])
-        
-        rotate([180, 0, 0])
-        LeftShuttleAssembled();
-        mirror([0, 1, 0])
-        ArrangeResinRods(OD_OuterTube, ResSupportOffsets[1], "left", $fn=resin_fn);
-    }
-}
-
-
-module ResinRight(){
-    union(){
-    color("lightblue")
-        translate([0, 0, Folder_Thickness+ResSupportOffsets[1]])
-        rotate([180, 0, 0])
-        RightShuttleAssembled();
-        ArrangeResinRods(OD_InnerTube, ResSupportOffsets[1], "right", $fn=resin_fn);
-    }
-}
-
-
-
-module FinalPrint(){
-    translate([-10, -25])
-        ResinLeft();
-    translate([10, 25])
-        rotate([0, 0, 180])
-        ResinRight();
-}
-
-module FinalPrint2(){
-    translate([0, -10])
-    
-        rotate([0, 0, 10])
-        ResinLeft2();
-    translate([0, 10])
-        rotate([0, 0, -10])
-        ResinRight();
-}
-
-
-
 module Assemble(){
     LeftShuttleAssembled();
     RightShuttleAssembled();
 }
 
+//module ResinRod(h){
+//    $fn=resin_fn;
+//    union(){
+//        cylinder(d1=BuildplateDiameter, d2=BuildplateDiameter+RaftThickness*2, h=RaftThickness);
+//        cylinder(d=RodDiameter, h=h-TipLength-ContactDiameter/2+TipInterference);
+//        translate([0, 0, h-TipLength-ContactDiameter/2+TipInterference])
+//        cylinder(d1=RodDiameter, d2=ContactDiameter, h=TipLength);
+//        translate([0, 0, h-ContactDiameter/2+TipInterference])
+//        sphere(d=ContactDiameter);
+//    }
+//}
+//ResinRod2(h=0, theta=45, tipd=.8, tiph=5, inset=.4, rodd=1.2, raftd=4, raftt=2, minh=8, fn=20);
 
-module ResinRod2(h){
-    $fn=resin_fn;
-    union(){
-        cylinder(d1=BuildplateDiameter, d2=BuildplateDiameter+RaftThickness*2, h=RaftThickness);
-        cylinder(d=RodDiameter, h=h-TipLength-ContactDiameter/2+TipInterference);
-        translate([0, 0, h-TipLength-ContactDiameter/2+TipInterference])
-        cylinder(d1=RodDiameter, d2=ContactDiameter, h=TipLength);
-        translate([0, 0, h-ContactDiameter/2+TipInterference])
-        sphere(d=ContactDiameter);
+module ResinRod2(h, theta, tipd, tiph, inset, rodd, raftd, raftt, minh, fn){
+    $fn=fn;
+    xoffset=sin(theta)*tiph;
+    zoffset=cos(theta)*tiph;
+    //tip
+    translate([0, xoffset, -zoffset+h])
+    rotate([theta, 0, 0])
+    hull(){
+    translate([0, 0, tiph-tipd/2+inset])
+    sphere(d=tipd);
+    sphere(d=rodd);
     }
+    hull(){
+    translate([0, xoffset, -zoffset+h])
+    sphere(d=rodd);
+    translate([0, xoffset, rodd/2])
+    sphere(d=rodd);
+    }
+    translate([0, xoffset, 0])
+    cylinder(d1=raftd, d2=raftd+2*raftt, h=raftt);
+    
 }
+
+//ArrangeRods2(0);
+module ArrangeRods2(s){
+    for (y=[-1,1]){
+
+        //Short Shuttle Tip Edges
+        for (x=[0:Shuttle_Width/(ribspacingedge-1):Shuttle_Width]){
+        z=c*sin(90-arc/2)+zzoffset;
+        xint=Shuttle_Width/(ribspacingedge-1);
+        yy=y*c*cos(90-arc/2);
+        translate([x-Shuttle_Width+Arc_Offset,yy,0])
+        //ResinRod(z);
+        %ResinRod2(h=z, theta=-30*y, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+        if (x-Shuttle_Width+Arc_Offset+xint <= Arc_Offset)
+        for (zz=[0:((z-2)/5):z-2])
+        if (zz-6>RodDiameter/2)
+        %ConRod([x-Shuttle_Width+Arc_Offset, yy+y*sin(-30)*TipLength, zz],[x-Shuttle_Width+Arc_Offset+xint,yy+y*sin(-30)*TipLength , zz-6]);
+        
+        
+        }
+        
+        //Long Shuttle Arc Edge
+        for (d=[Arc_Offset, -Shuttle_Width+Arc_Offset])
+            for (yy=[0:(OD/2-Shuttle_Thickness)*cos(90-arc/2)/(ribspacingarchalf-1):(OD/2-Shuttle_Thickness)*cos(90-arc/2)]){
+            
+            yyint=(OD/2-Shuttle_Thickness)*cos(90-arc/2)/(ribspacingarchalf-1);
+            theta=asin(yy/(OD/2-Shuttle_Thickness));
+            
+            z=((OD/2-Shuttle_Thickness)^2-yy^2)^.5+zzoffset;
+            
+            
+            
+            if (abs(theta)<25)
+            translate([d, y*yy, 0])
+            //#ResinRod(z);
+            %ResinRod2(h=z, theta=-theta*y, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+            for (zz=[0:(z-2)/5 :z-2])
+            if (zz-6>RodDiameter/2)
+            if (yy-yyint>=0)
+            
+            %ConRod([d ,y*yy-TipLength*sin(theta)*y , zz], [d ,y*(yy-yyint)-TipLength*sin(asin((yy-yyint)/(OD/2-Shuttle_Thickness)))*y ,zz-6 ]);
+            
+            }
+    }
+    
+
+    
+    
+    //Folder Inner Corner Short
+    for (x=[-Folder_Thickness, -Folder_Thickness*3/4])
+    for (theta=[
+    (90-(Theta_Offset+rotateoffset)):
+   
+   ((90-(Theta_Offset+Theta+rotateoffset))-(90-(Theta_Offset+rotateoffset)))/3
+   
+   
+   :(90-(Theta_Offset+Theta+rotateoffset))
+   ])
+    translate([
+    x+s, 
+    (Folder_ID/2+Folder_Clearance)*cos(theta), 0
+    ]){
+    %ResinRod2(h=(Folder_ID/2+Folder_Clearance)*sin(theta)+zzoffset, theta=theta<0?(-90+30):(-90+theta), tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);}
+    
+    //Folder Flat
+    for (x=[0:Folder_Thickness/(folderspacing-1):Folder_Thickness])
+    for (y=[(Folder_OD/2)*cos(90-(Theta_Offset+Theta+rotateoffset)), (((Folder_OD/2)*cos(90-(Theta_Offset+Theta+rotateoffset)))+((Folder_ID/2+Folder_Clearance)*cos(90-(Theta_Offset+Theta+rotateoffset))))/2])
+    translate([
+    -x+s, 
+    y , 0
+    ])
+    %ResinRod2(h=(Folder_OD/2)*sin(90-(Theta_Offset+Theta+rotateoffset))+zzoffset, theta=(90-(Theta_Offset+Theta+rotateoffset)), tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+    
+    
+    for (x=[0:(Folder_Thickness/2-Folder_SquashClearance/2)/2:(Folder_Thickness/2-Folder_SquashClearance/2)])
+        for (y=[-5:2.5:5]){
+        theta=asin(y*2/Folder_ID);
+        z=Folder_ID/2-((Folder_ID/2)^2-y^2)^.5;
+            translate([-x+s, y, 0])
+            %ResinRod2(h=(zzoffset-Folder_ID/2+z), theta=theta, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+            }
+    
+}
+
 
 
 //VertVariables
@@ -707,89 +597,82 @@ rotate([0, 0, -rotateoffset])
 RightShuttleAssembled();
 }
 
-module ArrangeRods2(s){
-    for (y=[-1,1]){
-
-        //Short Shuttle Tip Edges
-        for (x=[0:Shuttle_Width/(ribspacingedge-1):Shuttle_Width]){
-        z=c*sin(90-arc/2)+zzoffset;
-        xint=Shuttle_Width/(ribspacingedge-1);
-        yy=y*c*cos(90-arc/2);
-        translate([x-Shuttle_Width+Arc_Offset,yy,0])
-        ResinRod2(z);
-        
-        if (x-Shuttle_Width+Arc_Offset+xint <= Arc_Offset)
-        for (zz=[0:((z-2)/5):z-2])
-        if (zz-6>RodDiameter/2)
-        ConRod([x-Shuttle_Width+Arc_Offset, yy, zz],[x-Shuttle_Width+Arc_Offset+xint,yy , zz-6]);
-        
-        
-        }
-        
-        //Long Shuttle Arc Edge
-        for (d=[Arc_Offset, -Shuttle_Width+Arc_Offset])
-            for (yy=[0:(OD/2-Shuttle_Thickness)*cos(90-arc/2)/(ribspacingarchalf-1):(OD/2-Shuttle_Thickness)*cos(90-arc/2)]){
-            
-            yyint=(OD/2-Shuttle_Thickness)*cos(90-arc/2)/(ribspacingarchalf-1);
-            
-            z=((OD/2-Shuttle_Thickness)^2-yy^2)^.5+zzoffset;
-            
-            
-            
-            translate([d, y*yy, 0])
-            ResinRod2(z);
-            for (zz=[0:(z-2)/5 :z-2])
-            if (zz-6>RodDiameter/2)
-            if (yy-yyint>=0)
-            
-            ConRod([d ,y*yy , zz], [d ,y*(yy-yyint) ,zz-6 ]);
-            
-            }
-    }
-    
-    //Folder Inner Corner Tall
-    
+//module ArrangeRods(s){
+//    for (y=[-1,1]){
+//
+//        //Short Shuttle Tip Edges
+//        for (x=[0:Shuttle_Width/(ribspacingedge-1):Shuttle_Width]){
+//        z=c*sin(90-arc/2)+zzoffset;
+//        xint=Shuttle_Width/(ribspacingedge-1);
+//        yy=y*c*cos(90-arc/2);
+//        translate([x-Shuttle_Width+Arc_Offset,yy,0])
+//        ResinRod(z);
+//        
+//        if (x-Shuttle_Width+Arc_Offset+xint <= Arc_Offset)
+//        for (zz=[0:((z-2)/5):z-2])
+//        if (zz-6>RodDiameter/2)
+//        ConRod([x-Shuttle_Width+Arc_Offset, yy, zz],[x-Shuttle_Width+Arc_Offset+xint,yy , zz-6]);
+//        
+//        
+//        }
+//        
+//        //Long Shuttle Arc Edge
+//        for (d=[Arc_Offset, -Shuttle_Width+Arc_Offset])
+//            for (yy=[0:(OD/2-Shuttle_Thickness)*cos(90-arc/2)/(ribspacingarchalf-1):(OD/2-Shuttle_Thickness)*cos(90-arc/2)]){
+//            
+//            yyint=(OD/2-Shuttle_Thickness)*cos(90-arc/2)/(ribspacingarchalf-1);
+//            
+//            z=((OD/2-Shuttle_Thickness)^2-yy^2)^.5+zzoffset;
+//            
+//            
+//            
+//            translate([d, y*yy, 0])
+//            ResinRod(z);
+//            for (zz=[0:(z-2)/5 :z-2])
+//            if (zz-6>RodDiameter/2)
+//            if (yy-yyint>=0)
+//            
+//            ConRod([d ,y*yy , zz], [d ,y*(yy-yyint) ,zz-6 ]);
+//            
+//            }
+//    }
+//    
+//
+//    
+//    
+//    //Folder Inner Corner Short
 //    for (x=[-Folder_Thickness, -Folder_Thickness*3/4])
+//    for (theta=[
+//    (90-(Theta_Offset+rotateoffset)):
+//   
+//   ((90-(Theta_Offset+Theta+rotateoffset))-(90-(Theta_Offset+rotateoffset)))/3
+//   
+//   
+//   :(90-(Theta_Offset+Theta+rotateoffset))
+//   ])
 //    translate([
-//    x, 
-//    (Folder_ID/2+Folder_Clearance)*cos(90-(Theta_Offset+rotateoffset)), 
+//    x+s, 
+//    (Folder_ID/2+Folder_Clearance)*cos(theta), 0
 //    ])
-//    ResinRod2((Folder_ID/2+Folder_Clearance)*sin(90-(Theta_Offset+rotateoffset))+zzoffset);
-    
-    
-    //Folder Inner Corner Short
-    for (x=[-Folder_Thickness, -Folder_Thickness*3/4])
-    for (theta=[
-    (90-(Theta_Offset+rotateoffset)):
-   
-   ((90-(Theta_Offset+Theta+rotateoffset))-(90-(Theta_Offset+rotateoffset)))/3
-   
-   
-   :(90-(Theta_Offset+Theta+rotateoffset))
-   ])
-    translate([
-    x+s, 
-    (Folder_ID/2+Folder_Clearance)*cos(theta), 0
-    ])
-    ResinRod2((Folder_ID/2+Folder_Clearance)*sin(theta)+zzoffset);
-    
-    //Folder Flat
-    for (x=[0:Folder_Thickness/(folderspacing-1):Folder_Thickness])
-    for (y=[(Folder_OD/2)*cos(90-(Theta_Offset+Theta+rotateoffset)), (((Folder_OD/2)*cos(90-(Theta_Offset+Theta+rotateoffset)))+((Folder_ID/2+Folder_Clearance)*cos(90-(Theta_Offset+Theta+rotateoffset))))/2])
-    translate([
-    -x+s, 
-    y , 0
-    ])
-    ResinRod2((Folder_OD/2)*sin(90-(Theta_Offset+Theta+rotateoffset))+zzoffset);
-    
-    
-    for (x=[0:(Folder_Thickness/2-Folder_SquashClearance/2)/2:(Folder_Thickness/2-Folder_SquashClearance/2)])
-        for (y=[-5:2.5:5]){
-        z=Folder_ID/2-((Folder_ID/2)^2-y^2)^.5;
-            translate([-x+s, y, 0])
-            ResinRod2(zzoffset-Folder_ID/2+z);}
-    
-}
+//    ResinRod((Folder_ID/2+Folder_Clearance)*sin(theta)+zzoffset);
+//    
+//    //Folder Flat
+//    for (x=[0:Folder_Thickness/(folderspacing-1):Folder_Thickness])
+//    for (y=[(Folder_OD/2)*cos(90-(Theta_Offset+Theta+rotateoffset)), (((Folder_OD/2)*cos(90-(Theta_Offset+Theta+rotateoffset)))+((Folder_ID/2+Folder_Clearance)*cos(90-(Theta_Offset+Theta+rotateoffset))))/2])
+//    translate([
+//    -x+s, 
+//    y , 0
+//    ])
+//    ResinRod((Folder_OD/2)*sin(90-(Theta_Offset+Theta+rotateoffset))+zzoffset);
+//    
+//    
+//    for (x=[0:(Folder_Thickness/2-Folder_SquashClearance/2)/2:(Folder_Thickness/2-Folder_SquashClearance/2)])
+//        for (y=[-5:2.5:5]){
+//        z=Folder_ID/2-((Folder_ID/2)^2-y^2)^.5;
+//            translate([-x+s, y, 0])
+//            ResinRod(zzoffset-Folder_ID/2+z);}
+//    
+//}
 
 module VPrintL(){
     VOrientL();
@@ -798,8 +681,6 @@ module VPrintL(){
 
 module VPrintR(){
     VOrientR();
-    //translate([-Arc_Offset+Shuttle_Width/2, 0, 0])
-    
     mirror([0, 1, 0])
     translate([-Shuttle_Width+2*Arc_Offset, 0, 0])
     mirror([1, 0, 0])
@@ -807,15 +688,12 @@ module VPrintR(){
 }
 
 module VResPrint(){
-//translate([0, 21, 0])
     VPrintL();
-    //translate([0, -21, 0])
-    //translate([-20, 0, 0])
     translate([0, 41, 0])
     VPrintR();
 }
 
-if (Assert == false){
+if (Render == true){
 
 if (GenStyle==1)
 VResPrint();
@@ -835,23 +713,3 @@ LeftShuttleAssembled();
 if (GenStyle==5)
 RightShuttleAssembled();
 }
-
-
-
-//LeftShuttleAssembled();
-
-
-//Assemble();
-//Assemble2();
-//FinalPrint2();
-//ResinLeft3();
-//ResinRight3();
-//FinalPrint2();
-//FinalPrint();
-//LeftShuttleAssembled();
-//ResinRight();
-//ResinLeft();
-//if(Generate_Right_Shuttle==true)
-//RightShuttleAssembled();
-//if(Generate_Left_Shuttle==true)
-//LeftShuttleAssembled(); 
