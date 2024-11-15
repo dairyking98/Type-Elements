@@ -129,6 +129,9 @@ H_ALIGNMENT=CUTOUT_TEST==true?"center":ALLHALIGNMENTS[RENDER_MODE];
 
 /* [ Type Testing Stuff] */
 
+//Type test text color
+TYPE_TEST_COLOR="red";//["red","black","white"]
+
 //custom string for type test
 TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
 
@@ -859,7 +862,7 @@ module ResinRodAssemble2(){
 //monospaced type test gauge
 module TextGauge(str, pitch)
 {
-    color("red")
+    color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)] )
     {
         translate([8,8])
@@ -873,7 +876,7 @@ module TextGauge(str, pitch)
 module TextGaugeComposer(str, unitdist)
 {
 
-    color("red")
+    //color("red")
     for ( i = [0:len(str)-1] )
     {
         font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
@@ -987,7 +990,7 @@ module TextGaugeComposerLine(str, unitdist)
 TESTSTRINGPICAS = TestStringPicas(str);
 CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
     if(is_string(str)==true){
-    color("red")
+    color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)-1] )
     {
         font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
