@@ -1196,7 +1196,7 @@ module ArrangeComposerLines(arrayOfStrings){
     for (line=[0:lines]){
     stringinline=arrayOfStrings[line];
     
-    translate([0, -8*line, ])
+    translate([0, (FONTSIZE*2)*line, ])
     TextGaugeComposerLine(stringinline, UNITDIST);
     }
     //echo(lines);
