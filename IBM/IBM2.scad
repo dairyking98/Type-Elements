@@ -38,22 +38,23 @@ SELECTIVE_RENDER=false;
 SELECTIVE_RENDER_CHARS="sine";
 //enable rays?
 RAYS=false;
+
 //character and point array for type testing composer
 COMPOSER_PITCH_LIST=[
 
     ["M", 9], ["W", 9], ["m", 9],
     
-    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8],
+    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8], ["Ö", 8], ["Ä", 8], ["Å", 8], ["Ü", 8], ["Ñ", 8], ["¨", 8], ["`", 8], ["Ø", 8],
     
     ["B", 7], ["C", 7], ["E", 7], ["F", 7], ["L", 7], ["T", 7], ["Z", 7],
     
-    ["P", 6], ["S", 6], ["b", 6], ["d", 6], ["h", 6], ["k", 6], ["n", 6], ["o", 6], ["p", 6], ["q", 6], ["u", 6], ["x", 6], ["y", 6], ["*", 6], ["†", 6], ["$", 6], ["+", 6], ["=", 6], ["0", 6], ["1", 6], ["2", 6], ["3", 6], ["4", 6], ["5", 6], ["6", 6], ["7", 6], ["8", 6], ["9", 6], ["]", 6],
+    ["P", 6], ["S", 6], ["b", 6], ["d", 6], ["h", 6], ["k", 6], ["n", 6], ["o", 6], ["p", 6], ["q", 6], ["u", 6], ["x", 6], ["y", 6], ["*", 6], ["†", 6], ["$", 6], ["+", 6], ["=", 6], ["0", 6], ["1", 6], ["2", 6], ["3", 6], ["4", 6], ["5", 6], ["6", 6], ["7", 6], ["8", 6], ["9", 6], ["]", 6], ["ñ", 6], ["ø", 6], ["ü", 6], ["ß", 6], ["¡", 6], ["¿", 6], ["ö", 6], ["£", 6], ["§", 6],
     
-    ["J", 5], ["a", 5], ["c", 5], ["e", 5], ["g", 5], ["v", 5], ["?", 5], ["[", 5], ["z", 5],
+    ["J", 5], ["a", 5], ["c", 5], ["e", 5], ["g", 5], ["v", 5], ["?", 5], ["[", 5], ["z", 5], ["ˆ", 5], ["´", 5], ["ü", 5], ["ö", 5], ["ä", 5], ["å", 5], ["ç", 5],
     
-    ["I", 4], ["f", 4], ["r", 4], ["s", 4], ["t", 4], [":", 4], ["(", 4], [")", 4], ["!", 4], ["/", 4], ["(", 4],
+    ["I", 4], ["f", 4], ["r", 4], ["s", 4], ["t", 4], [":", 4], ["(", 4], [")", 4], ["!", 4], ["/", 4], ["(", 4], ["ı", 4], ["Æ", 4],["»", 4],
     
-    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], [" ", 3], ["'", 3] //apostrophe not native to Composer
+    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], ["'", 3], ["æ", 3], //apostrophe not native to Composer
 
 ];
 
@@ -69,6 +70,8 @@ CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TE
 
 /* [Typeface Stuff] */
 
+//Composer Language preset
+COMPOSER_LANGUAGE="US";//[US:United States,UK:United Kingdom,NO:Nordic,DE:German,LA:Latin]
 //element typeface
 FONT="Arial";
 //selectric I/II type size
@@ -129,11 +132,17 @@ H_ALIGNMENT=CUTOUT_TEST==true?"center":ALLHALIGNMENTS[RENDER_MODE];
 
 /* [ Type Testing Stuff] */
 
+//Type test text color
+TYPE_TEST_COLOR="red";//["red","black","white"]
+
+//Use custom test string?
+CUSTOM_TEST_STRING=false;
+
 //custom string for type test
 TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
 
-
-TESTARRAY_88KBLAYOUT =[
+//US
+TESTARRAY_US =[
 "1234567890-=",
 "qwertyuiop?",
 "asdfghjkl][",
@@ -144,12 +153,73 @@ TESTARRAY_88KBLAYOUT =[
 "ZXCVBNM‘’:
 "];
 
-TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
+//UK
+TESTARRAY_UK =[
+"1234567890-=",
+"qwertyuiop?",
+"asdfghjkl][",
+"zxcvbnm,.;",
+"!†+£%/&*()–@",
+"QWERTYUIOP¾",
+"ASDFGHJKL¼½",
+"ZXCVBNM‘’:"
+];
+
+//Nordic
+TESTARRAY_NO =[
+"1234567890-ø",
+"qwertyuiopå",
+"asdfghjklöä",
+"zxcvbnm,.;",
+"»!?§%/&=()–Ø",
+"QWERTYUIOPÅ",
+"ASDFGHJKLÖÄ",
+"ZXCVBNM‘’:"
+];
+
+//Germany
+TESTARRAY_DE =[
+"1234567890-ß",
+"qwertyuiopü",
+"asdfghjklöä",
+"zxcvbnm,.;",
+"!=+§%/&*()–?",
+"QWERTYUIOPÜ",
+"ASDFGHJKLÖÄ",
+"ZXCVBNM‘’:"
+];
+
+
+//Latin/French
+TESTARRAY_LA =[
+"1234567890-ñ",
+"qwertyuiopˆ",
+"asdfghjkl´ç",
+"zxcvbnm,.;",
+"ı¿¡$!/&*()–Ñ",
+"QWERTYUIOP¨",
+"ASDFGHJKL`?",
+"ZXCVBNM‘’:"
+];
+
+
+//Match test array to Composer Language unless custom is checked.
+TESTARRAY=
+    (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
+    (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
+    (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
+    (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
+    (COMPOSER_LANGUAGE=="DE")   ? TESTARRAY_DE:
+    (COMPOSER_LANGUAGE=="LA")   ? TESTARRAY_LA:
+    TESTARRAY_US;               //fallback default to US
+
+
+//TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
 
 //preset for type testing strings?
-TESTSTRING_SELECTION=0;//[0:Custom, 1:Composer Keyboard Layout ]
+//TESTSTRING_SELECTION=0;//[0:Custom, 1:Composer Keyboard US,2:Composer Keyboard UK,3:Composer Keyboard Nordic,4:Composer Keyboard German,5:Composer Keyboard Latin ]
 
-TESTARRAY=TESTARRAYS[TESTSTRING_SELECTION];
+//TESTARRAY=TESTARRAYS[TESTSTRING_SELECTION];
 
 //composer picas per character array
 //TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
@@ -248,8 +318,12 @@ LABEL_NO_FONT_OVERRIDE="";
 LABEL_FONT_OVERRIDE="";
 //Font size for number label
 NO_LABEL_SIZE=2;
+//Vertical offset for number label. +up -down
+NO_LABEL_OFFSET=0;//0.25
 //Font size for typeface label 
 FONT_LABEL_SIZE=2;
+//Vertical offset for font label. +up -down
+FONT_LABEL_OFFSET=0;//0.25
 //arrow from center 
 DEL_BASE_FROM_CENTRE = 8.2;
 //depth of arrow
@@ -258,7 +332,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-1.5, -1.5, -0.75, -0.75];//.05
+PLATEN_LONGITUDE_OFFSETS=[-1.5, -1.5, -0.75, -0.5];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -374,7 +448,7 @@ wsi'.½oarvm
 /* [Character Mapping - Composer 88char] */
 
 //uppercase composer layout on machine; left to right, top to bottom
-LOWERCASECOMPOSER88 ="
+LOWERCASECOMPOSER_US ="
 1234567890-=
 qwertyuiop?
 asdfghjkl][
@@ -382,23 +456,137 @@ zxcvbnm,.;
 ";
 
 //lowercase composer layout on machine; left to right, top to bottom
-UPPERCASECOMPOSER88 ="
+
+//United States
+UPPERCASECOMPOSER_US ="
 !†+$%/&*()–@
 QWERTYUIOP¾
 ASDFGHJKL¼½
 ZXCVBNM‘’:
 ";
 
+//United Kingdom
+LOWERCASECOMPOSER_UK ="
+1234567890-=
+qwertyuiop?
+asdfghjkl][
+zxcvbnm,.;
+";
+
+UPPERCASECOMPOSER_UK ="
+!†+£%/&*()–@
+QWERTYUIOP¾
+ASDFGHJKL¼½
+ZXCVBNM‘’:
+";
+
+//Nordic
+LOWERCASECOMPOSER_NO ="
+1234567890-ø
+qwertyuiopå
+asdfghjklöä
+zxcvbnm,.;
+";
+
+UPPERCASECOMPOSER_NO ="
+»!?§%/&=()–Ø
+QWERTYUIOPÅ
+ASDFGHJKLÖÄ
+ZXCVBNM‘’:
+";
+
+//Germany
+LOWERCASECOMPOSER_DE ="
+1234567890-ß
+qwertyuiopü
+asdfghjklöä
+zxcvbnm,.;
+";
+
+UPPERCASECOMPOSER_DE ="
+!=+§%/&*()–?
+QWERTYUIOPÜ
+ASDFGHJKLÖÄ
+ZXCVBNM‘’:
+";
+
+
+//Latin/French
+LOWERCASECOMPOSER_LA ="
+1234567890-ñ
+qwertyuiopˆ
+asdfghjkl´ç
+zxcvbnm,.;
+";
+
+UPPERCASECOMPOSER_LA ="
+ı¿¡$!/&*()–Ñ
+QWERTYUIOP¨
+ASDFGHJKL`?
+ZXCVBNM‘’:
+";
+
+
+US=[LOWERCASECOMPOSER_US,UPPERCASECOMPOSER_US];
+UK=[LOWERCASECOMPOSER_UK,UPPERCASECOMPOSER_UK];
+NO=[LOWERCASECOMPOSER_NO,UPPERCASECOMPOSER_NO];
+DE=[LOWERCASECOMPOSER_DE,UPPERCASECOMPOSER_DE];
+LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
+
+COMPOSERCASES88=
+    (COMPOSER_LANGUAGE=="US") ? US:
+    (COMPOSER_LANGUAGE=="UK") ? UK:
+    (COMPOSER_LANGUAGE=="NO") ? NO:
+    (COMPOSER_LANGUAGE=="DE") ? DE:
+    (COMPOSER_LANGUAGE=="LA") ? LA:
+    US; //fallback default to US
+    
 //lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
-COMPOSER_LC_HEMISPHERE88="
+COMPOSER_LC_HEMISPHERE_US="
 .,634s10928
 ?-[cliatb75
 xvumhnrodwk
 =]zpyefgq;j
 ";
 
+COMPOSER_LC_HEMISPHERE_UK="
+.,634s10928
+?-[cliatb75
+xvumhnrodwk
+=]zpyefgq;j
+";
+
+COMPOSER_LC_HEMISPHERE_NO="
+.,634s10928
+å-äcliatb75
+xvumhnrodwk
+øözpyefgq;j
+";
+
+COMPOSER_LC_HEMISPHERE_DE="
+.,634s10928
+ü-äcliatb75
+xvumhnrodwk
+ßözpyefgq;j
+";
+
+COMPOSER_LC_HEMISPHERE_LA="
+.,634s10928
+ˆ-çcliatb75
+xvumhnrodwk
+ñ´zpyefgq;j
+";
+
+COMPOSER_LC_HEMISPHERE88=
+    (COMPOSER_LANGUAGE=="UK") ? COMPOSER_LC_HEMISPHERE_UK:
+    (COMPOSER_LANGUAGE=="US") ? COMPOSER_LC_HEMISPHERE_US:
+    (COMPOSER_LANGUAGE=="NO") ? COMPOSER_LC_HEMISPHERE_NO:
+    (COMPOSER_LANGUAGE=="DE") ? COMPOSER_LC_HEMISPHERE_DE:
+    (COMPOSER_LANGUAGE=="LA") ? COMPOSER_LC_HEMISPHERE_LA:
+    COMPOSER_LC_HEMISPHERE_US; //fallback default to US
+
 //composer layout array
-COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
+//COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
 
 
 
@@ -855,7 +1043,7 @@ module ResinRodAssemble2(){
 //monospaced type test gauge
 module TextGauge(str, pitch)
 {
-    color("red")
+    color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)] )
     {
         translate([8,8])
@@ -869,7 +1057,7 @@ module TextGauge(str, pitch)
 module TextGaugeComposer(str, unitdist)
 {
 
-    color("red")
+    //color("red")
     for ( i = [0:len(str)-1] )
     {
         font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
@@ -965,10 +1153,10 @@ module Labels()
     {
         // Disable Label No for Composer balls
         if (RENDER_MODE!=0) { 
-            translate([-0.1,14,0])
+            translate([-0.1+NO_LABEL_OFFSET,14,0])
         text(LABEL_NO, size=NO_LABEL_SIZE, font=LABEL_NO_FONT_OVERRIDE==""?FONT:LABEL_NO_FONT_OVERRIDE, halign="center");
     }
-        translate([0,0.6,0])
+        translate([0,0.6+FONT_LABEL_OFFSET,0])
         text(LABEL_TEXT_OVERRIDE==""?FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?FONT:LABEL_FONT_OVERRIDE, halign="center");
         
     }
@@ -983,7 +1171,7 @@ module TextGaugeComposerLine(str, unitdist)
 TESTSTRINGPICAS = TestStringPicas(str);
 CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
     if(is_string(str)==true){
-    color("red")
+    color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)-1] )
     {
         font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
