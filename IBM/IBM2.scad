@@ -135,6 +135,9 @@ H_ALIGNMENT=CUTOUT_TEST==true?"center":ALLHALIGNMENTS[RENDER_MODE];
 //Type test text color
 TYPE_TEST_COLOR="red";//["red","black","white"]
 
+//Use custom test string?
+CUSTOM_TEST_STRING=false;
+
 //custom string for type test
 TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
 
@@ -199,8 +202,6 @@ TESTARRAY_LA =[
 "ZXCVBNM‘’:"
 ];
 
-//Use custom test string?
-CUSTOM_TEST_STRING=false;
 
 //Match test array to Composer Language unless custom is checked.
 TESTARRAY=
