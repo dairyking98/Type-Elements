@@ -51,8 +51,8 @@ CharModSize=2.7;
 /* [Dimensions] */
 Posthole_ID=1.92;// 5/64 wire rod
 PostholeID_ResinOffset=.25;
-OD_InnerTube=5.842+.17;//measurement + clearance
-OD_OuterTube=6.6548+.17;//measurement + clearance
+OD_InnerTube_=5.842;//measurement + clearance
+OD_OuterTube_=6.6548;//measurement + clearance
 
 Tube_Clearance=.05;
 
@@ -83,8 +83,13 @@ Rib_Thickness=2.6;
 //Tube length to bottom of folder
 Tube_Length=24.2;
 Tube_ID=5.05;
-Tube_IDResinOffset=.25;
+//embiggen tube hole diameter by this much
+Tube_IDResinOffset=.17;
 Tube_OD=6.6;
+
+OD_InnerTube=OD_InnerTube_+Tube_IDResinOffset;
+OD_OuterTube=OD_OuterTube_+Tube_IDResinOffset;
+
 
 
 MyTube_OD=8;
@@ -105,9 +110,9 @@ LogoDepth=.3;
 /* [Constants] */
 Theta_Offset=8.3;
 Theta=115.8;
-Pin1=72.3;//.01
-Pin2=112.0;//.01
-Pin_Radius=7.6895;
+Pin1=68.55;//.01
+Pin2=108.25;//.01
+Pin_Radius=7.95;
 
 Finger_Offset=asin((Finger_Thickness/2)/((OD-2*Shuttle_Thickness)/2))/2;//why /2????
 //asin(Finger_Thickness/(2*(OD-2*Shuttle_Thickness)/2));
@@ -410,6 +415,8 @@ module LeftShuttleAssembled(){
             translate([0, 0, Folder_Thickness*FolderLocation-Folder_SquashClearance/2-Folder_UpsideDownOffset])
             rotate([180, 0, 0])
             TubeChamfer(OD_OuterTube);
+            translate([0, 0, -z])
+            TubeChamfer(OD_OuterTube);
             if (Logo==true){
                 LocateLogo(1)
                 LogoText();
@@ -430,6 +437,9 @@ module RightShuttleAssembled(){
             translate([0, 0, -z])
             cylinder(h=Folder_Thickness*FolderLocation+z+Folder_SquashClearance/2, d=Folder_ID+Folder_Clearance*2, $fn=cyl_fn);
             translate([0, 0, Folder_Thickness*FolderLocation+Folder_SquashClearance/2])
+            TubeChamfer(OD_InnerTube);
+            translate([0, 0, Folder_Thickness+z])
+            rotate([0, 180, 0])
             TubeChamfer(OD_InnerTube);
             
             
