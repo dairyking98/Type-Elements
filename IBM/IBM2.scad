@@ -288,7 +288,7 @@ DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 //center to roof of element
 ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
 
-/* [Character Mapping - 88char] */
+/* [Character Mapping - Custom 88char] */
 
 //use custom keyboard layout?
 CUSTOM=false;
@@ -600,11 +600,11 @@ module SolidCleanup(){
     //web
     if (WEB==true)
     ArrangeWeb();
-    if (ARROW==true)
-    Del();
-    if (LABEL==true)
-        if (WEB==false) //disable label when web is enabled
-        FontName();
+    if (WEB==false){
+        if (ARROW==true)
+        Del();
+        if (LABEL==true)
+        FontName();}
 }
 ////subtractive parts - inner radius
 //module HollowProfile(){
@@ -933,7 +933,7 @@ module Render(){
                 if (RENDER_MODE==0)
                     ArrangeComposerLines(TESTARRAY);
                 if (RENDER_MODE==1)
-                    TextGauge(TESTSTRING, TESTCPI);
+                    TextGauge(TESTSTRING_CUSTOM, TESTCPI);
             }
             if (RENDER_VARIANT==3)
                 ResinPrint2();
@@ -977,7 +977,6 @@ module Labels()
         
     }
 }
-//TextGaugeComposerLine(TESTSTRING, UNITDIST);
 
 //create array of picas per test string character function
 function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) COMPOSER_PITCH_LIST[search(string[i], COMPOSER_PITCH_LIST)[0]][1]];
