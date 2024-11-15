@@ -54,7 +54,7 @@ COMPOSER_PITCH_LIST=[
     
     ["I", 4], ["f", 4], ["r", 4], ["s", 4], ["t", 4], [":", 4], ["(", 4], [")", 4], ["!", 4], ["/", 4], ["(", 4], ["ı", 4], ["Æ", 4],["»", 4],
     
-    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], ["'", 3], ["æ", 3], //apostrophe not native to Composer
+    ["i", 3], ["j", 3], ["l", 3], [".", 3], [",", 3], [";", 3], ["’", 3], ["‘", 3], ["-", 3], ["'", 3], ["æ", 3], [" ", 3]//apostrophe not native to Composer
 
 ];
 
@@ -96,8 +96,8 @@ FONT2SIZE=ALLFONT2SIZES[RENDER_MODE];
 FONT2CHARS="";
 //custom horizontal alignment characters
 CUSTOMHALIGNCHARS="";
-//custom horizontal alignment characters offset
-CUSTOMHALIGNOFFSET=-0.2;
+//custom horizontal alignment characters offset. -left +right
+CUSTOMHALIGNOFFSET=0.2;
 //custom vertical alignment characters
 CUSTOMVALIGNCHARS="";
 //custom vertical alignment characters offset
@@ -678,9 +678,10 @@ union(){
 
 //2d text
 module Text(char, font, size, customhalign, customvalign){
+    $fn = mink_fn;
     offset(FONT_WEIGHT_OFFSET)
     minkowski(){
-        translate([X_POS_OFFSET+customhalign, Y_POS_OFFSET+customvalign, 0])
+        translate([X_POS_OFFSET-customhalign, Y_POS_OFFSET+customvalign, 0])
         mirror([1, 0, 0])
         text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=text_fn);
         if (X_WEIGHT_ADJUSTMENT>0 || Y_WEIGHT_ADJUSTMENT>0)
@@ -1053,23 +1054,22 @@ module TextGauge(str, pitch)
     }
 }
 
-//composer type test gauge
-module TextGaugeComposer(str, unitdist)
-{
-
-    //color("red")
-    for ( i = [0:len(str)-1] )
-    {
-        font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
-        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
-        translate([8,8])
-        translate([CUMULATIVETESTSTRINGPICAS[i]*unitdist,0])
-        
-        offset(FONT_WEIGHT_OFFSET)
-        text(size=size, font=font, halign="left", str[i]);
-        //echo(CUMULATIVETESTSTRINGPICAS[i]);
-    }
-}
+////composer type test gauge
+//module TextGaugeComposer(str, unitdist)
+//{
+//
+//    //color("red")
+//    for ( i = [0:len(str)-1] )
+//    {
+//        font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
+//        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
+//        translate([8,8])
+//        translate([CUMULATIVETESTSTRINGPICAS[i]*unitdist,0])
+//        offset(FONT_WEIGHT_OFFSET)
+//        text(size=size, font=font, halign="left", str[i]);
+//        //echo(CUMULATIVETESTSTRINGPICAS[i]);
+//    }
+//}
 
 
 //2d web shape
@@ -1175,7 +1175,10 @@ CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
     for ( i = [0:len(str)-1] )
     {
         font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
-        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
+        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;          
+        customhalign=search(str[i], CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
+        customvalign=search(str[i], CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
+        translate([customhalign, customvalign, 0])
         translate([CUMSUMTESTSTRINGPICAS[i]*unitdist,0])
         
         offset(FONT_WEIGHT_OFFSET)
@@ -1193,7 +1196,7 @@ module ArrangeComposerLines(arrayOfStrings){
     for (line=[0:lines]){
     stringinline=arrayOfStrings[line];
     
-    translate([0, -8*line, ])
+    translate([0, (-FONTSIZE*2)*line, ])
     TextGaugeComposerLine(stringinline, UNITDIST);
     }
     //echo(lines);
