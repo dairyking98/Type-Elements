@@ -957,7 +957,7 @@ module Del()
 // Emboss a label onto top face
 module FontName()
 {
-    translate([-8.5+FONT_LABEL_OFFSET, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    translate([-8.5, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
     rotate([0,0,270])
     linear_extrude(DEL_DEPTH+0.01)
     Labels();
