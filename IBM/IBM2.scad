@@ -72,6 +72,9 @@ CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TE
 //Composer Language preset
 COMPOSER_LANGUAGE="US";//[US:United States,UK:United Kingdom,NO:Nordic,DE:German,LA:Latin]
 
+//Selectric I/II 88 character Language Preset
+S12_88_LANGUAGE="US";//[US:United States]
+
 //use custom keyboard layout?
 CUSTOM=false;
 
@@ -402,7 +405,7 @@ ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
 /* [Character Mapping - Selectric I/II 88char] */
 
 //lowercase selectric 1/2 layout on machine; left to right, top to bottom
-LOWERCASE88="
+LOWERCASE88_US="
 1234567890-=
 qwertyuiop½
 asdfghjkl;'
@@ -410,23 +413,31 @@ zxcvbnm,./
 ";
 
 //uppercase selectric 1/2 layout on machine; left to right, top to bottom
-UPPERCASE88="
+UPPERCASE88_US="
 !@#$%¢&*()_+
 QWERTYUIOP¼
 ASDFGHJKL:\"
 ZXCVBNM,.?
 ";
 
-//selectric 1/2 layout array
-S12CASES88=[LOWERCASE88, UPPERCASE88];
 
 //lowercase hemisphere of selectric 1/2 element from the top moving counter clockwise, top to bottom
-S12_LC_HEMISPHERE88="
+S12_LC_HEMISPHERE88_US="
 90652z48731
 bhkentlcdux
 wsi'.½oarvm
 -yqp=j/,;fg
 ";
+
+S12_US=[LOWERCASE88_US,UPPERCASE88_US];
+
+S12CASES88=
+    (S12_88_LANGUAGE=="US") ? S12_US:
+    S12_US; //fallback default to US
+    
+S12_LC_HEMISPHERE88=
+    (S12_88_LANGUAGE=="US") ? S12_LC_HEMISPHERE88_US:
+    S12_LC_HEMISPHERE88_US; //fallback default to US
 
 
 //SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
@@ -553,75 +564,31 @@ COMPOSERCASES88=
     (COMPOSER_LANGUAGE=="DE") ? DE:
     (COMPOSER_LANGUAGE=="LA") ? LA:
     US; //fallback default to US
-    
-//lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
-COMPOSER_LC_HEMISPHERE_US="
-.,634s10928
-?-[cliatb75
-xvumhnrodwk
-=]zpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_UK="
-.,634s10928
-?-[cliatb75
-xvumhnrodwk
-=]zpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_NO="
-.,634s10928
-å-äcliatb75
-xvumhnrodwk
-øözpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_DE="
-.,634s10928
-ü-äcliatb75
-xvumhnrodwk
-ßözpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_LA="
-.,634s10928
-ˆ-çcliatb75
-xvumhnrodwk
-ñ´zpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE88=
-    (COMPOSER_LANGUAGE=="UK") ? COMPOSER_LC_HEMISPHERE_UK:
-    (COMPOSER_LANGUAGE=="US") ? COMPOSER_LC_HEMISPHERE_US:
-    (COMPOSER_LANGUAGE=="NO") ? COMPOSER_LC_HEMISPHERE_NO:
-    (COMPOSER_LANGUAGE=="DE") ? COMPOSER_LC_HEMISPHERE_DE:
-    (COMPOSER_LANGUAGE=="LA") ? COMPOSER_LC_HEMISPHERE_LA:
-    COMPOSER_LC_HEMISPHERE_US; //fallback default to US
-
-//composer layout array
-//COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
-
 
 
 //all keyboard layouts
 ALL88CASES=[COMPOSERCASES88, S12CASES88];
 
-//all hemisphere layouts
-ALL88HEMIS=[COMPOSER_LC_HEMISPHERE88, S12_LC_HEMISPHERE88];
-
+////all hemisphere layouts
+//ALL88HEMIS=[COMPOSER_LC_HEMISPHERE88, S12_LC_HEMISPHERE88];
 
 
 //set keyboard layout for character mapping
 CASES88=ALL88CASES[RENDER_MODE];
 
-//set lowercase hemisphere 
-LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
+////set lowercase hemisphere 
+//LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
 
 //create lowercase layout to element hemisphere map
-LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i], LC_HEMISPHERE88)];
+LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12CASES88[0])-1]) search(S12CASES88[0][i], S12_LC_HEMISPHERE88)];
 
+COMPOSER_HEMISPHERE_MAP = [[9], [6], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
+
+HEMISPHERE_MAP=RENDER_MODE==0?COMPOSER_HEMISPHERE_MAP:LC_LAYOUT_TO_HEMISPHERE_MAP;
+
+//echo(HEMISPHERE_MAP);
 //create latitude, longitude integer array for one hemisphere
-LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
+LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11, ceil(HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
 
 
