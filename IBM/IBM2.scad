@@ -1,5 +1,5 @@
 //dairy's rendition of ibm selectric type element model
-//Leonard Chau      November 4, 2024       t(-.-t)
+//Leonard Chau & Otto Koponen      November 16, 2024       t(-.-t)
 
 /* [Global Parameters] */
 
@@ -289,7 +289,7 @@ MAX_OD=34.9;
 //sphere center to top flat
 TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
-TOPFLAT_THICKNESS=3;
+TOPFLAT_THICKNESS=3.5;
 //shaft ID
 SHAFT_ID=8.8;
 //shaft r
@@ -375,7 +375,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-1.5, -1.5, -0.75, -0.5];//.05
+PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
