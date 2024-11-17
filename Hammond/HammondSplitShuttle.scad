@@ -59,13 +59,16 @@ OD_OuterTube_=6.6548;//measurement + clearance
 OD=75.0;
 Shuttle_Thickness=1.6;
 Shuttle_Width=13.26;
-Folder_Thickness=9.525;// 3/8 thick
 Folder_ID=12;//9.6;
 Folder_OD=18.762;
 Folder_Clearance=0.4;
 Folder_SquashClearance=.3683;//.2794;//.0001 //.5 for Full 3D
 FolderLocation=.5;//.2 for Full 3D, .5 for metal tube
 Tube_ChamferSize=.5;
+Folder_Thickness_=9.525;// 3/8 thick
+
+Folder_Thickness_Offset=.05;
+Folder_Thickness=Folder_Thickness_+Folder_Clearance+Folder_Thickness_Offset-Folder_Thickness_Offset;
 
 Glyph_Depth=.8;
 Finger_Thickness=1.8;// 
@@ -490,11 +493,11 @@ module ArrangeRods2(s){
         yy=y*c*cos(90-arc/2);
         translate([x-Shuttle_Width+Arc_Offset,yy,0])
         //ResinRod(z);
-        %ResinRod2(h=z, theta=-30*y, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+        ResinRod2(h=z, theta=-30*y, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
         if (x-Shuttle_Width+Arc_Offset+xint <= Arc_Offset)
         for (zz=[0:((z-2)/5):z-2])
         if (zz-6>RodDiameter/2)
-        %ConRod([x-Shuttle_Width+Arc_Offset, yy+y*sin(-30)*TipLength, zz],[x-Shuttle_Width+Arc_Offset+xint,yy+y*sin(-30)*TipLength , zz-6]);
+        ConRod([x-Shuttle_Width+Arc_Offset, yy+y*sin(-30)*TipLength, zz],[x-Shuttle_Width+Arc_Offset+xint,yy+y*sin(-30)*TipLength , zz-6]);
         
         
         }
@@ -513,12 +516,12 @@ module ArrangeRods2(s){
             if (abs(theta)<25)
             translate([d, y*yy, 0])
             //#ResinRod(z);
-            %ResinRod2(h=z, theta=-theta*y, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+            ResinRod2(h=z, theta=-theta*y, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
             for (zz=[0:(z-2)/5 :z-2])
             if (zz-6>RodDiameter/2)
             if (yy-yyint>=0)
             
-            %ConRod([d ,y*yy-TipLength*sin(theta)*y , zz], [d ,y*(yy-yyint)-TipLength*sin(asin((yy-yyint)/(OD/2-Shuttle_Thickness)))*y ,zz-6 ]);
+            ConRod([d ,y*yy-TipLength*sin(theta)*y , zz], [d ,y*(yy-yyint)-TipLength*sin(asin((yy-yyint)/(OD/2-Shuttle_Thickness)))*y ,zz-6 ]);
             
             }
     }
@@ -540,7 +543,7 @@ module ArrangeRods2(s){
     x+s, 
     (Folder_ID/2+Folder_Clearance)*cos(theta), 0
     ]){
-    %ResinRod2(h=(Folder_ID/2+Folder_Clearance)*sin(theta)+zzoffset, theta=theta<0?(-90+30):(-90+theta), tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);}
+    ResinRod2(h=(Folder_ID/2+Folder_Clearance)*sin(theta)+zzoffset, theta=theta<0?(-90+30):(-90+theta), tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);}
     
     //Folder Flat
     for (x=[0:Folder_Thickness/(folderspacing-1):Folder_Thickness])
@@ -549,7 +552,7 @@ module ArrangeRods2(s){
     -x+s, 
     y , 0
     ])
-    %ResinRod2(h=(Folder_OD/2)*sin(90-(Theta_Offset+Theta+rotateoffset))+zzoffset, theta=(90-(Theta_Offset+Theta+rotateoffset)), tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+    ResinRod2(h=(Folder_OD/2)*sin(90-(Theta_Offset+Theta+rotateoffset))+zzoffset, theta=(90-(Theta_Offset+Theta+rotateoffset)), tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
     
     
     for (x=[0:(Folder_Thickness/2-Folder_SquashClearance/2)/2:(Folder_Thickness/2-Folder_SquashClearance/2)])
@@ -557,7 +560,7 @@ module ArrangeRods2(s){
         theta=asin(y*2/Folder_ID);
         z=Folder_ID/2-((Folder_ID/2)^2-y^2)^.5;
             translate([-x+s, y, 0])
-            %ResinRod2(h=(zzoffset-Folder_ID/2+z), theta=theta, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
+            ResinRod2(h=(zzoffset-Folder_ID/2+z), theta=theta, tipd=ContactDiameter, tiph=TipLength, inset=TipInterference, rodd=RodDiameter, raftd=BuildplateDiameter, raftt=RaftThickness, minh=MinRodHeight, fn=20);
             }
     
 }
