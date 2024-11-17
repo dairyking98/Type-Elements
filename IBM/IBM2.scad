@@ -1,5 +1,10 @@
 //dairy's rendition of ibm selectric type element model
-//Leonard Chau & Otto Koponen      November 16, 2024       t(-.-t)
+
+//      credit where it is due: https://selectricrescue.org/
+
+//
+//                              Creation date: November 4, 2024                     
+//Leonard Chau & Otto Koponen   November 16, 2024       t(-.-t)
 
 /* [Global Parameters] */
 
