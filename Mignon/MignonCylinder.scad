@@ -58,15 +58,20 @@ Tallen_Baseline_Offset=-1.25;
 //Element Height Increase
 Height_Increase=3;
 
-
+//Primary font name
 Typeface_="Iosevka Etoile";//As Installed on PC
 Type_Size=2.45;//[1:.05:10]
+//Secondary font name
+Typeface_2="Times new roman";
+Type_2Size=2.75;//[1:.05:10]
+//Secondary font characters
+Typeface_2Chars="";
 Debug_No_Minkowski=true;//Speedy Preview and Render with No Minkowski
 //Individual Character Height Adjustments
 Character_Modifieds="_";
 Character_Modifieds_Offset=0;//[-1.5:.05:1.5]
 Scale_Multiplier_Text=".";
-Scale_Multiplier=1.0;
+Scale_Multiplier=1.0;//0.01
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
 Vertical_Weight_Adj=.001;//[.001:.001:.2]
 Weight_Adj_Mode=0;//[0:None, 1:Subtractive, 2:Additive]
@@ -182,26 +187,29 @@ module WeightAdjShape(){
 module 2DText(Char, column){
     x=search(Char, Scale_Multiplier_Text);
     y=search(Char, Character_Modifieds);
+    z=search(Char, Typeface_2Chars)==[]?Typeface_:Typeface_2;
+    a=search(Char, Typeface_2Chars)==[]?Type_Size:Type_2Size;
     translate([0, (y==[]?0:Character_Modifieds_Offset) + (testing_baseline==true?Testing_Offsets[column]:0), 0])
     mirror([1, 0, 0]){
         if (Weight_Adj_Mode==2)//Additive
             minkowski(){
-                text(Char,size=x==[] ? Type_Size:Type_Size*Scale_Multiplier,halign="center",valign="baseline",font=Typeface_, $fn=text_fn);
+                text(Char,size=x==[] ? a:a*Scale_Multiplier,halign="center",valign="baseline",font=z, $fn=text_fn);
                 WeightAdjShape();
             }
         if (Weight_Adj_Mode==1)//Subtractive
             difference(){
-                text(Char,size=x==[] ? Type_Size:Type_Size*Scale_Multiplier,halign="center",valign="baseline",font=Typeface_, $fn=text_fn);
+                text(Char,size=x==[] ? a:a*Scale_Multiplier,halign="center",valign="baseline",font=z, $fn=text_fn);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
-                        text(Char,size=x==[] ? Type_Size:Type_Size*Scale_Multiplier,halign="center",valign="baseline",font=Typeface_, $fn=text_fn);
+                        text(Char,size=x==[] ? a:a*Scale_Multiplier,halign="center",valign="baseline",font=z, $fn=text_fn);
                     }
                     WeightAdjShape();
                 }
             }
         if (Weight_Adj_Mode==0)//No Weight Adjustment
-            text(Char,size=x==[] ? Type_Size:Type_Size*Scale_Multiplier,halign="center",valign="baseline",font=Typeface_, $fn=text_fn);
+            text(Char,size=x==[] ? a:a*Scale_Multiplier,halign="center",valign="baseline",font=z, $fn=text_fn);
+            echo(a);
     }
 }
 
