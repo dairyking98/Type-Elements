@@ -1,5 +1,5 @@
 //dairy's rendition of ibm selectric type element model
-//Leonard Chau      November 4, 2024       t(-.-t)
+//Leonard Chau & Otto Koponen      November 16, 2024       t(-.-t)
 
 /* [Global Parameters] */
 
@@ -289,7 +289,7 @@ MAX_OD=34.9;
 //sphere center to top flat
 TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
-TOPFLAT_THICKNESS=3;
+TOPFLAT_THICKNESS=3.5;
 //shaft ID
 SHAFT_ID=8.8;
 //shaft r
@@ -375,7 +375,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-1.5, -1.5, -0.75, -0.5];//.05
+PLATEN_LONGITUDE_OFFSETS=[-0.5, -0.5, -0.25, -0.5];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -582,7 +582,7 @@ CASES88=ALL88CASES[RENDER_MODE];
 //create lowercase layout to element hemisphere map
 LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12CASES88[0])-1]) search(S12CASES88[0][i], S12_LC_HEMISPHERE88)];
 
-COMPOSER_HEMISPHERE_MAP = [[9], [6], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
+COMPOSER_HEMISPHERE_MAP = [[6], [9], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
 
 HEMISPHERE_MAP=RENDER_MODE==0?COMPOSER_HEMISPHERE_MAP:LC_LAYOUT_TO_HEMISPHERE_MAP;
 
