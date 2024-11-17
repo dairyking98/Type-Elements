@@ -582,7 +582,7 @@ CASES88=ALL88CASES[RENDER_MODE];
 //create lowercase layout to element hemisphere map
 LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12CASES88[0])-1]) search(S12CASES88[0][i], S12_LC_HEMISPHERE88)];
 
-COMPOSER_HEMISPHERE_MAP = [[9], [6], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
+COMPOSER_HEMISPHERE_MAP = [[6], [9], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
 
 HEMISPHERE_MAP=RENDER_MODE==0?COMPOSER_HEMISPHERE_MAP:LC_LAYOUT_TO_HEMISPHERE_MAP;
 
