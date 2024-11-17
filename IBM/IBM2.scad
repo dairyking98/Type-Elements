@@ -44,7 +44,7 @@ COMPOSER_PITCH_LIST=[
 
     ["M", 9], ["W", 9], ["m", 9],
     
-    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8], ["Ö", 8], ["Ä", 8], ["Å", 8], ["Ü", 8], ["Ñ", 8], ["¨", 8], ["`", 8], ["Ø", 8],
+    ["A", 8], ["D", 8], ["G", 8], ["H", 8], ["K", 8], ["N", 8], ["O", 8], ["Q", 8], ["R", 8], ["U", 8], ["V", 8], ["X", 8], ["Y", 8], ["w", 8], ["¾", 8], ["½", 8], ["&", 8], ["%", 8], ["@", 8], ["¼", 8], ["–", 8], ["Ö", 8], ["Ä", 8], ["Å", 8], ["Ü", 8], ["Ñ", 8], ["¨", 8], ["`", 8], ["Ø", 8],["—", 8], ["€", 8],
     
     ["B", 7], ["C", 7], ["E", 7], ["F", 7], ["L", 7], ["T", 7], ["Z", 7],
     
@@ -67,11 +67,43 @@ CUTOUT_TEST_ANGLE_INT=.1;
 CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
 CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
 
-
-/* [Typeface Stuff] */
+/* [Language and Custom Layout] */
 
 //Composer Language preset
 COMPOSER_LANGUAGE="US";//[US:United States,UK:United Kingdom,NO:Nordic,DE:German,LA:Latin]
+
+//Selectric I/II 88 character Language Preset
+S12_88_LANGUAGE="US";//[US:United States]
+
+//use custom keyboard layout?
+CUSTOM=false;
+
+//lowercase layout for custom keyboard
+CUSTOMLOWERCASE88="
+
+||||||||||||
+|||||||||||
+|||||||||||
+||||||||||
+
+";
+
+//uppercase layout for custom keyboard
+CUSTOMUPPERCASE88="
+
+||||||||||||
+|||||||||||
+|||||||||||
+||||||||||
+
+";
+
+//custom 88 layout array
+CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
+
+
+/* [Typeface Stuff] */
+
 //element typeface
 FONT="Arial";
 //selectric I/II type size
@@ -234,6 +266,17 @@ UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  
 //mm distance per composer unit
 UNITDIST=25.4/UNITSPERINCH;
 
+ARROW_COLOR=
+    (RENDER_MODE==1)   ? "white":  //SI/II
+    (RENDER_MODE==2)   ? "yellow": //SIII
+    (UNITSPERINCH==72) ? "red":    
+    (UNITSPERINCH==84) ? "yellow":
+    (UNITSPERINCH==96) ? "blue":
+    "white" // fallback
+    ;
+//echo(ARROW_COLOR);
+
+
 
 /* [Typeball Dimensions] */
 
@@ -317,11 +360,11 @@ LABEL_NO_FONT_OVERRIDE="";
 //Font override for typeface label (leave blank to adopt element typeface)
 LABEL_FONT_OVERRIDE="";
 //Font size for number label
-NO_LABEL_SIZE=2;
+NO_LABEL_SIZE=2;//0.25
 //Vertical offset for number label. +up -down
 NO_LABEL_OFFSET=0;//0.25
 //Font size for typeface label 
-FONT_LABEL_SIZE=2;
+FONT_LABEL_SIZE=2;//0.25
 //Vertical offset for font label. +up -down
 FONT_LABEL_OFFSET=0;//0.25
 //arrow from center 
@@ -358,38 +401,11 @@ DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 //center to roof of element
 ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
 
-/* [Character Mapping - Custom 88char] */
-
-//use custom keyboard layout?
-CUSTOM=false;
-
-//lowercase layout for custom keyboard
-CUSTOMLOWERCASE88="
-
-||||||||||||
-|||||||||||
-|||||||||||
-||||||||||
-
-";
-
-//uppercase layout for custom keyboard
-CUSTOMUPPERCASE88="
-
-||||||||||||
-|||||||||||
-|||||||||||
-||||||||||
-
-";
-
-//custom 88 layout array
-CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 
 /* [Character Mapping - Selectric I/II 88char] */
 
 //lowercase selectric 1/2 layout on machine; left to right, top to bottom
-LOWERCASE88="
+LOWERCASE88_US="
 1234567890-=
 qwertyuiop½
 asdfghjkl;'
@@ -397,23 +413,31 @@ zxcvbnm,./
 ";
 
 //uppercase selectric 1/2 layout on machine; left to right, top to bottom
-UPPERCASE88="
+UPPERCASE88_US="
 !@#$%¢&*()_+
 QWERTYUIOP¼
 ASDFGHJKL:\"
 ZXCVBNM,.?
 ";
 
-//selectric 1/2 layout array
-S12CASES88=[LOWERCASE88, UPPERCASE88];
 
 //lowercase hemisphere of selectric 1/2 element from the top moving counter clockwise, top to bottom
-S12_LC_HEMISPHERE88="
+S12_LC_HEMISPHERE88_US="
 90652z48731
 bhkentlcdux
 wsi'.½oarvm
 -yqp=j/,;fg
 ";
+
+S12_US=[LOWERCASE88_US,UPPERCASE88_US];
+
+S12CASES88=
+    (S12_88_LANGUAGE=="US") ? S12_US:
+    S12_US; //fallback default to US
+    
+S12_LC_HEMISPHERE88=
+    (S12_88_LANGUAGE=="US") ? S12_LC_HEMISPHERE88_US:
+    S12_LC_HEMISPHERE88_US; //fallback default to US
 
 
 //SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
@@ -540,75 +564,31 @@ COMPOSERCASES88=
     (COMPOSER_LANGUAGE=="DE") ? DE:
     (COMPOSER_LANGUAGE=="LA") ? LA:
     US; //fallback default to US
-    
-//lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
-COMPOSER_LC_HEMISPHERE_US="
-.,634s10928
-?-[cliatb75
-xvumhnrodwk
-=]zpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_UK="
-.,634s10928
-?-[cliatb75
-xvumhnrodwk
-=]zpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_NO="
-.,634s10928
-å-äcliatb75
-xvumhnrodwk
-øözpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_DE="
-.,634s10928
-ü-äcliatb75
-xvumhnrodwk
-ßözpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE_LA="
-.,634s10928
-ˆ-çcliatb75
-xvumhnrodwk
-ñ´zpyefgq;j
-";
-
-COMPOSER_LC_HEMISPHERE88=
-    (COMPOSER_LANGUAGE=="UK") ? COMPOSER_LC_HEMISPHERE_UK:
-    (COMPOSER_LANGUAGE=="US") ? COMPOSER_LC_HEMISPHERE_US:
-    (COMPOSER_LANGUAGE=="NO") ? COMPOSER_LC_HEMISPHERE_NO:
-    (COMPOSER_LANGUAGE=="DE") ? COMPOSER_LC_HEMISPHERE_DE:
-    (COMPOSER_LANGUAGE=="LA") ? COMPOSER_LC_HEMISPHERE_LA:
-    COMPOSER_LC_HEMISPHERE_US; //fallback default to US
-
-//composer layout array
-//COMPOSERCASES88=[LOWERCASECOMPOSER88,UPPERCASECOMPOSER88];
-
 
 
 //all keyboard layouts
 ALL88CASES=[COMPOSERCASES88, S12CASES88];
 
-//all hemisphere layouts
-ALL88HEMIS=[COMPOSER_LC_HEMISPHERE88, S12_LC_HEMISPHERE88];
-
+////all hemisphere layouts
+//ALL88HEMIS=[COMPOSER_LC_HEMISPHERE88, S12_LC_HEMISPHERE88];
 
 
 //set keyboard layout for character mapping
 CASES88=ALL88CASES[RENDER_MODE];
 
-//set lowercase hemisphere 
-LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
+////set lowercase hemisphere 
+//LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
 
 //create lowercase layout to element hemisphere map
-LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(CASES88[0])-1]) search(CASES88[0][i], LC_HEMISPHERE88)];
+LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12CASES88[0])-1]) search(S12CASES88[0][i], S12_LC_HEMISPHERE88)];
 
+COMPOSER_HEMISPHERE_MAP = [[9], [6], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
+
+HEMISPHERE_MAP=RENDER_MODE==0?COMPOSER_HEMISPHERE_MAP:LC_LAYOUT_TO_HEMISPHERE_MAP;
+
+//echo(HEMISPHERE_MAP);
 //create latitude, longitude integer array for one hemisphere
-LATITUDE_LONGITUDE = [for (i=[0:len(LC_LAYOUT_TO_HEMISPHERE_MAP)-1]) [LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]%11, ceil(LC_LAYOUT_TO_HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
+LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11, ceil(HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
 
 
@@ -1133,7 +1113,7 @@ module Render(){
 module Del()
 {
     translate([DEL_BASE_FROM_CENTRE, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
-    color("white")  // TODO red triangle for Composer typeball
+    color(ARROW_COLOR)
     linear_extrude(DEL_DEPTH+z)
     polygon(points=[[3.4,0],[0.4,1.3],[0.4,-1.3]]);
 }
@@ -1142,6 +1122,7 @@ module Del()
 module FontName()
 {
     translate([-8.5, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    color("darkslategrey")
     rotate([0,0,270])
     linear_extrude(DEL_DEPTH+0.01)
     Labels();
