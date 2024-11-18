@@ -27,6 +27,8 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 MINK_ON=false;
 //minkowski draft angle
 MINKOWSKI_ANGLE=85;//.5
+//minkowski vertical offset in degrees for R4. Halved for R3.
+MINKOWSKI_Y_OFFSET=-20;
 //minkowski bottom radius size
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
@@ -227,7 +229,7 @@ TESTARRAY_DE =[
 ];
 
 
-//Latin/French
+//Latin
 TESTARRAY_LA =[
 "1234567890-ñ",
 "qwertyuiopˆ",
@@ -370,6 +372,8 @@ NO_LABEL_SIZE=2;//0.25
 NO_LABEL_OFFSET=0;//0.25
 //Font size for typeface label 
 FONT_LABEL_SIZE=2;//0.25
+//Weight offset for font label.
+LABEL_FONT_WEIGHT_OFFSET=0;//0.01
 //Vertical offset for font label. +up -down
 FONT_LABEL_OFFSET=0;//0.25
 //arrow from center 
@@ -380,7 +384,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-0.5, -0.5, -0.25, -0.5];//.05
+PLATEN_LONGITUDE_OFFSETS=[-0.75, -0.75, -0.25, -0.5];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -477,6 +481,8 @@ S12_LC_HEMISPHERE88=
 /* [Character Mapping - Composer 88char] */
 
 //uppercase composer layout on machine; left to right, top to bottom
+
+//United States lowercase
 LOWERCASECOMPOSER_US ="
 1234567890-=
 qwertyuiop?
@@ -486,7 +492,7 @@ zxcvbnm,.;
 
 //lowercase composer layout on machine; left to right, top to bottom
 
-//United States
+//United States uppercase
 UPPERCASECOMPOSER_US ="
 !†+$%/&*()–@
 QWERTYUIOP¾
@@ -494,7 +500,7 @@ ASDFGHJKL¼½
 ZXCVBNM‘’:
 ";
 
-//United Kingdom
+//United Kingdom lowercase
 LOWERCASECOMPOSER_UK ="
 1234567890-=
 qwertyuiop?
@@ -502,6 +508,7 @@ asdfghjkl][
 zxcvbnm,.;
 ";
 
+//United Kingdom uppercase
 UPPERCASECOMPOSER_UK ="
 !†+£%/&*()–@
 QWERTYUIOP¾
@@ -509,14 +516,15 @@ ASDFGHJKL¼½
 ZXCVBNM‘’:
 ";
 
-//Nordic
+//Nordic lowercase
 LOWERCASECOMPOSER_NO ="
 1234567890-ø
 qwertyuiopå
 asdfghjklöä
 zxcvbnm,.;
 ";
-
+ 
+//Nordic uppercase
 UPPERCASECOMPOSER_NO ="
 »!?§%/&=()–Ø
 QWERTYUIOPÅ
@@ -524,7 +532,7 @@ ASDFGHJKLÖÄ
 ZXCVBNM‘’:
 ";
 
-//Germany
+//Germany lowercase
 LOWERCASECOMPOSER_DE ="
 1234567890-ß
 qwertyuiopü
@@ -532,6 +540,7 @@ asdfghjklöä
 zxcvbnm,.;
 ";
 
+//Germany uppercase
 UPPERCASECOMPOSER_DE ="
 !=+§%/&*()–?
 QWERTYUIOPÜ
@@ -540,7 +549,7 @@ ZXCVBNM‘’:
 ";
 
 
-//Latin/French
+//Latin lowercase
 LOWERCASECOMPOSER_LA ="
 1234567890-ñ
 qwertyuiopˆ
@@ -548,6 +557,7 @@ asdfghjkl´ç
 zxcvbnm,.;
 ";
 
+//Latin uppercase
 UPPERCASECOMPOSER_LA ="
 ı¿¡$!/&*()–Ñ
 QWERTYUIOP¨
@@ -692,7 +702,7 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset){
+module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minkyoffset){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
@@ -702,7 +712,7 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
             
         }
         if (MINK_ON==true){
-            rotate([90 - longitude, 0, 90 + latitude])
+            rotate([90 - longitude+minkyoffset, 0, 90 + latitude])
             translate([0, 0, -2])
             cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
         }
@@ -720,6 +730,7 @@ module AssembleMinkowski(){
         compkbchar=COMPOSERCASES88[case_int][hemi_int];
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
+        
         plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
         
         if (CUTOUT_TEST==true){
@@ -732,14 +743,20 @@ module AssembleMinkowski(){
         size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
+        row3=longitude==0?true:false;
+        row4=longitude==-16.4?true:false;minkyoffset=
+        (row4==true)    ?   MINKOWSKI_Y_OFFSET:
+        (row3==true)    ?   MINKOWSKI_Y_OFFSET/2:
+        0;
+        //echo(minkyoffset);
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minkyoffset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minkyoffset);
     }
 }
 
@@ -1130,6 +1147,7 @@ module FontName()
     color("darkslategrey")
     rotate([0,0,270])
     linear_extrude(DEL_DEPTH+0.01)
+    offset(LABEL_FONT_WEIGHT_OFFSET)
     Labels();
 }
 
