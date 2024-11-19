@@ -26,9 +26,9 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 //turn on minkowski?
 MINK_ON=false;
 //minkowski draft angle
-MINKOWSKI_ANGLE=65;//.5
-//minkowski vertical offset in degrees for R4. Halved for R3.
-MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 12.5, 25];
+MINKOWSKI_ANGLE=75;
+//minkowski vertical offset in degrees
+MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 10, 20];
 //minkowski bottom radius size
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
@@ -384,7 +384,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-0.75, -0.75, -0.25, -0.5];//.05
+PLATEN_LONGITUDE_OFFSETS=[-0.75, -0.75, -0.25, -0.6];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -566,19 +566,19 @@ ZXCVBNM‘’:
 ";
 
 
-US=[LOWERCASECOMPOSER_US,UPPERCASECOMPOSER_US];
-UK=[LOWERCASECOMPOSER_UK,UPPERCASECOMPOSER_UK];
-NO=[LOWERCASECOMPOSER_NO,UPPERCASECOMPOSER_NO];
-DE=[LOWERCASECOMPOSER_DE,UPPERCASECOMPOSER_DE];
-LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
+C_US=[LOWERCASECOMPOSER_US,UPPERCASECOMPOSER_US];
+C_UK=[LOWERCASECOMPOSER_UK,UPPERCASECOMPOSER_UK];
+C_NO=[LOWERCASECOMPOSER_NO,UPPERCASECOMPOSER_NO];
+C_DE=[LOWERCASECOMPOSER_DE,UPPERCASECOMPOSER_DE];
+C_LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
 
 COMPOSERCASES88=
-    (COMPOSER_LANGUAGE=="US") ? US:
-    (COMPOSER_LANGUAGE=="UK") ? UK:
-    (COMPOSER_LANGUAGE=="NO") ? NO:
-    (COMPOSER_LANGUAGE=="DE") ? DE:
-    (COMPOSER_LANGUAGE=="LA") ? LA:
-    US; //fallback default to US
+    (COMPOSER_LANGUAGE=="US") ? C_US:
+    (COMPOSER_LANGUAGE=="UK") ? C_UK:
+    (COMPOSER_LANGUAGE=="NO") ? C_NO:
+    (COMPOSER_LANGUAGE=="DE") ? C_DE:
+    (COMPOSER_LANGUAGE=="LA") ? C_LA:
+    C_US; //fallback default to US
 
 
 //all keyboard layouts
@@ -751,7 +751,7 @@ module AssembleMinkowski(){
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
         minklongoffset=MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
-        echo(minklongoffset);
+        //echo(minklongoffset);
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
         SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset);
