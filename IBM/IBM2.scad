@@ -28,7 +28,7 @@ MINK_ON=false;
 //minkowski draft angle
 MINKOWSKI_ANGLE=65;//.5
 //minkowski vertical offset in degrees for R4. Halved for R3.
-MINKOWSKI_Y_OFFSET=-25;
+MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 12.5, 25];
 //minkowski bottom radius size
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
@@ -702,7 +702,7 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minkyoffset){
+module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
@@ -712,7 +712,7 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
             
         }
         if (MINK_ON==true){
-            rotate([90 - longitude+minkyoffset, 0, 90 + latitude])
+            rotate([90 - longitude - minklongoffset, 0, 90 + latitude])
             translate([0, 0, -2])
             cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
         }
@@ -743,20 +743,16 @@ module AssembleMinkowski(){
         size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
-        row3=longitude==0?true:false;
-        row4=longitude==-16.4?true:false;minkyoffset=
-        (row4==true)    ?   MINKOWSKI_Y_OFFSET:
-        (row3==true)    ?   MINKOWSKI_Y_OFFSET/2:
-        0;
-        //echo(minkyoffset);
+        minklongoffset=MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+        echo(minklongoffset);
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minkyoffset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minkyoffset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset);
     }
 }
 
