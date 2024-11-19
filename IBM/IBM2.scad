@@ -712,9 +712,16 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
             
         }
         if (MINK_ON==true){
-            rotate([90 - longitude - minklongoffset, 0, 90 + latitude])
-            translate([0, 0, -2])
-            cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
+            rotate([90 - longitude, 0, 90 + latitude])
+            hull(){
+                translate([0, 0, -2])
+                cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
+                if (minklongoffset!=0){
+                    rotate([-minklongoffset, 0, 0])
+                    translate([0, 0, -2])
+                    cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
+                }
+            }
         }
     }
 }
