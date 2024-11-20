@@ -246,6 +246,7 @@ TESTARRAY_LA =[
 
 //Match test array to Composer Language unless custom is checked.
 TESTARRAY=
+    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
     (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
     (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
     (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
@@ -1174,11 +1175,15 @@ module Labels()
 //create array of picas per test string character function
 function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) COMPOSER_PITCH_LIST[search(string[i], COMPOSER_PITCH_LIST)[0]][1]];
 
+function CleanUpPicas(picas)=[0, for (i = [1:len(picas)-1]) (picas[i]==undef)?9:picas[i]];
+
 //composer type test gauge line with string input
 module TextGaugeComposerLine(str, unitdist)
 {
 TESTSTRINGPICAS = TestStringPicas(str);
-CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+CLEANEDUPPICAS = CleanUpPicas(TESTSTRINGPICAS);
+//echo(CLEANEDUPPICAS);
+CUMSUMTESTSTRINGPICAS = cumulativeSum(CLEANEDUPPICAS);
     if(is_string(str)==true){
     color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)-1] )
