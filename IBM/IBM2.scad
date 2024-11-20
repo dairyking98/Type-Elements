@@ -35,6 +35,9 @@ MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 XSECTION=false;
 //cross section angle?
 XSECTION_THETA=0;
+//Degrees to rotate ball when rendering to prevent artifacts due to element aligning with pixel grid.
+RENDER_DEGREE_OFFSET=-3;
+ballspin=$preview?0:RENDER_DEGREE_OFFSET;
 
 
 
@@ -1209,6 +1212,9 @@ module ArrangeComposerLines(arrayOfStrings){
     //echo(lines);
     //echo(arrayOfStrings);
 }
+
+//Apply RENDER_DEGREE_OFFSET
+rotate([0,0,ballspin])
 
 ///EXECUTE CODE:
 Render();
