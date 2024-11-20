@@ -37,7 +37,6 @@ XSECTION=false;
 XSECTION_THETA=0;
 //Degrees to rotate ball when rendering to prevent artifacts due to element aligning with pixel grid.
 RENDER_DEGREE_OFFSET=-3;
-ballspin=$preview?0:RENDER_DEGREE_OFFSET;
 
 
 
@@ -1214,7 +1213,7 @@ module ArrangeComposerLines(arrayOfStrings){
 }
 
 //Apply RENDER_DEGREE_OFFSET
-rotate([0,0,ballspin])
+rotate([0,0,$preview?0:RENDER_DEGREE_OFFSET])
 
 ///EXECUTE CODE:
 Render();
