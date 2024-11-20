@@ -246,8 +246,8 @@ TESTARRAY_LA =[
 
 //Match test array to Composer Language unless custom is checked.
 TESTARRAY=
-    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
     (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
+    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
     (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
     (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
     (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
@@ -612,7 +612,7 @@ LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11
 
 /* [Resin Printing Offsets] */
 //amount to compensate for vat-facing boss face !CRITICAL FEATURE!
-SNOOT_DROOP_COMPENSATION=.52;
+SNOOT_DROOP_COMPENSATION=.50;
 //modeled boss to center value
 BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
