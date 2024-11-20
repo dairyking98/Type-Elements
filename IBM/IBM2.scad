@@ -26,9 +26,9 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 //turn on minkowski?
 MINK_ON=false;
 //minkowski draft angle
-MINKOWSKI_ANGLE=75;
+MINKOWSKI_ANGLE=65;
 //minkowski vertical offset in degrees
-MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 10, 20];
+MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 12.5, 25];
 //minkowski bottom radius size
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
