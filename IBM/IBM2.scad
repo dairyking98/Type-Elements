@@ -1217,4 +1217,5 @@ module ArrangeComposerLines(arrayOfStrings){
 rotate([0,0,ballspin])
 
 ///EXECUTE CODE:
+rotate([0,0,ballspin])
 Render();
