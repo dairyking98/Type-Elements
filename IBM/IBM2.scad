@@ -384,7 +384,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-0.75, -0.75, -0.25, -0.6];//.05
+PLATEN_LONGITUDE_OFFSETS=[-0.85, -0.85, -0.35, -0.6];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
