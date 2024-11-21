@@ -79,7 +79,8 @@ CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TE
 /* [Language and Custom Layout] */
 
 //Composer Language preset
-COMPOSER_LANGUAGE="US";//[US:United States,UK:United Kingdom,NO:Nordic,DE:German,LA:Latin]
+//COMPOSER_LANGUAGE="US";//[US:United States,UK:United Kingdom,NO:Nordic,DE:German,LA:Latin]
+COMPOSER_LANGUAGE=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin]
 
 //Selectric I/II 88 character Language Preset
 S12_88_LANGUAGE="US";//[US:United States]
@@ -244,17 +245,21 @@ TESTARRAY_LA =[
 ];
 
 
-//Match test array to Composer Language unless custom is checked.
-TESTARRAY=
-    (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
-    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
-    (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
-    (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
-    (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
-    (COMPOSER_LANGUAGE=="DE")   ? TESTARRAY_DE:
-    (COMPOSER_LANGUAGE=="LA")   ? TESTARRAY_LA:
-    TESTARRAY_US;               //fallback default to US
+TESTARRAYS=[TESTARRAY_US, TESTARRAY_UK, TESTARRAY_NO, TESTARRAY_DE, TESTARRAY_LA, [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88], TESTSTRING_CUSTOM]; 
 
+//Match test array to Composer Language unless custom is checked.
+//TESTARRAY=
+//    (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
+//    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
+//    (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
+//    (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
+//    (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
+//    (COMPOSER_LANGUAGE=="DE")   ? TESTARRAY_DE:
+//    (COMPOSER_LANGUAGE=="LA")   ? TESTARRAY_LA:
+//    TESTARRAY_US;               //fallback default to US
+
+TESTARRAY=(CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
+    (CUSTOM==true)?[CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:TESTARRAYS[COMPOSER_LANGUAGE];
 
 //TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
 
@@ -575,13 +580,17 @@ C_NO=[LOWERCASECOMPOSER_NO,UPPERCASECOMPOSER_NO];
 C_DE=[LOWERCASECOMPOSER_DE,UPPERCASECOMPOSER_DE];
 C_LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
 
-COMPOSERCASES88=
-    (COMPOSER_LANGUAGE=="US") ? C_US:
-    (COMPOSER_LANGUAGE=="UK") ? C_UK:
-    (COMPOSER_LANGUAGE=="NO") ? C_NO:
-    (COMPOSER_LANGUAGE=="DE") ? C_DE:
-    (COMPOSER_LANGUAGE=="LA") ? C_LA:
-    C_US; //fallback default to US
+ALL_C=[C_US, C_UK, C_NO, C_DE, C_LA];
+
+//COMPOSERCASES88=
+//    (COMPOSER_LANGUAGE=="US") ? C_US:
+//    (COMPOSER_LANGUAGE=="UK") ? C_UK:
+//    (COMPOSER_LANGUAGE=="NO") ? C_NO:
+//    (COMPOSER_LANGUAGE=="DE") ? C_DE:
+//    (COMPOSER_LANGUAGE=="LA") ? C_LA:
+//    C_US; //fallback default to US
+
+COMPOSERCASES88=ALL_C[COMPOSER_LANGUAGE];
 
 
 //all keyboard layouts
@@ -1173,17 +1182,17 @@ module Labels()
 }
 
 //create array of picas per test string character function
-function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) COMPOSER_PITCH_LIST[search(string[i], COMPOSER_PITCH_LIST)[0]][1]];
+function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) SearchChar(string[i])==undef?9:COMPOSER_PITCH_LIST[SearchChar(string[i])][1]];
 
-function CleanUpPicas(picas)=[0, for (i = [1:len(picas)-1]) (picas[i]==undef)?9:picas[i]];
+
+//search char in composer list and return its units of spacing
+function SearchChar(char)=search(char, COMPOSER_PITCH_LIST)[0];
 
 //composer type test gauge line with string input
 module TextGaugeComposerLine(str, unitdist)
 {
 TESTSTRINGPICAS = TestStringPicas(str);
-CLEANEDUPPICAS = CleanUpPicas(TESTSTRINGPICAS);
-//echo(CLEANEDUPPICAS);
-CUMSUMTESTSTRINGPICAS = cumulativeSum(CLEANEDUPPICAS);
+CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
     if(is_string(str)==true){
     color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)-1] )
