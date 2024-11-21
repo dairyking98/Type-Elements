@@ -26,15 +26,17 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 //turn on minkowski?
 MINK_ON=false;
 //minkowski draft angle
-MINKOWSKI_ANGLE=75;
+MINKOWSKI_ANGLE=65;
 //minkowski vertical offset in degrees
-MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 10, 20];
+MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 12.5, 25];
 //minkowski bottom radius size
 MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 //cross section?
 XSECTION=false;
 //cross section angle?
 XSECTION_THETA=0;
+//Degrees to rotate ball when rendering to prevent artifacts due to element aligning with pixel grid.
+RENDER_DEGREE_OFFSET=-3;
 
 
 
@@ -245,6 +247,7 @@ TESTARRAY_LA =[
 //Match test array to Composer Language unless custom is checked.
 TESTARRAY=
     (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
+    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
     (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
     (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
     (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
@@ -384,7 +387,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-0.75, -0.75, -0.25, -0.6];//.05
+PLATEN_LONGITUDE_OFFSETS=[-0.85, -0.85, -0.35, -0.6];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -609,7 +612,7 @@ LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11
 
 /* [Resin Printing Offsets] */
 //amount to compensate for vat-facing boss face !CRITICAL FEATURE!
-SNOOT_DROOP_COMPENSATION=.52;
+SNOOT_DROOP_COMPENSATION=.50;
 //modeled boss to center value
 BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
@@ -1172,11 +1175,15 @@ module Labels()
 //create array of picas per test string character function
 function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) COMPOSER_PITCH_LIST[search(string[i], COMPOSER_PITCH_LIST)[0]][1]];
 
+function CleanUpPicas(picas)=[0, for (i = [1:len(picas)-1]) (picas[i]==undef)?9:picas[i]];
+
 //composer type test gauge line with string input
 module TextGaugeComposerLine(str, unitdist)
 {
 TESTSTRINGPICAS = TestStringPicas(str);
-CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+CLEANEDUPPICAS = CleanUpPicas(TESTSTRINGPICAS);
+//echo(CLEANEDUPPICAS);
+CUMSUMTESTSTRINGPICAS = cumulativeSum(CLEANEDUPPICAS);
     if(is_string(str)==true){
     color(TYPE_TEST_COLOR)
     for ( i = [0:len(str)-1] )
@@ -1209,6 +1216,9 @@ module ArrangeComposerLines(arrayOfStrings){
     //echo(lines);
     //echo(arrayOfStrings);
 }
+
+//Apply RENDER_DEGREE_OFFSET
+rotate([0,0,$preview?0:RENDER_DEGREE_OFFSET])
 
 ///EXECUTE CODE:
 Render();
