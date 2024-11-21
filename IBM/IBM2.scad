@@ -82,7 +82,7 @@ CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TE
 COMPOSER_LANGUAGE=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin, 5:Custom]
 
 //Selectric I/II 88 character Language Preset
-S12_88_LANGUAGE="US";//[US:United States]
+S12_88_LANGUAGE=0;//[0:United States]
 
 
 //lowercase layout for custom keyboard
@@ -356,13 +356,11 @@ wsi'.½oarvm
 
 S12_US=[LOWERCASE88_US,UPPERCASE88_US];
 
-S12CASES88=
-    (S12_88_LANGUAGE=="US") ? S12_US:
-    S12_US; //fallback default to US
+ALL_S12=[S12_US];
+
+S12CASES88=ALL_S12[S12_88_LANGUAGE];
     
-S12_LC_HEMISPHERE88=
-    (S12_88_LANGUAGE=="US") ? S12_LC_HEMISPHERE88_US:
-    S12_LC_HEMISPHERE88_US; //fallback default to US
+S12_LC_HEMISPHERE88=S12_LC_HEMISPHERE88_US;//I dont think hemisphere positions for keyboard to element will change for different languages
 
 
 //SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
@@ -987,8 +985,6 @@ module Render(){
                 ResinPrint();
             if (RENDER_VARIANT==2){
                 if (RENDER_MODE==0)
-                    //ArrangeComposerLines2(str(CASES88[0], CASES88[1]));
-                    //TextGaugeComposerLine2(KBSTRING);
                     TextGaugeComposerLine2(KBSTRING, UNITDIST);
                 if (RENDER_MODE==1)
                     TextGauge(TESTSTRING_CUSTOM, TESTCPI);
