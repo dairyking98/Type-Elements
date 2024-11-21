@@ -79,14 +79,11 @@ CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TE
 /* [Language and Custom Layout] */
 
 //Composer Language preset
-//COMPOSER_LANGUAGE="US";//[US:United States,UK:United Kingdom,NO:Nordic,DE:German,LA:Latin]
-COMPOSER_LANGUAGE=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin]
+COMPOSER_LANGUAGE=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin, 5:Custom]
 
 //Selectric I/II 88 character Language Preset
 S12_88_LANGUAGE="US";//[US:United States]
 
-//use custom keyboard layout?
-CUSTOM=false;
 
 //lowercase layout for custom keyboard
 CUSTOMLOWERCASE88="
@@ -108,8 +105,6 @@ CUSTOMUPPERCASE88="
 
 ";
 
-//custom 88 layout array
-CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 
 
 /* [Typeface Stuff] */
@@ -183,93 +178,6 @@ CUSTOM_TEST_STRING=false;
 //custom string for type test
 TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
 
-//US
-TESTARRAY_US =[
-"1234567890-=",
-"qwertyuiop?",
-"asdfghjkl][",
-"zxcvbnm,.;", 
-"!†+$%/&*()–@",
-"QWERTYUIOP¾",
-"ASDFGHJKL¼½",
-"ZXCVBNM‘’:
-"];
-
-//UK
-TESTARRAY_UK =[
-"1234567890-=",
-"qwertyuiop?",
-"asdfghjkl][",
-"zxcvbnm,.;",
-"!†+£%/&*()–@",
-"QWERTYUIOP¾",
-"ASDFGHJKL¼½",
-"ZXCVBNM‘’:"
-];
-
-//Nordic
-TESTARRAY_NO =[
-"1234567890-ø",
-"qwertyuiopå",
-"asdfghjklöä",
-"zxcvbnm,.;",
-"»!?§%/&=()–Ø",
-"QWERTYUIOPÅ",
-"ASDFGHJKLÖÄ",
-"ZXCVBNM‘’:"
-];
-
-//Germany
-TESTARRAY_DE =[
-"1234567890-ß",
-"qwertyuiopü",
-"asdfghjklöä",
-"zxcvbnm,.;",
-"!=+§%/&*()–?",
-"QWERTYUIOPÜ",
-"ASDFGHJKLÖÄ",
-"ZXCVBNM‘’:"
-];
-
-
-//Latin
-TESTARRAY_LA =[
-"1234567890-ñ",
-"qwertyuiopˆ",
-"asdfghjkl´ç",
-"zxcvbnm,.;",
-"ı¿¡$!/&*()–Ñ",
-"QWERTYUIOP¨",
-"ASDFGHJKL`?",
-"ZXCVBNM‘’:"
-];
-
-
-TESTARRAYS=[TESTARRAY_US, TESTARRAY_UK, TESTARRAY_NO, TESTARRAY_DE, TESTARRAY_LA, [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88], TESTSTRING_CUSTOM]; 
-
-//Match test array to Composer Language unless custom is checked.
-//TESTARRAY=
-//    (CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
-//    (CUSTOM==true)              ? [CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:
-//    (COMPOSER_LANGUAGE=="US")   ? TESTARRAY_US:
-//    (COMPOSER_LANGUAGE=="UK")   ? TESTARRAY_UK:
-//    (COMPOSER_LANGUAGE=="NO")   ? TESTARRAY_NO:
-//    (COMPOSER_LANGUAGE=="DE")   ? TESTARRAY_DE:
-//    (COMPOSER_LANGUAGE=="LA")   ? TESTARRAY_LA:
-//    TESTARRAY_US;               //fallback default to US
-
-TESTARRAY=(CUSTOM_TEST_STRING==true)  ? [TESTSTRING_CUSTOM]:
-    (CUSTOM==true)?[CUSTOMLOWERCASE88,CUSTOMUPPERCASE88]:TESTARRAYS[COMPOSER_LANGUAGE];
-
-//TESTARRAYS=[[TESTSTRING_CUSTOM], TESTARRAY_88KBLAYOUT];//, TESTSTRING_COMPOSERKB];
-
-//preset for type testing strings?
-//TESTSTRING_SELECTION=0;//[0:Custom, 1:Composer Keyboard US,2:Composer Keyboard UK,3:Composer Keyboard Nordic,4:Composer Keyboard German,5:Composer Keyboard Latin ]
-
-//TESTARRAY=TESTARRAYS[TESTSTRING_SELECTION];
-
-//composer picas per character array
-//TESTSTRINGPICAS = [0, for ( i = [0:len(TESTSTRING)-1] ) COMPOSER_PITCH_LIST[search(TESTSTRING[i], COMPOSER_PITCH_LIST)[0]][1]];
 //cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 //composer cumulative picas per character array
@@ -579,16 +487,9 @@ C_UK=[LOWERCASECOMPOSER_UK,UPPERCASECOMPOSER_UK];
 C_NO=[LOWERCASECOMPOSER_NO,UPPERCASECOMPOSER_NO];
 C_DE=[LOWERCASECOMPOSER_DE,UPPERCASECOMPOSER_DE];
 C_LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
+CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 
-ALL_C=[C_US, C_UK, C_NO, C_DE, C_LA];
-
-//COMPOSERCASES88=
-//    (COMPOSER_LANGUAGE=="US") ? C_US:
-//    (COMPOSER_LANGUAGE=="UK") ? C_UK:
-//    (COMPOSER_LANGUAGE=="NO") ? C_NO:
-//    (COMPOSER_LANGUAGE=="DE") ? C_DE:
-//    (COMPOSER_LANGUAGE=="LA") ? C_LA:
-//    C_US; //fallback default to US
+ALL_C=[C_US, C_UK, C_NO, C_DE, C_LA, CUSTOMCASES88];
 
 COMPOSERCASES88=ALL_C[COMPOSER_LANGUAGE];
 
@@ -602,6 +503,9 @@ ALL88CASES=[COMPOSERCASES88, S12CASES88];
 
 //set keyboard layout for character mapping
 CASES88=ALL88CASES[RENDER_MODE];
+
+//keyboard string
+KBSTRING=str(CASES88[0], CASES88[1]);
 
 ////set lowercase hemisphere 
 //LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
@@ -745,7 +649,7 @@ module AssembleMinkowski(){
     for (case_int=[0:1])
     for (hemi_int=[0:43]){
     
-        char=CUSTOM==true?CUSTOMCASES88[case_int][hemi_int]:CASES88[case_int][hemi_int];
+        char=CASES88[case_int][hemi_int];
         compkbchar=COMPOSERCASES88[case_int][hemi_int];
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
@@ -808,37 +712,6 @@ module SolidCleanup(){
         if (LABEL==true)
         FontName();}
 }
-////subtractive parts - inner radius
-//module HollowProfile(){
-//    hull(){
-//        translate([-HOLLOW_R+INSIDE_R, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-2*HOLLOW_R, 0])
-//        scale([1, 2])
-//        circle(r=HOLLOW_R);
-//        translate([BOSS_R, 0, 0])
-//        square(1);
-//        translate([BOSS_R+HOLLOW_R*2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-HOLLOW_R, 0])
-//        scale([2, 1])
-//        circle(r=HOLLOW_R);
-//
-//    }
-//}
-//
-//
-////subtractive parts - inner radius : experimental
-//module HollowProfile2(){
-//    newroofr=1;
-//    hull(){
-//        translate([-newroofr+INSIDE_R, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
-//        circle(r=newroofr);
-//        translate([BOSS_R, 0, 0])
-//        square([INSIDE_R-BOSS_R, 1]);
-//        translate([BOSS_R+newroofr, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
-//        circle(r=newroofr);
-//        translate([(INSIDE_R+BOSS_R)/2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-newroofr])
-//        circle(r=newroofr);
-//
-//    }
-//}
 
 //subtractive parts - inner radius : experimental
 module HollowProfile3(){
@@ -1071,24 +944,6 @@ module TextGauge(str, pitch)
     }
 }
 
-////composer type test gauge
-//module TextGaugeComposer(str, unitdist)
-//{
-//
-//    //color("red")
-//    for ( i = [0:len(str)-1] )
-//    {
-//        font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
-//        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
-//        translate([8,8])
-//        translate([CUMULATIVETESTSTRINGPICAS[i]*unitdist,0])
-//        offset(FONT_WEIGHT_OFFSET)
-//        text(size=size, font=font, halign="left", str[i]);
-//        //echo(CUMULATIVETESTSTRINGPICAS[i]);
-//    }
-//}
-
-
 //2d web shape
 module 2dWeb(){
 hull(){
@@ -1132,7 +987,9 @@ module Render(){
                 ResinPrint();
             if (RENDER_VARIANT==2){
                 if (RENDER_MODE==0)
-                    ArrangeComposerLines(TESTARRAY);
+                    //ArrangeComposerLines2(str(CASES88[0], CASES88[1]));
+                    //TextGaugeComposerLine2(KBSTRING);
+                    TextGaugeComposerLine2(KBSTRING, UNITDIST);
                 if (RENDER_MODE==1)
                     TextGauge(TESTSTRING_CUSTOM, TESTCPI);
             }
@@ -1188,42 +1045,41 @@ function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) SearchChar(st
 //search char in composer list and return its units of spacing
 function SearchChar(char)=search(char, COMPOSER_PITCH_LIST)[0];
 
-//composer type test gauge line with string input
-module TextGaugeComposerLine(str, unitdist)
+//get row of char with integer of keyboard input
+function GetRow(int) =
+    int <= 11 ? 0 :
+    int <= 22 ? 1 :
+    int <= 33 ? 2 :
+    int <= 43 ? 3 :
+    int <= 55 ? 4 :
+    int <= 66 ? 5 :
+    int <= 77 ? 6 : 7;
+
+//composer type test gauge keyboard with keyboard string input
+module TextGaugeComposerLine2(string, unitdist)
 {
-TESTSTRINGPICAS = TestStringPicas(str);
+str_overridden = CUSTOM_TEST_STRING?TESTSTRING_CUSTOM:string;
+TESTSTRINGPICAS = TestStringPicas(str_overridden);
 CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
-    if(is_string(str)==true){
+CUMSUMTESTSTRINGPICASPERLINE = [for (a=[0,12,23,34,44,56,67,78]) CUMSUMTESTSTRINGPICAS[a]];
     color(TYPE_TEST_COLOR)
-    for ( i = [0:len(str)-1] )
+    for ( i = [0:len(str_overridden)-1] )
     {
-        font=search(str[i], FONT2CHARS)==[]?FONT:FONT2;
-        size=search(str[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;          
-        customhalign=search(str[i], CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
-        customvalign=search(str[i], CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
-        translate([customhalign, customvalign, 0])
+        font=search(str_overridden[i], FONT2CHARS)==[]?FONT:FONT2;
+        size=search(str_overridden[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;          
+        customhalign=search(str_overridden[i], CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
+        customvalign=search(str_overridden[i], CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
+        row=CUSTOM_TEST_STRING?0:GetRow(i);
+        echo(row);
+        
+        
+        translate([10, -10, 0])
+        translate([customhalign-CUMSUMTESTSTRINGPICASPERLINE[row]*unitdist, customvalign-FONTSIZE*2*row, 0])
         translate([CUMSUMTESTSTRINGPICAS[i]*unitdist,0])
         
         offset(FONT_WEIGHT_OFFSET)
-        text(size=size, font=font, halign="left", str[i]);
-        //echo(CUMULATIVETESTSTRINGPICAS[i]);
+        text(size=size, font=font, halign="left", str_overridden[i]);
     }
-    }
-}
-
-
-module ArrangeComposerLines(arrayOfStrings){
-    lines=len(arrayOfStrings)-1;
-    columns=2;
-    translate([10, -10, 0])
-    for (line=[0:lines]){
-    stringinline=arrayOfStrings[line];
-    
-    translate([0, (-FONTSIZE*2)*line, ])
-    TextGaugeComposerLine(stringinline, UNITDIST);
-    }
-    //echo(lines);
-    //echo(arrayOfStrings);
 }
 
 //Apply RENDER_DEGREE_OFFSET
