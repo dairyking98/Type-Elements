@@ -648,7 +648,7 @@ module AssembleMinkowski(){
     for (hemi_int=[0:43]){
     
         char=CASES88[case_int][hemi_int];
-        uskbchar=RENDER_MODE==0?C_US:S12_US;
+        uskbchar=RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int];
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
         
