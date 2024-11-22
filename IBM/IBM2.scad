@@ -648,14 +648,14 @@ module AssembleMinkowski(){
     for (hemi_int=[0:43]){
     
         char=CASES88[case_int][hemi_int];
-        compkbchar=COMPOSERCASES88[case_int][hemi_int];
+        uskbchar=RENDER_MODE==0?C_US:S12_US;
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
         
         plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
         
         if (CUTOUT_TEST==true){
-            echo (str("composer keyboard char = ", compkbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
+            echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
         }
             
         plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
