@@ -78,7 +78,6 @@ Layouts=[[0, Normal_U, "Normal Universal"],
 Layout_Selection=0;//[0:Normal_U, 1:Normal_I, 2:Math, 3:DVORAK, 4:DHIATENSOR, 5:ComicMono, 6:Glagolitic, 7:Attic]
 Layout=Layouts[Layout_Selection][1];
 IsMath=search(Layouts[Layout_Selection][3], "Math")==undef?0:1;
-echo(IsMath);     
      
 /* [Text Dimensions] */
 //Baselines for Lowercase, Uppercase, Figures, and Math FROM BOTTOM RIB PLANE
@@ -164,6 +163,7 @@ Shuttle_Groove_Nub_Size=Shuttle_Thickness/2;
 Shuttle_Groove_Nub_Angle=29;
 Groove_RetainingPinDiameter=.54+.15;
 Groove_TabWidth=3+.15;
+Groove_OpeningOffset=.5;//.1
 
 /* [Shuttle Label] */
 //Shuttle Label 1
@@ -428,8 +428,8 @@ module Groove(){
         difference(){
             union(){
                 cylinder(r=Shuttle_Arc_Radius+Shuttle_Groove_Depth, h=Shuttle_Rib_Thickness, $fn=cyl_fn);
-                translate([0, -Groove_TabWidth/2, 0])
-                cube([50, Groove_TabWidth, Shuttle_Rib_Thickness]);
+                translate([0, -Groove_TabWidth/2, -Groove_OpeningOffset/2])
+                cube([50, Groove_TabWidth, Shuttle_Rib_Thickness+Groove_OpeningOffset]);
             }
             for (n=[-2, -1, 1, 2]){
             rotate([0, 0, Shuttle_Groove_Nub_Angle*n])
@@ -441,6 +441,8 @@ module Groove(){
         //#cylinder(h=100, d=Groove_RetainingPinDiameter, $fn=cyl_fn);
     }
 }
+
+//Groove();
 
 module PinSupportHull(){
     hull(){
@@ -813,6 +815,7 @@ module GroovedShuttle(){
     }
 }
 
+//VertResinPrint2();
 module VertResinPrint2(){
     union(){
         rotate([0, -90, 0])
@@ -1039,13 +1042,15 @@ module Resin2Profile(){
 
 
 module ResinPrint(){
-    if (Resin_Support==1)
+        echo(Resin_Support);
+    if (Resin_Support){
         if (Resin_Support_Orientation==0)
         VertResinPrint2();
 //        if (Resin_Support_Orientation==1)// && Groove==0)
 //        HorizResinPrint2();
         if (Resin_Support_Orientation==1)
         HorizGroovedResin2();
+    }
 }
 
 //RibAssembled();
