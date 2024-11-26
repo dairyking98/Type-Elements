@@ -72,8 +72,9 @@ COMPOSER_PITCH_LIST=[
 CUTOUT_TEST=false;
 //interval of angle offsets to test
 CUTOUT_TEST_ANGLE_INT=.1;
-//CUTOUT_TEST_ANGLE_ARRAY_MAP=[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -11, -10, -9, -8, -7, -6];
-CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
+CUTOUT_TEST_ANGLE_ARRAY_MAP=[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16, -17, -18, -19, -20, -21]
+;
+//CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
 CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
 
 /* [Language and Custom Layout] */
@@ -404,6 +405,14 @@ asdfghjkl][
 zxcvbnm,.;
 ";
 
+//lowercase hemisphere of composer element from the top moving counter clockwise, top to bottom
+C_US_HEMISPHERE88="
+.,634s10928
+?-[cliatb75
+xvumhnrodwk
+=]zpyefgq;j
+";
+
 //lowercase composer layout on machine; left to right, top to bottom
 
 //United States uppercase
@@ -495,8 +504,6 @@ COMPOSERCASES88=ALL_C[COMPOSER_LANGUAGE];
 //all keyboard layouts
 ALL88CASES=[COMPOSERCASES88, S12CASES88];
 
-////all hemisphere layouts
-//ALL88HEMIS=[COMPOSER_LC_HEMISPHERE88, S12_LC_HEMISPHERE88];
 
 
 //set keyboard layout for character mapping
@@ -511,15 +518,23 @@ KBSTRING=str(CASES88[0], CASES88[1]);
 //create lowercase layout to element hemisphere map
 LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12CASES88[0])-1]) search(S12CASES88[0][i], S12_LC_HEMISPHERE88)];
 
+//create lowercase us layout to us element hemisphere map for composer
+LC_COMP_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(C_US[0])-1]) search(C_US[0][i], C_US_HEMISPHERE88)];
+
+//echo(LC_COMP_LAYOUT_TO_HEMISPHERE_MAP);
+
+//hardcoding of LC_COMP_LAYOUT_TO_HEMISPHERE_MAP:
+
 COMPOSER_HEMISPHERE_MAP = [[6], [9], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
 
-HEMISPHERE_MAP=RENDER_MODE==0?COMPOSER_HEMISPHERE_MAP:LC_LAYOUT_TO_HEMISPHERE_MAP;
+////all hemisphere layouts
+ALL88HEMIS=[COMPOSER_HEMISPHERE_MAP, LC_LAYOUT_TO_HEMISPHERE_MAP];
+
+HEMISPHERE_MAP=ALL88HEMIS[RENDER_MODE];
 
 //echo(HEMISPHERE_MAP);
 //create latitude, longitude integer array for one hemisphere
 LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11, ceil(HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
-
-
 
 /* [Resin Printing Offsets] */
 //amount to compensate for vat-facing boss face !CRITICAL FEATURE!
@@ -640,6 +655,23 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
     }
 }
 
+//cutout test console output array
+ //[ Element Row, Element Column, US KB Char, Cutout Offset Value]
+CutoutInfo = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
+    (LATITUDE_LONGITUDE[hemi_int][1]), 
+    (LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING),
+    (RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
+    (CUTOUT_TEST_ANGLE_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180)/LATITUDE_SPACING])
+ ]];
+
+CutoutInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CutoutInfo[char][0]==row) [row, CutoutInfo[char][1], CutoutInfo[char][2], CutoutInfo[char][3]]];
+
+CutoutInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (CutoutInfo[n][1]==latitude && CutoutInfo[n][0]==row)  [CutoutInfo[n][0], CutoutInfo[n][1], CutoutInfo[n][2], CutoutInfo[n][3]]];
+
+module ConsoleCutout(){
+    for (i=[0:87])
+    echo(str("US Composer KB char = ", CutoutInfoRowColSorted[i][2], " on row ", CutoutInfoRowColSorted[i][0], " and latitude ", CutoutInfoRowColSorted[i][1], " with cutout offset value ", CutoutInfoRowColSorted[i][3]));
+}
 
 //assemble minkowski characters
 module AssembleMinkowski(){
@@ -655,7 +687,7 @@ module AssembleMinkowski(){
         plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
         
         if (CUTOUT_TEST==true){
-            echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
+            //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
         }
             
         plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
@@ -675,6 +707,9 @@ module AssembleMinkowski(){
         else
         SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset);
     }
+    
+    if (CUTOUT_TEST==true)
+        ConsoleCutout(); 
 }
 
 
