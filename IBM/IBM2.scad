@@ -71,10 +71,10 @@ COMPOSER_PITCH_LIST=[
 //make an element with varying platen cutouts?
 CUTOUT_TEST=false;
 //interval of angle offsets to test
-CUTOUT_TEST_ANGLE_INT=.1;
-CUTOUT_TEST_ANGLE_ARRAY_MAP=[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16, -17, -18, -19, -20, -21]
-;
-//CUTOUT_TEST_ANGLE_ARRAY_MAP=[-17, -18, -19, -20, -21, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16];
+CUTOUT_TEST_ANGLE_INT=.05;//.05
+//base tilt to start incrementing from
+CUTOUT_TEST_START=0;//.01
+CUTOUT_TEST_ANGLE_ARRAY_MAP=[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16, -17, -18, -19, -20, -21];
 CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
 
 /* [Language and Custom Layout] */
@@ -255,11 +255,11 @@ LATITUDE_SPACING=360/22;
 //angle between rows
 LONGITUDE_SPACING=[32.8, 16.4, 0, -16.4];
 //platen diameter
-PLATEN_OD=40;
+PLATEN_OD=45;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.12;//.01
+DRIVE_NOTCH_WIDTH=1.08;//.01
 //drive notch height
 DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
@@ -538,16 +538,16 @@ LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11
 
 /* [Resin Printing Offsets] */
 //amount to compensate for vat-facing boss face !CRITICAL FEATURE!
-SNOOT_DROOP_COMPENSATION=.50;
+SNOOT_DROOP_COMPENSATION=.40;//.01
 //modeled boss to center value
 BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
 /* [Resin Supports] */
 
 //tip diameter
-TIP_D=.8;
+TIP_D=.7;
 //notch tip diameter
-TIP_NOTCHD=.5;
+TIP_NOTCHD=.4;
 //deg offset from notch for notch supports
 TIP_NOTCHOFFSET=12;
 //tip inset
@@ -684,13 +684,13 @@ module AssembleMinkowski(){
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
         
-        plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
+        plat_offset_test=CUTOUT_TEST==true?-CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]+CUTOUT_TEST_START:0;
         
         if (CUTOUT_TEST==true){
             //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
         }
             
-        plat_offset=PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+        plat_offset=CUTOUT_TEST==false?PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]:0;
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
         font=search(char, FONT2CHARS)==[]?FONT:FONT2;
         size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
