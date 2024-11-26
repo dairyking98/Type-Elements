@@ -74,8 +74,8 @@ CUTOUT_TEST=false;
 CUTOUT_TEST_ANGLE_INT=.05;//.05
 //base tilt to start incrementing from
 CUTOUT_TEST_START=0;//.01
-CUTOUT_TEST_ANGLE_ARRAY_MAP=[0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -12, -14, -15, -16, -17, -18, -19, -20, -21];
-CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT];
+CUTOUT_TEST_ANGLE_ARRAY_MAP=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 14, 15, 16, 17, 18, 19, 20, 21];
+CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) (CUTOUT_TEST_ANGLE_ARRAY_MAP[i]+CUTOUT_TEST_START)*CUTOUT_TEST_ANGLE_INT];
 
 /* [Language and Custom Layout] */
 
@@ -684,7 +684,7 @@ module AssembleMinkowski(){
         latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
         
-        plat_offset_test=CUTOUT_TEST==true?-CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]+CUTOUT_TEST_START:0;
+        plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
         
         if (CUTOUT_TEST==true){
             //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
