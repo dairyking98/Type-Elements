@@ -30,7 +30,8 @@ MINKOWSKI_ANGLE=65;
 //minkowski vertical offset in degrees
 MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 12.5, 25];
 //minkowski bottom radius size
-MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
+//MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
+function MINK_TEXT_R(draft_angle)=2*tan(.5*draft_angle);
 //cross section?
 XSECTION=false;
 //cross section angle?
@@ -74,8 +75,19 @@ CUTOUT_TEST=false;
 CUTOUT_TEST_ANGLE_INT=.05;//.05
 //base tilt to start incrementing from
 CUTOUT_TEST_START=0;//.01
-CUTOUT_TEST_ANGLE_ARRAY_MAP=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
-CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) CUTOUT_TEST_ANGLE_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT+CUTOUT_TEST_START];
+
+DRAFTANGLE_TEST=false;
+DRAFTANGLE_TEST_START=50;
+DRAFTANGLE_TEST_INT=1;
+
+MINK_LONG_OFFSET_TEST=false;
+MINK_LONG_OFFSET_TEST_START=0;
+MINK_LONG_OFFSET_TEST_INT=-1;
+
+TEST_ARRAY_MAP=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT+CUTOUT_TEST_START];
+DRAFTANGLE_TEST_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*DRAFTANGLE_TEST_INT+DRAFTANGLE_TEST_START];
+MINK_LONG_OFFSET_TEST_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*MINK_LONG_OFFSET_TEST_INT+MINK_LONG_OFFSET_TEST_START];
 
 /* [Language and Custom Layout] */
 
@@ -631,7 +643,7 @@ module PositionText(latitude, longitude){
 }
 
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset){
+module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle){
     minkowski(){
         difference(){
             PositionText(latitude, longitude+base_offset)
@@ -644,11 +656,11 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
             rotate([90 - longitude, 0, 90 + latitude])
             hull(){
                 translate([0, 0, -2])
-                cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
+                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=mink_fn);
                 if (minklongoffset!=0){
                     rotate([-minklongoffset, 0, 0])
                     translate([0, 0, -2])
-                    cylinder(r1=MINK_TEXT_R, d2=0, h=2, $fn=mink_fn);
+                    cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=mink_fn);
                 }
             }
         }
@@ -656,21 +668,23 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
 }
 
 //cutout test console output array
- //[ Element Row, Element Column, US KB Char, Cutout Offset Value]
-CutoutInfo = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
+ //[ Element Row, Element Column, US KB Char, Cutout Offset Value, Draft Angle, Mink Long Offset]
+CharInfo = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
     (LATITUDE_LONGITUDE[hemi_int][1]), 
     (LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING),
     (RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
-    (CUTOUT_TEST_ANGLE_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180)/LATITUDE_SPACING])
+    CUTOUT_TEST?(CUTOUT_TEST_ANGLE_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180)/LATITUDE_SPACING]):PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],
+    DRAFTANGLE_TEST?DRAFTANGLE_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_ANGLE,
+    MINK_LONG_OFFSET_TEST?MINK_LONG_OFFSET_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]
  ]];
 
-CutoutInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CutoutInfo[char][0]==row) [row, CutoutInfo[char][1], CutoutInfo[char][2], CutoutInfo[char][3]]];
+CharInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CharInfo[char][0]==row) [row, CharInfo[char][1], CharInfo[char][2], CharInfo[char][3], CharInfo[char][4], CharInfo[char][5]]];
 
-CutoutInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (CutoutInfo[n][1]==latitude && CutoutInfo[n][0]==row)  [CutoutInfo[n][0], CutoutInfo[n][1], CutoutInfo[n][2], CutoutInfo[n][3]]];
+CharInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (CharInfo[n][1]==latitude && CharInfo[n][0]==row)  [CharInfo[n][0], CharInfo[n][1], CharInfo[n][2], CharInfo[n][3], CharInfo[n][4], CharInfo[n][5]]];
 
 module ConsoleCutout(){
     for (i=[0:87])
-    echo(str("US Composer KB char = ", CutoutInfoRowColSorted[i][2], " on row ", CutoutInfoRowColSorted[i][0], " and latitude ", CutoutInfoRowColSorted[i][1], " with cutout offset value ", CutoutInfoRowColSorted[i][3]));
+    echo(str("US Composer KB char = ", CharInfoRowColSorted[i][2], " on row ", CharInfoRowColSorted[i][0], " and latitude ", CharInfoRowColSorted[i][1], " with cutout offset ", CharInfoRowColSorted[i][3], " and draft angle ", CharInfoRowColSorted[i][4], " and mink long offset value ", CharInfoRowColSorted[i][5]));
 }
 
 //assemble minkowski characters
@@ -685,6 +699,8 @@ module AssembleMinkowski(){
         longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
         
         plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
+        draft_angle=DRAFTANGLE_TEST==true?DRAFTANGLE_TEST_ARRAY[latitude/21]:MINKOWSKI_ANGLE;
+        //mink_long_offset_test
         
         if (CUTOUT_TEST==true){
             //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
@@ -696,20 +712,18 @@ module AssembleMinkowski(){
         size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
-        minklongoffset=MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
+        minklongoffset=MINK_LONG_OFFSET_TEST==false?MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]:MINK_LONG_OFFSET_TEST_ARRAY[latitude/21];
         //echo(minklongoffset);
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset, minklongoffset, draft_angle);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset, draft_angle);
     }
-    
-    if (CUTOUT_TEST==true)
-        ConsoleCutout(); 
+   
 }
 
 
@@ -1031,6 +1045,8 @@ module Render(){
             translate([0, -50, -50])
             cube(100);
         }
+        
+        ConsoleCutout(); 
     }
 }
 
