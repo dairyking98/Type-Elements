@@ -26,9 +26,9 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 //turn on minkowski?
 MINK_ON=false;
 //minkowski draft angle
-MINKOWSKI_ANGLE=65;
+MINKOWSKI_ANGLE=55;
 //minkowski vertical offset in degrees
-MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 12.5, 25];
+MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 9, 6];
 //minkowski bottom radius size
 //MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
 function MINK_TEXT_R(draft_angle)=2*tan(.5*draft_angle);
@@ -313,7 +313,7 @@ DEL_DEPTH = 0.6;
 /* [Character Polar Positioning Offsets] */
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-0.85, -0.85, -0.35, -0.6];//.05
+PLATEN_LONGITUDE_OFFSETS=[-1.30, -1.20, -0.95, -0.95];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
