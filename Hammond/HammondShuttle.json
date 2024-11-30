@@ -1729,7 +1729,7 @@
             "Baseline": "[3.74, -1.21, -5.71, -9.89]",
             "Character_Modifieds": "_",
             "Character_Modifieds_Offset": "-0.40000000000000002",
-            "Debug_No_Minkowski": "true",
+            "Debug_No_Minkowski": "false",
             "GalChars": "ⰀⰁⰂⰃⰄⰅⰆⰇⰈⰉⰊⰋⰌⰍⰎⰏⰐⰑⰒⰓⰔⰕⰖⰗⰘⰙⰚⰛⰜⰝⰞⰟⰠⰡⰢⰣⰤⰥⰦⰧⰨⰩⰪⰫⰬⰭⰮ",
             "GalFont": "Noto Sans Glagolitic",
             "GalFontSize": "2",
