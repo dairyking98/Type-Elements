@@ -1051,6 +1051,12 @@ module ResinPrint(){
         if (Resin_Support_Orientation==1)
         HorizGroovedResin2();
     }
+    if (!Resin_Support){
+        if (Groove)
+        GroovedShuttle();
+        if (!Groove)
+        RibbedShuttle();
+    }
 }
 
 //RibAssembled();

@@ -51,6 +51,7 @@ CharModSize=2.7;
 /* [Dimensions] */
 Posthole_ID=1.92;// 5/64 wire rod
 //resin offset fot pin holes
+Posthole_IDChamfer=.25;
 PostholeID_ResinOffset=.25;
 OD_InnerTube_=5.842;//measurement + clearance
 OD_OuterTube_=6.6548;//measurement + clearance
@@ -59,7 +60,8 @@ OD_OuterTube_=6.6548;//measurement + clearance
 OD=75.0;
 Shuttle_Thickness=1.6;
 Shuttle_Width=13.26;
-Folder_ID=12;//9.6;
+Folder_ID=12;//.1 
+//9.6 is og folder id
 Folder_OD=18.762;
 Folder_Clearance=0.4;
 Folder_SquashClearance=.3683;//.2794;//.0001 //.5 for Full 3D
@@ -271,8 +273,12 @@ module ArrangeSpokes(){
 }
 
 module PinHole(){
-    translate([0, 0, -z])
-    cylinder(h=Folder_Thickness+2*z, d=Posthole_ID+PostholeID_ResinOffset, $fn=cyl_fn);
+    translate([0, 0, -z]){
+        cylinder(h=Folder_Thickness+2*z, d=Posthole_ID+PostholeID_ResinOffset, $fn=cyl_fn);
+        cylinder(h=Posthole_IDChamfer, d1=Posthole_ID+PostholeID_ResinOffset+2*Posthole_IDChamfer, d2=Posthole_ID+PostholeID_ResinOffset, $fn=cyl_fn);
+    }
+    translate([0, 0, Folder_Thickness+z-Posthole_IDChamfer])
+    cylinder(h=Posthole_IDChamfer, d2=Posthole_ID+PostholeID_ResinOffset+2*Posthole_IDChamfer, d1=Posthole_ID+PostholeID_ResinOffset, $fn=cyl_fn);
 }
 
 module ArrangePinHole(){
