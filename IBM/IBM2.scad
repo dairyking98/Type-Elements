@@ -27,6 +27,8 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print to
 MINK_ON=false;
 //minkowski draft angle
 MINKOWSKI_ANGLE=55;
+//minkowski offset from text surface
+MINKOWSKI_FLAT_OFFSET=.05;//.01
 //minkowski vertical offset in degrees
 MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 9, 6];
 //minkowski bottom radius size
@@ -568,6 +570,8 @@ TIP_IN=.4;
 TIP_H=1;
 //rod diameter
 ROD_D=1.2;
+//rod base diameter
+ROD_BASE_C=.5;
 //rod radius
 ROD_R=ROD_D/2;
 //base diameter on buildplate
@@ -642,28 +646,64 @@ module PositionText(latitude, longitude){
 //    Text(char);
 }
 
+////minkowski single character
+//module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle){
+//    minkowski(){
+//        difference(){
+//            PositionText(latitude, longitude+base_offset)
+//            linear_extrude(6)
+//            Text(char, font, size, customhalign, customvalign);
+//            PlatenCutout(latitude, longitude+plat_offset);
+//            
+//        }
+//        if (MINK_ON==true){
+//            rotate([90 - longitude, 0, 90 + latitude])
+//            hull(){
+//                translate([0, 0, -2])
+//                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=mink_fn);
+//                if (minklongoffset!=0){
+//                    rotate([-minklongoffset, 0, 0])
+//                    translate([0, 0, -2])
+//                    cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=mink_fn);
+//                }
+//            }
+//        }
+//    }
+//}
+//SingleMinkowski("A", "Courier New", 3, 0, 0, 0, 0, 0, 0, 0, 65);
 //minkowski single character
 module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle){
+    union(){
+    difference(){
+        PositionText(latitude, longitude+base_offset)
+        linear_extrude(6)
+        Text(char, font, size, customhalign, customvalign);
+        PlatenCutout(latitude, longitude+plat_offset);
+        
+    }
     minkowski(){
         difference(){
-            PositionText(latitude, longitude+base_offset)
-            linear_extrude(6)
-            Text(char, font, size, customhalign, customvalign);
-            PlatenCutout(latitude, longitude+plat_offset);
-            
-        }
+        PositionText(latitude, longitude+base_offset)
+        linear_extrude(6)
+        Text(char, font, size, customhalign, customvalign);
+        PlatenCutout(latitude, longitude+plat_offset);
+        
+    }
         if (MINK_ON==true){
             rotate([90 - longitude, 0, 90 + latitude])
             hull(){
-                translate([0, 0, -2])
+                translate([0, 0, -2-MINKOWSKI_FLAT_OFFSET])
                 cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=mink_fn);
                 if (minklongoffset!=0){
+                echo(char, minklongoffset);
+                    translate([0, 0, -MINKOWSKI_FLAT_OFFSET])
                     rotate([-minklongoffset, 0, 0])
                     translate([0, 0, -2])
                     cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=mink_fn);
                 }
             }
         }
+    }
     }
 }
 
@@ -843,6 +883,9 @@ module ResinRod(h, a1, d){
             translate([0, 0, -MIN_ROD_H-BASE_H+ROD_D/2-TIP_H])
             sphere(d=ROD_D);
         }
+        //base-rod chamfer
+        translate([0, 0, -MIN_ROD_H-TIP_H-z])
+        cylinder(d1=ROD_D+2*ROD_BASE_C, d2=ROD_D, h=ROD_BASE_C);
     }
     //tip
     translate([0, 0, h-TIP_D/2+TIP_IN])
