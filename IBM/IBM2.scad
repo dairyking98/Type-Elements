@@ -86,10 +86,16 @@ MINK_LONG_OFFSET_TEST=false;
 MINK_LONG_OFFSET_TEST_START=0;
 MINK_LONG_OFFSET_TEST_INT=1;
 
+PLATEN_DIAMETER_TEST=false;
+PLATEN_DIAMETER_TEST_START=30;
+PLATEN_DIAMETER_TEST_INT=1;
+
+
 TEST_ARRAY_MAP=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 CUTOUT_TEST_ANGLE_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*CUTOUT_TEST_ANGLE_INT+CUTOUT_TEST_START];
 DRAFTANGLE_TEST_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*DRAFTANGLE_TEST_INT+DRAFTANGLE_TEST_START];
 MINK_LONG_OFFSET_TEST_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*MINK_LONG_OFFSET_TEST_INT+MINK_LONG_OFFSET_TEST_START];
+PLATEN_DIAMETER_TEST_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*PLATEN_DIAMETER_TEST_INT+PLATEN_DIAMETER_TEST_START];
 
 /* [Language and Custom Layout] */
 
@@ -630,11 +636,12 @@ module Text(char, font, size, customhalign, customvalign){
 }
 
 //platen cutout
-module PlatenCutout(latitude, longitude){
+module PlatenCutout(latitude, longitude,platendia){
+            platenr=platendia/2;
             rotate([0, -longitude, latitude])
-            translate([SPHERE_R+PLATEN_R+TYPE_ALTITUDE, 0, 0])
+            translate([SPHERE_R+platenr+TYPE_ALTITUDE, 0, 0])
             rotate([90, 0, 0])
-            cylinder(d=PLATEN_OD, h=10, center=true, $fn=cyl_fn);
+            cylinder(d=platendia, h=10, center=true, $fn=cyl_fn);        
 }
 
 //position extruded character
@@ -672,13 +679,13 @@ module PositionText(latitude, longitude){
 //}
 //SingleMinkowski("A", "Courier New", 3, 0, 0, 0, 0, 0, 0, 0, 65);
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle){
+module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle,platendia){
     union(){
     difference(){
         PositionText(latitude, longitude+base_offset)
         linear_extrude(6)
         Text(char, font, size, customhalign, customvalign);
-        PlatenCutout(latitude, longitude+plat_offset);
+        PlatenCutout(latitude, longitude+plat_offset,platendia);
         
     }
     minkowski(){
@@ -686,7 +693,7 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
         PositionText(latitude, longitude+base_offset)
         linear_extrude(6)
         Text(char, font, size, customhalign, customvalign);
-        PlatenCutout(latitude, longitude+plat_offset);
+        PlatenCutout(latitude, longitude+plat_offset,platendia);
         
     }
         if (MINK_ON==true){
@@ -715,16 +722,17 @@ CharInfo = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
     (RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
     CUTOUT_TEST?(CUTOUT_TEST_ANGLE_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180)/LATITUDE_SPACING]):PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],
     DRAFTANGLE_TEST?DRAFTANGLE_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_ANGLE,
-    MINK_LONG_OFFSET_TEST?MINK_LONG_OFFSET_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]
+    MINK_LONG_OFFSET_TEST?MINK_LONG_OFFSET_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],
+    PLATEN_DIAMETER_TEST?PLATEN_DIAMETER_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:PLATEN_OD,
  ]];
 
-CharInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CharInfo[char][0]==row) [row, CharInfo[char][1], CharInfo[char][2], CharInfo[char][3], CharInfo[char][4], CharInfo[char][5]]];
+CharInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CharInfo[char][0]==row) [row, CharInfo[char][1], CharInfo[char][2], CharInfo[char][3], CharInfo[char][4], CharInfo[char][5],CharInfo[char][6]]];
 
-CharInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (CharInfo[n][1]==latitude && CharInfo[n][0]==row)  [CharInfo[n][0], CharInfo[n][1], CharInfo[n][2], CharInfo[n][3], CharInfo[n][4], CharInfo[n][5]]];
+CharInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (CharInfo[n][1]==latitude && CharInfo[n][0]==row)  [CharInfo[n][0], CharInfo[n][1], CharInfo[n][2], CharInfo[n][3], CharInfo[n][4], CharInfo[n][5],CharInfo[n][6]]];
 
 module ConsoleCutout(){
     for (i=[0:87])
-    echo(str("US Composer KB char = ", CharInfoRowColSorted[i][2], " on row ", CharInfoRowColSorted[i][0], " and latitude ", CharInfoRowColSorted[i][1], " with cutout offset ", CharInfoRowColSorted[i][3], " and draft angle ", CharInfoRowColSorted[i][4], " and mink long offset value ", CharInfoRowColSorted[i][5]));
+    echo(str("US Composer KB char = ", CharInfoRowColSorted[i][2], " on row ", CharInfoRowColSorted[i][0], " and latitude ", CharInfoRowColSorted[i][1], " ––– cutout offset: ", CharInfoRowColSorted[i][3], " ––– draft angle: ", CharInfoRowColSorted[i][4], " ––– mink long offset: ", CharInfoRowColSorted[i][5], " ––– platen diameter: ",CharInfoRowColSorted[i][6]));
 }
 
 //assemble minkowski characters
@@ -742,9 +750,9 @@ module AssembleMinkowski(){
         draft_angle=DRAFTANGLE_TEST==true?DRAFTANGLE_TEST_ARRAY[latitude/21]:MINKOWSKI_ANGLE;
         //mink_long_offset_test
         
-        if (CUTOUT_TEST==true){
-            //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
-        }
+//        if (CUTOUT_TEST==true){
+//            //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
+//        }
             
         plat_offset=CUTOUT_TEST==false?PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]:0;
         base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
@@ -753,15 +761,16 @@ module AssembleMinkowski(){
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
         minklongoffset=MINK_LONG_OFFSET_TEST==false?MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]:MINK_LONG_OFFSET_TEST_ARRAY[latitude/21];
-        //echo(minklongoffset);
+        platendia=PLATEN_DIAMETER_TEST==true?PLATEN_DIAMETER_TEST_ARRAY[latitude/21]:PLATEN_OD;
+        //echo(platendia);
         
         if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset, minklongoffset, draft_angle);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset, minklongoffset, draft_angle,platendia);
         
         else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset, draft_angle);
+        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset, draft_angle,platendia);
     }
    
 }
@@ -1088,7 +1097,7 @@ module Render(){
             translate([0, -50, -50])
             cube(100);
         }
-        if (CUTOUT_TEST==true||DRAFTANGLE_TEST==true||MINK_LONG_OFFSET_TEST==true){
+        if (CUTOUT_TEST==true||DRAFTANGLE_TEST==true||MINK_LONG_OFFSET_TEST==true||PLATEN_DIAMETER_TEST==true){
         ConsoleCutout();}
     }
 }
