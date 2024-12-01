@@ -4,7 +4,7 @@
 
 //
 //                              Creation date: November 4, 2024                     
-//Leonard Chau & Otto Koponen   November 16, 2024       t(-.-t)
+//Leonard Chau & Otto Koponen   December 1, 2024       t(-.-t)
 
 /* [Global Parameters] */
 
@@ -17,26 +17,25 @@ surface_fn=120;
 
 /* [Rendering] */
 
-//render something?
+//Render something
 RENDER=false;
-//render selection?
+//Render selection
 RENDER_MODE=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
-//render variant?
-RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test, 3:resin print top down]
-//turn on minkowski?
+//Render variant
+RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test]
+//Turn on minkowski
 MINK_ON=false;
-//minkowski draft angle
+//Minkowski draft angle
 MINKOWSKI_ANGLE=55;
-//minkowski offset from text surface
+//Minkowski offset from text surface
 MINKOWSKI_FLAT_OFFSET=.05;//.01
-//minkowski vertical offset in degrees
-MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 9, 6];
-//minkowski bottom radius size
-//MINK_TEXT_R=2*tan(.5*MINKOWSKI_ANGLE);
+//Minkowski vertical offset in degrees
+MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 0, 0];
+//Minkowski bottom radius size
 function MINK_TEXT_R(draft_angle)=2*tan(.5*draft_angle);
-//cross section?
+//View Cross section
 XSECTION=false;
-//cross section angle?
+//Cross section angle
 XSECTION_THETA=0;
 //Degrees to rotate ball when rendering to prevent artifacts due to element aligning with pixel grid.
 RENDER_DEGREE_OFFSET=-3;
@@ -44,11 +43,11 @@ RENDER_DEGREE_OFFSET=-3;
 
 
 /* [Testing Stuff] */
-//whitelist render of characters?
+//Render only selected characters
 SELECTIVE_RENDER=false;
-//whitelisted characters to render?
+//Characters to render
 SELECTIVE_RENDER_CHARS="sine";
-//enable rays?
+//Enable rays
 RAYS=false;
 
 //character and point array for type testing composer
@@ -71,21 +70,27 @@ COMPOSER_PITCH_LIST=[
 ];
 
 
-//make an element with varying platen cutouts?
+//Test platen cutout offsets
 CUTOUT_TEST=false;
-//interval of angle offsets to test
+//Base tilt to start incrementing from
+CUTOUT_TEST_START=0;//.05
+//Interval of angle offsets to test
 CUTOUT_TEST_ANGLE_INT=.05;//.05
-//base tilt to start incrementing from
-CUTOUT_TEST_START=0;//.01
 
+//individual platen cutout adjustment angles
+PLATEN_LONGITUDE_OFFSETS=[-1.30, -1.20, -0.95, -0.95];//.05
+
+//Test minkowski draft angles
 DRAFTANGLE_TEST=false;
 DRAFTANGLE_TEST_START=50;
 DRAFTANGLE_TEST_INT=1;
 
+//Test minkowski longitudinal offsets
 MINK_LONG_OFFSET_TEST=false;
 MINK_LONG_OFFSET_TEST_START=0;
 MINK_LONG_OFFSET_TEST_INT=1;
 
+//Test platen diameters
 PLATEN_DIAMETER_TEST=false;
 PLATEN_DIAMETER_TEST_START=30;
 PLATEN_DIAMETER_TEST_INT=1;
@@ -109,20 +114,20 @@ S12_88_LANGUAGE=0;//[0:United States]
 //lowercase layout for custom keyboard
 CUSTOMLOWERCASE88="
 
-||||||||||||
-|||||||||||
-|||||||||||
-||||||||||
+IIIIIIIIIIII
+IIIIIIIIIII
+IIIIIIIIIII
+IIIIIIIIIII
 
 ";
 
 //uppercase layout for custom keyboard
 CUSTOMUPPERCASE88="
 
-||||||||||||
-|||||||||||
-|||||||||||
-||||||||||
+IIIIIIIIIIII
+IIIIIIIIIII
+IIIIIIIIIII
+IIIIIIIIIII
 
 ";
 
@@ -197,7 +202,7 @@ TYPE_TEST_COLOR="red";//["red","black","white"]
 CUSTOM_TEST_STRING=false;
 
 //custom string for type test
-TESTSTRING_CUSTOM="1234567890-=qwertyuiop?asdfghjkl][zxcvbnm,.;!†+$%/&*()–@QWERTYUIOP¾ASDFGHJKL¼½ZXCVBNM‘’:";
+TESTSTRING_CUSTOM="Sphinx of black quartz, judge my vow";
 
 //cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
@@ -218,11 +223,35 @@ ARROW_COLOR=
     (UNITSPERINCH==96) ? "blue":
     "white" // fallback
     ;
-//echo(ARROW_COLOR);
+
+/* [Typeball Print Tolerances] */
+
+
+TOPFLAT_THICKNESS=3.5;
+//shaft ID
+SHAFT_ID=8.8;
+//shaft r
+SHAFT_R=SHAFT_ID/2;
+//boss OD
+BOSS_OD=11.6;
+//boss minimum clearange
+BOSS_CLEARANCE=2.5;//.1
+//boss step thicknesss
+BOSS_STEP=0;//.1
+//platen diameter
+PLATEN_OD=45;
+//drive notch width
+DRIVE_NOTCH_WIDTH=1.06;//.01
+//drive notch height
+DRIVE_NOTCH_HEIGHT=2.2;
+echo("Top flat to boss face must measure at 8.5mm (Leo's measured value) or element is incorrectly represented. Adjust SNOOT_DROOP_COMPENSATION up,lowering height of boss, until print yields 8.5mm boss height.");
+//amount to compensate for vat-facing boss face !CRITICAL FEATURE!
+SNOOT_DROOP_COMPENSATION=.42;//.01
 
 
 
-/* [Typeball Dimensions] */
+/* [ Hidden ] */
+//Typeball Dimensions
 
 //sphere diameter
 SPHERE_OD=33.4;
@@ -233,61 +262,34 @@ MAX_OD=34.9;
 //sphere center to top flat
 TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
-TOPFLAT_THICKNESS=3.5;
-//shaft ID
-SHAFT_ID=8.8;
-//shaft r
-SHAFT_R=SHAFT_ID/2;
 //top shaft chamfer
 TOP_CHAMFER=.7;
 //inside ID
 INSIDE_ID=28.15;
-//calculated calue of sphere center to boss face
+//calculated value of sphere center to boss face
 BOSS_TO_CENTER_=2.5;//leo's calculated value. dave's was 2.38 (calculated);
-
-//shaft boss height
-//BOSS_H=8.62;//was 8.07; now redundant replaced by BOSS_TO_CENTER
-
-echo("Top flat to boss face must measure at 8.5mm (Leo's measured value) or element is incorrectly represented. Adjust SNOOT_DROOP_COMPENSATION up,lowering height of boss, until print yields 8.5mm boss height.");
-
-//dave's top flat to boss face/BOSS_HEIGHT/BOSS_H was 8.07
-
 //top flat radius
 TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
 //center to detent teeth tips of element
 FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
-//boss OD
-BOSS_OD=11.6;
-//boss minimum clearange
-BOSS_CLEARANCE=2.5;//.1
-//boss step thicknesss
-BOSS_STEP=1;//.1
+//angle between characters
+LATITUDE_SPACING=360/22;
 //skirt top OD
 SKIRT_TOP_OD=32.3;
 //skirt bottom OD
 SKIRT_BOTTOM_OD=30.2;
 //overall thickness of element
-echo(str(FLOOR+TOPFLAT_TO_CENTER, " (modeled) = 21.7 (measured)? Leo's measured overall thickness?"));
-//ELEMENT_OAT=21.7;//leo's measured value. dave's was 22.0; 
-//now redundant - FLOOR + CENTER_TO_TOP = OAT
-//angle between characters
-LATITUDE_SPACING=360/22;
+//echo(str(FLOOR+TOPFLAT_TO_CENTER, " (modeled) = 21.7 (measured)? Leo's measured overall thickness?"));
 //angle between rows
 LONGITUDE_SPACING=[32.8, 16.4, 0, -16.4];
-//platen diameter
-PLATEN_OD=55;
-//radius of hollow section
-HOLLOW_R=2;
-//drive notch width
-DRIVE_NOTCH_WIDTH=1.08;//.01
-//drive notch height
-DRIVE_NOTCH_HEIGHT=2.2;
 //drive notch theta from arrow
 DRIVE_NOTCH_THETA_=131.0;//.01
 //detent valley from center
 DETENT_VALLEY_TO_CENTER=6;
 //detent teeth clock offset
 DETENT_SKIRT_CLOCK_OFFSET=0;//.01
+//modeled boss to center value
+BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
 
 /* [Label Stuff] */
 
@@ -315,13 +317,12 @@ LABEL_FONT_WEIGHT_OFFSET=0;//0.01
 FONT_LABEL_OFFSET=0;//0.25
 //arrow from center 
 DEL_BASE_FROM_CENTRE = 8.2;
-//depth of arrow
+//Label deboss depth
 DEL_DEPTH = 0.6;
 
-/* [Character Polar Positioning Offsets] */
+/* [ Hidden ] */
+//Character Polar Positioning Offsets
 
-//individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-1.30, -1.20, -0.95, -0.95];//.05
 //individual baseline adjustment angles
 BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
@@ -335,7 +336,7 @@ SKIRT_TOP_R=SKIRT_TOP_OD/2;
 //center to skirt of element
 CENTER_TO_SKIRT=(SPHERE_R^2-SKIRT_TOP_R^2)^.5;
 //platen radius
-PLATEN_R=PLATEN_OD/2;
+//PLATEN_R=PLATEN_OD/2;
 //height of letter
 TYPE_ALTITUDE=(MAX_OD-SPHERE_OD)/2;
 //inside radius
@@ -348,7 +349,8 @@ DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
 ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
 
 
-/* [Character Mapping - Selectric I/II 88char] */
+/* [ Hidden] */
+//Character Mapping - Selectric I/II 88char
 
 //lowercase selectric 1/2 layout on machine; left to right, top to bottom
 LOWERCASE88_US="
@@ -413,7 +415,8 @@ S12_LC_HEMISPHERE88=S12_LC_HEMISPHERE88_US;//I dont think hemisphere positions f
 //-1.jpqyflg],
 //";
 
-/* [Character Mapping - Composer 88char] */
+/* [ Hidden ] */
+// Character Mapping - Composer 88char
 
 //uppercase composer layout on machine; left to right, top to bottom
 
@@ -556,16 +559,10 @@ HEMISPHERE_MAP=ALL88HEMIS[RENDER_MODE];
 //create latitude, longitude integer array for one hemisphere
 LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11, ceil(HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
 
-/* [Resin Printing Offsets] */
-//amount to compensate for vat-facing boss face !CRITICAL FEATURE!
-SNOOT_DROOP_COMPENSATION=.40;//.01
-//modeled boss to center value
-BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
-
 /* [Resin Supports] */
 
 //tip diameter
-TIP_D=.7;
+TIP_D=.9;
 //notch tip diameter
 TIP_NOTCHD=.4;
 //deg offset from notch for notch supports
@@ -607,7 +604,7 @@ module Rays(){
     for (lat=[0:21])
     for (long=[0:3])
     rotate([0, LONGITUDE_SPACING[long], lat*LATITUDE_SPACING])
-    rotate([0, 90, 0])
+    rotate([0, -90, 0])
     #cylinder(r=.1, h=20);
 }
 
@@ -722,8 +719,7 @@ CharInfo = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
     (RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
     CUTOUT_TEST?(CUTOUT_TEST_ANGLE_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180)/LATITUDE_SPACING]):PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],
     DRAFTANGLE_TEST?DRAFTANGLE_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_ANGLE,
-    MINK_LONG_OFFSET_TEST?MINK_LONG_OFFSET_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],
-    PLATEN_DIAMETER_TEST?PLATEN_DIAMETER_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:PLATEN_OD,
+    MINK_LONG_OFFSET_TEST?MINK_LONG_OFFSET_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],PLATEN_DIAMETER_TEST?PLATEN_DIAMETER_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:PLATEN_OD,
  ]];
 
 CharInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CharInfo[char][0]==row) [row, CharInfo[char][1], CharInfo[char][2], CharInfo[char][3], CharInfo[char][4], CharInfo[char][5],CharInfo[char][6]]];
@@ -936,7 +932,7 @@ module ResinRodAssemble(){
             
             //boss-roof support-supports
             hull(){
-//                translate([BOSS_R-ResinXOffset(-45), 0, 12])//couter corner
+//                translate([BOSS_R-ResinXOffset(-45), 0, 12])//outer corner
                 translate([(BOSS_R+SHAFT_ID/2)/2, 0, 12])//directly under
                 sphere(d=ROD_D);
                 translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 8])
@@ -998,19 +994,6 @@ module ResinPrint(){
     translate([0, 0 , FLOOR])
     SubtractFromFull();
     ResinRodAssemble();
-    }
-}
-
-//assemble resin print 2
-module ResinPrint2(){
-    rotate([0, 180, 0])
-    translate([0, 0 , -TOPFLAT_TO_CENTER])
-    union(){
-    SubtractFromFull();
-
-    
-    
-    ResinRodAssemble2();
     }
 }
 
@@ -1090,8 +1073,6 @@ module Render(){
                 if (RENDER_MODE==1)
                     TextGauge(TESTSTRING_CUSTOM, TESTCPI);
             }
-            if (RENDER_VARIANT==3)
-                ResinPrint2();
             if (XSECTION==true && RENDER_VARIANT!=2)
             rotate([0, 0, XSECTION_THETA-90])
             translate([0, -50, -50])
