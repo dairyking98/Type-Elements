@@ -157,7 +157,7 @@ CUSTOMVALIGNOFFSET=-0.2;
 //type weight offset +/-
 FONT_WEIGHT_OFFSET=0;//.01
 //x weight adjustment 0+
-X_WEIGHT_ADJUSTMENT=.0;//.01
+X_WEIGHT_ADJUSTMENT=.0;//.001
 //y weight adjustment 0+
 Y_WEIGHT_ADJUSTMENT=.0;//.01
 //x horiz alignment offset for composer
@@ -269,7 +269,7 @@ LATITUDE_SPACING=360/22;
 //angle between rows
 LONGITUDE_SPACING=[32.8, 16.4, 0, -16.4];
 //platen diameter
-PLATEN_OD=45;
+PLATEN_OD=55;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
@@ -1088,8 +1088,8 @@ module Render(){
             translate([0, -50, -50])
             cube(100);
         }
-        
-        ConsoleCutout(); 
+        if (CUTOUT_TEST==true||DRAFTANGLE_TEST==true||MINK_LONG_OFFSET_TEST==true){
+        ConsoleCutout();}
     }
 }
 
