@@ -854,7 +854,7 @@ module Teeth(){
 module Notch(){
     rotate([0, 0, DRIVE_NOTCH_THETA])
     translate([SHAFT_ID/2-.5, -DRIVE_NOTCH_WIDTH/2, BOSS_TO_CENTER-z])
-    cube([4, DRIVE_NOTCH_WIDTH, DRIVE_NOTCH_HEIGHT+z]);
+    cube([4, DRIVE_NOTCH_WIDTH, DRIVE_NOTCH_HEIGHT+SNOOT_DROOP_COMPENSATION+z]);
 }
 
 //full body minus subtractive parts
