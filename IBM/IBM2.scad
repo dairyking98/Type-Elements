@@ -103,7 +103,7 @@ PLATEN_DIAMETER_TEST_ARRAY=[for (i=[0:21]) TEST_ARRAY_MAP[i]*PLATEN_DIAMETER_TES
 COMPOSER_LANGUAGE=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin, 5:Custom]
 
 //Selectric I/II 88 character Language Preset
-S12_88_LANGUAGE=0;//[0:United States]
+S12_88_LANGUAGE=0;//[0:United States, 1:Custom]
 
 
 //lowercase layout for custom keyboard
@@ -127,6 +127,7 @@ CUSTOMUPPERCASE88="
 ";
 
 
+CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 
 /* [Typeface Stuff] */
 
@@ -274,8 +275,12 @@ echo(str(FLOOR+TOPFLAT_TO_CENTER, " (modeled) = 21.7 (measured)? Leo's measured 
 LATITUDE_SPACING=360/22;
 //angle between rows
 LONGITUDE_SPACING=[32.8, 16.4, 0, -16.4];
+//platen diameter composer
+PLATEN_OD_C=55;
+//platen diameter selectric 1/2
+PLATEN_OD_S12=36;
 //platen diameter
-PLATEN_OD=55;
+PLATEN_OD=RENDER_MODE==0?PLATEN_OD_C:PLATEN_OD_S12;
 //radius of hollow section
 HOLLOW_R=2;
 //drive notch width
@@ -377,12 +382,12 @@ wsi'.½oarvm
 
 S12_US=[LOWERCASE88_US,UPPERCASE88_US];
 
-ALL_S12=[S12_US];
+    
+S12_US_HEMISPHERE88=S12_LC_HEMISPHERE88_US;//I dont think hemisphere positions for keyboard to element will change for different languages
+
+ALL_S12=[S12_US, CUSTOMCASES88];
 
 S12CASES88=ALL_S12[S12_88_LANGUAGE];
-    
-S12_LC_HEMISPHERE88=S12_LC_HEMISPHERE88_US;//I dont think hemisphere positions for keyboard to element will change for different languages
-
 
 //SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
 ////lowercase selectric 3 layout on machine; left to right, top to bottom
@@ -514,11 +519,11 @@ C_UK=[LOWERCASECOMPOSER_UK,UPPERCASECOMPOSER_UK];
 C_NO=[LOWERCASECOMPOSER_NO,UPPERCASECOMPOSER_NO];
 C_DE=[LOWERCASECOMPOSER_DE,UPPERCASECOMPOSER_DE];
 C_LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
-CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 
 ALL_C=[C_US, C_UK, C_NO, C_DE, C_LA, CUSTOMCASES88];
 
 COMPOSERCASES88=ALL_C[COMPOSER_LANGUAGE];
+
 
 
 //all keyboard layouts
@@ -532,11 +537,14 @@ CASES88=ALL88CASES[RENDER_MODE];
 //keyboard string
 KBSTRING=str(CASES88[0], CASES88[1]);
 
-////set lowercase hemisphere 
-//LC_HEMISPHERE88=ALL88HEMIS[RENDER_MODE];
+//create lowercase layout to us element hemisphere map
+LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12_US[0])-1]) search(S12_US[0][i], S12_US_HEMISPHERE88)];
 
-//create lowercase layout to element hemisphere map
-LC_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(S12CASES88[0])-1]) search(S12CASES88[0][i], S12_LC_HEMISPHERE88)];
+//echo(LC_LAYOUT_TO_HEMISPHERE_MAP);
+
+//hardcoding of LC_LAYOUT_TO_HEMISPHERE_MAP:
+
+S12_HEMISPHERE_MAP = [[10], [4], [9], [6], [3], [2], [8], [7], [0], [1], [33], [37], [35], [22], [14], [30], [16], [34], [20], [24], [28], [36], [27], [29], [23], [19], [42], [43], [12], [38], [13], [17], [41], [25], [5], [21], [18], [31], [11], [15], [32], [40], [26], [39]];
 
 //create lowercase us layout to us element hemisphere map for composer
 LC_COMP_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(C_US[0])-1]) search(C_US[0][i], C_US_HEMISPHERE88)];
@@ -548,7 +556,7 @@ LC_COMP_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(C_US[0])-1]) search(C_US[0][i]
 COMPOSER_HEMISPHERE_MAP = [[6], [9], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
 
 ////all hemisphere layouts
-ALL88HEMIS=[COMPOSER_HEMISPHERE_MAP, LC_LAYOUT_TO_HEMISPHERE_MAP];
+ALL88HEMIS=[COMPOSER_HEMISPHERE_MAP, S12_HEMISPHERE_MAP];
 
 HEMISPHERE_MAP=ALL88HEMIS[RENDER_MODE];
 
@@ -732,7 +740,7 @@ CharInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if
 
 module ConsoleCutout(){
     for (i=[0:87])
-    echo(str("US Composer KB char = ", CharInfoRowColSorted[i][2], " on row ", CharInfoRowColSorted[i][0], " and latitude ", CharInfoRowColSorted[i][1], " ––– cutout offset: ", CharInfoRowColSorted[i][3], " ––– draft angle: ", CharInfoRowColSorted[i][4], " ––– mink long offset: ", CharInfoRowColSorted[i][5], " ––– platen diameter: ",CharInfoRowColSorted[i][6]));
+    echo(str(RENDER_MODE==0?"US Composer":"US Selectric1/2", " KB char = ", CharInfoRowColSorted[i][2], " on row ", CharInfoRowColSorted[i][0], " and latitude ", CharInfoRowColSorted[i][1], " ––– cutout offset: ", CharInfoRowColSorted[i][3], " ––– draft angle: ", CharInfoRowColSorted[i][4], " ––– mink long offset: ", CharInfoRowColSorted[i][5], " ––– platen diameter: ",CharInfoRowColSorted[i][6]));
 }
 
 //assemble minkowski characters
