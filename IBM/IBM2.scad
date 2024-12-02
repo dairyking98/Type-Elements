@@ -596,6 +596,8 @@ MIN_ROD_H=2;
 
 //web? disables label if checked
 WEB=false;
+//Drain Holes
+DRAIN=false;
 //web ID
 WEB_ID=BOSS_OD+1;
 //web inner corner R
@@ -811,6 +813,8 @@ module SolidCleanup(){
         Del();
         if (LABEL==true)
         FontName();}
+    if (DRAIN==true)
+    ArrangeDrain();
 }
 
 //subtractive parts - inner radius : experimental
@@ -1050,6 +1054,14 @@ module ArrangeWeb(){
     rotate([0, 0, i*360/11+360/22])
     ExtrudedWeb();
 }
+
+//drain holes arranged
+module ArrangeDrain(){
+    for (i=[0:1])
+    rotate([0, 0, i*360/2+360/4])
+    ExtrudedWeb();
+}
+
 
 //render code
 module Render(){
