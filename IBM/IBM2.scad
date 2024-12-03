@@ -28,7 +28,7 @@ MINK_ON=false;
 //Minkowski draft angle
 MINKOWSKI_ANGLE=55;
 //Minkowski offset from text surface
-MINKOWSKI_FLAT_OFFSET=.05;//.01
+MINKOWSKI_FLAT_OFFSET=.0;//.01
 //Minkowski vertical offset in degrees
 MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 0, 0];
 //Minkowski bottom radius size
@@ -78,7 +78,7 @@ CUTOUT_TEST_START=0;//.05
 CUTOUT_TEST_ANGLE_INT=.05;//.05
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-1.30, -1.20, -0.95, -0.95];//.05
+PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 
 //Test minkowski draft angles
 DRAFTANGLE_TEST=false;
@@ -117,7 +117,7 @@ CUSTOMLOWERCASE88="
 IIIIIIIIIIII
 IIIIIIIIIII
 IIIIIIIIIII
-IIIIIIIIIII
+IIIIIIIIII
 
 ";
 
@@ -127,7 +127,7 @@ CUSTOMUPPERCASE88="
 IIIIIIIIIIII
 IIIIIIIIIII
 IIIIIIIIIII
-IIIIIIIIIII
+IIIIIIIIII
 
 ";
 
@@ -240,7 +240,7 @@ BOSS_CLEARANCE=2.5;//.1
 //boss step thicknesss
 BOSS_STEP=0;//.1
 //platen diameter composer
-PLATEN_OD_C=55;
+PLATEN_OD_C=43;
 //platen diameter selectric 1/2
 PLATEN_OD_S12=36;
 //platen diameter
@@ -596,6 +596,8 @@ MIN_ROD_H=2;
 
 //web? disables label if checked
 WEB=false;
+//Drain Holes
+DRAIN=false;
 //web ID
 WEB_ID=BOSS_OD+1;
 //web inner corner R
@@ -811,6 +813,8 @@ module SolidCleanup(){
         Del();
         if (LABEL==true)
         FontName();}
+    if (DRAIN==true)
+    ArrangeDrain();
 }
 
 //subtractive parts - inner radius : experimental
@@ -1005,22 +1009,6 @@ module ResinPrint(){
     }
 }
 
-module ResinRodAssemble2(){
-    //outer top flat supports
-    for (i=[0:21])
-    rotate([0, 0, i*360/21])
-    translate([TOPFLAT_R-TIP_D/2, 0, 0])
-    ResinRod(0, 0, TIP_D);
-        for (i=[0:21])
-    rotate([0, 0, i*360/21+360/42])
-    translate([(SHAFT_R+TOP_CHAMFER+TOPFLAT_R)/2, 0, 0])
-    ResinRod(0, 0, TIP_D);
-            for (i=[0:11])
-    rotate([0, 0, i*360/11+360/22])
-    translate([SHAFT_R+TOP_CHAMFER+TIP_D/2, 0, 0])
-    ResinRod(0, 0, TIP_D);
-}
-
 //monospaced type test gauge
 module TextGauge(str, pitch)
 {
@@ -1066,6 +1054,14 @@ module ArrangeWeb(){
     rotate([0, 0, i*360/11+360/22])
     ExtrudedWeb();
 }
+
+//drain holes arranged
+module ArrangeDrain(){
+    for (i=[0:1])
+    rotate([0, 0, i*360/2+360/4])
+    ExtrudedWeb();
+}
+
 
 //render code
 module Render(){
