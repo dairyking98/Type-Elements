@@ -806,7 +806,7 @@ module SolidCleanup(){
     //detent teeth
     rotate([0, 0, DETENT_SKIRT_CLOCK_OFFSET])
     Teeth();
-    //web
+    //drain holes
     if (DRAIN!=0)
     ArrangeDrain();
     if (DRAIN!=2){
@@ -1033,7 +1033,7 @@ circle(r=WEB_OR);
 
 //extruded web hole
 module ExtrudedWeb(){
-    translate([0, 0, ROOF-3])
+    translate([0, 0, ROOF-5])
     linear_extrude(8)
     2dWeb();
     translate([0, 0, TOPFLAT_TO_CENTER-TOP_CHAMFER])
