@@ -27,8 +27,11 @@ RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test]
 MINK_ON=false;
 //Minkowski draft angle
 MINKOWSKI_ANGLE=55;
+//Enable Minkowski flat offset
+MINK_FLAT=false;
 //Minkowski offset from text surface
-MINKOWSKI_FLAT_OFFSET=.0;//.01
+MINK_FLAT_OFFSET=.0;//.01
+MINKOWSKI_FLAT_OFFSET=MINK_FLAT==true?MINK_FLAT_OFFSET:0;
 //Minkowski vertical offset in degrees
 MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 0, 0];
 //Minkowski bottom radius size
@@ -685,13 +688,14 @@ module PositionText(latitude, longitude){
 //minkowski single character
 module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle,platendia){
     union(){
+    if (MINK_FLAT==true){
     difference(){
         PositionText(latitude, longitude+base_offset)
         linear_extrude(6)
         Text(char, font, size, customhalign, customvalign);
         PlatenCutout(latitude, longitude+plat_offset,platendia);
-        
-    }
+        }
+        }
     minkowski(){
         difference(){
         PositionText(latitude, longitude+base_offset)
@@ -1043,7 +1047,7 @@ module ExtrudedWeb(){
     }
 }
 
-//web holes arranged
+//drain holes arranged
 module ArrangeDrain(){
     for (i=[0:11])
         if (DRAIN==1 && i!=2&&i!=8){}
