@@ -81,7 +81,7 @@ CUTOUT_TEST_START=0;//.05
 CUTOUT_TEST_ANGLE_INT=.05;//.05
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
+PLATEN_LONGITUDE_OFFSETS=[-1.05, -1.05, -1, -1.05];//.05
 
 //Test minkowski draft angles
 DRAFTANGLE_TEST=false;
