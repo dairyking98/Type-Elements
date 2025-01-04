@@ -6,7 +6,6 @@
             "baselineTestInt": "0.050000000000000003",
             "baselineTestStart": "0",
             "charBaselines": "[-3.8, -10.2, -15.7]",
-            "coreID": "5",
             "cutoutTest": "false",
             "cutoutTestInt": "0.050000000000000003",
             "cutoutTestStart": "0",
@@ -35,10 +34,9 @@
             "testLayout": "false",
             "textFn": "20",
             "textOD": "34.100000000000001",
-            "wallRad": "1",
             "xFontWeightAdj": "0",
             "xSection": "true",
-            "xSectionTheta": "0",
+            "xSectionTheta": "-90",
             "yFontWeightAdj": "0",
             "z": "0.01"
         }

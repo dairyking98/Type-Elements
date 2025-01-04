@@ -80,28 +80,51 @@ xFontWeightAdj=0;
 yFontWeightAdj=0;
 
 /* [Element Dimensions] */
-//platen OD
+//OD of platen
 platenOD=31.9;
-//cylinder OD
+//OD of element at non-text section
 cylOD=32.8;
-//text OD
+//OD of element between two characters (minimum distance in concave section)
 textOD=34.1;
-//text protrustion
+//minimum text protrustion distance
 textProtrusion=(textOD-cylOD)/2;
-//cylinder height
+//element height/thickness
 cylHeight=17.4;
-//min wall thickness
+//minimum wall thickness of element
 minWallThickness=1.5;
-//inside wall radius
-wallRad=1;
+//inside wall chamfer size
+wallChamfer=.5;
+//roof center height offset to reduce pulling forces when printing (reduces past min wall thickness)
+roofOffset=.5;
 //speed hole diameter
 speedHoleID=5.2;
 //speed hole quantity
 speedHoleQty=8;
 //speed hole radial distance
 speedHoleRadial=10.3;
-//core ID
-coreID=5;
+//core ID in inches
+coreIDin=.125;
+coreIDmm=coreIDin*25.4;
+//core groove qty
+coreGrooveQty=16;
+//core groove diameter
+coreGrooveD=.6;
+//core chamfer
+coreChamfer=.5;
+//core bottom offset from bottom plane
+coreBottomOffset=2.5;
+//core contact length from ends where sliding fits occur for shaft to reduce friction
+coreContactLength=4;
+//secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
+secondaryCoreIDOffset=coreGrooveD/2;
+//height of top clip section
+clipHeight=3;
+//clip wire diameter
+clipWireOD=.554;
+//clip opening distance
+clipOpening=1;
+//amount of bite for the clip from shaft diameter
+clipBite=.7;
 //drive pin width
 drivePinWidth=2.5;
 //drive pin length
@@ -110,6 +133,19 @@ drivePinLength=3.6;
 drivePinRadius=10.2;
 
 /* [Print Tolerances] */
+coreIDOffset=.10;
+coreID=coreIDmm+coreIDOffset;
+
+
+//OD top clip section
+clipOD=coreID+2*minWallThickness;
+
+//slope of bottom of element in sloped section
+bottomSlope=coreBottomOffset/(coreID/2-cylOD/2);
+//z offset for equation for height of z point on bottom sloped section of element
+bottomZOffset=-bottomSlope*(coreID/2+minWallThickness);
+//function for obtaining z height of radial point X on bottom of element in sloped section 
+function bottomZ(X)=bottomSlope*X+bottomZOffset;
 
 //text char
 module Text(char, font, size){
@@ -174,9 +210,57 @@ module Cylinder(){
     cylinder(d=cylOD, h=cylHeight, $fn=cylFn);
 }
 
+module ClipCylinder(){
+    translate([0, 0, cylHeight-z])
+    cylinder(d=clipOD, h=clipHeight+z, $fn=surfaceFn);
+}
+
+module WireBite(){
+    $fn=surfaceFn;
+    rotate([0, 0, -90])
+    translate([coreID/2-clipBite, clipOD/2+z, cylHeight])
+    rotate([90, 0, 0])
+    linear_extrude(clipOD+2*z)
+    hull(){
+        translate([clipWireOD/2, clipWireOD/2])
+        circle(d=clipWireOD);
+        translate([clipBite+(clipOD-coreID)/2, 0])
+        square([z, clipOpening]);
+    }
+}
+
 module Core(){
     translate([0, 0, -z])
-    cylinder(d=coreID, h=cylHeight+2*z, $fn=cylFn);
+    cylinder(d=coreID, h=cylHeight+clipHeight+2*z, $fn=cylFn);
+}
+
+module SecondaryCore(){
+    $fn=surfaceFn;
+    rotate_extrude(){
+        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2, cylHeight+clipHeight-coreContactLength], [coreID/2+secondaryCoreIDOffset, cylHeight+clipHeight-coreContactLength-secondaryCoreIDOffset], [coreID/2+secondaryCoreIDOffset, coreBottomOffset+coreContactLength+secondaryCoreIDOffset], [coreID/2, coreBottomOffset+coreContactLength]]);
+    }
+}
+
+module CoreGrooves(){
+    for (n=[0:coreGrooveQty-1]){
+        rotate([0, 0, 360/coreGrooveQty*n])
+        linear_extrude(cylHeight+clipHeight+2*z,  twist=360*(cylHeight+clipHeight-coreBottomOffset+2*z)/(PI*coreID)*(n%2==0?1:-1), $fn=surfaceFn)
+        translate([coreID/2, 0, -z])
+        translate([0, 0, -z])
+        circle(d=coreGrooveD, $fn=surfaceFn);
+    }
+}
+
+module CoreChamferShape(){
+    cylinder(d1=coreID+2*coreChamfer, d2=coreID, h=coreChamfer+z, $fn=surfaceFn);
+}
+
+module CoreChamfer(){
+    translate([0, 0, coreBottomOffset-z])
+    CoreChamferShape();
+    translate([0, 0, cylHeight+clipHeight+z])
+    rotate([180, 0, 0])
+    CoreChamferShape();
 }
 
 module SpeedHoles(){
@@ -189,29 +273,14 @@ module SpeedHoles(){
 module HollowSpace(){
     $fn=surfaceFn;
     rotate_extrude(){
-        hull(){
-        
-            //bottom inner
-            translate([coreID/2+minWallThickness+wallRad, minWallThickness+wallRad])
-            circle(r=wallRad);
-            
-            //bottom outer
-            translate([cylOD/2-minWallThickness-wallRad, minWallThickness+wallRad])
-            circle(r=wallRad);
-            
-            //top inner
-            translate([coreID/2+minWallThickness+wallRad, cylHeight-minWallThickness-wallRad-1])
-            circle(r=wallRad);
-            
-            //top outer
-            translate([cylOD/2-minWallThickness-wallRad, cylHeight-minWallThickness-wallRad-1])
-            circle(r=wallRad);
-            
-            //top center
-            translate([(coreID+cylOD)/4, cylHeight-minWallThickness-wallRad])
-            circle(r=wallRad);
-            
-        }
+        polygon([[coreID/2+minWallThickness, minWallThickness+wallChamfer+coreBottomOffset], [coreID/2+minWallThickness, cylHeight-minWallThickness-wallChamfer], [coreID/2+minWallThickness+wallChamfer, cylHeight-minWallThickness], [(coreID+cylOD)/4, cylHeight-minWallThickness+roofOffset], [cylOD/2-minWallThickness-wallChamfer, cylHeight-minWallThickness], [cylOD/2-minWallThickness, cylHeight-minWallThickness-wallChamfer], [cylOD/2-minWallThickness, minWallThickness+wallChamfer], [cylOD/2-minWallThickness-wallChamfer, minWallThickness], [coreID/2+minWallThickness+wallChamfer, minWallThickness+coreBottomOffset]]);
+    }
+}
+
+module BottomSlopedSpace(){
+    $fn=surfaceFn;
+    rotate_extrude(){
+        polygon([[0, -z], [0, coreBottomOffset], [coreID+minWallThickness, coreBottomOffset], [cylOD/2-minWallThickness, -z]]);
     }
 }
 
@@ -225,13 +294,19 @@ linear_extrude(5)
 module Additive(){
     AssembleMinkowski();
     Cylinder();
+    ClipCylinder();
 }
 
 module Subtractive(){
     Core();
+    CoreGrooves();
+    CoreChamfer();
+    WireBite();
     SpeedHoles();
     HollowSpace();
     DrivePin();
+    BottomSlopedSpace();
+    SecondaryCore();
 }
 
 module FullElement(){
@@ -245,6 +320,7 @@ module FullElement(){
 //render
 module Render(){
     difference(){
+        color("lightblue")
         FullElement();
         if (xSection==true){
             rotate([0, 0, xSectionTheta])
