@@ -16,16 +16,22 @@ textFn=20;
 cylFn=360;
 //surface facet number
 surfaceFn=120;
+//resin support facet number
+resinFn=20;
+//groove facet number
+grooveFn=20;
 
 /* [Render Parameters] */
 //render something
 render=false;
 //render mode
-renderMode=0;//[0:Normal, 1:Resin print]
+renderMode=0;//[0:Normal, 1:Resin print, 2:Gauge Set]
 //turn minkowski on
 minkOn=false;
 //draft angle
 minkDraftAngle=55;
+//turn off core grooves (slow)
+renderCoreGroove=true;
 //mink bottom radius size
 function minkTextR(draft_angle)=2*tan(.5*draft_angle);
 //view cross section
@@ -91,7 +97,7 @@ textProtrusion=(textOD-cylOD)/2;
 //element height/thickness
 cylHeight=17.4;
 //minimum wall thickness of element
-minWallThickness=1.5;
+wallMinThickness=1.5;
 //inside wall chamfer size
 wallChamfer=.5;
 //roof center height offset to reduce pulling forces when printing (reduces past min wall thickness)
@@ -115,8 +121,14 @@ coreChamfer=.5;
 coreBottomOffset=2.5;
 //core contact length from ends where sliding fits occur for shaft to reduce friction
 coreContactLength=4;
+//core web width
+coreWebWidth=2;
+//core web hole quantity
+coreWebQty=3;
+//core web length
+coreWebLength=7;
 //secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
-secondaryCoreIDOffset=coreGrooveD/2;
+secondaryCoreIDOffset=coreGrooveD/2+z;
 //height of top clip section
 clipHeight=3;
 //clip wire diameter
@@ -129,23 +141,50 @@ clipBite=.7;
 drivePinWidth=2.5;
 //drive pin length
 drivePinLength=3.6;
-//drive pin square hole center from center
-drivePinRadius=10.2;
+//drive pin square hole radial distance (center of square)
+drivePinRadial=10.2;
 
 /* [Print Tolerances] */
-coreIDOffset=.10;
+//adds this much mm to the minor diameter of the elements shaft
+coreIDOffset=.00;
 coreID=coreIDmm+coreIDOffset;
 
+/* [Shaft Gauge Test] */
+gaugeOffsetStart=0;//.001
+gaugeOffsetInt=.025;
+
+/* [Resin Printing] */
+//resin support enable
+resinSupport=true;
+//resin rod diameter
+resinRodOD=.8;
+//resin tip diameter
+resinTipOD=.4;
+//resin tip length
+resinTipL=1;
+//resin rod inset in part
+resinInset=.3;
+//resin rod minimum height
+resinMinRodHeight=2;
+//resin rod base diameter
+resinRaftOD=4;
+//resin rod raft thickness
+resinRaftThickness=2;
+//resin cut groove diameter
+resinGrooveOD=.8;
+//resin cut groove min thickness
+resinGrooveThickness=.3;
 
 //OD top clip section
-clipOD=coreID+2*minWallThickness;
+clipOD=coreID+2*wallMinThickness;
 
 //slope of bottom of element in sloped section
-bottomSlope=coreBottomOffset/(coreID/2-cylOD/2);
+bottomSlope=coreBottomOffset/((coreID/2+wallMinThickness+wallChamfer)-(cylOD/2-wallMinThickness-wallChamfer));
 //z offset for equation for height of z point on bottom sloped section of element
-bottomZOffset=-bottomSlope*(coreID/2+minWallThickness);
+bottomZOffset=-bottomSlope*(coreID/2+wallMinThickness+wallChamfer)+coreBottomOffset;
 //function for obtaining z height of radial point X on bottom of element in sloped section 
 function bottomZ(X)=bottomSlope*X+bottomZOffset;
+function bottomX(Z)=(Z-bottomZOffset)/bottomSlope;
 
 //text char
 module Text(char, font, size){
@@ -210,9 +249,9 @@ module Cylinder(){
     cylinder(d=cylOD, h=cylHeight, $fn=cylFn);
 }
 
-module ClipCylinder(){
+module ClipCylinder(Offset){
     translate([0, 0, cylHeight-z])
-    cylinder(d=clipOD, h=clipHeight+z, $fn=surfaceFn);
+    cylinder(d=clipOD+Offset, h=clipHeight+z, $fn=surfaceFn);
 }
 
 module WireBite(){
@@ -229,38 +268,52 @@ module WireBite(){
     }
 }
 
-module Core(){
+module Core(Offset){
     translate([0, 0, -z])
-    cylinder(d=coreID, h=cylHeight+clipHeight+2*z, $fn=cylFn);
+    cylinder(d=coreID+Offset, h=cylHeight+clipHeight+2*z, $fn=cylFn);
 }
 
-module SecondaryCore(){
+module SecondaryCore(Offset){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2, cylHeight+clipHeight-coreContactLength], [coreID/2+secondaryCoreIDOffset, cylHeight+clipHeight-coreContactLength-secondaryCoreIDOffset], [coreID/2+secondaryCoreIDOffset, coreBottomOffset+coreContactLength+secondaryCoreIDOffset], [coreID/2, coreBottomOffset+coreContactLength]]);
+        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2+secondaryCoreIDOffset, cylHeight+clipHeight-coreContactLength-secondaryCoreIDOffset], [coreID/2+Offset/2+secondaryCoreIDOffset, coreBottomOffset+coreContactLength+secondaryCoreIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
     }
 }
 
-module CoreGrooves(){
+module CoreGrooves(Offset){
     for (n=[0:coreGrooveQty-1]){
         rotate([0, 0, 360/coreGrooveQty*n])
-        linear_extrude(cylHeight+clipHeight+2*z,  twist=360*(cylHeight+clipHeight-coreBottomOffset+2*z)/(PI*coreID)*(n%2==0?1:-1), $fn=surfaceFn)
-        translate([coreID/2, 0, -z])
+        linear_extrude(cylHeight+clipHeight+2*z,  twist=360*(cylHeight+clipHeight-coreBottomOffset+2*z)/(PI*(coreID+Offset))*(n%2==0?1:-1), $fn=surfaceFn)
+        translate([coreID/2+Offset/2, 0, -z])
         translate([0, 0, -z])
-        circle(d=coreGrooveD, $fn=surfaceFn);
+        circle(d=coreGrooveD, $fn=grooveFn);
     }
 }
 
-module CoreChamferShape(){
-    cylinder(d1=coreID+2*coreChamfer, d2=coreID, h=coreChamfer+z, $fn=surfaceFn);
+module CoreChamferShape(Offset){
+    cylinder(d1=coreID+Offset+2*coreChamfer, d2=coreID+Offset, h=coreChamfer+z, $fn=surfaceFn);
 }
 
-module CoreChamfer(){
+module CoreChamfer(Offset){
     translate([0, 0, coreBottomOffset-z])
-    CoreChamferShape();
+    CoreChamferShape(Offset);
     translate([0, 0, cylHeight+clipHeight+z])
     rotate([180, 0, 0])
-    CoreChamferShape();
+    CoreChamferShape(Offset);
+}
+
+module CoreEllipses(){
+    $fn=surfaceFn;
+    for (n=[0:coreWebQty-1])
+    rotate([0, 0, n*360/coreWebQty])
+    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset+clipHeight)/2-coreWebLength/2])
+    rotate([90, 0, 90])
+    hull(){
+        translate([0, coreWebWidth/2, 0])
+        cylinder(d=coreWebWidth, h=5);
+        translate([0, coreWebLength-coreWebWidth/2, 0])
+        cylinder(d=coreWebWidth, h=5);
+    }
 }
 
 module SpeedHoles(){
@@ -273,40 +326,45 @@ module SpeedHoles(){
 module HollowSpace(){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[coreID/2+minWallThickness, minWallThickness+wallChamfer+coreBottomOffset], [coreID/2+minWallThickness, cylHeight-minWallThickness-wallChamfer], [coreID/2+minWallThickness+wallChamfer, cylHeight-minWallThickness], [(coreID+cylOD)/4, cylHeight-minWallThickness+roofOffset], [cylOD/2-minWallThickness-wallChamfer, cylHeight-minWallThickness], [cylOD/2-minWallThickness, cylHeight-minWallThickness-wallChamfer], [cylOD/2-minWallThickness, minWallThickness+wallChamfer], [cylOD/2-minWallThickness-wallChamfer, minWallThickness], [coreID/2+minWallThickness+wallChamfer, minWallThickness+coreBottomOffset]]);
+        polygon([[coreID/2+wallMinThickness, wallMinThickness+wallChamfer+coreBottomOffset], [coreID/2+wallMinThickness, cylHeight-wallMinThickness-wallChamfer], [coreID/2+wallMinThickness+wallChamfer, cylHeight-wallMinThickness], [(coreID+cylOD)/4, cylHeight-wallMinThickness+roofOffset], [cylOD/2-wallMinThickness-wallChamfer, cylHeight-wallMinThickness], [cylOD/2-wallMinThickness, cylHeight-wallMinThickness-wallChamfer], [cylOD/2-wallMinThickness, wallMinThickness+wallChamfer], [cylOD/2-wallMinThickness-wallChamfer, wallMinThickness], [coreID/2+wallMinThickness+wallChamfer, wallMinThickness+coreBottomOffset]]);
     }
 }
 
 module BottomSlopedSpace(){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[0, -z], [0, coreBottomOffset], [coreID+minWallThickness, coreBottomOffset], [cylOD/2-minWallThickness, -z]]);
+        polygon([[0, -z], [0, coreBottomOffset], [bottomX(coreBottomOffset), coreBottomOffset], [cylOD/2-wallMinThickness-wallChamfer, -z]]);
     }
 }
 
 module DrivePin(){
 linear_extrude(5)
-    translate([drivePinRadius, 0, -z])
+    translate([drivePinRadial, 0, -z])
     rotate([0, 0, 90])
     square([drivePinWidth, drivePinLength], center=true);
 }
 
 module Additive(){
-    AssembleMinkowski();
-    Cylinder();
-    ClipCylinder();
+    union(){
+        AssembleMinkowski();
+        Cylinder();
+        ClipCylinder(0);
+    }
 }
 
 module Subtractive(){
-    Core();
-    CoreGrooves();
-    CoreChamfer();
-    WireBite();
-    SpeedHoles();
-    HollowSpace();
-    DrivePin();
-    BottomSlopedSpace();
-    SecondaryCore();
+    union(){
+        Core(0);
+        if (renderCoreGroove==true) CoreGrooves(0);
+        CoreChamfer(0);
+        WireBite();
+        SpeedHoles();
+        HollowSpace();
+        DrivePin();
+        BottomSlopedSpace();
+        SecondaryCore(0);
+        CoreEllipses();
+    }
 }
 
 module FullElement(){
@@ -316,12 +374,173 @@ module FullElement(){
     }
 }
 
+module ResinRod(h){
+    $fn=resinFn;
+    hull(){
+    translate([0, 0, -resinTipOD/2+resinInset+h]){
+            sphere(d=resinTipOD);
+            translate([0, 0, -resinTipL])
+            sphere(d=resinRodOD);
+        }
+        translate([0, 0, -resinMinRodHeight-resinRaftThickness+resinRodOD/2+z])
+        sphere(d=resinRodOD);
+    }
+//        translate([0, 0, -resinMinRodHeight-resinRaftThickness])
+//        cylinder(d1=resinRaftOD, d2=resinRaftOD+2*resinRaftThickness, h=resinRaftThickness);
+}
+
+module CutGroove(){
+    $fn=surfaceFn;
+    rotate_extrude()
+    translate([cylOD/2-wallMinThickness, 0, 0])
+    difference(){
+        polygon([[-cylOD/2+wallMinThickness, -resinMinRodHeight-resinRaftThickness], [-cylOD/2+wallMinThickness, -resinMinRodHeight], [0, -resinMinRodHeight], [wallMinThickness-resinGrooveOD-resinGrooveThickness, -resinGrooveOD], [wallMinThickness-resinGrooveOD-resinGrooveThickness, z], [wallMinThickness, z], [wallMinThickness, -resinMinRodHeight], [wallMinThickness+resinRaftThickness, -resinMinRodHeight], [wallMinThickness, -resinMinRodHeight-resinRaftThickness]]); 
+        translate([wallMinThickness, -resinGrooveOD/2])
+        circle(d=resinGrooveOD);
+        translate([wallMinThickness-resinGrooveOD-resinGrooveThickness, -resinGrooveOD/2])
+        circle(d=resinGrooveOD);
+   }
+}
+
+module SpeedHoleSupport(){
+    translate([speedHoleRadial+speedHoleID/2+resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(speedHoleRadial+speedHoleID/2+resinTipOD/2));
+    translate([speedHoleRadial-speedHoleID/2-resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(speedHoleRadial-speedHoleID/2+-resinTipOD/2));
+    translate([speedHoleRadial, speedHoleID/2+resinTipOD/2, 0])
+    ResinRod(bottomZ((speedHoleRadial^2+(speedHoleID/2+resinTipOD/2)^2)^.5));
+    translate([speedHoleRadial, -speedHoleID/2-resinTipOD/2, 0])
+    ResinRod(bottomZ((speedHoleRadial^2+(-speedHoleID/2-resinTipOD/2)^2)^.5));
+}
+
+module SpeedHoleSupports(){
+    for (n=[0:speedHoleQty-1])
+    if (n!=0)
+    rotate([0, 0, 360/speedHoleQty*n])
+    SpeedHoleSupport();
+}
+
+module DrivePinSupport(){
+    translate([drivePinRadial+drivePinLength/2+resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(drivePinRadial+drivePinLength/2+resinTipOD/2));
+    translate([drivePinRadial-drivePinLength/2-resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(drivePinRadial-drivePinLength/2-resinTipOD/2));
+    translate([drivePinRadial, drivePinWidth/2+resinTipOD/2, 0])
+    ResinRod(bottomZ((drivePinRadial^2+(drivePinWidth/2+resinTipOD/2)^2)^.5));
+    translate([drivePinRadial, -drivePinWidth/2-resinTipOD/2, 0])
+    ResinRod(bottomZ((drivePinRadial^2+(-drivePinWidth/2-resinTipOD/2)^2)^.5));
+}
+
+module BottomSupports(){
+    for (n=[0:speedHoleQty-1]){
+        rotate([0, 0, (n+.5)*360/speedHoleQty]){
+            a=bottomX(coreBottomOffset);
+            b=cylOD/2-wallMinThickness-wallChamfer;
+            for (s=[a:(b-a)/4:b])
+            translate([s, 0, 0])
+            ResinRod(bottomZ(s));
+        }
+        rotate([0, 0, (n)*360/speedHoleQty])
+        translate([coreID/2+coreChamfer+resinTipOD/2, 0, 0])
+        ResinRod(coreBottomOffset);
+    }
+}
+
+module ResinSupport(){
+    union(){
+        CutGroove();
+        SpeedHoleSupports();
+        DrivePinSupport();
+        BottomSupports();
+    }
+}
+
+module CylinderGauge(Offset){
+    translate([0, 0, coreBottomOffset])
+    cylinder(d=coreID+2*wallMinThickness+Offset, h=cylHeight+clipHeight-coreBottomOffset, $fn=surfaceFn);
+}
+
+module GaugeResinSupport(Offset){
+    $fn=resinFn;
+    for (n=[0:7]){
+        rotate([0, 0, n*360/8])
+        translate([coreID/2+Offset/2+wallMinThickness/2, 0, 0])
+        ResinRod(coreBottomOffset);
+    }
+}
+
+module GaugeResinSupportsRaft(){
+    translate([0, 0, -resinMinRodHeight-resinRaftThickness])
+    cylinder(d1=3*(coreID+2*wallMinThickness), d2=3*(coreID+2*wallMinThickness)+2*resinRaftThickness, h=resinRaftThickness);
+}
+
+module RevolverSolid(){
+    $fn=surfaceFn;
+    hull(){
+        for (n=[0:5])
+        rotate([0, 0, n*360/6])
+        translate([coreID+wallMinThickness*2-wallMinThickness/2, 0, 0])
+        CylinderGauge(0);
+    }
+    
+}
+
+module GaugeTestSubtractive(Offset){
+    Core(Offset);
+    if (renderCoreGroove==true) CoreGrooves(Offset);
+    CoreChamfer(Offset);
+    SecondaryCore(Offset);
+    echo (str(Offset));
+    GaugeText(Offset);
+    rotate([0, 0, 180])
+    CoreEllipses();
+}
+
+module GaugeText(Offset){
+    if (Offset!=0)
+    translate([coreID/2+wallMinThickness-wallMinThickness/2+secondaryCoreIDOffset/2, 0, coreBottomOffset+(cylHeight+clipHeight-coreBottomOffset)/2])
+    rotate([0, 90, 0])
+    linear_extrude(4)
+    text(text=str(Offset), halign="center", valign="center", $fn=textFn, size=3, font="Consolas");
+}
+
+module GaugeTestSet(){
+    union(){
+        difference(){
+            difference(){
+                RevolverSolid();
+                GaugeTestSubtractive(0);
+            }
+            for (n=[0:5]){
+                rotate([0, 0, n*360/6])
+                translate([coreID+wallMinThickness*2-wallMinThickness/2, 0, 0])
+                GaugeTestSubtractive(gaugeOffsetStart+(n)*gaugeOffsetInt);
+            }
+        }
+        
+        union(){
+            for (n=[0:5]){
+                rotate([0, 0, n*360/6])
+                translate([coreID+wallMinThickness*2-wallMinThickness/2, 0, 0])
+                GaugeResinSupport(gaugeOffsetStart+(n+1)*gaugeOffsetInt);
+            }
+            GaugeResinSupportsRaft();
+        }
+    }
+}
+
+module ResinPrint(){
+    FullElement();
+    ResinSupport();
+}
 
 //render
 module Render(){
     difference(){
         color("lightblue")
-        FullElement();
+        if (renderMode==0) FullElement();
+        else if (renderMode==1) ResinPrint();
+        else if (renderMode==2) GaugeTestSet();
         if (xSection==true){
             rotate([0, 0, xSectionTheta])
             translate([-50, -100, -50])
