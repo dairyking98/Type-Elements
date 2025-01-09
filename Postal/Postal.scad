@@ -25,7 +25,7 @@ grooveFn=20;
 //render something
 render=false;
 //render mode
-renderMode=0;//[0:Normal, 1:Resin print, 2:Gauge Set]
+renderMode=0;//[0:Normal, 1:Resin print, 2:Gauge Set, 3:Type Test]
 //turn minkowski on
 minkOn=false;
 //draft angle
@@ -43,7 +43,7 @@ xSectionTheta=0;
 //enable cutout test
 cutoutTest=false;
 //cutout test range start
-cutoutTestStart=0;
+cutoutTestStart=0;//.1
 //cutout test interval
 cutoutTestInt=.05;
 //cutout test array
@@ -138,7 +138,7 @@ clipOpening=1;
 //amount of bite for the clip from shaft diameter
 clipBite=.7;
 //drive pin width
-drivePinWidth=2.5;
+drivePinWidthmm=2.5;
 //drive pin length
 drivePinLength=3.6;
 //drive pin square hole radial distance (center of square)
@@ -146,12 +146,19 @@ drivePinRadial=10.2;
 
 /* [Print Tolerances] */
 //adds this much mm to the minor diameter of the elements shaft
-coreIDOffset=.00;
+coreIDOffset=.00;//.001
 coreID=coreIDmm+coreIDOffset;
+drivePinWidth=drivePinWidthmm+coreIDOffset;
 
 /* [Shaft Gauge Test] */
 gaugeOffsetStart=0;//.001
 gaugeOffsetInt=.025;
+
+/* [Type Test] */
+testString="now is the time";
+testSize=3;//.01
+testFont="Consolas";
+testCPI=10;
 
 /* [Resin Printing] */
 //resin support enable
@@ -241,7 +248,16 @@ module AssembleMinkowski(){
         charBaseline=charBaselines[baseline]+(baselineTest==true?baselineTestArray[latitude]:0);
         translate([0, 0, cylHeight])
         SingleMinkowski(char, font, fontSize, platenBaseline, charBaseline, latitude);
+        if (cutoutTest || baselineTest || testLayout)
+            TestDebug(baseline, latitude, platenBaseline, charBaseline);
     }
+}
+
+module TestDebug(baseline, latitude, platenBaseline, charBaseline){
+    kbchar=keyboardLayoutArray[baseline][elementLayoutArrayMap[latitude]];
+    shifts=["lowercase", "uppercase", "figs"];
+    oclock=(1-latitude/28)*12;
+    echo(str("character ", kbchar, " on ", shifts[baseline], " row at the ", round(oclock), "oclock position with platen cutout at ", platenBaseline, "mm and character baseline at ", charBaseline, "mm"));
 }
 
 //main cylinder
@@ -333,11 +349,20 @@ module HollowSpace(){
 module BottomSlopedSpace(){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[0, -z], [0, coreBottomOffset], [bottomX(coreBottomOffset), coreBottomOffset], [cylOD/2-wallMinThickness-wallChamfer, -z]]);
+        polygon([[0, -z-5], [0, coreBottomOffset], [bottomX(coreBottomOffset), coreBottomOffset], [cylOD/2-wallMinThickness-wallChamfer, -z], [cylOD/2-wallMinThickness-wallChamfer, -z-5]]);
     }
 }
 
-module DrivePin(){
+module TopMinkCleanup(){
+    translate([0, 0, cylHeight]){
+        difference(){
+            cylinder(d=cylOD, h=5);
+            cylinder(d=cylOD-15, h=15, center=true);
+        }
+    }
+}
+
+module DrivePin(Offset){
 linear_extrude(5)
     translate([drivePinRadial, 0, -z])
     rotate([0, 0, 90])
@@ -364,6 +389,7 @@ module Subtractive(){
         BottomSlopedSpace();
         SecondaryCore(0);
         CoreEllipses();
+        TopMinkCleanup();
     }
 }
 
@@ -534,6 +560,14 @@ module ResinPrint(){
     ResinSupport();
 }
 
+module TypeTest(){
+    testString=str(keyboardLayoutArray[0], keyboardLayoutArray[1], keyboardLayoutArray[2]);
+    for (n=[0:len(testString)-1]){
+        translate([1/testCPI*25.4*n, 0, 0])
+        text(text=testString[n], size=testSize, font=testFont, halign="center", valign="baseline", $fn=textFn);
+    }
+}
+
 //render
 module Render(){
     difference(){
@@ -541,6 +575,8 @@ module Render(){
         if (renderMode==0) FullElement();
         else if (renderMode==1) ResinPrint();
         else if (renderMode==2) GaugeTestSet();
+        else if (renderMode==3)
+        TypeTest();
         if (xSection==true){
             rotate([0, 0, xSectionTheta])
             translate([-50, -100, -50])
