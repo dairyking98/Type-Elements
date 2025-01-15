@@ -706,6 +706,12 @@ module VResPrint(){
     VPrintR();
 }
 
+module VResPrint(){
+    VPrintL();
+    translate([0, 41, 0])
+    VPrintR();
+}
+
 if (Render == true){
 
 if (GenStyle==1)
