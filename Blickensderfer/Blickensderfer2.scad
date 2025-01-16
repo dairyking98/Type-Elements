@@ -79,6 +79,7 @@ SCANDI=["zxkg.pwfudhiatensorlcmy,bvqj",
 elementLayoutArrays=[DHIATENSOR, QWERTY, SCANDI];
 elementLayoutArraySelection=0;//[0:dhiatensor, 1:qwerty, 2:scandi]
 elementLayoutArray=elementLayoutArrays[elementLayoutArraySelection];
+elementLayoutArrayMap=[14,15,16,17,18,19,20,21,22,23,24,25,26,27,0,1,2,3,4,5,6,7,8,9,10,11,12,13];
             
 //baseline values for characters from top of element
 charBaselines=[-4, -10.3, -16.1];
@@ -268,8 +269,9 @@ module AssembleMinkowski(){
         platenBaseline=platenBaselines[baseline]+
         (cutoutTest==true?cutoutTestArray[latitude]:0);
         charBaseline=charBaselines[baseline]+(baselineTest==true?baselineTestArray[latitude]:0);
+        latitudeint=elementLayoutArrayMap[latitude];
         translate([0, 0, cylHeight])
-        SingleMinkowski(char, font, fontSize, platenBaseline, charBaseline, latitude);
+        SingleMinkowski(char, font, fontSize, platenBaseline, charBaseline, latitudeint);
         if (cutoutTest || baselineTest || testLayout)
             TestDebug(baseline, latitude, platenBaseline, charBaseline);
     }

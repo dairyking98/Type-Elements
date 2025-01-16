@@ -42,7 +42,7 @@
             "platenOD": "32.258000000000003",
             "render": "true",
             "renderCoreGroove": "false",
-            "renderMode": "0",
+            "renderMode": "1",
             "resinFn": "20",
             "resinGrooveOD": "0.80000000000000004",
             "resinGrooveThickness": "0.29999999999999999",
