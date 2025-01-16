@@ -6,9 +6,11 @@
 //render something?
 render=false;
 //render mode
-renderMode=1;//[0:Normal, 1:ResinPrint];
-//which parts?
-renderSides=0;//[0:Both, 1:Left, 2:Right];
+renderMode=1;//[0:Normal, 1:ResinPrint]
+//render left shuttle?
+renderLeft=true;
+//render right shuttle?
+renderRight=true;
 //apply text chamfer?
 minkText=false;
 //mink draft angle
@@ -22,6 +24,7 @@ z=.01;
 cylFn=120;
 minkFn=20;
 textFn=30;
+resinFn=20;
 
 /* [Element Layout] */
 idealElement=["?zxqkjgdmpcfld,.taherisounwyv:",
@@ -143,14 +146,20 @@ folderID=[folderIDmm+folderRadialGap, folderIDmm-folderRadialGap];
 
 
 /* [Resin Supports] */
-//rod diameter
-rodOD=1.0;
-//tip diameter
-tipOD=.6;
-//tip length
-tipLength=1;
-//tip inside part distance
-tipIn=.3;
+//resin rod diameter
+resinRodOD=.8;
+//resin tip diameter
+resinTipOD=.4;
+//resin tip length
+resinTipL=1;
+//resin rod inset in part
+resinInset=.3;
+//resin rod minimum height
+resinMinRodHeight=2;
+//resin rod base diameter
+resinRaftOD=4;
+//resin rod raft thickness
+resinRaftThickness=2;
 
 /* [Handy Variables] */
 folderHalfThickness=(folderThickness-folderSquashClearance)/2;
@@ -159,6 +168,51 @@ arcEnd=15*charTheta+charTheta/2;
 arc=arcEnd-arcStart;
 folderArcEnd=folderDegrees+folderDegreeOffset;
 folderArc=folderArcEnd-folderArcStart;
+
+/* [Resin Support Variables] */
+resZRaise=folderID[1]/2;
+//for orienting the shuttle in the x direction
+resXRot=(arcStart+arc/2);
+//folder support limits
+resFolderLims=[-folderArcStart-resXRot, -folderArcStart-resXRot+folderArc];
+
+function YZ(r, theta) = [sin(theta)*r, cos(theta)*r];
+
+//number of yx pts on arc
+resArcDiv=[15, 4];
+//number of yx on folder
+resFolderDiv=[12, 2];
+//number of yx pts on folder face
+resFolderFaceDiv=[3, 4];
+//number of yx pts on ring
+resRingDiv=[8, 3];
+resRingStartEnd=[-45, 45];
+
+resArcYPts=[for (theta=[-arc/2:arc/(resArcDiv[0]-1):arc/2]) YZ((arcOD/2-arcThickness), theta)[0]];
+resArcThetaPts=[for (theta=[-arc/2:arc/(resArcDiv[0]-1):arc/2]) theta];
+resArcZPts=[for (theta=[-arc/2:arc/(resArcDiv[0]-1):arc/2]) YZ((arcOD/2-arcThickness), theta)[1]];
+resArcXPts=[for (x=[0:resArcDiv[1]-1]) arcHeightOffset+arcHeight/(resArcDiv[1]-1)*x];
+
+resFolderFaceXPts=[for (x=[0:(resFolderFaceDiv[1]-1)]) x*folderThickness/(resFolderFaceDiv[1]-1)];
+resFolderFaceRPts=[for (r=[0:(resFolderFaceDiv[0]-1)]) folderID[0]/2+r*(folderOD/2-folderID[0]/2)/(resFolderFaceDiv[0]-1)];
+resFolderFaceYPts=[for (r=[0:(resFolderFaceDiv[0]-1)]) YZ(resFolderFaceRPts[r], folderArcEnd-resXRot)[0]];
+resFolderFaceZPts=[for (r=[0:(resFolderFaceDiv[0]-1)]) YZ(resFolderFaceRPts[r], folderArcEnd-resXRot)[1]];
+
+resFolderXPts=[for (x=[0:(folderHalfThickness+folderSquashClearance)/(len(resFolderDiv)):folderHalfThickness+folderSquashClearance]) x];
+resFolderThetaPts=[for (theta=[folderArcStart-resXRot:folderArc/(resFolderDiv[0]-1):folderArcEnd-resXRot]) theta];
+resFolderYPts=[for (y=[0:resFolderDiv[0]-1]) YZ(folderID[0]/2, resFolderThetaPts[y])[0]];
+resFolderZPts=[for (y=[0:resFolderDiv[0]-1]) YZ(folderID[0]/2, resFolderThetaPts[y])[1]];
+
+resRingXPts=[for (x=[0:folderHalfThickness/(resRingDiv[1]-1):folderHalfThickness]) x];
+resRingThetaPts=[for (theta=[resRingStartEnd[0]:(resRingStartEnd[1]-resRingStartEnd[0])/(resRingDiv[0]-1):resRingStartEnd[1]]) theta];
+resRingYPts=[for (y=[0:len(resRingThetaPts)-1]) YZ(folderID[1]/2, resRingThetaPts[y])[0]];
+resRingZPts=[for (y=[0:len(resRingThetaPts)-1]) -YZ(folderID[1]/2, resRingThetaPts[y])[1]];
+echo(resRingZPts);
+
+
+
+
+
 
 module Arc(extra){
     rotate_extrude(15*charTheta+charTheta/2)
@@ -413,7 +467,7 @@ module Subtractive(side){
     }
 }
 
-module AssembleHalf(side){
+module AssembleSide(side){
     difference(){
         Additive(side);
         Subtractive(side);
@@ -422,24 +476,127 @@ module AssembleHalf(side){
 
 module ResPrintOrient(side){
     pole=side==0?-1:1;
+    translate([0, 0, resZRaise])
     rotate([0, -90, 0])
-    rotate([0, 0, pole*(arcStart+arc/2)])
+    rotate([0, 0, pole*resXRot])
     children();
 }
 
 module Assemble(){
+    if (renderLeft)
     AssembleSide(0);
+    if (renderRight)
     AssembleSide(1);
 }
 
-module ResinSupports(side){
+function ResYOffset(theta)= -sin(theta)*(resinTipL+resinTipOD/2-resinInset);
+function ResZOffset(theta) = -cos(theta)*(resinTipL+resinTipOD/2-resinInset);
 
+module ResinTip(theta){
+    hull(){
+        rotate([-theta, 0, 0])
+        translate([0, 0, -resinTipOD/2+resinInset]){
+            sphere(d=resinTipOD);
+            translate([0, 0, -resinTipL])
+            sphere(d=resinRodOD);
+        }
+    }
 }
+
+module ResinRod(h, theta){
+    $fn=resinFn;
+    
+    translate([0, 0, h])
+    ResinTip(theta);
+    
+    hull(){
+//        translate([0, ResYOffset(theta), -resinMinRodHeight-resinRaftThickness+resinRodOD/2+z])
+//        sphere(d=resinRodOD);
+        
+        translate([0, 0, -resinMinRodHeight-ResZOffset(theta)])
+        rotate([-theta, 0, 0])
+        translate([0, 0, -resinTipOD/2+resinInset])
+        translate([0, 0, -resinTipL])
+        sphere(d=resinRodOD);
+        
+        translate([0, 0, h])
+        rotate([-theta, 0, 0])
+        translate([0, 0, -resinTipOD/2+resinInset])
+        translate([0, 0, -resinTipL])
+        sphere(d=resinRodOD);
+        }
+    
+        translate([0, ResYOffset(theta), -resinMinRodHeight-resinRaftThickness])
+        cylinder(d1=resinRaftOD, d2=resinRaftOD+2*resinRaftThickness, h=resinRaftThickness);
+    
+}
+
+module ResinArcSupports(){
+    for (xint=[0:len(resArcXPts)-1])
+    for (yint=[0:len(resArcYPts)-1])
+    if (xint==0 || xint==len(resArcXPts)-1 || yint==0 || yint==len(resArcYPts)-1)
+    translate([-resArcXPts[xint], resArcYPts[yint], 0])
+    ResinRod(resArcZPts[yint]+resZRaise, resArcThetaPts[yint]);
+}
+
+
+module ResinFolderSupports(side){
+    Mirror(side)
+    for (xint=[0:len(resFolderFaceXPts)-1])
+    for (yint=[0:len(resFolderFaceYPts)-1]){
+        if (side == 0 && (yint!=0 || (xint+1)/len(resFolderFaceXPts)>.5))
+            translate([-resFolderFaceXPts[xint], resFolderFaceYPts[yint], 0])
+            ResinRod(resFolderFaceZPts[yint]+resZRaise, folderArcEnd-resXRot-90);
+        
+        if (side == 1 && (yint!=0 || (xint+1)/len(resFolderFaceXPts)<=.5))
+            translate([-resFolderFaceXPts[xint], resFolderFaceYPts[yint], 0])
+            ResinRod(resFolderFaceZPts[yint]+resZRaise, folderArcEnd-resXRot-90);
+    }
+        
+    for (xint=[0:len(resFolderXPts)-1])
+    for (yint=[0:len(resFolderYPts)-1]){
+        if (side==0 && xint!=0 && yint!=len(resFolderYPts)-1) 
+            translate([-resFolderXPts[xint]-folderHalfThickness, resFolderYPts[yint], 0])
+            ResinRod(resFolderZPts[yint]+resZRaise, yint==0?0:resFolderThetaPts[yint]);
+        
+        if (side==1 && xint!=len(resFolderXPts)-1 && yint!=len(resFolderYPts)-1)
+            Mirror(side)
+            translate([-resFolderXPts[xint], resFolderYPts[yint], 0])
+            ResinRod(resFolderZPts[yint]+resZRaise, yint==0?0:resFolderThetaPts[yint]);
+    }
+}
+
+module ResinRingSupports(side){
+    for (xint=[0:len(resRingXPts)-1])
+    for (yint=[0:len(resRingYPts)-1]){
+        if (side==0)
+            translate([-resRingXPts[xint], -resRingYPts[yint], 0])
+            ResinRod(resRingZPts[yint]+resZRaise, resRingThetaPts[yint]);
+        if (side==1)
+            translate([-resRingXPts[xint]-(folderHalfThickness+folderSquashClearance), -resRingYPts[yint], 0])
+            ResinRod(resRingZPts[yint]+resZRaise, resRingThetaPts[yint]);
+    }
+}
+
+module ResinSupports(side){
+    ResinArcSupports();
+    ResinFolderSupports(side);
+    ResinRingSupports(side);
+}
+
+
 
 module ResinPrintHalf(side){
     ResPrintOrient(side)
-    AssembleHalf(side);
+    AssembleSide(side);
     ResinSupports(side);
+}
+
+module AssembleResin(){
+    translate([0, 21, 0])
+    ResinPrintHalf(0);
+    translate([0, -21, 0])
+    ResinPrintHalf(1);
 }
 
 module Render(){
@@ -447,9 +604,11 @@ module Render(){
         if (renderMode==0)
             Assemble();
         if (renderMode==1)
-            ResinPrintHalf(0);
+            AssembleResin();
     }
 }
+
+Render();
 
 
 
@@ -461,5 +620,5 @@ module Render(){
 //ResPrintOrient(1)
 //Assemble(1);
 //translate([0, -z, 0])
-Assemble(0);
+//Assemble(0);
 //Subtractive(0);

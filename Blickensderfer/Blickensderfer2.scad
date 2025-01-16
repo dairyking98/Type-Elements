@@ -1,9 +1,8 @@
-//Postal Typewriter Element
-//File Start Jan 02 2025
+//Blickensderfer Typewriter Element
+//File Start Jan 16 2025
 //Leonard Chau
 //www.leonardchau.com
 
-//Modeled off a Model 3 Postal, SN 14550
 
 /* [Global Parameters] */
 //to help with z fighting
@@ -63,13 +62,28 @@ testChar="X";
 
 /* [Key Mapping] */
 //layout for keyboard
-keyboardLayoutArray=["qwertyuiopasdfghjklzxcvbnm,.","QWERTYUIOPASDFGHJKLZXCVBNM&?","\"23456789%()@/$_;:'£äöü!+=§-"];
-//keyboard to element map
-elementLayoutArrayMap=[23, 5, 15, 24, 6, 16, 25, 7, 17, 26, 8, 18, 27, 9, 0, 10, 19, 1, 11, 20, 2, 12, 21, 3, 13, 22, 4, 14];
+//keyboardLayoutArray=["qwertyuiopasdfghjklzxcvbnm,.","QWERTYUIOPASDFGHJKLZXCVBNM&?","\"23456789%()@/$_;:'£äöü!+=§-"];
+////keyboard to element map
+//elementLayoutArrayMap=[23, 5, 15, 24, 6, 16, 25, 7, 17, 26, 8, 18, 27, 9, 0, 10, 19, 1, 11, 20, 2, 12, 21, 3, 13, 22, 4, 14];
+
+DHIATENSOR=["zxkg.pwfudhiatensorlcmy,bvqj",
+            "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+            "-^_(./'\"!1234567890;?%¢$)@#:"];
+QWERTY=["qwertasdfgzxcvbnm,hjkl.yuiop",
+        "QWERTASDFGZXCVBNM?HJKL.YUIOP",
+       "\"#$%_/-¢@;23456789:!^1.&'(0)"];
+SCANDI=["zxkg.pwfudhiatensorlcmy,bvqj",
+            "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+            "-Å_(ä/'\"!1234567890;?åö$)ÄÖ:"];
+
+elementLayoutArrays=[DHIATENSOR, QWERTY, SCANDI];
+elementLayoutArraySelection=0;//[0:dhiatensor, 1:qwerty, 2:scandi]
+elementLayoutArray=elementLayoutArrays[elementLayoutArraySelection];
+            
 //baseline values for characters from top of element
-charBaselines=[-3.8, -10.2, -15.7];
+charBaselines=[-4, -10.3, -16.1];
 //baseline values for platen cutouts from top of element
-platenBaselines=[-3.4, -9.8, -15.3];
+platenBaselines=[-2.6, -8.66, -14.6];
 //latitude spacing
 latitudeInt=360/28;
 
@@ -87,15 +101,15 @@ yFontWeightAdj=0;
 
 /* [Element Dimensions] */
 //OD of platen
-platenOD=31.9;
+platenOD=32.258;
 //OD of element at non-text section
-cylOD=32.8;
+cylOD=34;
 //OD of element between two characters (minimum distance in concave section)
-textOD=34.1;
+textOD=35;
 //minimum text protrustion distance
 textProtrusion=(textOD-cylOD)/2;
 //element height/thickness
-cylHeight=17.4;
+cylHeight=16.75;
 //minimum wall thickness of element
 wallMinThickness=1.5;
 //inside wall chamfer size
@@ -103,11 +117,11 @@ wallChamfer=.5;
 //roof center height offset to reduce pulling forces when printing (reduces past min wall thickness)
 roofOffset=.5;
 //speed hole diameter
-speedHoleID=5.2;
+speedHoleID=5.568;
 //speed hole quantity
 speedHoleQty=8;
 //speed hole radial distance
-speedHoleRadial=10.3;
+speedHoleRadial=11.25;
 //core ID in inches
 coreIDin=.125;
 coreIDmm=coreIDin*25.4;
@@ -138,17 +152,25 @@ clipOpening=1;
 //amount of bite for the clip from shaft diameter
 clipBite=.7;
 //drive pin width
-drivePinWidthmm=2.5;
+drivePinWidthmm=3.737;
 //drive pin length
 drivePinLength=3.6;
 //drive pin square hole radial distance (center of square)
-drivePinRadial=10.2;
+drivePinRadial=11.25;
+//drive pin countersink
+drivePinCountersinkDepth=2;
+//drive pin internal support radial offset from countersink id
+drivePinSupportRadialOffset=1;
+//drive pin internal support height
+drivePinSupportHeight=2;
 
 /* [Print Tolerances] */
 //adds this much mm to the minor diameter of the elements shaft
-coreIDOffset=.00;//.001
+coreIDOffset=.20;//.001
 coreID=coreIDmm+coreIDOffset;
 drivePinWidth=drivePinWidthmm+coreIDOffset;
+
+drivePinCountersinkID=sqrt(drivePinWidth^2+drivePinLength^2);
 
 /* [Shaft Gauge Test] */
 gaugeOffsetStart=0;//.001
@@ -164,9 +186,9 @@ testCPI=10;
 //resin support enable
 resinSupport=true;
 //resin rod diameter
-resinRodOD=.8;
+resinRodOD=1.0;
 //resin tip diameter
-resinTipOD=.4;
+resinTipOD=.6;
 //resin tip length
 resinTipL=1;
 //resin rod inset in part
@@ -242,7 +264,7 @@ module SingleMinkowski(char, font, size, platenBaseline, textBaseline, latitude)
 module AssembleMinkowski(){
     for (baseline=[0:2])
     for (latitude=[0:27]){
-        char=testLayout==false?keyboardLayoutArray[baseline][elementLayoutArrayMap[latitude]]:testChar;
+        char=testLayout==false?elementLayoutArray[baseline][latitude]:testChar;
         platenBaseline=platenBaselines[baseline]+
         (cutoutTest==true?cutoutTestArray[latitude]:0);
         charBaseline=charBaselines[baseline]+(baselineTest==true?baselineTestArray[latitude]:0);
@@ -254,7 +276,7 @@ module AssembleMinkowski(){
 }
 
 module TestDebug(baseline, latitude, platenBaseline, charBaseline){
-    kbchar=keyboardLayoutArray[baseline][elementLayoutArrayMap[latitude]];
+    kbchar=keyboardLayoutArray[baseline][latitude];
     shifts=["lowercase", "uppercase", "figs"];
     oclock=(1-latitude/28)*12;
     echo(str("character ", kbchar, " on ", shifts[baseline], " row at the ", round(oclock), "oclock position with platen cutout at ", platenBaseline, "mm and character baseline at ", charBaseline, "mm"));
@@ -341,15 +363,20 @@ module SpeedHoles(){
 
 module HollowSpace(){
     $fn=surfaceFn;
-    rotate_extrude(){
+    difference(){
+        rotate_extrude()
         polygon([[coreID/2+wallMinThickness, wallMinThickness+wallChamfer+coreBottomOffset], [coreID/2+wallMinThickness, cylHeight-wallMinThickness-wallChamfer], [coreID/2+wallMinThickness+wallChamfer, cylHeight-wallMinThickness], [(coreID+cylOD)/4, cylHeight-wallMinThickness+roofOffset], [cylOD/2-wallMinThickness-wallChamfer, cylHeight-wallMinThickness], [cylOD/2-wallMinThickness, cylHeight-wallMinThickness-wallChamfer], [cylOD/2-wallMinThickness, wallMinThickness+wallChamfer], [cylOD/2-wallMinThickness-wallChamfer, wallMinThickness], [coreID/2+wallMinThickness+wallChamfer, wallMinThickness+coreBottomOffset]]);
+        
+        translate([drivePinRadial, 0, 0])
+        cylinder(d=drivePinCountersinkID+2*drivePinSupportRadialOffset, h=drivePinCountersinkDepth+drivePinSupportHeight, $fn=surfaceFn);
     }
 }
+
 
 module BottomSlopedSpace(){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[0, -z-5], [0, coreBottomOffset], [bottomX(coreBottomOffset), coreBottomOffset], [cylOD/2-wallMinThickness-wallChamfer, -z], [cylOD/2-wallMinThickness-wallChamfer+5, -z], [cylOD/2-wallMinThickness-wallChamfer+5, -z-5]]);
+        polygon([[0, -z-5], [0, coreBottomOffset], [bottomX(coreBottomOffset), coreBottomOffset], [cylOD/2-wallMinThickness-wallChamfer, 0], [cylOD/2-wallMinThickness-wallChamfer+5, 0], [cylOD/2-wallMinThickness-wallChamfer+5, -z-5]]);
     }
 }
 
@@ -367,6 +394,9 @@ linear_extrude(5)
     translate([drivePinRadial, 0, -z])
     rotate([0, 0, 90])
     square([drivePinWidth, drivePinLength], center=true);
+    
+    translate([drivePinRadial, 0, -z])
+    cylinder(d=drivePinCountersinkID, h=z+drivePinCountersinkDepth, $fn=surfaceFn);
 }
 
 module Additive(){
@@ -446,15 +476,17 @@ module SpeedHoleSupports(){
     SpeedHoleSupport();
 }
 
+
+
 module DrivePinSupport(){
-    translate([drivePinRadial+drivePinLength/2+resinTipOD/2, 0, 0])
-    ResinRod(bottomZ(drivePinRadial+drivePinLength/2+resinTipOD/2));
-    translate([drivePinRadial-drivePinLength/2-resinTipOD/2, 0, 0])
-    ResinRod(bottomZ(drivePinRadial-drivePinLength/2-resinTipOD/2));
-    translate([drivePinRadial, drivePinWidth/2+resinTipOD/2, 0])
-    ResinRod(bottomZ((drivePinRadial^2+(drivePinWidth/2+resinTipOD/2)^2)^.5));
-    translate([drivePinRadial, -drivePinWidth/2-resinTipOD/2, 0])
-    ResinRod(bottomZ((drivePinRadial^2+(-drivePinWidth/2-resinTipOD/2)^2)^.5));
+    translate([drivePinRadial+drivePinCountersinkID/2+resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(drivePinRadial+drivePinCountersinkID/2+resinTipOD/2));
+    translate([drivePinRadial-drivePinCountersinkID/2-resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(drivePinRadial-drivePinCountersinkID/2-resinTipOD/2));
+    translate([drivePinRadial, drivePinCountersinkID/2+resinTipOD/2, 0])
+    ResinRod(bottomZ((drivePinRadial^2+(drivePinCountersinkID/2+resinTipOD/2)^2)^.5));
+    translate([drivePinRadial, -drivePinCountersinkID/2-resinTipOD/2, 0])
+    ResinRod(bottomZ((drivePinRadial^2+(-drivePinCountersinkID/2-resinTipOD/2)^2)^.5));
 }
 
 module BottomSupports(){
