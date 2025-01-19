@@ -799,6 +799,11 @@ module RibbedShuttle(){
     }
 }
 
+module ResinChamfer(){
+    $fn=cyl_fn;
+    cylinder(r1=Anvil_OD/2+SupportGrooveR, r2=Anvil_OD/2, h=SupportGrooveR);
+}  
+
 module GroovedShuttle(){
     difference(){
         difference(){
@@ -809,6 +814,7 @@ module GroovedShuttle(){
             AnvilShape();
             MinkCleanup();
             Groove();
+            ResinChamfer();
         }
         ShuttleTaper();
         Label();
@@ -1023,6 +1029,24 @@ module HorizGroovedResin2(){
 }
 
 
+
+//module Resin2Profile(){
+//    translate([Anvil_OD/2, 0, 0])
+//    difference(){
+//        #polygon([[0,0], 
+//        [Shuttle_Thickness, 0], [Shuttle_Thickness, -Resin_Support_Min_Height], 
+//        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius+Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
+//        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
+//        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
+//        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius-Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
+//        [0, -Resin_Support_Min_Height]]);
+//        translate([Shuttle_Thickness, -SupportGrooveR, 0])
+//        %circle(r=SupportGrooveR, $fn=resin_fn);
+//        translate([0, -SupportGrooveR, 0])
+//        circle(r=SupportGrooveR, $fn=resin_fn);
+//    }
+//}
+
 module Resin2Profile(){
     translate([Anvil_OD/2, 0, 0])
     difference(){
@@ -1033,10 +1057,13 @@ module Resin2Profile(){
         [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
         [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius-Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
         [0, -Resin_Support_Min_Height]]);
-        translate([Shuttle_Thickness, -SupportGrooveR, 0])
-        circle(r=SupportGrooveR, $fn=resin_fn);
-        translate([0, -SupportGrooveR, 0])
-        circle(r=SupportGrooveR, $fn=resin_fn);
+        
+        hull(){
+            translate([0, -SupportGrooveR+z, 0])
+            circle(r=SupportGrooveR, $fn=resin_fn);
+            translate([-SupportGrooveR+Shuttle_Thickness-SupportGrooveThickness, -SupportGrooveR+z, 0])
+            circle(r=SupportGrooveR, $fn=resin_fn);
+        }
     }
 }
 

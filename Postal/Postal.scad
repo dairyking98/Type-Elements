@@ -217,13 +217,14 @@ module PlatenCutout(platenBaseline, latitude){
 module PositionText(textBaseline, latitude){
     rotate([0, 0, (.5+latitude)*latitudeInt])
     translate([0, 0, textBaseline])
-    translate([cylOD/2-2, 0, 0])
+    translate([cylOD/2+textProtrusion-z, 0, 0])
     rotate([90, 0, 90])
     children();
 }
 
 //minkowski single char
 module SingleMinkowski(char, font, size, platenBaseline, textBaseline, latitude){
+    
     minkowski(){
         difference(){
             PositionText(textBaseline, latitude)
@@ -371,6 +372,7 @@ linear_extrude(5)
 
 module Additive(){
     union(){
+        color("red")
         AssembleMinkowski();
         Cylinder();
         ClipCylinder(0);
@@ -571,7 +573,7 @@ module TypeTest(){
 //render
 module Render(){
     difference(){
-        color("lightblue")
+//        color("lightblue")
         if (renderMode==0) FullElement();
         else if (renderMode==1) ResinPrint();
         else if (renderMode==2) GaugeTestSet();

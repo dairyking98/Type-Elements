@@ -151,7 +151,7 @@ clipWireOD=.554;
 //clip opening distance
 clipOpening=1;
 //amount of bite for the clip from shaft diameter
-clipBite=.7;
+clipBite=.5;
 //drive pin width
 drivePinWidthmm=3.737;
 //drive pin length
@@ -161,7 +161,7 @@ drivePinRadial=11.25;
 //drive pin countersink
 drivePinCountersinkDepth=2;
 //drive pin internal support radial offset from countersink id
-drivePinSupportRadialOffset=1;
+drivePinSupportRadialOffset=.5;//.1
 //drive pin internal support height
 drivePinSupportHeight=2;
 
@@ -218,7 +218,6 @@ function bottomX(Z)=(Z-bottomZOffset)/bottomSlope;
 
 //text char
 module Text(char, font, size){
-    $fn=minkFn;
     offset(fontWeightOffset);
     minkowski(){
         mirror([1, 0, 0])
@@ -240,13 +239,14 @@ module PlatenCutout(platenBaseline, latitude){
 module PositionText(textBaseline, latitude){
     rotate([0, 0, (.5+latitude)*latitudeInt])
     translate([0, 0, textBaseline])
-    translate([cylOD/2-2, 0, 0])
+    translate([cylOD/2+textProtrusion-z, 0, 0])
     rotate([90, 0, 90])
     children();
 }
 
 //minkowski single char
 module SingleMinkowski(char, font, size, platenBaseline, textBaseline, latitude){
+    $fn=surfaceFn;//???
     minkowski(){
         difference(){
             PositionText(textBaseline, latitude)
@@ -277,8 +277,9 @@ module AssembleMinkowski(){
     }
 }
 
+
 module TestDebug(baseline, latitude, platenBaseline, charBaseline){
-    kbchar=keyboardLayoutArray[baseline][latitude];
+    kbchar=elementLayoutArray[baseline][latitude];
     shifts=["lowercase", "uppercase", "figs"];
     oclock=(1-latitude/28)*12;
     echo(str("character ", kbchar, " on ", shifts[baseline], " row at the ", round(oclock), "oclock position with platen cutout at ", platenBaseline, "mm and character baseline at ", charBaseline, "mm"));
@@ -286,7 +287,7 @@ module TestDebug(baseline, latitude, platenBaseline, charBaseline){
 
 //main cylinder
 module Cylinder(){
-    cylinder(d=cylOD, h=cylHeight, $fn=cylFn);
+    cylinder(d=cylOD, h=cylHeight, $fn=surfaceFn);
 }
 
 module ClipCylinder(Offset){
@@ -595,7 +596,7 @@ module ResinPrint(){
 }
 
 module TypeTest(){
-    testString=str(keyboardLayoutArray[0], keyboardLayoutArray[1], keyboardLayoutArray[2]);
+    testString=str(DHIATENSOR[0], DHIATENSOR[1], DHIATENSOR[2]);
     for (n=[0:len(testString)-1]){
         translate([1/testCPI*25.4*n, 0, 0])
         text(text=testString[n], size=testSize, font=testFont, halign="center", valign="baseline", $fn=textFn);

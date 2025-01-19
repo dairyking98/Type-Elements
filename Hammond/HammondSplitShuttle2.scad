@@ -175,6 +175,8 @@ resZRaise=folderID[1]/2;
 resXRot=(arcStart+arc/2);
 //folder support limits
 resFolderLims=[-folderArcStart-resXRot, -folderArcStart-resXRot+folderArc];
+resSpacing=6;
+resAngle=45;
 
 function YZ(r, theta) = [sin(theta)*r, cos(theta)*r];
 
@@ -509,10 +511,17 @@ module ResinRod(h, theta){
     translate([0, 0, h])
     ResinTip(theta);
     
+    ResinRodClean(h, theta);
+    
+    translate([0, ResYOffset(theta), -resinMinRodHeight-resinRaftThickness])
+    cylinder(d1=resinRaftOD, d2=resinRaftOD+2*resinRaftThickness, h=resinRaftThickness);
+    
+}
+
+module ResinRodClean(h, theta){
+    $fn=resinFn;
+    
     hull(){
-//        translate([0, ResYOffset(theta), -resinMinRodHeight-resinRaftThickness+resinRodOD/2+z])
-//        sphere(d=resinRodOD);
-        
         translate([0, 0, -resinMinRodHeight-ResZOffset(theta)])
         rotate([-theta, 0, 0])
         translate([0, 0, -resinTipOD/2+resinInset])
@@ -525,11 +534,40 @@ module ResinRod(h, theta){
         translate([0, 0, -resinTipL])
         sphere(d=resinRodOD);
         }
+}
+
+module ResinFenceTopSphere(h, theta){
+    $fn=resinFn;
+    translate([0, 0, h])
+    rotate([-theta, 0, 0])
+    translate([0, 0, -resinTipOD/2+resinInset])
+    translate([0, 0, -resinTipL])
+    sphere(d=resinRodOD);
+}
+
+resFenceTopOffset=0;
+
+module ResinFenceArcTop(){
     
-        translate([0, ResYOffset(theta), -resinMinRodHeight-resinRaftThickness])
-        cylinder(d1=resinRaftOD, d2=resinRaftOD+2*resinRaftThickness, h=resinRaftThickness);
+    for (yint=[1:len(resArcYPts)-1]){
+            hull(){
+            translate([0, resArcYPts[yint], 0])
+            ResinFenceTopSphere(resArcZPts[yint]+resZRaise-resFenceTopOffset, resArcThetaPts[yint]);
+            translate([0, resArcYPts[yint-1], 0])
+            ResinFenceTopSphere(resArcZPts[yint-1]+resZRaise-resFenceTopOffset, resArcThetaPts[yint-1]);
+            }
+        }
     
 }
+
+module ResinFenceArcSide(yint){
+    hull(){
+        for (xint=[0,len(resArcXPts)-1])
+        translate([-resArcXPts[xint], 0, 0])
+        ResinFenceTopSphere(resArcZPts[0]+resZRaise-resFenceTopOffset, resArcThetaPts[yint]);
+        }
+}
+
 
 module ResinArcSupports(){
     for (xint=[0:len(resArcXPts)-1])
@@ -537,6 +575,59 @@ module ResinArcSupports(){
     if (xint==0 || xint==len(resArcXPts)-1 || yint==0 || yint==len(resArcYPts)-1)
     translate([-resArcXPts[xint], resArcYPts[yint], 0])
     ResinRod(resArcZPts[yint]+resZRaise, resArcThetaPts[yint]);
+}
+
+module ResinArcFenceSupport(){
+    for (xint=[0,len(resArcXPts)-1])
+    translate([-resArcXPts[xint], 0, 0]){
+        intersection(){
+            ResinKeepY();
+            ResinFence();
+        }
+    
+        ResinFenceArcTop();
+    }
+
+    for (yint=[0,len(resArcYPts)-1])
+    translate([0, resArcYPts[yint], 0]){
+        intersection(){
+            ResinKeepX(yint);
+            translate([0, ResYOffset(resArcThetaPts[yint]), 0])
+            rotate([0, 0, 90])
+            ResinFence();
+        }
+        ResinFenceArcSide(yint);
+    }
+}
+
+module ResinKeepY(){
+    hull(){
+        for (yint=[0:len(resArcYPts)-1])
+        translate([0, resArcYPts[yint], 0])
+        ResinRodClean(resArcZPts[yint]+resZRaise-resFenceTopOffset, resArcThetaPts[yint]);
+    }
+}
+
+module ResinKeepX(yint){
+    hull(){
+        for (xint=[0,len(resArcXPts)-1])
+        translate([-resArcXPts[xint], 0, 0])
+        ResinRodClean(resArcZPts[0]+resZRaise-resFenceTopOffset, resArcThetaPts[yint]);
+    }
+}
+
+module ResinParallelBars(){
+    $fn=resinFn;
+    for (n=[-20:20])
+    translate([0, n*resSpacing, 0])
+    cylinder(d=resinRodOD, h=100, center=true);
+}
+
+module ResinFence(){
+    rotate([-resAngle, 0, 0])
+    ResinParallelBars();
+    rotate([resAngle, 0, 0])
+    ResinParallelBars();
 }
 
 
@@ -582,6 +673,7 @@ module ResinSupports(side){
     ResinArcSupports();
     ResinFolderSupports(side);
     ResinRingSupports(side);
+    ResinArcFenceSupport();
 }
 
 
@@ -593,9 +685,11 @@ module ResinPrintHalf(side){
 }
 
 module AssembleResin(){
-    translate([0, 21, 0])
+    translate([0, 7, 0])
+    rotate([0, 0, -90])
     ResinPrintHalf(0);
-    translate([0, -21, 0])
+    translate([0, -7, 0])
+    rotate([0, 0, 90])
     ResinPrintHalf(1);
 }
 
@@ -610,6 +704,7 @@ module Render(){
 
 Render();
 
+//    ResinPrintHalf(1);
 
 
 //FolderCutaway(0);
