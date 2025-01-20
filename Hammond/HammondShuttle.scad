@@ -109,13 +109,15 @@ Shuttle_Thickness=1.36;//.01
 Shuttle_Text_Protrusion=.9;
 //Height of Shuttle
 NormalShuttle_Height=13.6;
+Shuttle_Height_Offset=3;
 
 MathShuttle_Height=18.24;
-Shuttle_Height=IsMath==0?NormalShuttle_Height:MathShuttle_Height;
+Shuttle_Height=(IsMath==0?NormalShuttle_Height:MathShuttle_Height)+Shuttle_Height_Offset;
+
 
 //Shuttle_Height=Layout
 //Distance From Top of Shuttle to BOTTOM of RIB PLANE
-Shuttle_Rib_Plane=6.7;
+Shuttle_Rib_Plane=6.7+Shuttle_Height_Offset;
 //Thickness of Rib
 Shuttle_Rib_Thickness=.24;//.01
 /*
@@ -1028,26 +1030,43 @@ module HorizGroovedResin2(){
     }
 }
 
+module HorizGroovedResin3(){
+    thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+    translate([-z_offset, 0, 0])
+    union(){
+        rotate([180, 0, 0])
+        translate([0, 0, -Shuttle_Height])
+        GroovedShuttle();
+        difference(){
+        rotate([0, 0, -60])
+        rotate_extrude(angle=120, $fn=360)
+        Resin2Profile();//
+        translate([0, 0, -Resin_Support_Min_Height])
+        ShuttleTaper();
+        }
+    }
+}
 
 
-//module Resin2Profile(){
-//    translate([Anvil_OD/2, 0, 0])
-//    difference(){
-//        #polygon([[0,0], 
-//        [Shuttle_Thickness, 0], [Shuttle_Thickness, -Resin_Support_Min_Height], 
-//        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius+Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
-//        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
-//        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
-//        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius-Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
-//        [0, -Resin_Support_Min_Height]]);
-//        translate([Shuttle_Thickness, -SupportGrooveR, 0])
-//        %circle(r=SupportGrooveR, $fn=resin_fn);
-//        translate([0, -SupportGrooveR, 0])
-//        circle(r=SupportGrooveR, $fn=resin_fn);
-//    }
-//}
 
 module Resin2Profile(){
+    translate([Anvil_OD/2, 0, 0])
+    difference(){
+        polygon([[0,0], 
+        [Shuttle_Thickness, 0], [Shuttle_Thickness, -Resin_Support_Min_Height], 
+        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius+Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
+        [Shuttle_Thickness/2+Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
+        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness], 
+        [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius-Resin_Support_Base_Thickness, -Resin_Support_Min_Height], 
+        [0, -Resin_Support_Min_Height]]);
+        translate([Shuttle_Thickness, -SupportGrooveR, 0])
+        circle(r=SupportGrooveR, $fn=resin_fn);
+        translate([0, -SupportGrooveR, 0])
+        circle(r=SupportGrooveR, $fn=resin_fn);
+    }
+}
+
+module Resin3Profile(){
     translate([Anvil_OD/2, 0, 0])
     difference(){
         polygon([[0,0], 
@@ -1076,7 +1095,7 @@ module ResinPrint(){
 //        if (Resin_Support_Orientation==1)// && Groove==0)
 //        HorizResinPrint2();
         if (Resin_Support_Orientation==1)
-        HorizGroovedResin2();
+        HorizGroovedResin3();
     }
     if (!Resin_Support){
         if (Groove)
