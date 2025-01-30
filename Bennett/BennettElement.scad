@@ -16,7 +16,7 @@ alignmenthole_fn=40;
 criticalcyl_fn=360;
 resin_fn=20;
 mink_fn=10;
-text_fn=44;
+text_fn=10;
 /* [Character Details] */
 CharLegend=[12,22,3,11,21,2,10,20,1,9,19,0,8,18,27,17,7,26,16,6,25,15,5,24,14,4,23,13];
 
@@ -361,7 +361,7 @@ $fn=resin_fn;
             }
         }
         //Create Raft
-        rotate_extrude(){
+        rotate_extrude($fn=resin_fn){
             polygon([[Element_Diameter/2,0], [Element_Diameter/2-Resin_Support_Thickness,0], [Element_Diameter/2-Resin_Support_Thickness,Resin_Support_Thickness], [Element_Diameter/2+Resin_Support_Thickness,Resin_Support_Thickness]]);
         }
         //Create Outer 2 Rings of 8 Supports
