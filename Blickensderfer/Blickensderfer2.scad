@@ -75,9 +75,13 @@ QWERTY=["qwertasdfgzxcvbnm,hjkl.yuiop",
 SCANDI=["zxkg.pwfudhiatensorlcmy,bvqj",
             "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
             "-Å_(ä/'\"!1234567890;?åö$)ÄÖ:"];
+HEBREW_ENGL=["זךכגװפףץצדהעאתןנםשרלסמיטבוקח",
+"ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+"-^_(./'\"!1234567890;?%¢$)@#:"];
 
-elementLayoutArrays=[DHIATENSOR, QWERTY, SCANDI];
-elementLayoutArraySelection=0;//[0:dhiatensor, 1:qwerty, 2:scandi]
+
+elementLayoutArrays=[DHIATENSOR, QWERTY, SCANDI, HEBREW_ENGL];
+elementLayoutArraySelection=0;//[0:dhiatensor, 1:qwerty, 2:scandi, 3:hebrew english]
 elementLayoutArray=elementLayoutArrays[elementLayoutArraySelection];
 elementLayoutArrayMap=[13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14]
 ;
@@ -94,12 +98,19 @@ latitudeInt=360/28;
 font="Arial";
 //type size
 fontSize=2.4;
+charMods="_";
+charModsBaselineOffset=.2;//.05
+fontHebrew="Shmulik CLM";
+fontHebrewSize=2.4;
+fontHebrewInsertNiqqud=true;
 //font weight offset +/-
 fontWeightOffset=0;
 //font x weight adjustment 0+
 xFontWeightAdj=0;
 //font y weight adjustment 0+
 yFontWeightAdj=0;
+
+
 
 /* [Element Dimensions] */
 //OD of platen
@@ -144,7 +155,7 @@ coreWebQty=3;
 //core web length
 coreWebLength=7;
 //secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
-secondaryCoreIDOffset=coreGrooveD/2+z;
+coreSecondaryIDOffset=coreGrooveD/2+z;
 //height of top clip section
 clipHeight=3;
 //clip wire diameter
@@ -166,11 +177,35 @@ drivePinSupportRadialOffset=.5;//.1
 //drive pin internal support height
 drivePinSupportHeight=2;
 
+drivePinStyle=0;//[0:later, 1:early]
+drivePinWidthOldmm=2.05;
+drivePinLengthOld=3.5;
+drivePinLengthStartOld=9.3;
+
+drivePinRadialOld=drivePinLengthStartOld+drivePinLengthOld/2;
+
+
+/* [Logo] */
+//Logo Offset From Pin (Degrees)
+logoPositionOffset=180;
+//Logo Text Orientation
+logoTextOffset=180;
+//Logo Text
+logoText="Leonard Chau 2025";
+//Logo Size
+logoTextSize=2.5;
+//Logo Font
+logoFont="FreeMono:style=Bold";
+logoTextSpacing=10;
+logoRadius=cylOD/2-2.0;
+
 /* [Print Tolerances] */
 //adds this much mm to the minor diameter of the elements shaft
 coreIDOffset=.20;//.001
+drivePinWidthOffset=.15;
 coreID=coreIDmm+coreIDOffset;
-drivePinWidth=drivePinWidthmm+coreIDOffset;
+drivePinWidth=drivePinWidthmm+drivePinWidthOffset;
+drivePinWidthOld=drivePinWidthOldmm+drivePinWidthOffset;
 
 drivePinCountersinkID=sqrt(drivePinWidth^2+drivePinLength^2);
 
@@ -180,8 +215,6 @@ gaugeOffsetInt=.025;
 
 /* [Type Test] */
 testString="now is the time";
-testSize=3;//.01
-testFont="Consolas";
 testCPI=10;
 
 /* [Resin Printing] */
@@ -266,11 +299,28 @@ module SingleMinkowski(char, font, size, platenBaseline, textBaseline, latitude)
 module AssembleMinkowski(){
     for (baseline=[0:2])
     for (latitude=[0:27]){
-        char=testLayout==false?elementLayoutArray[baseline][latitude]:testChar;
+        char_prime=testLayout==false?(elementLayoutArray[baseline][latitude]):testChar;
+        
+        char=(fontHebrewInsertNiqqud==true && char_prime==
+        "ך"
+        )?//2 characters below
+        "ךְ"
+        :
+        char_prime;
+        
+        
         platenBaseline=platenBaselines[baseline]+
         (cutoutTest==true?cutoutTestArray[latitude]:0);
-        charBaseline=charBaselines[baseline]+(baselineTest==true?baselineTestArray[latitude]:0);
+        
+        charBaseline_prime=charBaselines[baseline]+(baselineTest==true?baselineTestArray[latitude]:0);
         latitudeint=elementLayoutArrayMap[latitude];
+        
+        charBaseline=search(char, charMods)==[]?charBaseline_prime:charBaseline_prime+charModsBaselineOffset;
+        
+        font=(elementLayoutArraySelection==3 && baseline==0)?fontHebrew:font;
+        
+        fontSize=(elementLayoutArraySelection==3 && baseline==0)?fontHebrewSize:fontSize;
+        
         translate([0, 0, cylHeight])
         SingleMinkowski(char, font, fontSize, platenBaseline, charBaseline, latitudeint);
         if (cutoutTest || baselineTest || testLayout)
@@ -315,10 +365,17 @@ module Core(Offset){
     cylinder(d=coreID+Offset, h=cylHeight+clipHeight+2*z, $fn=cylFn);
 }
 
+//module SecondaryCore(Offset){
+//    $fn=surfaceFn;
+//    rotate_extrude(){
+//        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight+clipHeight-coreContactLength-coreSecondaryIDOffset], [coreID/2+Offset/2+coreSecondaryIDOffset, coreBottomOffset+coreContactLength+coreSecondaryIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
+//    }
+//}
+
 module SecondaryCore(Offset){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2+secondaryCoreIDOffset, cylHeight+clipHeight-coreContactLength-secondaryCoreIDOffset], [coreID/2+Offset/2+secondaryCoreIDOffset, coreBottomOffset+coreContactLength+secondaryCoreIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
+        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight+clipHeight], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight], [coreID/2+Offset/2, cylHeight-coreSecondaryIDOffset], [coreID/2+Offset/2, cylHeight-coreContactLength], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight-coreContactLength-coreSecondaryIDOffset], [coreID/2+Offset/2+coreSecondaryIDOffset, coreBottomOffset+coreContactLength+coreSecondaryIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
     }
 }
 
@@ -341,14 +398,27 @@ module CoreChamfer(Offset){
     CoreChamferShape(Offset);
     translate([0, 0, cylHeight+clipHeight+z])
     rotate([180, 0, 0])
-    CoreChamferShape(Offset);
+    CoreChamferShape(Offset+coreSecondaryIDOffset/2);
 }
 
+//module CoreEllipses(){
+//    $fn=surfaceFn;
+//    for (n=[0:coreWebQty-1])
+//    rotate([0, 0, n*360/coreWebQty])
+//    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset+clipHeight)/2-coreWebLength/2])
+//    rotate([90, 0, 90])
+//    hull(){
+//        translate([0, coreWebWidth/2, 0])
+//        cylinder(d=coreWebWidth, h=5);
+//        translate([0, coreWebLength-coreWebWidth/2, 0])
+//        cylinder(d=coreWebWidth, h=5);
+//    }
+//}
 module CoreEllipses(){
     $fn=surfaceFn;
     for (n=[0:coreWebQty-1])
     rotate([0, 0, n*360/coreWebQty])
-    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset+clipHeight)/2-coreWebLength/2])
+    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset)/2-coreWebLength/2])
     rotate([90, 0, 90])
     hull(){
         translate([0, coreWebWidth/2, 0])
@@ -371,8 +441,12 @@ module HollowSpace(){
         rotate_extrude()
         polygon([[coreID/2+wallMinThickness, wallMinThickness+wallChamfer+coreBottomOffset], [coreID/2+wallMinThickness, cylHeight-wallMinThickness-wallChamfer], [coreID/2+wallMinThickness+wallChamfer, cylHeight-wallMinThickness], [(coreID+cylOD)/4, cylHeight-wallMinThickness+roofOffset], [cylOD/2-wallMinThickness-wallChamfer, cylHeight-wallMinThickness], [cylOD/2-wallMinThickness, cylHeight-wallMinThickness-wallChamfer], [cylOD/2-wallMinThickness, wallMinThickness+wallChamfer], [cylOD/2-wallMinThickness-wallChamfer, wallMinThickness], [coreID/2+wallMinThickness+wallChamfer, wallMinThickness+coreBottomOffset]]);
         
-        translate([drivePinRadial, 0, 0])
-        cylinder(d=drivePinCountersinkID+2*drivePinSupportRadialOffset, h=drivePinCountersinkDepth+drivePinSupportHeight, $fn=surfaceFn);
+        CountersinkID=drivePinStyle==0?drivePinCountersinkID:drivePinLengthOld;
+        Radius=drivePinStyle==0?drivePinRadial:drivePinRadialOld;
+        
+        
+        translate([Radius, 0, 0])
+        cylinder(d=CountersinkID+2*drivePinSupportRadialOffset, h=drivePinCountersinkDepth+drivePinSupportHeight, $fn=surfaceFn);
     }
 }
 
@@ -393,18 +467,46 @@ module TopMinkCleanup(){
     }
 }
 
-module DrivePin(Offset){
-linear_extrude(5)
-    translate([drivePinRadial, 0, -z])
-    rotate([0, 0, 90])
-    square([drivePinWidth, drivePinLength], center=true);
+module DrivePin(){
+    if (drivePinStyle==0){
+        translate([drivePinRadial, 0, -z+2.5])
+        rotate([0, 0, 90])
+        cube([drivePinWidth, drivePinLength, 5], center=true);
+        translate([drivePinRadial, 0, -z])
+        cylinder(d=drivePinCountersinkID, h=z+drivePinCountersinkDepth, $fn=surfaceFn);
+    }
     
-    translate([drivePinRadial, 0, -z])
-    cylinder(d=drivePinCountersinkID, h=z+drivePinCountersinkDepth, $fn=surfaceFn);
+    if (drivePinStyle==1){
+        
+        translate([drivePinRadialOld, 0, -z]){
+            hull(){
+                translate([drivePinLengthOld/2-drivePinWidthOld/2, 0, 0])
+                cylinder(d=drivePinWidthOld, h=5, $fn=surfaceFn);
+                translate([-drivePinLengthOld/2+drivePinWidthOld/2, 0, 0])
+                cylinder(d=drivePinWidthOld, h=5, $fn=surfaceFn);
+            }
+            
+            cylinder(d=drivePinLengthOld, h=z+drivePinCountersinkDepth, $fn=surfaceFn);
+        }
+        
+    }
 }
+
+module LogoText(){
+    for (n=[0:len(logoText)-1]){
+            rotate([0,0,logoPositionOffset-90+logoTextSpacing*n-(len(logoText)-1)*logoTextSpacing/2])
+            
+            translate([0, logoRadius+1.5, cylHeight-.3])
+            linear_extrude(.4)
+            rotate([0, 0, logoTextOffset])
+            text(text=logoText[n], size=logoTextSize, font=logoFont, valign="baseline", halign="center", $fn=textFn);
+    }
+}
+
 
 module Additive(){
     union(){
+        color("red")
         AssembleMinkowski();
         Cylinder();
         ClipCylinder(0);
@@ -424,6 +526,7 @@ module Subtractive(){
         SecondaryCore(0);
         CoreEllipses();
         TopMinkCleanup();
+        LogoText();
     }
 }
 
@@ -483,14 +586,16 @@ module SpeedHoleSupports(){
 
 
 module DrivePinSupport(){
-    translate([drivePinRadial+drivePinCountersinkID/2+resinTipOD/2, 0, 0])
-    ResinRod(bottomZ(drivePinRadial+drivePinCountersinkID/2+resinTipOD/2));
-    translate([drivePinRadial-drivePinCountersinkID/2-resinTipOD/2, 0, 0])
-    ResinRod(bottomZ(drivePinRadial-drivePinCountersinkID/2-resinTipOD/2));
-    translate([drivePinRadial, drivePinCountersinkID/2+resinTipOD/2, 0])
-    ResinRod(bottomZ((drivePinRadial^2+(drivePinCountersinkID/2+resinTipOD/2)^2)^.5));
-    translate([drivePinRadial, -drivePinCountersinkID/2-resinTipOD/2, 0])
-    ResinRod(bottomZ((drivePinRadial^2+(-drivePinCountersinkID/2-resinTipOD/2)^2)^.5));
+    CountersinkID=drivePinStyle==0?drivePinCountersinkID:drivePinLengthOld;
+    Radius=drivePinStyle==0?drivePinRadial:drivePinRadialOld;
+    translate([Radius+CountersinkID/2+resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(Radius+CountersinkID/2+resinTipOD/2));
+    translate([Radius-CountersinkID/2-resinTipOD/2, 0, 0])
+    ResinRod(bottomZ(Radius-CountersinkID/2-resinTipOD/2));
+    translate([Radius, CountersinkID/2+resinTipOD/2, 0])
+    ResinRod(bottomZ((Radius^2+(CountersinkID/2+resinTipOD/2)^2)^.5));
+    translate([Radius, -CountersinkID/2-resinTipOD/2, 0])
+    ResinRod(bottomZ((Radius^2+(-CountersinkID/2-resinTipOD/2)^2)^.5));
 }
 
 module BottomSupports(){
@@ -560,7 +665,7 @@ module GaugeTestSubtractive(Offset){
 
 module GaugeText(Offset){
     if (Offset!=0)
-    translate([coreID/2+wallMinThickness-wallMinThickness/2+secondaryCoreIDOffset/2, 0, coreBottomOffset+(cylHeight+clipHeight-coreBottomOffset)/2])
+    translate([coreID/2+wallMinThickness-wallMinThickness/2+coreSecondaryIDOffset/2, 0, coreBottomOffset+(cylHeight+clipHeight-coreBottomOffset)/2])
     rotate([0, 90, 0])
     linear_extrude(4)
     text(text=str(Offset), halign="center", valign="center", $fn=textFn, size=3, font="Consolas");
@@ -597,17 +702,30 @@ module ResinPrint(){
 }
 
 module TypeTest(){
-    testString=str(DHIATENSOR[0], DHIATENSOR[1], DHIATENSOR[2]);
+    testString=str(elementLayoutArray[0], elementLayoutArray[1], elementLayoutArray[2]);
     for (n=[0:len(testString)-1]){
+            char_prime=testString[n];
+        
+        char=(fontHebrewInsertNiqqud==true && char_prime==
+        "ך"
+        )?//2 characters below
+        "ךְ"
+        :
+        char_prime;
+        
+        font=(elementLayoutArraySelection==3 && n/28<1)?fontHebrew:font;
+        
+        size=(elementLayoutArraySelection==3 && n/28<1)?fontHebrewSize:fontSize;
+        
+        
         translate([1/testCPI*25.4*n, 0, 0])
-        text(text=testString[n], size=testSize, font=testFont, halign="center", valign="baseline", $fn=textFn);
+        text(text=char, size=size, font=font, halign="center", valign="baseline", $fn=textFn);
     }
 }
 
 //render
 module Render(){
     difference(){
-        color("lightblue")
         if (renderMode==0) FullElement();
         else if (renderMode==1) ResinPrint();
         else if (renderMode==2) GaugeTestSet();

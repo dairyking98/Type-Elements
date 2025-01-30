@@ -92,6 +92,9 @@ folderThickness=9.525;
 //folder close angular gap
 folderCloseGap=6;
 folderArcStart=folderCloseGap/2;
+folderGlueHoleIDmm=1.15;
+folderGlueGrooveR=.8;
+folderGlueGrooveDepth=.2;
 //glyph height
 glyphHeight=.8;
 //alignment finger tip width
@@ -122,7 +125,8 @@ charTheta=360/96;
 //enable logo?
 logo=true;
 //logo text
-logoText="Leonard Chau 2025";
+logoText1="Leonard Chau";
+logoText2="2025";
 //logo font
 logoFont="OCR\\A-II";
 //logo size
@@ -144,6 +148,9 @@ pinID=pinIDmm+IDOffset;
 //left and right folder IDs
 folderID=[folderIDmm+folderRadialGap, folderIDmm-folderRadialGap];
 
+folderGlueHoleID=folderGlueHoleIDmm+IDOffset;
+
+
 
 /* [Resin Supports] */
 //resin rod diameter
@@ -151,7 +158,7 @@ resinRodOD=.8;
 //resin tip diameter
 resinTipOD=.4;
 //resin tip length
-resinTipL=1;
+resinTipL=1;//.1
 //resin rod inset in part
 resinInset=.3;
 //resin rod minimum height
@@ -409,25 +416,38 @@ module PinHoles(side){
 
 module GlueHoles(side){
     height=side==0?folderHalfThickness/2:folderThickness-folderHalfThickness/2;
-    holer=.8;
+    folderGlueHoleID=.8;
     translate([0, 0, height])
     Mirror(side)
     for (n=[0, 180])
     rotate([0, 90, folderArcStart-(360-folderArc)/2+90+n]){
-        cylinder(h=folderID[1]/2, r=holer);
-        translate([0, 0, folderID[1]/2-pinIDChamfer])
-        cylinder(r1=holer, r2=holer+2*pinIDChamfer, h=pinIDChamfer);
+        cylinder(h=folderID[1]/2, d=folderGlueHoleID);
+        translate([0, 0, folderID[1]/2-1])
+        cylinder(d1=folderGlueHoleID, d2=folderGlueHoleID+2*pinIDChamfer, h=1);
     }
 }
 
 module GlueGroove(side){
-    groover=.8;
-    groovein=.2;
     height=side==0?folderHalfThickness/2:folderThickness-folderHalfThickness/2;
     translate([0, 0, height])
     rotate_extrude()
-    translate([tubeOD[side]/2-groover+groovein, 0, 0])
-    circle(r=groover);
+    translate([tubeOD[side]/2-folderGlueGrooveR+folderGlueGrooveDepth, 0, 0])
+    circle(r=folderGlueGrooveR);
+}
+
+module Logo(side){
+    if (logo==true)
+    
+//    translate
+    rotate([0, 0, (side==0?1:-1)*folderArcStart])
+    translate([16, 0, folderThickness/2])
+    rotate([90, 0, side==0?0:180])
+    linear_extrude(logoDepth*2, center=true){
+    translate([0, 0, 0])
+    text(text=logoText1, size=logoSize, font=logoFont, halign="center", valign="center");
+    translate([0, -2, 0])
+    text(text=logoText2, size=logoSize, font=logoFont, halign="center", valign="center");
+    }
 }
 
 module Mirror(side){
@@ -466,6 +486,7 @@ module Subtractive(side){
         PinHoles(side);
         GlueHoles(side);
         GlueGroove(side);
+        Logo(side);
     }
 }
 

@@ -69,7 +69,7 @@ elementLayoutArrayMap=[23, 5, 15, 24, 6, 16, 25, 7, 17, 26, 8, 18, 27, 9, 0, 10,
 //baseline values for characters from top of element
 charBaselines=[-3.8, -10.2, -15.7];
 //baseline values for platen cutouts from top of element
-platenBaselines=[-3.4, -9.8, -15.3];
+platenBaselines=[-3.40, -9.80, -15.30];//.05
 //latitude spacing
 latitudeInt=360/28;
 
@@ -128,7 +128,7 @@ coreWebQty=3;
 //core web length
 coreWebLength=7;
 //secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
-secondaryCoreIDOffset=coreGrooveD/2+z;
+coreSecondaryIDOffset=coreGrooveD/2+z;
 //height of top clip section
 clipHeight=3;
 //clip wire diameter
@@ -143,6 +143,20 @@ drivePinWidthmm=2.5;
 drivePinLength=3.6;
 //drive pin square hole radial distance (center of square)
 drivePinRadial=10.2;
+
+/* [Logo] */
+//Logo Offset From Pin (Degrees)
+logoPositionOffset=180;
+//Logo Text Orientation
+logoTextOffset=180;
+//Logo Text
+logoText="Leonard Chau 2025";
+//Logo Size
+logoTextSize=3;
+//Logo Font
+logoFont="FreeMono:style=Bold";
+logoTextSpacing=10;
+logoRadius=cylOD/2-2.0;
 
 /* [Print Tolerances] */
 //adds this much mm to the minor diameter of the elements shaft
@@ -290,10 +304,17 @@ module Core(Offset){
     cylinder(d=coreID+Offset, h=cylHeight+clipHeight+2*z, $fn=cylFn);
 }
 
+//module SecondaryCore(Offset){
+//    $fn=surfaceFn;
+//    rotate_extrude(){
+//        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight+clipHeight-coreContactLength-coreSecondaryIDOffset], [coreID/2+Offset/2+coreSecondaryIDOffset, coreBottomOffset+coreContactLength+coreSecondaryIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
+//    }
+//}
+
 module SecondaryCore(Offset){
     $fn=surfaceFn;
     rotate_extrude(){
-        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2, cylHeight+clipHeight-coreContactLength], [coreID/2+Offset/2+secondaryCoreIDOffset, cylHeight+clipHeight-coreContactLength-secondaryCoreIDOffset], [coreID/2+Offset/2+secondaryCoreIDOffset, coreBottomOffset+coreContactLength+secondaryCoreIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
+        polygon([[0, coreBottomOffset+coreContactLength], [0, cylHeight+clipHeight], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight+clipHeight], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight], [coreID/2+Offset/2, cylHeight-coreSecondaryIDOffset], [coreID/2+Offset/2, cylHeight-coreContactLength], [coreID/2+Offset/2+coreSecondaryIDOffset, cylHeight-coreContactLength-coreSecondaryIDOffset], [coreID/2+Offset/2+coreSecondaryIDOffset, coreBottomOffset+coreContactLength+coreSecondaryIDOffset], [coreID/2+Offset/2, coreBottomOffset+coreContactLength]]);
     }
 }
 
@@ -316,14 +337,29 @@ module CoreChamfer(Offset){
     CoreChamferShape(Offset);
     translate([0, 0, cylHeight+clipHeight+z])
     rotate([180, 0, 0])
-    CoreChamferShape(Offset);
+    CoreChamferShape(Offset+coreSecondaryIDOffset/2);
 }
+
+
+//module CoreEllipses(){
+//    $fn=surfaceFn;
+//    for (n=[0:coreWebQty-1])
+//    rotate([0, 0, n*360/coreWebQty])
+//    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset+clipHeight)/2-coreWebLength/2])
+//    rotate([90, 0, 90])
+//    hull(){
+//        translate([0, coreWebWidth/2, 0])
+//        cylinder(d=coreWebWidth, h=5);
+//        translate([0, coreWebLength-coreWebWidth/2, 0])
+//        cylinder(d=coreWebWidth, h=5);
+//    }
+//}
 
 module CoreEllipses(){
     $fn=surfaceFn;
     for (n=[0:coreWebQty-1])
     rotate([0, 0, n*360/coreWebQty])
-    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset+clipHeight)/2-coreWebLength/2])
+    translate([0, 0, coreBottomOffset+(cylHeight-coreBottomOffset)/2-coreWebLength/2])
     rotate([90, 0, 90])
     hull(){
         translate([0, coreWebWidth/2, 0])
@@ -370,6 +406,17 @@ linear_extrude(5)
     square([drivePinWidth, drivePinLength], center=true);
 }
 
+module LogoText(){
+    for (n=[0:len(logoText)-1]){
+            rotate([0,0,logoPositionOffset-90+logoTextSpacing*n-(len(logoText)-1)*logoTextSpacing/2])
+            
+            translate([0, logoRadius+1.5, cylHeight-.3])
+            linear_extrude(.4)
+            rotate([0, 0, logoTextOffset])
+            text(text=logoText[n], size=logoTextSize, font=logoFont, valign="baseline", halign="center", $fn=textFn);
+    }
+}
+
 module Additive(){
     union(){
         color("red")
@@ -392,6 +439,7 @@ module Subtractive(){
         SecondaryCore(0);
         CoreEllipses();
         TopMinkCleanup();
+        LogoText();
     }
 }
 
@@ -526,7 +574,7 @@ module GaugeTestSubtractive(Offset){
 
 module GaugeText(Offset){
     if (Offset!=0)
-    translate([coreID/2+wallMinThickness-wallMinThickness/2+secondaryCoreIDOffset/2, 0, coreBottomOffset+(cylHeight+clipHeight-coreBottomOffset)/2])
+    translate([coreID/2+wallMinThickness-wallMinThickness/2+coreSecondaryIDOffset/2, 0, coreBottomOffset+(cylHeight+clipHeight-coreBottomOffset)/2])
     rotate([0, 90, 0])
     linear_extrude(4)
     text(text=str(Offset), halign="center", valign="center", $fn=textFn, size=3, font="Consolas");

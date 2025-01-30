@@ -552,13 +552,13 @@ module ShuttleTaper(){
 
 module Label(){
     rotate([0, 0, angle_pitch*.25])
-    translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, Shuttle_Height/2])
+    translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, (Shuttle_Height-Shuttle_Height_Offset)/2])
     rotate([0, 90, 0])
     linear_extrude(2)
     text(text=Shuttle_Label1, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
     
     rotate([0, 0, -angle_pitch+angle_pitch*.25])
-    translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, Shuttle_Height/2])
+    translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, (Shuttle_Height-Shuttle_Height_Offset)/2])
     rotate([0, 90, 0])
     linear_extrude(2)
     text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
