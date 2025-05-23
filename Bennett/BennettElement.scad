@@ -29,7 +29,7 @@ include <BennettLayouts.scad>
 
 
 //Layout Selection
-Layout_Selection=0; //[0:English, 1:British, 2:Custom]
+Layout_Selection=0; //[0:English, 1:British, 2:Custom, 3:International]
 Layout=LAYOUTS[Layout_Selection];
 //Typeface
 Typeface_="FreeMono";
@@ -64,7 +64,8 @@ Element_Positioner_Pin_Radius=4.813;
 //Indicator Hole Diameter
 Indicator_Diameter=2.2;
 //Alignment Pin Hole Diameter
-Alignment_Hole_Diameter=2;//1.94 a kiss too tight, bumping to 2.0
+Alignment_Hole_Diameter=2;//.1
+//1.94 a kiss too tight, bumping to 2.0
 //Alignment Hole Depth
 Alignment_Hole_Depth=2.4;
 //Alignment Hole Chamfer Size
@@ -86,6 +87,25 @@ Shell_Size=1;
 //Radius of Inside Corners
 Inside_Radius=.5;
 
+//core groove qty
+coreGrooveQty=16;
+//core groove diameter
+coreGrooveD=.6;
+//core chamfer
+coreChamfer=.5;
+//core bottom offset from bottom plane
+coreBottomOffset=2.5;
+//core contact length from ends where sliding fits occur for shaft to reduce friction
+coreContactLength=4;
+//core web width
+coreWebWidth=2;
+//core web hole quantity
+coreWebQty=3;
+//core web length
+coreWebLength=6;
+//secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
+coreSecondaryIDOffset=coreGrooveD/2+z;
+grooveFn=40;
 /* [Character Placement Details (Bottom Countersink Depth as Reference)] */
 //[Lowercase, Uppercase, Figures] Row Height
 Baseline=[15.35,9.2,2.75];//[-1:.05:1][14.95,8.8,2.35]
@@ -97,7 +117,8 @@ Baseline=[15.35,9.2,2.75];//[-1:.05:1][14.95,8.8,2.35]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height
 Cutout=[16.35,10.65,4.50];//[-1:.05:1][16.35,10.65,4.5]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height
-Alignment_Hole=[13.29,7.24,1.19];//[-1:.05:1]
+Alignment_Hole=[13.29,7.24,1.19];//.01;
+//[-1:.05:1]
 //[Lowercase, Uppercase, Figures] Alignment Hole Height Offset
 Testing_Offsets=[-.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .65, .7];
 
@@ -214,7 +235,7 @@ module TextRing(){
             Char=testing_layout==false?Layout[row][PickedChar]:"H";
             LetterPlacement(row, column, Theta)
             LetterText(Char, row, column);
-            echo(char=Layout[row][PickedChar], baseline=Baseline[row]+ (testing_baseline==true?Testing_Offsets[column]:0), cutout=Cutout[row]+ (testing_cutout==true?Testing_Offsets[column]:0));
+            echo(char=LAYOUTS[1][row][PickedChar], baseline=Baseline[row]+ (testing_baseline==true?Testing_Offsets[column]:0), cutout=Cutout[row]+ (testing_cutout==true?Testing_Offsets[column]:0));
         }
     }
 }
@@ -226,15 +247,20 @@ module Cylinder(){
 module PositionerPins(){
     for (n=[0:1:1]){
         theta=180*n+90;
-        translate([Element_Positioner_Pin_Radius*cos(theta),Element_Positioner_Pin_Radius*sin(theta),-z])
+        translate([Element_Positioner_Pin_Radius*cos(theta),Element_Positioner_Pin_Radius*sin(theta),-z]){
         cylinder(h=Element_Height+2*z,d=Element_Positioner_Pin_Diameter, $fn=criticalcyl_fn);
+        
+        //lil chamfer to clean up post print booger that drags on alignment pins
+        translate([0, 0, Bottom_Countersink_Depth+Shell_Size])
+        cylinder(h=2,d1=Element_Positioner_Pin_Diameter, d2=Element_Positioner_Pin_Diameter+1, $fn=criticalcyl_fn);
+        }
     }
 }
 asd=1;
 drop=.5;
 module HollowBody(){
     RoofSlope=1/(Countersink_Diameter/2);
-    XArray=[Shaft_Diameter/2+Shell_Size, Shaft_Diameter/2+Shell_Size+asd, ((Element_Diameter/2-Shell_Size)+(Shaft_Diameter/2+Shell_Size))/2, Element_Diameter/2-Shell_Size-asd, Element_Diameter/2-Shell_Size];
+    XArray=[Shaft_Diameter/2+Shell_Size+coreSecondaryIDOffset, Shaft_Diameter/2+Shell_Size+coreSecondaryIDOffset+asd, ((Element_Diameter/2-Shell_Size)+(Shaft_Diameter/2+Shell_Size+coreSecondaryIDOffset))/2, Element_Diameter/2-Shell_Size-asd, Element_Diameter/2-Shell_Size];
     YArray=[Bottom_Countersink_Depth+Shell_Size, Bottom_Countersink_Depth+Shell_Size+drop, Bottom_Countersink_Depth+Shell_Size+drop+asd, Element_Height-Top_Countersink_Depth-Shell_Size-asd, Element_Height-Top_Countersink_Depth-Shell_Size, Element_Height-Top_Countersink_Depth-Shell_Size-asd-RoofSlope*(Countersink_Diameter/2-XArray[0]), Element_Height-Top_Countersink_Depth-Shell_Size-RoofSlope*(Countersink_Diameter/2-XArray[0])]; 
     XYPattern=[[0, 2], [0, 5], [1, 6], [3, 4], [4, 3], [4, 2], [3, 1], [2, 0], [1, 1]];
     polygonpath=[for (n=[0:len(XYPattern)-1]) [XArray[XYPattern[n][0]], YArray[XYPattern[n][1]]]];
@@ -287,7 +313,7 @@ module AlignmentHoles(){
 }
 
 module LabelText(){
-    translate([Shaft_Diameter/2+1.5, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
+    translate([Shaft_Diameter/2+1.5+.25, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
     rotate([180, 0, 90])
     linear_extrude(2){
     text(text=Shuttle_Label1b, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="center");
@@ -295,7 +321,7 @@ module LabelText(){
     text(text=Shuttle_Label1a, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="center");
     
     }
-    translate([-Shaft_Diameter/2-1.75, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
+    translate([-Shaft_Diameter/2-1.75-.5, 0, Bottom_Countersink_Depth+Shuttle_Label_Depth])
     rotate([180, 0, 90])
     linear_extrude(2)
     text(text=Shuttle_Label2, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="center");
@@ -384,6 +410,67 @@ $fn=resin_fn;
     }
 }
 
+s=.2;
+module SecondaryCore(Offset){
+    $fn=surface_fn;
+    rotate_extrude(){
+        polygon([[0, Bottom_Countersink_Depth+coreContactLength], [0, Element_Height-Top_Countersink_Depth-1+s], [Shaft_Diameter /2+Offset/2+coreSecondaryIDOffset, Element_Height-Top_Countersink_Depth-1+s], [Shaft_Diameter /2+Offset/2+coreSecondaryIDOffset, Element_Height-Top_Countersink_Depth-1+s], [Shaft_Diameter /2+Offset/2, Element_Height-Top_Countersink_Depth-1-coreSecondaryIDOffset+s], [Shaft_Diameter /2+Offset/2, Element_Height-Top_Countersink_Depth-1-coreContactLength+s], [Shaft_Diameter /2+Offset/2+coreSecondaryIDOffset, Element_Height-Top_Countersink_Depth-1-coreContactLength-coreSecondaryIDOffset+s], [Shaft_Diameter /2+Offset/2+coreSecondaryIDOffset, Bottom_Countersink_Depth+coreContactLength+coreSecondaryIDOffset], [Shaft_Diameter /2+Offset/2, Bottom_Countersink_Depth+coreContactLength]]);
+    }
+}
+
+module CoreGrooves(Offset){
+    for (n=[0:coreGrooveQty-1]){
+        rotate([0, 0, 360/coreGrooveQty*n])
+        linear_extrude(Element_Height-Top_Countersink_Depth-1+s+2*z, twist=360*(Element_Height-Top_Countersink_Depth-1+s+2*z)/(PI*(Shaft_Diameter +Offset))*(n%2==0?1:-1), $fn=surface_fn)
+        translate([Shaft_Diameter /2+Offset/2, 0, -z])
+        translate([0, 0, -z])
+        circle(d=coreGrooveD, $fn=grooveFn);
+    }
+}
+
+module CoreChamferShape(Offset){
+    cylinder(d1=Shaft_Diameter +Offset+2*coreChamfer, d2=Shaft_Diameter +Offset, h=coreChamfer+z, $fn=surface_fn);
+}
+
+module CoreChamfer(Offset){
+    translate([0, 0, Bottom_Countersink_Depth-z])
+    CoreChamferShape(Offset);
+//    translate([0, 0, Element_Height+z])
+//    rotate([180, 0, 0])
+//    CoreChamferShape(Offset+coreSecondaryIDOffset/2);
+}
+
+//module CoreEllipses(){
+//    $fn=surface_fn;
+//    for (n=[0:coreWebQty-1])
+//    rotate([0, 0, n*360/coreWebQty])
+//    translate([0, 0, Bottom_Countersink_Depth+(Element_Height  -Bottom_Countersink_Depth+  0  )/2-coreWebLength/2])
+//    rotate([90, 0, 90])
+//    hull(){
+//        translate([0, coreWebWidth/2, 0])
+//        cylinder(d=coreWebWidth, h=5);
+//        translate([0, coreWebLength-coreWebWidth/2, 0])
+//        cylinder(d=coreWebWidth, h=5);
+//    }
+//}
+
+
+module CoreEllipses(){
+    $fn=surface_fn;
+    for (n=[0:coreWebQty-1])
+    rotate([0, 0, n*360/coreWebQty])
+    translate([0, 0, (Bottom_Countersink_Depth+coreContactLength+Element_Height-Top_Countersink_Depth-1-coreContactLength+s)/2-coreWebLength/2])
+    rotate([90, 0, 90])
+//    #sphere(r=1);
+    hull(){
+        translate([0, coreWebWidth/2, 0])
+        cylinder(d=coreWebWidth, h=5);
+        translate([0, coreWebLength-coreWebWidth/2, 0])
+        cylinder(d=coreWebWidth, h=5);
+    }
+}
+
+
 module Assemble(){
     difference(){
         union(){
@@ -401,6 +488,10 @@ module Assemble(){
         BottomCountersink();
         RoofTaper();
         IndicatorHole();
+        SecondaryCore(0);
+        CoreGrooves(0);
+        CoreChamfer(0);
+        CoreEllipses();
     }
 }
 

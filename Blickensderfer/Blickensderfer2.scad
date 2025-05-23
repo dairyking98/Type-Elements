@@ -78,10 +78,19 @@ SCANDI=["zxkg.pwfudhiatensorlcmy,bvqj",
 HEBREW_ENGL=["זךכגװפףץצדהעאתןנםשרלסמיטבוקח",
 "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
 "-^_(./'\"!1234567890;?%¢$)@#:"];
+CHARIENSTU_DE=["xqzv.pflocharienstugmdb,wkjy",
+    "XQZV&PFLOCHARIENSTUGMDB:WKJU",
+    "(%¨+-/'\"ö1234567890äü!;?=ß§)"];
+CHARIENSTU_DE2=["xqzv.pflocharienstugmdb,wkjy",
+    "XQZV&PFLOCHARIENSTUGMDB:WKJU",
+    "(%¨+-/'\"ö1234567890äü!;?=ß§)"];
+CHARIENSTU_DE_MOD=["xqzv.pflocharienstugmdb,wkjy",
+    "XQZV&PFLOCHARIENSTUGMDB:WKJU",
+    "(%*+-/'\"^1234567890`´!;?=@§)"];
 
 
-elementLayoutArrays=[DHIATENSOR, QWERTY, SCANDI, HEBREW_ENGL];
-elementLayoutArraySelection=0;//[0:dhiatensor, 1:qwerty, 2:scandi, 3:hebrew english]
+elementLayoutArrays=[DHIATENSOR, QWERTY, SCANDI, HEBREW_ENGL, CHARIENSTU_DE, CHARIENSTU_DE_MOD];
+elementLayoutArraySelection=0;//[0:dhiatensor, 1:qwerty, 2:scandi, 3:hebrew english, 4:charienstu german, 5:charienstu de mod]
 elementLayoutArray=elementLayoutArrays[elementLayoutArraySelection];
 elementLayoutArrayMap=[13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14]
 ;
@@ -99,6 +108,8 @@ font="Arial";
 //type size
 fontSize=2.4;
 charMods="_";
+fontCharMod="ITC Kabel Std";
+fontSizeCharMod=3.0;//.1
 charModsBaselineOffset=.2;//.05
 fontHebrew="Shmulik CLM";
 fontHebrewSize=2.4;
@@ -238,6 +249,8 @@ resinRaftThickness=2;
 resinGrooveOD=.8;
 //resin cut groove min thickness
 resinGrooveThickness=.3;
+//resin bottom radial support counts (2 or greater to enable)
+resinBottomSupportCount=0;
 
 //OD top clip section
 clipOD=coreID+2*wallMinThickness;
@@ -317,9 +330,11 @@ module AssembleMinkowski(){
         
         charBaseline=search(char, charMods)==[]?charBaseline_prime:charBaseline_prime+charModsBaselineOffset;
         
-        font=(elementLayoutArraySelection==3 && baseline==0)?fontHebrew:font;
+        font=(elementLayoutArraySelection==3 && baseline==0)?fontHebrew:
+        search(char, charMods)==[]?font:fontCharMod;
         
-        fontSize=(elementLayoutArraySelection==3 && baseline==0)?fontHebrewSize:fontSize;
+        fontSize=(elementLayoutArraySelection==3 && baseline==0)?fontHebrewSize:
+        search(char, charMods)==[]?fontSize:fontSizeCharMod;
         
         translate([0, 0, cylHeight])
         SingleMinkowski(char, font, fontSize, platenBaseline, charBaseline, latitudeint);
@@ -548,8 +563,10 @@ module ResinRod(h){
         translate([0, 0, -resinMinRodHeight-resinRaftThickness+resinRodOD/2+z])
         sphere(d=resinRodOD);
     }
-//        translate([0, 0, -resinMinRodHeight-resinRaftThickness])
-//        cylinder(d1=resinRaftOD, d2=resinRaftOD+2*resinRaftThickness, h=resinRaftThickness);
+    
+    
+translate([0, 0, -resinMinRodHeight-resinRaftThickness])
+    cylinder(d1=resinRaftOD, d2=resinRaftOD+1*resinRaftThickness, h=resinRaftThickness);
 }
 
 module CutGroove(){
@@ -557,7 +574,8 @@ module CutGroove(){
     rotate_extrude()
     translate([cylOD/2-wallMinThickness, 0, 0])
     difference(){
-        polygon([[-cylOD/2+wallMinThickness, -resinMinRodHeight-resinRaftThickness], [-cylOD/2+wallMinThickness, -resinMinRodHeight], [0, -resinMinRodHeight], [wallMinThickness-resinGrooveOD-resinGrooveThickness, -resinGrooveOD], [wallMinThickness-resinGrooveOD-resinGrooveThickness, z], [wallMinThickness, z], [wallMinThickness, -resinMinRodHeight], [wallMinThickness+resinRaftThickness, -resinMinRodHeight], [wallMinThickness, -resinMinRodHeight-resinRaftThickness]]); 
+        //polygon([[-cylOD/2+wallMinThickness, -resinMinRodHeight-resinRaftThickness], [-cylOD/2+wallMinThickness, -resinMinRodHeight], [0, -resinMinRodHeight], [wallMinThickness-resinGrooveOD-resinGrooveThickness, -resinGrooveOD], [wallMinThickness-resinGrooveOD-resinGrooveThickness, z], [wallMinThickness, z], [wallMinThickness, -resinMinRodHeight], [wallMinThickness+resinRaftThickness, -resinMinRodHeight], [wallMinThickness, -resinMinRodHeight-resinRaftThickness]]); 
+        polygon([[0, -resinMinRodHeight-resinRaftThickness], [0, -resinMinRodHeight], [wallMinThickness-resinGrooveOD-resinGrooveThickness, -resinGrooveOD], [wallMinThickness-resinGrooveOD-resinGrooveThickness, z], [wallMinThickness, z], [wallMinThickness, -resinMinRodHeight], [wallMinThickness+resinRaftThickness, -resinMinRodHeight], [wallMinThickness, -resinMinRodHeight-resinRaftThickness]]);
         translate([wallMinThickness, -resinGrooveOD/2])
         circle(d=resinGrooveOD);
         translate([wallMinThickness-resinGrooveOD-resinGrooveThickness, -resinGrooveOD/2])
@@ -603,11 +621,19 @@ module BottomSupports(){
         rotate([0, 0, (n+.5)*360/speedHoleQty]){
             a=bottomX(coreBottomOffset);
             b=cylOD/2-wallMinThickness-wallChamfer;
-            for (s=[a:(b-a)/4:b])
-            translate([s, 0, 0])
-            ResinRod(bottomZ(s));
+            dab=b-a;
+            
+            s=[a:(b-a)/4:b];
+
+//            nmax=resinBottomSupportCount;
+//            if (nmax>=2)
+//            for (n=[0:nmax-1])
+//            translate([a+dab*n/(nmax-1), 0, 0])
+            translate([a+dab*.2, 0, 0])
+//            #ResinRod(bottomZ(a+dab*n/nmax));
+            ResinRod(bottomZ(a+dab*.2));
         }
-        rotate([0, 0, (n)*360/speedHoleQty])
+        rotate([0, 0, (n+.5)*360/speedHoleQty])
         translate([coreID/2+coreChamfer+resinTipOD/2, 0, 0])
         ResinRod(coreBottomOffset);
     }
@@ -713,14 +739,21 @@ module TypeTest(){
         :
         char_prime;
         
-        font=(elementLayoutArraySelection==3 && n/28<1)?fontHebrew:font;
+        font=(elementLayoutArraySelection==3 && baseline==0)?fontHebrew:
+        search(char, charMods)==[]?font:fontCharMod;
         
-        size=(elementLayoutArraySelection==3 && n/28<1)?fontHebrewSize:fontSize;
+        fontSize=(elementLayoutArraySelection==3 && baseline==0)?fontHebrewSize:
+        search(char, charMods)==[]?fontSize:fontSizeCharMod;
+        
+        baselineOffset=search(char, charMods)==[]?0:charModsBaselineOffset;
+        
+        translate([1/testCPI*25.4*n, baselineOffset, 0])
+        text(text=char, size=fontSize, font=font, halign="center", valign="baseline", $fn=textFn);
         
         
-        translate([1/testCPI*25.4*n, 0, 0])
-        text(text=char, size=size, font=font, halign="center", valign="baseline", $fn=textFn);
     }
+    translate([-2.54/2, -5, 0])
+    text(text=testString, size=fontSize, font=font, halign="left", valign="baseline", $fn=textFn);
 }
 
 //render
