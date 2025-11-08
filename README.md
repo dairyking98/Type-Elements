@@ -1,23 +1,48 @@
 # 3D Printed Type Elements for Typewriters
-## Downloading and Configuring OpenSCAD
-Download a development snapshot of [OpenSCAD.](https://openscad.org/downloads.html#snapshot)
-Open OpenSCAD and make the following changes:
-- Edit > Preferences > Features
-  - enable fast-csg
-  - enable lazy-union
+## Download OpenSCAD snapshot
+Download a development snapshot of [OpenSCAD](https://openscad.org/downloads.html#snapshot).
 
-## Opening an OpenSCAD file
-Upon opening an OpenSCAD file, a preview render will automatically take place which can take a few seconds to a minute. These models are highly complex and can take hours to render. Upon preview completion, uncheck `Automatic preview` in the top right under the Customizer window. Changes can now be made to the Customizer, and once the changes are made, another preview can be made with `(F5)` or the preview button.
+## Open SCAD file
+Open an OpenSCAD file. Use the Customizer on the right to create elements and adjust parameters.
 
-## Creating a Custom Element
-1. Install a custom font by right clicking on your font file > Install for all users.
-2. Open `TypeHeightFinder.scad` and find the ideal Type Size for your particular font and specifications and note the value.
-3. Open an element file and disable the Automatic preview. Update the Customizer with the font specifications and values.
-4. Preview the element to ensure it looks successful. By default a `Debug No Minkowski` checkbox is placed in the customizer to save on preview times due to the CPU intensive draft angle calculation.
+## Creating a custom element
+1. Install font for all users (right-click the font file > Install for all users).
+2. Open an element file.
+3. Preview the element and adjust parameters in the Customizer.
 
-## Rendering a Custom Element
-1. Once the preview is satisfactory, `Debug No Minkowski` may be unchecked, and `(F6)` or the render button may pressed to commence final rendering. This may take hours.
-2. Upon rendering completion, save the 3D model as an STL using the STL button at the Editor toolbar. 
-Some presets for certain fonts may exist and be saved in Customizer profiles.
+## Render and export
+Preview → Render → Export STL.
+
+### Meanings
+- debug / no minkowski: render element without embossing (faster)
+- preview / render / export: typical OpenSCAD workflow
+
+## SCAD files by directory
+The following directories contain machine-specific type elements:
+- Bennett
+  - [BennettElement.scad](Bennett/BennettElement.scad)
+  - [BennettLayouts.scad](Bennett/BennettLayouts.scad)
+- Blickensderfer
+  - [Blickensderfer2.scad](Blickensderfer/Blickensderfer2.scad)
+  - [BlickensderferElement.scad](Blickensderfer/BlickensderferElement.scad)
+  - [HebrewBlickensderferElement.scad](Blickensderfer/HebrewBlickensderferElement.scad)
+- Hammond
+  - [GalgolicHammondShuttle.scad](Hammond/GalgolicHammondShuttle.scad)
+  - [HammondIndex.scad](Hammond/HammondIndex.scad)
+  - [HammondShuttle.scad](Hammond/HammondShuttle.scad)
+  - [HammondSplitShuttle.scad](Hammond/HammondSplitShuttle.scad)
+  - [HammondSplitShuttle2.scad](Hammond/HammondSplitShuttle2.scad)
+- HeliosKlimax
+  - [HeliosKlimaxElement.scad](HeliosKlimax/HeliosKlimaxElement.scad)
+  - [HeliosKlimaxTester.scad](HeliosKlimax/HeliosKlimaxTester.scad)
+  - [imagetest.scad](HeliosKlimax/imagetest.scad)
+- IBM
+  - [IBM2.scad](IBM/IBM2.scad)
+- Mignon
+  - [MignonCylinder.scad](Mignon/MignonCylinder.scad)
+  - [MignonIndex.scad](Mignon/MignonIndex.scad)
+  - [MignonIndexLayouts.scad](Mignon/MignonIndexLayouts.scad)
+- Postal
+  - [Postal.scad](Postal/Postal.scad)
 
 

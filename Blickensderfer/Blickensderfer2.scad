@@ -120,6 +120,8 @@ fontWeightOffset=0;
 xFontWeightAdj=0;
 //font y weight adjustment 0+
 yFontWeightAdj=0;
+char_replace="";
+char_replacewith="";
 
 
 
@@ -319,7 +321,7 @@ module AssembleMinkowski(){
         )?//2 characters below
         "ךְ"
         :
-        char_prime;
+        char_prime==char_replace?char_replacewith:char_prime;
         
         
         platenBaseline=platenBaselines[baseline]+
@@ -737,7 +739,7 @@ module TypeTest(){
         )?//2 characters below
         "ךְ"
         :
-        char_prime;
+        char_prime==char_replace?char_replacewith:char_prime;
         
         font=(elementLayoutArraySelection==3 && baseline==0)?fontHebrew:
         search(char, charMods)==[]?font:fontCharMod;
