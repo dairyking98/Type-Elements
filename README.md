@@ -24,10 +24,31 @@ Preview → Render → Export STL.
 - [Resin support systems](docs/resin-supports.md) — CutGroove, rod geometry, per-machine support placement
 - [Calibration procedures](docs/calibration.md) — sweep tests, debugging symptoms, procedure order
 - [IBM Composer](docs/ibm-composer.md) — proportional unit system, hemisphere mapping, Composer vs Selectric
-- [Refactoring plan](docs/refactoring-plan.md) — shared library architecture, extraction order, old vs new code style
+- [Refactoring plan](docs/refactoring-plan.md) — shared library architecture, extraction order, old vs new code style (executed as of v2.0, see [CHANGELOG.md](CHANGELOG.md))
 
-## SCAD files by directory
-The following directories contain machine-specific type elements:
+## v2.0: shared library files
+`v2/` holds the current, actively-developed set of machine files — a shared
+`lib/` (glyph pipeline, resin support, core/shaft, layouts) plus one thin
+file per machine. See [CHANGELOG.md](CHANGELOG.md) for what moved where and
+which machines share the pipeline. Every v1 file below is untouched and
+still opens/renders exactly as before.
+
+- [lib/glyph_pipeline.scad](v2/lib/glyph_pipeline.scad)
+- [lib/resin_support.scad](v2/lib/resin_support.scad)
+- [lib/core_shaft.scad](v2/lib/core_shaft.scad)
+- [lib/testing.scad](v2/lib/testing.scad) — shared calibration-sweep array generator
+- lib/layouts/ — [blick](v2/lib/layouts/blick_layouts.scad), [bennett](v2/lib/layouts/bennett_layouts.scad), [mignon](v2/lib/layouts/mignon_layouts.scad), [ibm](v2/lib/layouts/ibm_layouts.scad), [hammond](v2/lib/layouts/hammond_layouts.scad) (postal.scad's single fixed layout stays inline, no separate file)
+- [blickensderfer.scad](v2/blickensderfer.scad)
+- [postal.scad](v2/postal.scad)
+- [bennett.scad](v2/bennett.scad)
+- [mignon.scad](v2/mignon.scad)
+- [heliosklimax.scad](v2/heliosklimax.scad)
+- [ibm.scad](v2/ibm.scad)
+- [hammond.scad](v2/hammond.scad)
+- [hammond_split.scad](v2/hammond_split.scad)
+
+## v1 SCAD files by directory
+The following directories contain the original machine-specific type elements:
 - Bennett
   - [BennettElement.scad](Bennett/BennettElement.scad)
   - [BennettLayouts.scad](Bennett/BennettLayouts.scad)
