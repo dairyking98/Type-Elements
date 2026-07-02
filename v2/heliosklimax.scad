@@ -5,11 +5,11 @@
 //shared lib/glyph_pipeline.scad. Helios's transform reduces to the exact
 //same world-frame formula algebraically (not approximately): its platen
 //cutout radius Platen_Diameter/2+Min_Final_Character_Diameter/2 expands to
-//Element_Diameter/2+Platen_Diameter/2+CharProtrusion (same as Blick2's
-//formula, since CharProtrusion=(Min_Final_Character_Diameter-Element_Diameter)/2
+//Element_Diameter/2+Platen_Diameter/2+Char_Protrusion (same as Blick2's
+//formula, since Char_Protrusion=(Min_Final_Character_Diameter-Element_Diameter)/2
 //cancels the Element_Diameter/2 term), and its placement radius is the raw
 //Element_Diameter/2 (Bennett/Mignon's convention, needs
-//letterPlacementProtrusion=0). Its Character_Modifieds baseline shift is a
+//Letter_Placement_Protrusion=0). Its Character_Modifieds baseline shift is a
 //plain world-Z addition after the radial placement translate, matching the
 //lib's TextRing charBaseline computation directly. Core/shaft groove family
 //not applicable - Helios has no SecondaryCore/CoreGrooves/CoreChamfer/
@@ -34,37 +34,44 @@
 /* [Global Parameters] */
 //to help with z fighting
 z=.01;
-//surface facet number
-surface_fn = $preview ? 60 : 360;
-//critical (shaft/pin) cylinder facet number
-criticalcyl_fn = $preview ? 60 : 360;
-//text facet number
-text_fn = $preview ? 22 : 44;
+//minkowski facet number - Helios's original had no dedicated value at all
+//(the minkowski cone reused text_fn's facet count); given its own literal
+//here to match every other v2 machine's independent Mink_Fn. Inert unless
+//Mink_On is enabled (off by default).
+Mink_Fn=20;
+//text facet number (renamed from text_fn)
+Text_Fn = $preview ? 22 : 44;
+//critical (shaft/pin) cylinder facet number (renamed from criticalcyl_fn)
+Cyl_Fn = $preview ? 60 : 360;
+//surface facet number (renamed from surface_fn)
+Surface_Fn = $preview ? 60 : 360;
 
 /* [Render Parameters] */
 //render something?
 Render=false;
-XSection=false;
-XSectionTheta=180;
 //Speedy Preview and Render with No Minkowski
 Debug_No_Minkowski=true;
-minkOn=!Debug_No_Minkowski;
+Mink_On=!Debug_No_Minkowski;
 //Helios's original cone (r1=0,r2=.75,h=1.5) already matched Blick2/Postal's
 //r1=0,r2=X convention (unlike Bennett/Mignon's reversed r1=X,r2=0) - still
 //not a calibrated dimension, uses the shared angle-derived formula.
-minkDraftAngle=55;
+Mink_Draft_Angle=55;
+//view cross section (reordered after Mink_On/Mink_Draft_Angle to match
+//Blick2/Postal's canonical Render Parameters order)
+X_Section=false;
+X_Section_Theta=180;
 
 /* [Testing Stuff] */
-testing_baseline=false;
-testing_cutout=false;
-testing_layout=false;
+Testing_Baseline=false;
+Testing_Cutout=false;
+Testing_Layout=false;
 Testing_Offsets=[-.5, -.4, -.3, -.2, -.1, 0, .1, .2, .3, .4, .5, .6];
-cutoutTest=testing_cutout;
-baselineTest=testing_baseline;
-testLayout=testing_layout;
-cutoutTestArray=Testing_Offsets;
-baselineTestArray=Testing_Offsets;
-testChar="H";
+Cutout_Test=Testing_Cutout;
+Baseline_Test=Testing_Baseline;
+Test_Layout=Testing_Layout;
+Cutout_Test_Array=Testing_Offsets;
+Baseline_Test_Array=Testing_Offsets;
+Test_Char="H";
 
 /* [Key Mapping] */
 GERMAN=["wertuionklpasdcfghbvm",
@@ -81,11 +88,11 @@ LAYOUT=GERMAN_MOD;
 Baseline=[3.0, 7.8, 12.5, 17.3];
 //Platen Cutout Height
 Cutout=[2.5, 7.3, 12, 16.8];
-//latitudeInt/angleHalfStep: Helios's Theta=theta*column with theta=360/21 has
+//Latitude_Int/Angle_Half_Step: Helios's Theta=theta*column with theta=360/21 has
 //no half-column-step term (like Mignon), and places column N at raw Theta
 //(no CharLegend-style remap - LAYOUT is already in physical column order).
-latitudeInt=360/21;
-angleHalfStep=0;
+Latitude_Int=360/21;
+Angle_Half_Step=0;
 
 /* [Typeface Stuff] */
 Typeface_="Kurinto Type";//"Consolas";
@@ -94,16 +101,16 @@ Type_Size=2.7;//2;
 Character_Modifieds="_";
 Character_Modifieds_Offset=0;//[-.1:.05:.5]
 //Character_Modifieds only ever shifted baseline in Helios's original (no
-//font swap), so these alias to Helios's own font/size for a no-op swap.
+//Font swap), so these alias to Helios's own Font/size for a no-op swap.
 Character_Modifieds_Font=Typeface_;
 Character_Modifieds_Size=Type_Size;
 //offset()-based stroke weight (Blickensderfer2/Postal's system) - Helios
 //never had this, 0 = no-op, layered independently of Weight_Adj_Mode below.
-fontWeightOffset=0;
-xFontWeightAdj=0;
-yFontWeightAdj=0;
-font=Typeface_;
-fontSize=Type_Size;
+Font_Weight_Offset=0;
+X_Font_Weight_Adj=0;
+Y_Font_Weight_Adj=0;
+Font=Typeface_;
+Font_Size=Type_Size;
 
 /* [Glyph Quality (unified across all v2 machines)] */
 //Helios never had per-character size scaling; "." isn't specially sized in
@@ -122,8 +129,8 @@ Weight_Adj_Shape=0;//[0:Square, 1:Circle]
 Y_Scale=1;
 //secondary typeface for specific characters - Helios never had this.
 Typeface_2=Typeface_;
-Type_2Size=Type_Size;
-Typeface_2Chars="";
+Type_2_Size=Type_Size;
+Typeface_2_Chars="";
 
 /* [Element Dimensions] */
 //Platen Diameter
@@ -132,24 +139,24 @@ Platen_Diameter=30;
 Element_Diameter=27.15;
 //Max Minimum Diameter Across 2 Concave Characters
 Min_Final_Character_Diameter=28.19;
-CharProtrusion=(Min_Final_Character_Diameter-Element_Diameter)/2;
+Char_Protrusion=(Min_Final_Character_Diameter-Element_Diameter)/2;
 //Element Height
 Element_Height=18.7;
 //Shaft Diameter
 Shaft_Diameter=4.16;
-Element_SquareHole_Position=8.92;
-Element_SquareHole_Width=4.10;
-Element_SquareHole_Length=2.88;
-Element_SquareHole_SupportHeight=3;
-Element_IndicatorHole_Position=10;
-Element_IndicatorHole_Diameter=2;
+Element_Square_Hole_Position=8.92;
+Element_Square_Hole_Width=4.10;
+Element_Square_Hole_Length=2.88;
+Element_Square_Hole_Support_Height=3;
+Element_Indicator_Hole_Position=10;
+Element_Indicator_Hole_Diameter=2;
 Element_Shell_Thickness=1.5;
 Element_Inside_Radius=1;
-Element_ClipHeight=3;
-Element_ClipDiameter=7;
-Element_WireDiameter=.554;
-Element_ClipBite=.7;
-Element_ClipAngle=180;
+Element_Clip_Height=3;
+Element_Clip_Diameter=7;
+Element_Wire_Diameter=.554;
+Element_Clip_Bite=.7;
+Element_Clip_Angle=180;
 
 /* [Resin Printing] */
 //NOTE: declared but unused in the original - see file header. Preserved
@@ -162,31 +169,26 @@ Resin_Support_Spacing=3;
 Resin_Support_Contact_Radius=.2;
 
 /* [Glyph pipeline lib wiring] */
-//physicalLayout: LAYOUT is already in physical column order (no CharLegend
+//Physical_Layout: LAYOUT is already in physical column order (no CharLegend
 //remap in the original), so this is a direct pass-through.
-physicalLayout=LAYOUT;
-//Element_Diameter, Platen_Diameter, CharProtrusion, Baseline, Cutout,
+Physical_Layout=LAYOUT;
+//Element_Diameter, Platen_Diameter, Char_Protrusion, Baseline, Cutout,
 //Character_Modifieds*, Weight_Adj_*, Scale_Multiplier*, Y_Scale, Typeface_2*
 //all already declared natively above - no bridging needed.
-//baselineZOffset=0: Helios's Baseline/Cutout are already absolute heights
+//Baseline_Z_Offset=0: Helios's Baseline/Cutout are already absolute heights
 //from the bottom face, same convention as Bennett/Mignon.
-baselineZOffset=0;
-//quality variable name bridging
-cylFn=criticalcyl_fn;
-surfaceFn=surface_fn;
-textFn=text_fn;
-//Helios never declared a separate minkowski facet count - text_fn served
-//that role too in the original ($fn=$preview?22:44 used everywhere,
-//including the (unused when Debug_No_Minkowski=true) draft cone).
-minkFn=text_fn;
+Baseline_Z_Offset=0;
+//Cyl_Fn/Surface_Fn/Text_Fn/Mink_Fn already declared natively above (Global
+//Parameters) - no bridging needed now that Helios uses the canonical names
+//directly instead of its old underscore-style names.
 //Helios's placement radius is the raw Element_Diameter/2 (no protrusion
 //added there - Bennett/Mignon's convention, not Blick2/Postal's).
-letterPlacementProtrusion=0;
+Letter_Placement_Protrusion=0;
 //Helios's raw pre-cutout extrusion block: starts exactly at the placement
 //radius (no offset), extends 2mm outward, trimmed down by the (verified)
 //PlatenCutout afterward.
-letterExtrudeOffset=0;
-letterExtrudeDepth=2;
+Letter_Extrude_Offset=0;
+Letter_Extrude_Depth=2;
 
 include <lib/glyph_pipeline.scad>
 
@@ -196,7 +198,7 @@ include <lib/glyph_pipeline.scad>
 
 //Helios's original had NO render gate at all - the geometry rendered
 //unconditionally on load, unlike every other v2 machine. Wrapped in the same
-//Render/XSection gate Bennett/Mignon/Blick2/Postal use for consistency (and
+//Render/X_Section gate Bennett/Mignon/Blick2/Postal use for consistency (and
 //so opening the file in Customizer doesn't force a full render every time).
 module Assemble(){
 difference(){
@@ -206,7 +208,7 @@ difference(){
                 //Join Cylinder and LetterText
                 TextRing();
                 translate([0, 0, -.01])
-                cylinder(h=Element_Height+2*.01, d=Element_Diameter, $fn=surface_fn);
+                cylinder(h=Element_Height+2*.01, d=Element_Diameter, $fn=Surface_Fn);
             }
 
             //Hollowing Element
@@ -214,24 +216,24 @@ difference(){
                     x_max=Element_Diameter/2-Element_Shell_Thickness-Element_Inside_Radius;
                     y_min=Element_Shell_Thickness+Element_Inside_Radius;
                     y_max=Element_Height-Element_Shell_Thickness-Element_Inside_Radius;
-            rotate_extrude($fn=surface_fn){
+            rotate_extrude($fn=Surface_Fn){
                 hull(){
                     //Bottom Left
                     translate([x_min, y_min])
-                    circle(r=Element_Inside_Radius, $fn=surface_fn);
+                    circle(r=Element_Inside_Radius, $fn=Surface_Fn);
                     //Top Left
 
                     translate([x_min, y_max-.5])
-                    circle(r=Element_Inside_Radius, $fn=surface_fn);
+                    circle(r=Element_Inside_Radius, $fn=Surface_Fn);
                     //Top Right
                     translate([x_max, y_max-.5])
-                    circle(r=Element_Inside_Radius, $fn=surface_fn);
+                    circle(r=Element_Inside_Radius, $fn=Surface_Fn);
                     //Top
                     translate([(x_min+x_max)/2, y_max])
-                    circle(r=Element_Inside_Radius, $fn=surface_fn);
+                    circle(r=Element_Inside_Radius, $fn=Surface_Fn);
                     //Bottom Right
                     translate([x_max, y_min])
-                    circle(r=Element_Inside_Radius, $fn=surface_fn);
+                    circle(r=Element_Inside_Radius, $fn=Surface_Fn);
                 }
             }
 
@@ -242,36 +244,36 @@ difference(){
             cylinder(d=Element_Diameter+5, h=5);
 
             //Cutting Indicator Hole
-            translate([Element_IndicatorHole_Position, 0, Element_Height-Element_Shell_Thickness/2])
-            cylinder(h=6, d=Element_IndicatorHole_Diameter, $fn=surface_fn, center=true);
+            translate([Element_Indicator_Hole_Position, 0, Element_Height-Element_Shell_Thickness/2])
+            cylinder(h=6, d=Element_Indicator_Hole_Diameter, $fn=Surface_Fn, center=true);
         }
 
         //Adding Alignment Pin Support
-        translate([-Element_SquareHole_Position, 0,Element_Shell_Thickness-.01])
-        cylinder(h=Element_SquareHole_SupportHeight, d=Element_SquareHole_Width+2);
+        translate([-Element_Square_Hole_Position, 0,Element_Shell_Thickness-.01])
+        cylinder(h=Element_Square_Hole_Support_Height, d=Element_Square_Hole_Width+2);
 
         //Adding Clip Retainer
         translate([0, 0, Element_Height-.01])
-        cylinder(h=Element_ClipHeight, d=Element_ClipDiameter, $fn=surface_fn);
+        cylinder(h=Element_Clip_Height, d=Element_Clip_Diameter, $fn=Surface_Fn);
     }
 
     //Cutting Alignment Pin Hole
-    translate([-Element_SquareHole_Position, 0,Element_Shell_Thickness/2])
-    cube([Element_SquareHole_Length, Element_SquareHole_Width, 10], center=true);
+    translate([-Element_Square_Hole_Position, 0,Element_Shell_Thickness/2])
+    cube([Element_Square_Hole_Length, Element_Square_Hole_Width, 10], center=true);
 
     //Cutting Center Shaft Hole
     translate([0, 0, -.01])
-    cylinder(h=Element_Height+Element_ClipHeight+2*.01, d=Shaft_Diameter, $fn=surface_fn);
+    cylinder(h=Element_Height+Element_Clip_Height+2*.01, d=Shaft_Diameter, $fn=Surface_Fn);
 
     //Cutting Wire Clip
-    rotate([0, 0, Element_ClipAngle])
-    translate([0, -Shaft_Diameter/2-Element_WireDiameter/2+Element_ClipBite, Element_Height+Element_WireDiameter/2])
+    rotate([0, 0, Element_Clip_Angle])
+    translate([0, -Shaft_Diameter/2-Element_Wire_Diameter/2+Element_Clip_Bite, Element_Height+Element_Wire_Diameter/2])
         hull(){
             rotate([0,-90,0])
-            cylinder(r=Element_WireDiameter/2,h=8,center=true, $fn=surface_fn);
+            cylinder(r=Element_Wire_Diameter/2,h=8,center=true, $fn=Surface_Fn);
             translate([0,-5,.5])
             rotate([0,-90,0])
-            cylinder(r=Element_WireDiameter/2+.5,h=8,center=true, $fn=surface_fn);
+            cylinder(r=Element_Wire_Diameter/2+.5,h=8,center=true, $fn=Surface_Fn);
         }
 }
 }
@@ -280,8 +282,8 @@ if (Render==true){
 
 difference(){
     Assemble();
-    if (XSection==true)
-    rotate([0, 0, XSectionTheta])
+    if (X_Section==true)
+    rotate([0, 0, X_Section_Theta])
     translate([-50, 0, -50])
     cube(100);
 }

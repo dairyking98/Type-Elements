@@ -10,21 +10,21 @@
 //This file defines modules/functions only - no colliding variable assignments.
 //
 //Dimensions/quality (every machine declares these under these exact names now
-//- Element_Diameter/Platen_Diameter/CharProtrusion/Baseline/Cutout are the
+//- Element_Diameter/Platen_Diameter/Char_Protrusion/Baseline/Cutout are the
 //canonical names adopted from Bennett/Mignon's original convention; Blick2/
 //Postal's cylOD/platenOD/textProtrusion/charBaselines/platenBaselines were
 //renamed to match):
-//  z, minkFn, textFn, cylFn, surfaceFn        - quality vars
-//  minkOn, minkDraftAngle                     - draft angle control
-//  Element_Diameter, Platen_Diameter, CharProtrusion, latitudeInt - dimensions
-//  font, fontSize                             - base typeface
-//  physicalLayout                             - 2D array [row][col] of chars,
+//  z, Mink_Fn, Text_Fn, Cyl_Fn, Surface_Fn        - quality vars
+//  Mink_On, Mink_Draft_Angle                     - draft angle control
+//  Element_Diameter, Platen_Diameter, Char_Protrusion, Latitude_Int - dimensions
+//  Font, Font_Size                             - base typeface
+//  Physical_Layout                             - 2D array [row][col] of chars,
 //                                                already resolved to the exact
 //                                                physical column order and with
 //                                                any machine-specific character
 //                                                substitution already applied
 //  Baseline, Cutout                           - per-row baseline arrays
-//  baselineZOffset                            - Z added to every character's
+//  Baseline_Z_Offset                            - Z added to every character's
 //                                                placement/cutout height.
 //                                                Blick2/Postal set this to
 //                                                their Element_Height (their
@@ -39,16 +39,16 @@
 //                                                dimension, not the same thing
 //                                                even though Blick2/Postal's
 //                                                value happens to equal it.
-//  cutoutTest, cutoutTestArray, baselineTest, baselineTestArray, testLayout, testChar
+//  Cutout_Test, Cutout_Test_Array, Baseline_Test, Baseline_Test_Array, Test_Layout, Test_Char
 //
 //Unified glyph-quality features (every v2 machine declares all of these):
-//  fontWeightOffset, xFontWeightAdj, yFontWeightAdj
+//  Font_Weight_Offset, X_Font_Weight_Adj, Y_Font_Weight_Adj
 //                       - offset()-based stroke weight (Blickensderfer2/
 //                         Postal's original system). 0 = no-op.
 //  Weight_Adj_Mode, Weight_Adj_Shape, Horizontal_Weight_Adj, Vertical_Weight_Adj
 //                       - minkowski erosion/growth stroke-weight system
 //                         (0=none/1=subtractive/2=additive), independent of
-//                         and layered with fontWeightOffset above. Mode 0 is
+//                         and layered with Font_Weight_Offset above. Mode 0 is
 //                         a no-op, reducing to exactly the offset+square
 //                         system. Verified equivalent restructuring for
 //                         Blick2/Postal: mirror() now wraps the whole mode
@@ -63,7 +63,7 @@
 //                         Character_Modifieds_Offset AND their font/size
 //                         swapped to Character_Modifieds_Font/_Size. Set
 //                         Character_Modifieds_Font/_Size equal to a machine's
-//                         own font/fontSize for a no-op font swap (baseline
+//                         own font/Font_Size for a no-op font swap (baseline
 //                         offset still applies) - this is how Bennett/Mignon,
 //                         whose original systems only ever shifted baseline,
 //                         stay behaviorally identical while gaining the
@@ -73,31 +73,31 @@
 //                         Scale_Multiplier_Text="" = no-op.
 //  Y_Scale               - vertical scale applied to the glyph before
 //                         extrusion. 1 = no-op.
-//  Typeface_2, Type_2Size, Typeface_2Chars
+//  Typeface_2, Type_2_Size, Typeface_2_Chars
 //                       - secondary-typeface-by-character system, independent
 //                         of and resolved before Scale_Multiplier_Text sizing.
-//                         Typeface_2Chars="" = no-op.
+//                         Typeface_2_Chars="" = no-op.
 //
 //Optional (lib supplies a default if a machine file leaves these undefined -
 //these are structural/composition knobs, not customizer-facing features, so
 //they stay opt-in rather than part of the unified declared set above):
-//  placementMap        - per-column index -> physical placement latitude.
+//  Placement_Map        - per-column index -> physical placement latitude.
 //                         Default: identity (column N places at latitude N).
-//  rowLabels            - per-row name array used only by TextRingDebug's
-//                         console echo (cutoutTest/baselineTest/testLayout).
+//  Row_Labels            - per-row name array used only by TextRingDebug's
+//                         console echo (Cutout_Test/Baseline_Test/Test_Layout).
 //                         Default: numeric "row 0"/"row 1"/etc. Blick2/Postal/
 //                         Bennett/Hammond override this to their real
 //                         ["lowercase","uppercase","figs"(,"math")] shift
 //                         names.
-//  referencePhysicalLayout - a second physicalLayout-shaped array, used only
+//  Reference_Physical_Layout - a second Physical_Layout-shaped array, used only
 //                         by TextRingDebug's console echo to identify which
 //                         physical keyboard key/lever strikes a given
-//                         position - independent of testLayout (which still
-//                         collapses the actual RENDERED glyph to testChar)
+//                         position - independent of Test_Layout (which still
+//                         collapses the actual RENDERED glyph to Test_Char)
 //                         and independent of whatever content Layout is
 //                         currently selected for printing. Default: same as
-//                         physicalLayout. Blickensderfer/Bennett/Mignon wire
-//                         this from a dedicated referenceLayoutSelection
+//                         Physical_Layout. Blickensderfer/Bennett/Mignon wire
+//                         this from a dedicated Reference_Layout_Selection
 //                         dropdown (reusing each machine's own layout preset
 //                         list + its fixed keyboard->physical hardware remap)
 //                         so switching what you're printing never changes
@@ -105,33 +105,33 @@
 //                         real keyboard's key labels are a hardware fact of
 //                         the machine, not a function of what you're
 //                         currently engraving.
-//  rowFont, rowFontSize - per-row font/size array. Default: global font/fontSize
+//  Row_Font, Row_Font_Size - per-row font/size array. Default: global font/Font_Size
 //                         repeated for every row.
-//  rowFontLock          - per-row boolean array. When true for a row, that row's
-//                         rowFont/rowFontSize always wins over a
+//  Row_Font_Lock          - per-row boolean array. When true for a row, that row's
+//                         Row_Font/Row_Font_Size always wins over a
 //                         Character_Modifieds match (this is how
 //                         Blickensderfer2's Hebrew row0 stays on fontHebrew
 //                         regardless of Character_Modifieds). Default: all false.
-//  text2DFn             - local $fn override inside TwoDText(). Default: inherit
+//  Text_2D_Fn             - local $fn override inside TwoDText(). Default: inherit
 //                         ambient $fn from the caller (matches Blickensderfer2).
-//  minkHFixed            - override the shared draft-cone h=2. Default 2.
-//  letterPlacementProtrusion - radial offset added at the placement stage
+//  Mink_H_Fixed            - override the shared draft-cone h=2. Default 2.
+//  Letter_Placement_Protrusion - radial offset added at the placement stage
 //                       (Element_Diameter/2 + this). Default: same as
-//                       CharProtrusion (Blickensderfer2/Postal's original
+//                       Char_Protrusion (Blickensderfer2/Postal's original
 //                       behavior - their raw material stands proud of the
 //                       plain element surface before any cutout trims it).
 //                       Bennett/Mignon/Helios set this to 0: their placement
 //                       radius is the raw Element_Diameter/2, with embed
-//                       depth controlled instead by letterExtrudeOffset below
-//                       - CharProtrusion still applies in PlatenCutout's
+//                       depth controlled instead by Letter_Extrude_Offset below
+//                       - Char_Protrusion still applies in PlatenCutout's
 //                       formula regardless of this override (verified
 //                       algebraically: Bennett's Platen_Diameter/2+
 //                       Min_Final_Character_Diameter/2 cutout radius is
 //                       exactly Element_Diameter/2+Platen_Diameter/2+
-//                       CharProtrusion once CharProtrusion is expanded, so
+//                       Char_Protrusion once Char_Protrusion is expanded, so
 //                       the cutout side was never wrong - only the placement
 //                       side needed this override).
-//  letterExtrudeOffset, letterExtrudeDepth
+//  Letter_Extrude_Offset, Letter_Extrude_Depth
 //                       - Z offset/depth of the raw pre-cutout linear_extrude,
 //                         in the LetterPlacement-local frame (local Z = radial
 //                         direction once placed). Default 0/6 (Blickensderfer2/
@@ -140,9 +140,9 @@
 //                         afterward, it only needs to be deep enough to contain
 //                         the final shape, so this needed no separate
 //                         verification beyond the cutout itself.
-//  angleHalfStep         - constant added to `latitude` before multiplying by
-//                         latitudeInt, i.e. angle = (angleHalfStep+latitude)*
-//                         latitudeInt. Default .5 (Blickensderfer2/Postal/
+//  Angle_Half_Step         - constant added to `latitude` before multiplying by
+//                         Latitude_Int, i.e. angle = (Angle_Half_Step+latitude)*
+//                         Latitude_Int. Default .5 (Blickensderfer2/Postal/
 //                         Bennett all center each column between latitude band
 //                         edges this way). Mignon has no such half-column
 //                         offset, so it sets this to 0.
@@ -152,41 +152,41 @@ function minkTextR(draft_angle) = 2*tan(.5*draft_angle);
 //2D glyph shape, mirrored so it reads correctly once placed facing outward.
 //NOTE: preserves a pre-existing typo from Blick2/Postal - the y term of the
 //weight-adjust square references "yFontWieghtAdj" (misspelled), which is
-//always undef, so this branch only actually resolves when xFontWeightAdj>0
-//with yFontWeightAdj left at 0. Kept as-is for exact behavioral parity.
+//always undef, so this branch only actually resolves when X_Font_Weight_Adj>0
+//with Y_Font_Weight_Adj left at 0. Kept as-is for exact behavioral parity.
 module TwoDText(char, font, size){
-    $fn = is_undef(text2DFn) ? $fn : text2DFn;
+    $fn = is_undef(Text_2D_Fn) ? $fn : Text_2D_Fn;
     _weightAdjMode = Weight_Adj_Mode;
-    //Typeface_2Chars resolves BEFORE Scale_Multiplier_Text sizing, matching
+    //Typeface_2_Chars resolves BEFORE Scale_Multiplier_Text sizing, matching
     //Mignon's original precedence exactly.
-    _isTypeface2 = search(char, Typeface_2Chars)!=[];
+    _isTypeface2 = search(char, Typeface_2_Chars)!=[];
     _font = _isTypeface2 ? Typeface_2 : font;
-    _baseSize = _isTypeface2 ? Type_2Size : size;
+    _baseSize = _isTypeface2 ? Type_2_Size : size;
     _useSize = search(char, Scale_Multiplier_Text)==[] ? _baseSize : _baseSize*Scale_Multiplier;
 
-    offset(fontWeightOffset)
+    offset(Font_Weight_Offset)
     mirror([1, 0, 0]){
         if (_weightAdjMode==2)//Additive
             minkowski(){
-                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=textFn);
+                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
                 WeightAdjShape();
             }
         else if (_weightAdjMode==1)//Subtractive
             difference(){
-                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=textFn);
+                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
-                        text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=textFn);
+                        text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
                     }
                     WeightAdjShape();
                 }
             }
         else //None - Blick2/Postal's original offset+square weight system
             minkowski(){
-                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=textFn);
-                if (xFontWeightAdj>0 || yFontWeightAdj>0)
-                square([z+xFontWeightAdj, z+yFontWieghtAdj], center=true);
+                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
+                if (X_Font_Weight_Adj>0 || Y_Font_Weight_Adj>0)
+                square([z+X_Font_Weight_Adj, z+yFontWieghtAdj], center=true);
             }
     }
 }
@@ -197,31 +197,31 @@ module WeightAdjShape(){
     square([Horizontal_Weight_Adj, Vertical_Weight_Adj], center=true);
     if (Weight_Adj_Shape==1 && Weight_Adj_Mode!=0)
     scale([Horizontal_Weight_Adj, Vertical_Weight_Adj])
-    circle(r=1, $fn=minkFn);
+    circle(r=1, $fn=Mink_Fn);
 }
 
 //concave underside cutout so the character conforms to the platen curvature
 module PlatenCutout(platenBaseline, latitude){
-    _angleHalfStep = is_undef(angleHalfStep) ? .5 : angleHalfStep;
-    rotate([0, 0, (_angleHalfStep+latitude)*latitudeInt])
-    translate([Element_Diameter/2+Platen_Diameter/2+CharProtrusion, 0, platenBaseline])
+    _angleHalfStep = is_undef(Angle_Half_Step) ? .5 : Angle_Half_Step;
+    rotate([0, 0, (_angleHalfStep+latitude)*Latitude_Int])
+    translate([Element_Diameter/2+Platen_Diameter/2+Char_Protrusion, 0, platenBaseline])
     rotate([90, 0, 0])
-    cylinder(d=Platen_Diameter, h=10, center=true, $fn=cylFn);
+    cylinder(d=Platen_Diameter, h=10, center=true, $fn=Cyl_Fn);
 }
 
 //places a glyph at its circumferential/axial position on the element
 module LetterPlacement(textBaseline, latitude){
-    _angleHalfStep = is_undef(angleHalfStep) ? .5 : angleHalfStep;
-    //letterPlacementProtrusion: Blick2/Postal add the full CharProtrusion to
+    _angleHalfStep = is_undef(Angle_Half_Step) ? .5 : Angle_Half_Step;
+    //Letter_Placement_Protrusion: Blick2/Postal add the full Char_Protrusion to
     //BOTH the placement radius and the platen-cutout radius (their raw
     //material genuinely stands proud of the plain element surface before any
-    //cutout trims it). Bennett/Mignon/Helios only need CharProtrusion in the
+    //cutout trims it). Bennett/Mignon/Helios only need Char_Protrusion in the
     //cutout formula (verified algebraically for Bennett - see PlatenCutout);
     //their placement radius is the raw Element_Diameter/2, with embed depth
-    //controlled instead by letterExtrudeOffset. Default keeps Blick2/Postal's
+    //controlled instead by Letter_Extrude_Offset. Default keeps Blick2/Postal's
     //original behavior; Bennett/Mignon/Helios override this to 0.
-    _placementProtrusion = is_undef(letterPlacementProtrusion) ? CharProtrusion : letterPlacementProtrusion;
-    rotate([0, 0, (_angleHalfStep+latitude)*latitudeInt])
+    _placementProtrusion = is_undef(Letter_Placement_Protrusion) ? Char_Protrusion : Letter_Placement_Protrusion;
+    rotate([0, 0, (_angleHalfStep+latitude)*Latitude_Int])
     translate([0, 0, textBaseline])
     translate([Element_Diameter/2+_placementProtrusion-z, 0, 0])
     rotate([90, 0, 90])
@@ -230,21 +230,21 @@ module LetterPlacement(textBaseline, latitude){
 
 //full drafted single-character solid: extrude, platen cutout, minkowski taper
 module LetterText(char, font, size, platenBaseline, textBaseline, latitude){
-    $fn=surfaceFn;
-    _extrudeOffset = is_undef(letterExtrudeOffset) ? 0 : letterExtrudeOffset;
-    _extrudeDepth = is_undef(letterExtrudeDepth) ? 6 : letterExtrudeDepth;
+    $fn=Surface_Fn;
+    _extrudeOffset = is_undef(Letter_Extrude_Offset) ? 0 : Letter_Extrude_Offset;
+    _extrudeDepth = is_undef(Letter_Extrude_Depth) ? 6 : Letter_Extrude_Depth;
     _yScale = Y_Scale;
     //the draft cone is an arbitrary taper shape, not a calibrated dimension -
     //r2 comes from the draft angle (the physically meaningful parameter),
     //r1=0 (apex). h=2 is Blickensderfer2/Postal's already-proven "big enough,
     //not unreasonably large" value; every machine shares it unless it
-    //explicitly needs something else via minkHFixed.
-    _minkH = is_undef(minkHFixed) ? 2 : minkHFixed;
-    _angleHalfStep = is_undef(angleHalfStep) ? .5 : angleHalfStep;
-    //skipPlatenCutout: Hammond strikes a flat anvil, not a curved platen, so
+    //explicitly needs something else via Mink_H_Fixed.
+    _minkH = is_undef(Mink_H_Fixed) ? 2 : Mink_H_Fixed;
+    _angleHalfStep = is_undef(Angle_Half_Step) ? .5 : Angle_Half_Step;
+    //Skip_Platen_Cutout: Hammond strikes a flat anvil, not a curved platen, so
     //there's no concave cutout to carve - difference() with only the extruded
     //text child (no PlatenCutout operand) is just that child unchanged.
-    _skipPlatenCutout = is_undef(skipPlatenCutout) ? false : skipPlatenCutout;
+    _skipPlatenCutout = is_undef(Skip_Platen_Cutout) ? false : Skip_Platen_Cutout;
     minkowski(){
         difference(){
             LetterPlacement(textBaseline, latitude)
@@ -255,14 +255,14 @@ module LetterText(char, font, size, platenBaseline, textBaseline, latitude){
             if (!_skipPlatenCutout)
             PlatenCutout(platenBaseline, latitude);
         }
-        if (minkOn==true){
-            rotate([0, -90, (_angleHalfStep+latitude)*latitudeInt])
-            cylinder(r1=0, r2=minkTextR(minkDraftAngle), h=_minkH, $fn=minkFn);
+        if (Mink_On==true){
+            rotate([0, -90, (_angleHalfStep+latitude)*Latitude_Int])
+            cylinder(r1=0, r2=minkTextR(Mink_Draft_Angle), h=_minkH, $fn=Mink_Fn);
         }
     }
 }
 
-//rowLabels: optional per-machine row-name array (default: numeric "row N").
+//Row_Labels: optional per-machine row-name array (default: numeric "row N").
 //Found via testing with actual OpenSCAD (openscad-nightly) - the previous
 //hardcoded 3-entry ["lowercase","uppercase","figs"] array only covered
 //Blick2/Postal/Bennett's true 3-row shift-key machines; it silently printed
@@ -272,38 +272,38 @@ module LetterText(char, font, size, platenBaseline, textBaseline, latitude){
 //
 //refChar vs char: refChar identifies which physical KEY/LEVER strikes this
 //position (for correlating a real-machine impression test back to a key,
-//e.g. Blickensderfer/Bennett/Mignon's referencePhysicalLayout, wired from a
-//dedicated referenceLayoutSelection that's independent of whatever content
+//e.g. Blickensderfer/Bennett/Mignon's Reference_Physical_Layout, wired from a
+//dedicated Reference_Layout_Selection that's independent of whatever content
 //Layout_Selection is being printed - the physical keyboard's key labels
 //don't change just because you're test-printing a different language/layout).
-//char is what's actually rendered (collapses to testChar under testLayout).
+//char is what's actually rendered (collapses to Test_Char under Test_Layout).
 //Machines with no reference override (Postal/Helios/Hammond) pass the same
 //value for both, so the two only ever diverge where a machine deliberately
 //wired one in.
 module TextRingDebug(row, col, char, refChar, platenBaseline, charBaseline){
-    _rowLabels = is_undef(rowLabels) ? [for (i=[0:len(physicalLayout)-1]) str("row ", i)] : rowLabels;
-    oclock=(1-col/len(physicalLayout[0]))*12;
+    _rowLabels = is_undef(Row_Labels) ? [for (i=[0:len(Physical_Layout)-1]) str("row ", i)] : Row_Labels;
+    oclock=(1-col/len(Physical_Layout[0]))*12;
     _charLabel = refChar==char ? str("'", char, "'") : str("keyboard key '", refChar, "' (rendered as '", char, "')");
     echo(str("character ", _charLabel, " on ", _rowLabels[row], " row at the ", round(oclock), "oclock position with platen cutout at ", platenBaseline, "mm and character baseline at ", charBaseline, "mm"));
 }
 
-//assembles every character in physicalLayout onto the element
+//assembles every character in Physical_Layout onto the element
 module TextRing(){
-    _placementMap = is_undef(placementMap) ? [for (i=[0:len(physicalLayout[0])-1]) i] : placementMap;
-    _rowFont = is_undef(rowFont) ? [for (i=[0:len(physicalLayout)-1]) font] : rowFont;
-    _rowFontSize = is_undef(rowFontSize) ? [for (i=[0:len(physicalLayout)-1]) fontSize] : rowFontSize;
-    _rowFontLock = is_undef(rowFontLock) ? [for (i=[0:len(physicalLayout)-1]) false] : rowFontLock;
+    _placementMap = is_undef(Placement_Map) ? [for (i=[0:len(Physical_Layout[0])-1]) i] : Placement_Map;
+    _rowFont = is_undef(Row_Font) ? [for (i=[0:len(Physical_Layout)-1]) Font] : Row_Font;
+    _rowFontSize = is_undef(Row_Font_Size) ? [for (i=[0:len(Physical_Layout)-1]) Font_Size] : Row_Font_Size;
+    _rowFontLock = is_undef(Row_Font_Lock) ? [for (i=[0:len(Physical_Layout)-1]) false] : Row_Font_Lock;
 
-    _referencePhysicalLayout = is_undef(referencePhysicalLayout) ? physicalLayout : referencePhysicalLayout;
+    _referencePhysicalLayout = is_undef(Reference_Physical_Layout) ? Physical_Layout : Reference_Physical_Layout;
 
-    for (row=[0:len(physicalLayout)-1])
-    for (col=[0:len(physicalLayout[0])-1]){
-        char=testLayout==false?physicalLayout[row][col]:testChar;
+    for (row=[0:len(Physical_Layout)-1])
+    for (col=[0:len(Physical_Layout[0])-1]){
+        char=Test_Layout==false?Physical_Layout[row][col]:Test_Char;
         refChar=_referencePhysicalLayout[row][col];
 
         //charModsMatch drives the baseline offset unconditionally (matches
         //original: baseline offset never checked row-lock). fontIsCharMod
-        //additionally respects rowFontLock, since only font/size deferred to
+        //additionally respects Row_Font_Lock, since only font/size deferred to
         //the Hebrew-row override in the source files.
         charModsMatch = search(char, Character_Modifieds)!=[];
         fontIsCharMod = !_rowFontLock[row] && charModsMatch;
@@ -314,14 +314,14 @@ module TextRing(){
         placementLatitude = _placementMap[col];
 
         platenBaseline=Cutout[row]+
-        (cutoutTest==true?cutoutTestArray[col]:0);
+        (Cutout_Test==true?Cutout_Test_Array[col]:0);
 
-        charBaseline_prime=Baseline[row]+(baselineTest==true?baselineTestArray[col]:0);
+        charBaseline_prime=Baseline[row]+(Baseline_Test==true?Baseline_Test_Array[col]:0);
         charBaseline=charModsMatch?charBaseline_prime+Character_Modifieds_Offset:charBaseline_prime;
 
-        translate([0, 0, baselineZOffset])
+        translate([0, 0, Baseline_Z_Offset])
         LetterText(char, useFont, useFontSize, platenBaseline, charBaseline, placementLatitude);
-        if (cutoutTest || baselineTest || testLayout)
+        if (Cutout_Test || Baseline_Test || Test_Layout)
             TextRingDebug(row, col, char, refChar, platenBaseline, charBaseline);
     }
 }

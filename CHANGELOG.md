@@ -125,11 +125,120 @@ Example echo line with `testLayout=true` and Bennett's default
 cutout at ...` - press the g lever on the real machine, find the best
 impression, then find "keyboard key 'g'" in the console log.
 
+### Global/Render Parameters naming consistency
+
+An audit (prompted by a direct check across all 8 files) found that Global
+Parameters and Render Parameters weren't actually consistent, despite the
+stated goal - some machines only *bridged* their old names to the canonical
+ones deep in the "Glyph pipeline lib wiring" section rather than renaming the
+declarations themselves, and the declared order silently diverged between
+files:
+
+- **Bennett/Mignon/Helios Klimax**: Global Parameters still declared
+  `surface_fn`/`criticalcyl_fn`/`resin_fn`/`mink_fn`/`text_fn` (their original
+  underscore-style names) and bridged them to `surfaceFn`/`cylFn`/`resinFn`/
+  `minkFn`/`textFn` in a separate block further down. Renamed the
+  declarations directly and removed the now-redundant bridging blocks.
+  Helios's `minkFn` had no independent value at all (aliased to `text_fn`) -
+  given its own literal (`minkFn=20`, matching every other machine's
+  default; inert unless `minkOn` is enabled).
+- **Render Parameters order**: Blickensderfer2/Postal declare `minkOn`/
+  `minkDraftAngle` *before* `XSection`/`XSectionTheta`; Bennett/Mignon/Helios
+  Klimax/IBM had drifted to the opposite order. Reordered the latter four to
+  match Blickensderfer2/Postal (the original reference files).
+- **IBM**: also had a leftover no-op `$fn=$preview?44:44;` (both ternary
+  branches identical) - simplified to `$fn=44;`.
+- **Hammond**: Global Parameters already used canonical camelCase names but
+  in the wrong order - reordered to match.
+- **Hammond split**: had no separate Global Parameters section at all
+  (merged into a single `[Rendering]` block, its own original header before
+  this refactor), and used `minkText`/`minkAngle` instead of `minkOn`/
+  `minkDraftAngle`. Split the section and renamed both - confirmed a pure
+  rename, not a behavior change: `minkRadius=tan(minkAngle/2)*minkHeight`
+  reduces to exactly the shared lib's `minkTextR(angle)=2*tan(.5*angle)` once
+  `minkHeight`'s default (2) is substituted in.
+
+Re-verified after this pass: all 8 files still render to clean STL with zero
+warnings/errors, and the reference-keyboard echo feature (Bennett tested
+directly) still works correctly.
+
+### Capital_Snake_Case naming convention across all 8 files
+
+Converted every top-level variable in `v2/` (lib files + all 8 machine
+files) from a three-way mix of conventions - camelCase (`minkFn`, `cutoutTest`),
+underscore-style leftovers (`surface_fn`, `criticalcyl_fn`), and IBM's own
+SCREAMING_SNAKE_CASE (`RENDER_MODE`, `MINK_FLAT`) - to a single
+`Capital_Snake_Case` convention everywhere (`Mink_Fn`, `Cutout_Test`,
+`Render_Mode`, `Mink_Flat`). Rationale: OpenSCAD's Customizer panel displays
+variable names with underscores converted to spaces but preserves letter
+case, so `Weight_Adj_Mode` reads as "Weight Adj Mode" in the sidebar while
+`WEIGHT_ADJ_MODE` would read as "WEIGHT ADJ MODE" - full-caps for every field
+in the panel, not just the handful that should stand out. Modules and
+functions were deliberately left in their existing PascalCase/camelCase
+forms (`TextRing`, `minkTextR`, `testSweepArray`) since they're never shown
+in the Customizer and staying visually distinct from data variables is its
+own useful signal.
+
+Scope decisions:
+- Data-preset arrays that function like named constants (layout content in
+  `lib/layouts/*.scad` - `DHIATENSOR`, `LAYOUTS`, etc. - and each machine's
+  own `CUSTOM*`-prefixed entry-point arrays, e.g. Bennett/Mignon's
+  `CUSTOMLAYOUT`, IBM's `CUSTOMCASES88`) were left as ALL-CAPS, matching the
+  precedent already set for `lib/layouts/`.
+- Module-local temporary variables (leading-underscore convention, e.g.
+  `_placementMap` inside `TextRing()`) and module/function parameter names
+  (e.g. `TwoDText(char, font, size)`) were left alone - never Customizer-
+  visible, changing them serves no part of the stated goal.
+- IBM's own SCREAMING_SNAKE_CASE settings/dimensions were converted too
+  (`RENDER_MODE`->`Render_Mode`, `BOSS_OD`->`Boss_OD`) for true consistency,
+  keeping known dimension abbreviations (OD, ID, IR, OR, R, D, H, CPI)
+  uppercase rather than title-casing them into something like `Od`.
+
+Caught three real bugs along the way, all from names that were supposed to
+be identical across files/modules but weren't (or became so during the
+rename):
+- `lib/layouts/ibm_layouts.scad` referenced `RENDER_MODE`/`COMPOSER_LANGUAGE`/
+  `S12_88_LANGUAGE` by their pre-rename names - a separate file from
+  `ibm.scad` that's easy to forget when renaming the declaring file. Fixed.
+- IBM's `FONT2SIZE` (computed, `RENDER_MODE`-selected) and `FONT2_SIZE`
+  (literal, `2.4`) are two genuinely different variables that both wanted to
+  become `Font2_Size` - the exact same collision class already handled for
+  `FONTSIZE`/`FONT_SIZE` earlier in the same file, just missed the second
+  instance. Renamed the computed one to `Font2_Size_Selected`, matching its
+  sibling `Font_Size_Selected`.
+- Hammond's `AnvilID` (raw literal, `66.0`) and `Anvil_ID` (computed,
+  `AnvilID+2*anviliroffset`) collapsed to the same name the same way.
+  Renamed the raw literal to `Anvil_ID_Raw`.
+- A more subtle one caught only by testing, not by the duplicate-declaration
+  check: the auto-rename script renamed every occurrence of `font`,
+  including the `font=` *keyword argument name* inside `text()` calls (an
+  OpenSCAD builtin parameter, not a variable of ours) - `openscad-nightly`
+  flagged this immediately as "variable Font not specified as parameter."
+  Fixed by reverting keyword-argument-position occurrences back to lowercase
+  `font=` everywhere, leaving genuine variable references as `Font`.
+
+Also found (and left alone, since they're pre-existing and already proven
+safe): `Render`/`module Render()` in `ibm.scad` and `Groove`/
+`module Groove()` in `hammond.scad` are same-named variable/module pairs
+that already existed before this pass and render without any issue -
+OpenSCAD keeps separate namespaces for variables vs. modules/functions.
+Two *new* collisions introduced by this rename (`Arc`/`module Arc()` and
+`Logo`/`module Logo()` in `hammond_split.scad`) were checked the same way;
+`Arc` (a computed angle colliding with unrelated arc-drawing geometry) was
+renamed to `Arc_Extent` for clarity, `Logo` (a boolean toggle named after the
+feature it enables, matching the already-accepted `Render`/`Groove`
+pattern) was left as-is.
+
+Re-verified after every file: renders to clean STL with zero warnings/
+errors, no duplicate top-level declarations, and the `Test_Layout`/
+`Baseline_Test`/`Cutout_Test` calibration echoes (including the reference-
+keyboard feature) produce correct output on every machine.
+
 Still not independently re-verified beyond "renders without error/warning":
 - `$fn`-dependent curve smoothness (visual quality, not something a
   render-to-STL pass checks)
-- minkowski draft-cone geometry for machines whose `minkOn`/mink toggle is
+- minkowski draft-cone geometry for machines whose `Mink_On`/mink toggle is
   off by default (Bennett, Mignon, Helios Klimax, Hammond) and so were
   accepted by structural analogy rather than a from-scratch numeric
-  derivation - turning `minkOn=true` renders without error, but the actual
+  derivation - turning `Mink_On=true` renders without error, but the actual
   taper shape against the original hasn't been compared point-by-point

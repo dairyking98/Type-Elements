@@ -11,8 +11,8 @@
 //cylinder-family machines (Blick2/Postal/Bennett/Mignon/Helios), so it does
 //NOT go through lib/glyph_pipeline.scad - kept fully self-contained, per
 //docs/refactoring-plan.md. Only Global Parameters and Render Parameters
-//(RENDER->Render, XSECTION->XSection, XSECTION_THETA->XSectionTheta,
-//MINK_ON->minkOn, MINKOWSKI_ANGLE->minkDraftAngle, mink_fn/text_fn/cyl_fn/
+//(RENDER->Render, XSECTION->X_Section, XSECTION_THETA->X_Section_Theta,
+//MINK_ON->Mink_On, MINKOWSKI_ANGLE->Mink_Draft_Angle, mink_fn/text_fn/cyl_fn/
 //surface_fn->camelCase) were renamed to match the cylinder-family convention;
 //everything else (the large majority of the file - typeface, testing,
 //language/layout, typeball dimensions, labels, resin supports) keeps its
@@ -24,46 +24,59 @@
 //need genuinely new code to support them, not just a rename, which was
 //scoped out of this pass. Original preserved at IBM/IBM2.scad. This file was
 //IBM2.scad, moved to v2/ibm.scad.
+//
+//Follow-up consistency pass: Global/Render Parameters reordered to the exact
+//same relative order every other v2 machine now uses (z, Mink_Fn, Text_Fn,
+//Cyl_Fn, Surface_Fn, [extras] / Render, [extras], Mink_On, Mink_Draft_Angle,
+//X_Section, X_Section_Theta, [extras]) - previously IBM had Mink_On declared
+//after X_Section instead of before, an inconsistency caught when auditing all
+//8 v2 files' Global/Render Parameters side by side. Also simplified a
+//leftover no-op `$fn=$preview?44:44;` (both ternary branches were identical)
+//to a plain `$fn=44;`.
 
 /* [Global Parameters] */
 
 //to help with z fighting
 z=.001;
-$fn=$preview?44:44;
-//surface facet number
-surfaceFn=120;
-//cylinder facet number
-cylFn=360;
 //minkowski facet number
-minkFn=20;
+Mink_Fn=20;
 //text facet number
-textFn=20;
+Text_Fn=20;
+//cylinder facet number
+Cyl_Fn=360;
+//surface facet number
+Surface_Fn=120;
+//IBM-only: fixed facet count independent of $preview (was written as
+//$preview?44:44, a no-op ternary left over from editing - simplified to the
+//same constant it always evaluated to).
+$fn=44;
 
 /* [Render Parameters] */
 
 //Render something
 Render=false;
 //Render selection
-RENDER_MODE=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
+Render_Mode=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
 //Render variant
-RENDER_VARIANT=0;//[0:plain, 1:resin print top up, 2:type test]
-//View Cross section
-XSection=false;
-//Cross section angle
-XSectionTheta=0;
-//Degrees to rotate ball when rendering to prevent artifacts due to element aligning with pixel grid.
-RENDER_DEGREE_OFFSET=-3;
+Render_Variant=0;//[0:plain, 1:resin print top up, 2:type test]
 //Turn on minkowski
-minkOn=false;
+Mink_On=false;
 //Minkowski draft angle
-minkDraftAngle=55;
+Mink_Draft_Angle=55;
+//View Cross section (reordered after Mink_On/Mink_Draft_Angle to match every
+//other v2 machine's canonical Render Parameters order)
+X_Section=false;
+//Cross section angle
+X_Section_Theta=0;
+//Degrees to rotate ball when rendering to prevent artifacts due to element aligning with pixel grid.
+Render_Degree_Offset=-3;
 //Enable Minkowski flat offset
-MINK_FLAT=false;
+Mink_Flat=false;
 //Minkowski offset from text surface
-MINK_FLAT_OFFSET=.0;//.01
-MINKOWSKI_FLAT_OFFSET=MINK_FLAT==true?MINK_FLAT_OFFSET:0;
+Mink_Flat_Offset=.0;//.01
+Minkowski_Flat_Offset=Mink_Flat==true?Mink_Flat_Offset:0;
 //Minkowski vertical offset in degrees
-MINKOWSKI_LONGITUDINAL_OFFSETS=[0, 0, 0, 0];
+Minkowski_Longitudinal_Offsets=[0, 0, 0, 0];
 //Minkowski bottom radius size
 function MINK_TEXT_R(draft_angle)=2*tan(.5*draft_angle);
 
@@ -72,14 +85,14 @@ function MINK_TEXT_R(draft_angle)=2*tan(.5*draft_angle);
 /* [Testing Stuff] */
 include <lib/testing.scad>
 //Render only selected characters
-SELECTIVE_RENDER=false;
+Selective_Render=false;
 //Characters to render
-SELECTIVE_RENDER_CHARS="sine";
+Selective_Render_Chars="sine";
 //Enable rays
-RAYS=false;
+Rays=false;
 
 //character and point array for type testing composer
-COMPOSER_PITCH_LIST=[
+Composer_Pitch_List=[
 
     ["M", 9], ["W", 9], ["m", 9],
     
@@ -99,45 +112,45 @@ COMPOSER_PITCH_LIST=[
 
 
 //Test platen cutout offsets
-CUTOUT_TEST=false;
+Cutout_Test=false;
 //Base tilt to start incrementing from
-CUTOUT_TEST_START=0;//.05
+Cutout_Test_Start=0;//.05
 //Interval of angle offsets to test
-CUTOUT_TEST_ANGLE_INT=.05;//.05
+Cutout_Test_Angle_Int=.05;//.05
 
 //individual platen cutout adjustment angles
-PLATEN_LONGITUDE_OFFSETS=[-1.05, -1.05, -1, -1.05];//.05
+Platen_Longitude_Offsets=[-1.05, -1.05, -1, -1.05];//.05
 
 //Test minkowski draft angles
-DRAFTANGLE_TEST=false;
-DRAFTANGLE_TEST_START=50;
-DRAFTANGLE_TEST_INT=1;
+Draft_Angle_Test=false;
+Draft_Angle_Test_Start=50;
+Draft_Angle_Test_Int=1;
 
 //Test minkowski longitudinal offsets
-MINK_LONG_OFFSET_TEST=false;
-MINK_LONG_OFFSET_TEST_START=0;
-MINK_LONG_OFFSET_TEST_INT=1;
+Mink_Long_Offset_Test=false;
+Mink_Long_Offset_Test_Start=0;
+Mink_Long_Offset_Test_Int=1;
 
 //Test platen diameters
-PLATEN_DIAMETER_TEST=false;
-PLATEN_DIAMETER_TEST_START=30;
-PLATEN_DIAMETER_TEST_INT=1;
+Platen_Diameter_Test=false;
+Platen_Diameter_Test_Start=30;
+Platen_Diameter_Test_Int=1;
 
 
 //TEST_ARRAY_MAP was a pure identity map ([0,1,2,...21]) - dead indirection,
 //replaced directly by testSweepArray's own n=[0:count-1] loop below.
-CUTOUT_TEST_ANGLE_ARRAY=testSweepArray(CUTOUT_TEST_START, CUTOUT_TEST_ANGLE_INT, 22);
-DRAFTANGLE_TEST_ARRAY=testSweepArray(DRAFTANGLE_TEST_START, DRAFTANGLE_TEST_INT, 22);
-MINK_LONG_OFFSET_TEST_ARRAY=testSweepArray(MINK_LONG_OFFSET_TEST_START, MINK_LONG_OFFSET_TEST_INT, 22);
-PLATEN_DIAMETER_TEST_ARRAY=testSweepArray(PLATEN_DIAMETER_TEST_START, PLATEN_DIAMETER_TEST_INT, 22);
+Cutout_Test_Angle_Array=testSweepArray(Cutout_Test_Start, Cutout_Test_Angle_Int, 22);
+Draft_Angle_Test_Array=testSweepArray(Draft_Angle_Test_Start, Draft_Angle_Test_Int, 22);
+Mink_Long_Offset_Test_Array=testSweepArray(Mink_Long_Offset_Test_Start, Mink_Long_Offset_Test_Int, 22);
+Platen_Diameter_Test_Array=testSweepArray(Platen_Diameter_Test_Start, Platen_Diameter_Test_Int, 22);
 
 /* [Language and Custom Layout] */
 
 //Composer Language preset
-COMPOSER_LANGUAGE=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin, 5:Custom]
+Composer_Language=0;//[0:United States,1:United Kingdom,2:Nordic,3:German,4:Latin, 5:Custom]
 
 //Selectric I/II 88 character Language Preset
-S12_88_LANGUAGE=0;//[0:United States, 1:Custom]
+S12_88_Language=0;//[0:United States, 1:Custom]
 
 
 //lowercase layout for custom keyboard
@@ -166,27 +179,27 @@ CUSTOMCASES88=[CUSTOMLOWERCASE88, CUSTOMUPPERCASE88];
 /* [Typeface Stuff] */
 
 //element typeface
-FONT="Arial";
+Font="Arial";
 //selectric I/II type size
-FONT_SIZE=2.4;//.05
-// Composer font Cap Height in points, use instead of FONT_SIZE!
-COMPOSER_CAP_HEIGHT=7;
+Font_Size=2.4;//.05
+// Composer font Cap Height in points, use instead of Font_Size!
+Composer_Cap_Height=7;
 //all font sizes
-ALLFONTSIZES=[COMPOSER_CAP_HEIGHT/2.834, FONT_SIZE];
+All_Font_Sizes=[Composer_Cap_Height/2.834, Font_Size];
 //global font size
-FONTSIZE=ALLFONTSIZES[RENDER_MODE];
+Font_Size_Selected=All_Font_Sizes[Render_Mode];
 //secondary element typeface
-FONT2="Times New Roman";
+Font2="Times New Roman";
 //secondary type size
-FONT2_SIZE=2.4;//.05
-// Composer font 2 Cap Height in points, use instead of FONT_SIZE!
-COMPOSER2_CAP_HEIGHT=7;
+Font2_Size=2.4;//.05
+// Composer font 2 Cap Height in points, use instead of Font_Size!
+Composer2_Cap_Height=7;
 //all font2 sizes
-ALLFONT2SIZES=[COMPOSER2_CAP_HEIGHT/2.834, FONT2_SIZE];
+All_Font2_Sizes=[Composer2_Cap_Height/2.834, Font2_Size];
 //global font2 size
-FONT2SIZE=ALLFONT2SIZES[RENDER_MODE];
+Font2_Size_Selected=All_Font2_Sizes[Render_Mode];
 //list of chars to adopt font2 parameters
-FONT2CHARS="";
+Font2_Chars="";
 //custom horizontal alignment characters
 CUSTOMHALIGNCHARS="";
 //custom horizontal alignment characters offset. -left +right
@@ -196,91 +209,91 @@ CUSTOMVALIGNCHARS="";
 //custom vertical alignment characters offset
 CUSTOMVALIGNOFFSET=-0.2;
 //type weight offset +/-
-FONT_WEIGHT_OFFSET=0;//.01
+Font_Weight_Offset=0;//.01
 //x weight adjustment 0+
-X_WEIGHT_ADJUSTMENT=.0;//.001
+X_Weight_Adjustment=.0;//.001
 //y weight adjustment 0+
-Y_WEIGHT_ADJUSTMENT=.0;//.01
+Y_Weight_Adjustment=.0;//.01
 //x horiz alignment offset for composer
-X_POS_OFFSET_COMPOSER_=1.20;
-X_POS_OFFSET_COMPOSER=CUTOUT_TEST==false?X_POS_OFFSET_COMPOSER_:0;//.01
+X_Pos_Offset_Composer_=1.20;
+X_Pos_Offset_Composer=Cutout_Test==false?X_Pos_Offset_Composer_:0;//.01
 //y vert alignment offset for composer
-Y_POS_OFFSET_COMPOSER=-1.30;//1.01;//.01
+Y_Pos_Offset_Composer=-1.30;//1.01;//.01
 //x horiz alignment offset for selectric 1/2
-X_POS_OFFSET_S12=0;//.01
+X_Pos_Offset_S12=0;//.01
 //y vert alignment offset for selectric 1/2
-Y_POS_OFFSET_S12=-1.5;
+Y_Pos_Offset_S12=-1.5;
 //all y offsets
-ALLYOFFSETS=[Y_POS_OFFSET_COMPOSER, Y_POS_OFFSET_S12];
+All_Y_Offsets=[Y_Pos_Offset_Composer, Y_Pos_Offset_S12];
 //all x offsets
-ALLXOFFSETS=[X_POS_OFFSET_COMPOSER, X_POS_OFFSET_S12];
+All_X_Offsets=[X_Pos_Offset_Composer, X_Pos_Offset_S12];
 //global y offset
-Y_POS_OFFSET=ALLYOFFSETS[RENDER_MODE];
+Y_Pos_Offset=All_Y_Offsets[Render_Mode];
 //global x offset
-X_POS_OFFSET=ALLXOFFSETS[RENDER_MODE];
+X_Pos_Offset=All_X_Offsets[Render_Mode];
 //all h alignments
-ALLHALIGNMENTS=["left", "center"];
+All_H_Alignments=["left", "center"];
 //h alignment 
-H_ALIGNMENT=CUTOUT_TEST==true?"center":ALLHALIGNMENTS[RENDER_MODE];
+H_Alignment=Cutout_Test==true?"center":All_H_Alignments[Render_Mode];
 
 /* [ Type Testing Stuff] */
 
 //Type test text color
-TYPE_TEST_COLOR="red";//["red","black","white"]
+Type_Test_Color="red";//["red","black","white"]
 
 //Use custom test string?
 CUSTOM_TEST_STRING=false;
 
 //custom string for type test
-TESTSTRING_CUSTOM="Sphinx of black quartz, judge my vow";
+Test_String_Custom="Sphinx of black quartz, judge my vow";
 
 //cumulative sum vector function for composer type test pitch array
 function cumulativeSum(vec) = [for (sum=vec[0], i=1; i<=len(vec)-1; newsum=sum+vec[i], nexti=i+1, sum=newsum, i=nexti) sum];
 //composer cumulative picas per character array
-//CUMULATIVETESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
+//CUMULATIVETESTSTRINGPICAS = cumulativeSum(Test_String_Picas);
 //cpi spacing for type test of selectric I/II
-TESTCPI=10;
+Test_CPI=10;
 //unit spacing for type test of Composer
-UNITSPERINCH=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
+Units_Per_Inch=72;//[72:Red (12Units/Pica  72 Units/in), 84:Yellow (14Units/Pica  84 Units/in), 96:Blue (16 Units/Pica  96 Units/in)]
 //mm distance per composer unit
-UNITDIST=25.4/UNITSPERINCH;
+Unit_Dist=25.4/Units_Per_Inch;
 
-ARROW_COLOR=
-    (RENDER_MODE==1)   ? "white":  //SI/II
-    (RENDER_MODE==2)   ? "yellow": //SIII
-    (UNITSPERINCH==72) ? "red":    
-    (UNITSPERINCH==84) ? "yellow":
-    (UNITSPERINCH==96) ? "blue":
+Arrow_Color=
+    (Render_Mode==1)   ? "white":  //SI/II
+    (Render_Mode==2)   ? "yellow": //SIII
+    (Units_Per_Inch==72) ? "red":    
+    (Units_Per_Inch==84) ? "yellow":
+    (Units_Per_Inch==96) ? "blue":
     "white" // fallback
     ;
 
 /* [Typeball Print Tolerances] */
 
 
-TOPFLAT_THICKNESS=3.5;
+Top_Flat_Thickness=3.5;
 //shaft ID
-SHAFT_ID=8.8;
+Shaft_ID=8.8;
 //shaft r
-SHAFT_R=SHAFT_ID/2;
+Shaft_R=Shaft_ID/2;
 //boss OD
-BOSS_OD=11.6;
+Boss_OD=11.6;
 //boss minimum clearange
-BOSS_CLEARANCE=2.5;//.1
+Boss_Clearance=2.5;//.1
 //boss step thicknesss
-BOSS_STEP=0;//.1
+Boss_Step=0;//.1
 //platen diameter composer
-PLATEN_OD_C=43;
+Platen_OD_C=43;
 //platen diameter selectric 1/2
-PLATEN_OD_S12=36;
+Platen_OD_S12=36;
 //platen diameter
-PLATEN_OD=RENDER_MODE==0?PLATEN_OD_C:PLATEN_OD_S12;
+Platen_OD=Render_Mode==0?Platen_OD_C:Platen_OD_S12;
 //drive notch width
-DRIVE_NOTCH_WIDTH=1.06;//.01
+Drive_Notch_Width=1.06;//.01
 //drive notch height
-DRIVE_NOTCH_HEIGHT=2.2;
-echo("Top flat to boss face must measure at 8.5mm (Leo's measured value) or element is incorrectly represented. Adjust SNOOT_DROOP_COMPENSATION up,lowering height of boss, until print yields 8.5mm boss height.");
+Drive_Notch_Height=2.2;
+echo("Top flat to boss face must measure at 8.5mm (Leo's measured value) or element is incorrectly represented. Adjust Snoot_Droop_Compensation up,lowering height of boss, until print yields 8.5mm boss height.");
 //amount to compensate for vat-facing boss face !CRITICAL FEATURE!
-SNOOT_DROOP_COMPENSATION=.42;//.01
+Snoot_Droop_Compensation=.42;//.01
 
 
 
@@ -288,77 +301,77 @@ SNOOT_DROOP_COMPENSATION=.42;//.01
 //Typeball Dimensions
 
 //sphere diameter
-SPHERE_OD=33.4;
+Sphere_OD=33.4;
 //sphere radius
-SPHERE_R=SPHERE_OD/2;
+Sphere_R=Sphere_OD/2;
 //character-concave to character-concave diameter
-MAX_OD=34.9;
+Max_OD=34.9;
 //sphere center to top flat
-TOPFLAT_TO_CENTER=11.0;//leo's measured value. dave's was was 11.4;
+Top_Flat_To_Center=11.0;//leo's measured value. dave's was was 11.4;
 //thickness of top flat
 //top shaft chamfer
-TOP_CHAMFER=.7;
+Top_Chamfer=.7;
 //inside ID
-INSIDE_ID=28.15;
+Inside_ID=28.15;
 //calculated value of sphere center to boss face
-BOSS_TO_CENTER_=2.5;//leo's calculated value. dave's was 2.38 (calculated);
+Boss_To_Center_=2.5;//leo's calculated value. dave's was 2.38 (calculated);
 //top flat radius
-TOPFLAT_R=(SPHERE_R^2-TOPFLAT_TO_CENTER^2)^.5;
+Top_Flat_R=(Sphere_R^2-Top_Flat_To_Center^2)^.5;
 //center to detent teeth tips of element
-FLOOR=10.7;//abs(TOPFLAT_TO_CENTER-ELEMENT_OAT) = 10.7;
+Floor=10.7;//abs(Top_Flat_To_Center-ELEMENT_OAT) = 10.7;
 //angle between characters
-LATITUDE_SPACING=360/22;
+Latitude_Spacing=360/22;
 //skirt top OD
-SKIRT_TOP_OD=32.3;
+Skirt_Top_OD=32.3;
 //skirt bottom OD
-SKIRT_BOTTOM_OD=30.2;
+Skirt_Bottom_OD=30.2;
 //overall thickness of element
-//echo(str(FLOOR+TOPFLAT_TO_CENTER, " (modeled) = 21.7 (measured)? Leo's measured overall thickness?"));
+//echo(str(Floor+Top_Flat_To_Center, " (modeled) = 21.7 (measured)? Leo's measured overall thickness?"));
 //angle between rows
-LONGITUDE_SPACING=[32.8, 16.4, 0, -16.4];
+Longitude_Spacing=[32.8, 16.4, 0, -16.4];
 //drive notch theta from arrow
-DRIVE_NOTCH_THETA_=131.0;//.01
+Drive_Notch_Theta_=131.0;//.01
 //detent valley from center
-DETENT_VALLEY_TO_CENTER=6;
+Detent_Valley_To_Center=6;
 //detent teeth clock offset
-DETENT_SKIRT_CLOCK_OFFSET=0;//.01
+Detent_Skirt_Clock_Offset=0;//.01
 //modeled boss to center value
-BOSS_TO_CENTER=BOSS_TO_CENTER_+SNOOT_DROOP_COMPENSATION;
+Boss_To_Center=Boss_To_Center_+Snoot_Droop_Compensation;
 
 /* [Label Stuff] */
 
 //Enable label
-LABEL=true;
+Label=true;
 //Enable arrow
-ARROW=true;
+Arrow=true;
 //Label for number label. Disabled in Composer mode
-LABEL_NO = "10";
+Label_No = "10";
 //Label override for typeface label (leave blank to adopt font name)
-LABEL_TEXT_OVERRIDE="";
+Label_Text_Override="";
 //Font override for number label (leave blank to adopt element typeface)
-LABEL_NO_FONT_OVERRIDE="";
+Label_No_Font_Override="";
 //Font override for typeface label (leave blank to adopt element typeface)
-LABEL_FONT_OVERRIDE="";
+Label_Font_Override="";
 //Font size for number label
-NO_LABEL_SIZE=2;//0.25
+No_Label_Size=2;//0.25
 //Vertical offset for number label. +up -down
-NO_LABEL_OFFSET=0;//0.25
+No_Label_Offset=0;//0.25
 //Font size for typeface label 
-FONT_LABEL_SIZE=2;//0.25
+Font_Label_Size=2;//0.25
 //Weight offset for font label.
-LABEL_FONT_WEIGHT_OFFSET=0;//0.01
+Label_Font_Weight_Offset=0;//0.01
 //Vertical offset for font label. +up -down
-FONT_LABEL_OFFSET=0;//0.25
+Font_Label_Offset=0;//0.25
 //arrow from center 
-DEL_BASE_FROM_CENTRE = 8.2;
+Del_Base_From_Centre = 8.2;
 //Label deboss depth
-DEL_DEPTH = 0.6;
+Del_Depth = 0.6;
 
 /* [ Hidden ] */
 //Character Polar Positioning Offsets
 
 //individual baseline adjustment angles
-BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
+Baseline_Longitude_Offsets=[0, 0, 0, 0];//.05
 
 
 
@@ -366,75 +379,75 @@ BASELINE_LONGITUDE_OFFSETS=[0, 0, 0, 0];//.05
 //SOME CALCULATED VARIABLES:
 
 //skirt large radius
-SKIRT_TOP_R=SKIRT_TOP_OD/2;
+Skirt_Top_R=Skirt_Top_OD/2;
 //center to skirt of element
-CENTER_TO_SKIRT=(SPHERE_R^2-SKIRT_TOP_R^2)^.5;
+Center_To_Skirt=(Sphere_R^2-Skirt_Top_R^2)^.5;
 //platen radius
-//PLATEN_R=PLATEN_OD/2;
+//PLATEN_R=Platen_OD/2;
 //height of letter
-TYPE_ALTITUDE=(MAX_OD-SPHERE_OD)/2;
+Type_Altitude=(Max_OD-Sphere_OD)/2;
 //inside radius
-INSIDE_R=INSIDE_ID/2;
+Inside_R=Inside_ID/2;
 //inside boss radius
-BOSS_R=BOSS_OD/2;
+Boss_R=Boss_OD/2;
 //compensated drive notch theta
-DRIVE_NOTCH_THETA=DRIVE_NOTCH_THETA_+DETENT_SKIRT_CLOCK_OFFSET;
+Drive_Notch_Theta=Drive_Notch_Theta_+Detent_Skirt_Clock_Offset;
 //center to roof of element
-ROOF=TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS;
+Roof=Top_Flat_To_Center-Top_Flat_Thickness;
 
 
 //Selectric I/II and Composer language layouts, hemisphere maps, and the
 //language/mode selection logic that combines them (CASES88, HEMISPHERE_MAP,
 //LATITUDE_LONGITUDE, etc.) all moved to lib/layouts/ibm_layouts.scad - pure
 //data plus straightforward combining logic, no geometry. Needs CUSTOMCASES88
-//(above), S12_88_LANGUAGE, COMPOSER_LANGUAGE, and RENDER_MODE already
+//(above), S12_88_Language, Composer_Language, and Render_Mode already
 //defined, which they are by this point in the file.
 include <lib/layouts/ibm_layouts.scad>
 
 /* [Resin Supports] */
 
 //tip diameter
-TIP_D=.9;
+Tip_D=.9;
 //notch tip diameter
-TIP_NOTCHD=.4;
+Tip_Notch_D=.4;
 //deg offset from notch for notch supports
-TIP_NOTCHOFFSET=12;
+Tip_Notch_Offset=12;
 //tip inset
-TIP_IN=.4;
+Tip_In=.4;
 //tip height
-TIP_H=1;
+Tip_H=1;
 //rod diameter
-ROD_D=1.2;
+Rod_D=1.2;
 //rod base diameter
-ROD_BASE_C=.5;
+Rod_Base_C=.5;
 //rod radius
-ROD_R=ROD_D/2;
+Rod_R=Rod_D/2;
 //base diameter on buildplate
-BASE_D=4;
+Base_D=4;
 //base thickness
-BASE_H=2;
+Base_H=2;
 //minimum support height
-MIN_ROD_H=2;
+Min_Rod_H=2;
 
 /* [Experimental Drain Holes] */
 
 //Drain hole type
-DRAIN=0;//[0:None, 1:Pair, 2:Web]
+Drain=0;//[0:None, 1:Pair, 2:Web]
 //Hole ID
-WEB_ID=BOSS_OD+1;
+Web_ID=Boss_OD+1;
 //Hole inner corner R
-WEB_IR=1;
+Web_IR=1;
 //Hole outer corner R
-WEB_OR=2;
+Web_OR=2;
 //web OD
-WEB_OD=TOPFLAT_R*2-2;
+Web_OD=Top_Flat_R*2-2;
 
 
 //rays
 module Rays(){
     for (lat=[0:21])
     for (long=[0:3])
-    rotate([0, LONGITUDE_SPACING[long], lat*LATITUDE_SPACING])
+    rotate([0, Longitude_Spacing[long], lat*Latitude_Spacing])
     rotate([0, -90, 0])
     #cylinder(r=.1, h=20);
 }
@@ -442,24 +455,24 @@ module Rays(){
 //make solid element
 module FullBody(){
 union(){
-    $fn=surfaceFn;
-    sphere(d=SPHERE_OD);
-    translate([0, 0, -FLOOR])
-    cylinder(d1=SKIRT_BOTTOM_OD, d2=SKIRT_TOP_OD, h=FLOOR-CENTER_TO_SKIRT);
+    $fn=Surface_Fn;
+    sphere(d=Sphere_OD);
+    translate([0, 0, -Floor])
+    cylinder(d1=Skirt_Bottom_OD, d2=Skirt_Top_OD, h=Floor-Center_To_Skirt);
     AssembleMinkowski();
     }
 }
 
 //2d text
 module Text(char, font, size, customhalign, customvalign){
-    $fn = minkFn;
-    offset(FONT_WEIGHT_OFFSET)
+    $fn = Mink_Fn;
+    offset(Font_Weight_Offset)
     minkowski(){
-        translate([X_POS_OFFSET-customhalign, Y_POS_OFFSET+customvalign, 0])
+        translate([X_Pos_Offset-customhalign, Y_Pos_Offset+customvalign, 0])
         mirror([1, 0, 0])
-        text(char, size=size, font=font, valign="baseline", halign=H_ALIGNMENT, $fn=textFn);
-        if (X_WEIGHT_ADJUSTMENT>0 || Y_WEIGHT_ADJUSTMENT>0)
-        square([z+X_WEIGHT_ADJUSTMENT, z+Y_WEIGHT_ADJUSTMENT], center=true);
+        text(char, size=size, font=font, valign="baseline", halign=H_Alignment, $fn=Text_Fn);
+        if (X_Weight_Adjustment>0 || Y_Weight_Adjustment>0)
+        square([z+X_Weight_Adjustment, z+Y_Weight_Adjustment], center=true);
     }
 }
 
@@ -467,15 +480,15 @@ module Text(char, font, size, customhalign, customvalign){
 module PlatenCutout(latitude, longitude,platendia){
             platenr=platendia/2;
             rotate([0, -longitude, latitude])
-            translate([SPHERE_R+platenr+TYPE_ALTITUDE, 0, 0])
+            translate([Sphere_R+platenr+Type_Altitude, 0, 0])
             rotate([90, 0, 0])
-            cylinder(d=platendia, h=10, center=true, $fn=cylFn);        
+            cylinder(d=platendia, h=10, center=true, $fn=Cyl_Fn);        
 }
 
 //position extruded character
 module PositionText(latitude, longitude){
     rotate([90 - longitude, 0, 90 + latitude])
-    translate([0, 0, SPHERE_R+z])
+    translate([0, 0, Sphere_R+z])
     children();
 //    linear_extrude(6)
 //    Text(char);
@@ -491,15 +504,15 @@ module PositionText(latitude, longitude){
 //            PlatenCutout(latitude, longitude+plat_offset);
 //            
 //        }
-//        if (minkOn==true){
+//        if (Mink_On==true){
 //            rotate([90 - longitude, 0, 90 + latitude])
 //            hull(){
 //                translate([0, 0, -2])
-//                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=minkFn);
+//                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=Mink_Fn);
 //                if (minklongoffset!=0){
 //                    rotate([-minklongoffset, 0, 0])
 //                    translate([0, 0, -2])
-//                    cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=minkFn);
+//                    cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=Mink_Fn);
 //                }
 //            }
 //        }
@@ -509,7 +522,7 @@ module PositionText(latitude, longitude){
 //minkowski single character
 module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle,platendia){
     union(){
-    if (MINK_FLAT==true){
+    if (Mink_Flat==true){
     difference(){
         PositionText(latitude, longitude+base_offset)
         linear_extrude(6)
@@ -525,17 +538,17 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
         PlatenCutout(latitude, longitude+plat_offset,platendia);
         
     }
-        if (minkOn==true){
+        if (Mink_On==true){
             rotate([90 - longitude, 0, 90 + latitude])
             hull(){
-                translate([0, 0, -2-MINKOWSKI_FLAT_OFFSET])
-                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=minkFn);
+                translate([0, 0, -2-Minkowski_Flat_Offset])
+                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=Mink_Fn);
                 if (minklongoffset!=0){
                 echo(char, minklongoffset);
-                    translate([0, 0, -MINKOWSKI_FLAT_OFFSET])
+                    translate([0, 0, -Minkowski_Flat_Offset])
                     rotate([-minklongoffset, 0, 0])
                     translate([0, 0, -2])
-                    cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=minkFn);
+                    cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=Mink_Fn);
                 }
             }
         }
@@ -545,57 +558,57 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
 
 //cutout test console output array
  //[ Element Row, Element Column, US KB Char, Cutout Offset Value, Draft Angle, Mink Long Offset]
-CharInfo = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
+Char_Info = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
     (LATITUDE_LONGITUDE[hemi_int][1]), 
-    (LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING),
-    (RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
-    CUTOUT_TEST?(CUTOUT_TEST_ANGLE_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180)/LATITUDE_SPACING]):PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],
-    DRAFTANGLE_TEST?DRAFTANGLE_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:minkDraftAngle,
-    MINK_LONG_OFFSET_TEST?MINK_LONG_OFFSET_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]],PLATEN_DIAMETER_TEST?PLATEN_DIAMETER_TEST_ARRAY[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/LATITUDE_SPACING)]:PLATEN_OD,
+    (LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing),
+    (Render_Mode==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
+    Cutout_Test?(Cutout_Test_Angle_Array[(LATITUDE_LONGITUDE[hemi_int][0]*Latitude_Spacing+case_int*180)/Latitude_Spacing]):Platen_Longitude_Offsets[LATITUDE_LONGITUDE[hemi_int][1]],
+    Draft_Angle_Test?Draft_Angle_Test_Array[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing)]:Mink_Draft_Angle,
+    Mink_Long_Offset_Test?Mink_Long_Offset_Test_Array[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing)]:Minkowski_Longitudinal_Offsets[LATITUDE_LONGITUDE[hemi_int][1]],Platen_Diameter_Test?Platen_Diameter_Test_Array[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing)]:Platen_OD,
  ]];
 
-CharInfoRowSorted = [for (row=[0:3]) for (char=[0:87]) if (CharInfo[char][0]==row) [row, CharInfo[char][1], CharInfo[char][2], CharInfo[char][3], CharInfo[char][4], CharInfo[char][5],CharInfo[char][6]]];
+Char_Info_Row_Sorted = [for (row=[0:3]) for (char=[0:87]) if (Char_Info[char][0]==row) [row, Char_Info[char][1], Char_Info[char][2], Char_Info[char][3], Char_Info[char][4], Char_Info[char][5],Char_Info[char][6]]];
 
-CharInfoRowColSorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (CharInfo[n][1]==latitude && CharInfo[n][0]==row)  [CharInfo[n][0], CharInfo[n][1], CharInfo[n][2], CharInfo[n][3], CharInfo[n][4], CharInfo[n][5],CharInfo[n][6]]];
+Char_Info_Row_Col_Sorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (Char_Info[n][1]==latitude && Char_Info[n][0]==row)  [Char_Info[n][0], Char_Info[n][1], Char_Info[n][2], Char_Info[n][3], Char_Info[n][4], Char_Info[n][5],Char_Info[n][6]]];
 
 module ConsoleCutout(){
     for (i=[0:87])
-    echo(str(RENDER_MODE==0?"US Composer":"US Selectric1/2", " KB char = ", CharInfoRowColSorted[i][2], " on row ", CharInfoRowColSorted[i][0], " and latitude ", CharInfoRowColSorted[i][1], " ––– cutout offset: ", CharInfoRowColSorted[i][3], " ––– draft angle: ", CharInfoRowColSorted[i][4], " ––– mink long offset: ", CharInfoRowColSorted[i][5], " ––– platen diameter: ",CharInfoRowColSorted[i][6]));
+    echo(str(Render_Mode==0?"US Composer":"US Selectric1/2", " KB char = ", Char_Info_Row_Col_Sorted[i][2], " on row ", Char_Info_Row_Col_Sorted[i][0], " and latitude ", Char_Info_Row_Col_Sorted[i][1], " ––– cutout offset: ", Char_Info_Row_Col_Sorted[i][3], " ––– draft angle: ", Char_Info_Row_Col_Sorted[i][4], " ––– mink long offset: ", Char_Info_Row_Col_Sorted[i][5], " ––– platen diameter: ",Char_Info_Row_Col_Sorted[i][6]));
 }
 
 //assemble minkowski characters
 module AssembleMinkowski(){
-    rotate([0, 0, -5*LATITUDE_SPACING])
+    rotate([0, 0, -5*Latitude_Spacing])
     for (case_int=[0:1])
     for (hemi_int=[0:43]){
     
         char=CASES88[case_int][hemi_int];
-        uskbchar=RENDER_MODE==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int];
-        latitude=LATITUDE_LONGITUDE[hemi_int][0]*LATITUDE_SPACING+case_int*180;
-        longitude=LONGITUDE_SPACING[LATITUDE_LONGITUDE[hemi_int][1]];
+        uskbchar=Render_Mode==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int];
+        latitude=LATITUDE_LONGITUDE[hemi_int][0]*Latitude_Spacing+case_int*180;
+        longitude=Longitude_Spacing[LATITUDE_LONGITUDE[hemi_int][1]];
         
-        plat_offset_test=CUTOUT_TEST==true?CUTOUT_TEST_ANGLE_ARRAY[latitude/LATITUDE_SPACING]:0;
-        draft_angle=DRAFTANGLE_TEST==true?DRAFTANGLE_TEST_ARRAY[latitude/21]:minkDraftAngle;
+        plat_offset_test=Cutout_Test==true?Cutout_Test_Angle_Array[latitude/Latitude_Spacing]:0;
+        draft_angle=Draft_Angle_Test==true?Draft_Angle_Test_Array[latitude/21]:Mink_Draft_Angle;
         //mink_long_offset_test
         
-//        if (CUTOUT_TEST==true){
+//        if (Cutout_Test==true){
 //            //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
 //        }
             
-        plat_offset=CUTOUT_TEST==false?PLATEN_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]:0;
-        base_offset=BASELINE_LONGITUDE_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]];
-        font=search(char, FONT2CHARS)==[]?FONT:FONT2;
-        size=search(char, FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;
+        plat_offset=Cutout_Test==false?Platen_Longitude_Offsets[LATITUDE_LONGITUDE[hemi_int][1]]:0;
+        base_offset=Baseline_Longitude_Offsets[LATITUDE_LONGITUDE[hemi_int][1]];
+        font=search(char, Font2_Chars)==[]?Font:Font2;
+        size=search(char, Font2_Chars)==[]?Font_Size_Selected:Font2_Size_Selected;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
-        minklongoffset=MINK_LONG_OFFSET_TEST==false?MINKOWSKI_LONGITUDINAL_OFFSETS[LATITUDE_LONGITUDE[hemi_int][1]]:MINK_LONG_OFFSET_TEST_ARRAY[latitude/21];
-        platendia=PLATEN_DIAMETER_TEST==true?PLATEN_DIAMETER_TEST_ARRAY[latitude/21]:PLATEN_OD;
+        minklongoffset=Mink_Long_Offset_Test==false?Minkowski_Longitudinal_Offsets[LATITUDE_LONGITUDE[hemi_int][1]]:Mink_Long_Offset_Test_Array[latitude/21];
+        platendia=Platen_Diameter_Test==true?Platen_Diameter_Test_Array[latitude/21]:Platen_OD;
         //echo(platendia);
         
-        if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)!= [])
+        if (Selective_Render==true && search(char, Selective_Render_Chars)!= [])
         SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset, minklongoffset, draft_angle,platendia);
         
-        else if (SELECTIVE_RENDER==true && search(char, SELECTIVE_RENDER_CHARS)== []) {}
+        else if (Selective_Render==true && search(char, Selective_Render_Chars)== []) {}
         
         else
         SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset, draft_angle,platendia);
@@ -609,31 +622,31 @@ module AssembleMinkowski(){
 //subtractive parts
 module SolidCleanup(){
     //top flat
-    translate([0, 0, TOPFLAT_TO_CENTER])
-    cylinder(r=TOPFLAT_R+2, h=10);
+    translate([0, 0, Top_Flat_To_Center])
+    cylinder(r=Top_Flat_R+2, h=10);
     //center shaft
-    cylinder(d=SHAFT_ID, h=40, center=true, $fn=cylFn);
+    cylinder(d=Shaft_ID, h=40, center=true, $fn=Cyl_Fn);
     //center shaft top chamfer
-    translate([0, 0, TOPFLAT_TO_CENTER-TOP_CHAMFER])
-    cylinder(d1=SHAFT_ID, d2=SHAFT_ID+2*TOP_CHAMFER, h=TOP_CHAMFER, $fn=surfaceFn);
+    translate([0, 0, Top_Flat_To_Center-Top_Chamfer])
+    cylinder(d1=Shaft_ID, d2=Shaft_ID+2*Top_Chamfer, h=Top_Chamfer, $fn=Surface_Fn);
     //inside radius
     translate([0, 0, -20])
-    cylinder(d=INSIDE_ID, h=20+BOSS_TO_CENTER, $fn=surfaceFn);
+    cylinder(d=Inside_ID, h=20+Boss_To_Center, $fn=Surface_Fn);
     //roof ish area
-    rotate_extrude($fn=surfaceFn)
+    rotate_extrude($fn=Surface_Fn)
     HollowProfile3();
     //notch
     Notch();
     //detent teeth
-    rotate([0, 0, DETENT_SKIRT_CLOCK_OFFSET])
+    rotate([0, 0, Detent_Skirt_Clock_Offset])
     Teeth();
     //drain holes
-    if (DRAIN!=0)
+    if (Drain!=0)
     ArrangeDrain();
-    if (DRAIN!=2){
-        if (ARROW==true)
+    if (Drain!=2){
+        if (Arrow==true)
         Del();
-        if (LABEL==true)
+        if (Label==true)
         FontName();}
 }
 
@@ -641,24 +654,24 @@ module SolidCleanup(){
 module HollowProfile3(){
     newroofr=1;
     hull(){
-        translate([-newroofr+INSIDE_R, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+        translate([-newroofr+Inside_R, Boss_To_Center+Boss_Clearance, 0])
         circle(r=newroofr);
-        translate([BOSS_R+BOSS_STEP, 0, 0])
-        square([INSIDE_R-BOSS_R-BOSS_STEP, 1]);
-        translate([BOSS_R+newroofr+BOSS_STEP, BOSS_TO_CENTER+BOSS_CLEARANCE, 0])
+        translate([Boss_R+Boss_Step, 0, 0])
+        square([Inside_R-Boss_R-Boss_Step, 1]);
+        translate([Boss_R+newroofr+Boss_Step, Boss_To_Center+Boss_Clearance, 0])
         circle(r=newroofr);
-        translate([(INSIDE_R+BOSS_R+BOSS_STEP)/2, TOPFLAT_TO_CENTER-TOPFLAT_THICKNESS-newroofr])
+        translate([(Inside_R+Boss_R+Boss_Step)/2, Top_Flat_To_Center-Top_Flat_Thickness-newroofr])
         circle(r=newroofr);
 
     }
     
-    translate([BOSS_R, 0, 0])
-    square([BOSS_STEP+z, BOSS_TO_CENTER+BOSS_CLEARANCE]);
+    translate([Boss_R, 0, 0])
+    square([Boss_Step+z, Boss_To_Center+Boss_Clearance]);
 }
 
 //detent tooth profile
 module Tooth(){
-    translate([0, DETENT_VALLEY_TO_CENTER, -FLOOR-z])
+    translate([0, Detent_Valley_To_Center, -Floor-z])
     rotate([180, -90, 0])
     {
         // notch between teeth must be big enough to trap detent
@@ -670,15 +683,15 @@ module Tooth(){
 //detent teeth profile
 module Teeth(){
     for (i=[0:22-1])
-    rotate([0, 0, i*LATITUDE_SPACING])
+    rotate([0, 0, i*Latitude_Spacing])
     Tooth();
 }
 
 //drive notch
 module Notch(){
-    rotate([0, 0, DRIVE_NOTCH_THETA])
-    translate([SHAFT_ID/2-.5, -DRIVE_NOTCH_WIDTH/2, BOSS_TO_CENTER-z])
-    cube([4, DRIVE_NOTCH_WIDTH, DRIVE_NOTCH_HEIGHT+SNOOT_DROOP_COMPENSATION+z]);
+    rotate([0, 0, Drive_Notch_Theta])
+    translate([Shaft_ID/2-.5, -Drive_Notch_Width/2, Boss_To_Center-z])
+    cube([4, Drive_Notch_Width, Drive_Notch_Height+Snoot_Droop_Compensation+z]);
 }
 
 //full body minus subtractive parts
@@ -688,7 +701,7 @@ module SubtractFromFull(){
         SolidCleanup();
     }
     
-    if (RAYS==true)
+    if (Rays==true)
     Rays();
 }
 
@@ -697,35 +710,35 @@ module ResinTip(a1,d){
     rotate([0, a1, 0])
     hull(){
         sphere(d=d);
-        translate([0, 0, -TIP_H])
-        sphere(d=ROD_D);
+        translate([0, 0, -Tip_H])
+        sphere(d=Rod_D);
     }
 }
 
 //get rotated resin support tip x offset function
-function ResinXOffset(a1)= sin(a1)*TIP_H;
+function ResinXOffset(a1)= sin(a1)*Tip_H;
 
 //resin support rod, height, tip angle, tip diameter
 module ResinRod(h, a1, d){
     xoffset = ResinXOffset(a1);
     translate([-xoffset, 0]){
         //base
-        translate([0, 0, -MIN_ROD_H-BASE_H-TIP_H])
-        cylinder(d1=BASE_D, d2=BASE_D+2*BASE_H, h=BASE_H);
+        translate([0, 0, -Min_Rod_H-Base_H-Tip_H])
+        cylinder(d1=Base_D, d2=Base_D+2*Base_H, h=Base_H);
         
         //rod
         hull(){
-            translate([0, 0, -TIP_H+h-TIP_D/2+TIP_IN])
-            sphere(d=ROD_D);
-            translate([0, 0, -MIN_ROD_H-BASE_H+ROD_D/2-TIP_H])
-            sphere(d=ROD_D);
+            translate([0, 0, -Tip_H+h-Tip_D/2+Tip_In])
+            sphere(d=Rod_D);
+            translate([0, 0, -Min_Rod_H-Base_H+Rod_D/2-Tip_H])
+            sphere(d=Rod_D);
         }
         //base-rod chamfer
-        translate([0, 0, -MIN_ROD_H-TIP_H-z])
-        cylinder(d1=ROD_D+2*ROD_BASE_C, d2=ROD_D, h=ROD_BASE_C);
+        translate([0, 0, -Min_Rod_H-Tip_H-z])
+        cylinder(d1=Rod_D+2*Rod_Base_C, d2=Rod_D, h=Rod_Base_C);
     }
     //tip
-    translate([0, 0, h-TIP_D/2+TIP_IN])
+    translate([0, 0, h-Tip_D/2+Tip_In])
     ResinTip(a1, d);
 }
 
@@ -734,9 +747,9 @@ module ResinRodAssemble(){
     for (i=[0:22-1])
     
         //detent teeth supports
-        rotate([0, 0, i*LATITUDE_SPACING+DETENT_SKIRT_CLOCK_OFFSET])
-        translate([(SKIRT_BOTTOM_OD+INSIDE_ID)/4, 0, 0])
-        ResinRod(0, 0, TIP_D);
+        rotate([0, 0, i*Latitude_Spacing+Detent_Skirt_Clock_Offset])
+        translate([(Skirt_Bottom_OD+Inside_ID)/4, 0, 0])
+        ResinRod(0, 0, Tip_D);
     
     //boss supports
     for (i=[0:11]){
@@ -744,77 +757,77 @@ module ResinRodAssemble(){
         
             //roof-roof support-supports
             hull(){
-                    translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 6])
-                    sphere(d=ROD_D);
+                    translate([(Boss_R+Inside_R+Boss_Step)/2, 0, 6])
+                    sphere(d=Rod_D);
                     rotate([0, 0, 360/11])
-                    translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 0])
-                    sphere(d=ROD_D);
+                    translate([(Boss_R+Inside_R+Boss_Step)/2, 0, 0])
+                    sphere(d=Rod_D);
             }
             
         if (i!=4){
         
             //boss supports (outer corner)
-//            translate([BOSS_R, 0, 0])
-//            ResinRod(FLOOR+BOSS_TO_CENTER, -45, TIP_D);
+//            translate([Boss_R, 0, 0])
+//            ResinRod(Floor+Boss_To_Center, -45, Tip_D);
             
             //boss supports (directly under)
-            translate([(BOSS_R+SHAFT_ID/2)/2, 0, 0])
-            ResinRod(FLOOR+BOSS_TO_CENTER, 0, TIP_D);
+            translate([(Boss_R+Shaft_ID/2)/2, 0, 0])
+            ResinRod(Floor+Boss_To_Center, 0, Tip_D);
             
             
             //boss-roof support-supports
             hull(){
-//                translate([BOSS_R-ResinXOffset(-45), 0, 12])//outer corner
-                translate([(BOSS_R+SHAFT_ID/2)/2, 0, 12])//directly under
-                sphere(d=ROD_D);
-                translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 8])
-                sphere(d=ROD_D);
+//                translate([Boss_R-ResinXOffset(-45), 0, 12])//outer corner
+                translate([(Boss_R+Shaft_ID/2)/2, 0, 12])//directly under
+                sphere(d=Rod_D);
+                translate([(Boss_R+Inside_R+Boss_Step)/2, 0, 8])
+                sphere(d=Rod_D);
             }
 
             
             if (i!=3)
             //boss-boss support-supports
                 hull(){
-//                    translate([BOSS_R-ResinXOffset(-45), 0, 1])//outer corner
-                    translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 1])//directly under
-                    sphere(d=ROD_D);
+//                    translate([Boss_R-ResinXOffset(-45), 0, 1])//outer corner
+                    translate([(Boss_R+Shaft_ID/2)/2-ResinXOffset(0), 0, 1])//directly under
+                    sphere(d=Rod_D);
                     rotate([0, 0, 360/11])
-//                    translate([BOSS_R-ResinXOffset(-45), 0, 7])//outer corner
-                    translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 7])//directly under
-                    sphere(d=ROD_D);
+//                    translate([Boss_R-ResinXOffset(-45), 0, 7])//outer corner
+                    translate([(Boss_R+Shaft_ID/2)/2-ResinXOffset(0), 0, 7])//directly under
+                    sphere(d=Rod_D);
                 }
         }
         
         //roof supports
-        translate([(BOSS_R+INSIDE_R+BOSS_STEP)/2, 0, 0])
-        ResinRod(FLOOR+ROOF, 0, TIP_D);
+        translate([(Boss_R+Inside_R+Boss_Step)/2, 0, 0])
+        ResinRod(Floor+Roof, 0, Tip_D);
         }
         
         
     //for notch supports
-    n=TIP_NOTCHOFFSET;//degrees off from notch 
+    n=Tip_Notch_Offset;//degrees off from notch 
     l=[3, 5];
     k=[n, -n];
     if (i==4)
         for (j=[0, 1]){
             //notch supports
-            rotate([0, 0, DRIVE_NOTCH_THETA+k[j]])
-//            translate([BOSS_R, 0, 0])//outer corners
-            translate([(BOSS_R+SHAFT_ID/2)/2, 0, 0])//directly under
+            rotate([0, 0, Drive_Notch_Theta+k[j]])
+//            translate([Boss_R, 0, 0])//outer corners
+            translate([(Boss_R+Shaft_ID/2)/2, 0, 0])//directly under
             
             
-//            ResinRod(FLOOR+BOSS_TO_CENTER, -45, TIP_NOTCHD);//outer corners
-            ResinRod(FLOOR+BOSS_TO_CENTER, 0, TIP_NOTCHD);//directly under
+//            ResinRod(Floor+Boss_To_Center, -45, Tip_Notch_D);//outer corners
+            ResinRod(Floor+Boss_To_Center, 0, Tip_Notch_D);//directly under
             //notch support supports
             hull(){
-                rotate([0, 0, DRIVE_NOTCH_THETA-k[j]])
-//                translate([BOSS_R-ResinXOffset(-45), 0, 12])//outer corners
-                translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 12])//directly under
-                sphere(d=ROD_D);
+                rotate([0, 0, Drive_Notch_Theta-k[j]])
+//                translate([Boss_R-ResinXOffset(-45), 0, 12])//outer corners
+                translate([(Boss_R+Shaft_ID/2)/2-ResinXOffset(0), 0, 12])//directly under
+                sphere(d=Rod_D);
                 rotate([0, 0, l[j]*360/11])
-//                translate([BOSS_R-ResinXOffset(-45), 0, 7])//outer corners
-                translate([(BOSS_R+SHAFT_ID/2)/2-ResinXOffset(0), 0, 7])//directly under
-                sphere(d=ROD_D);
+//                translate([Boss_R-ResinXOffset(-45), 0, 7])//outer corners
+                translate([(Boss_R+Shaft_ID/2)/2-ResinXOffset(0), 0, 7])//directly under
+                sphere(d=Rod_D);
             }
         }
     }
@@ -823,7 +836,7 @@ module ResinRodAssemble(){
 //assemble resin print
 module ResinPrint(){
     union(){
-    translate([0, 0 , FLOOR])
+    translate([0, 0 , Floor])
     SubtractFromFull();
     ResinRodAssemble();
     }
@@ -832,38 +845,38 @@ module ResinPrint(){
 //monospaced type test gauge
 module TextGauge(str, pitch)
 {
-    color(TYPE_TEST_COLOR)
+    color(Type_Test_Color)
     for ( i = [0:len(str)] )
     {
         translate([8,8])
         translate([i*22/pitch, 0, 0])
-        offset(FONT_WEIGHT_OFFSET)
-        text(size=FONTSIZE, font=FONT, halign="center", str[i]);
+        offset(Font_Weight_Offset)
+        text(size=Font_Size_Selected, font=Font, halign="center", str[i]);
     }
 }
 
 //2d web shape
 module TwoDWeb(){
 hull(){
-translate([WEB_ID/2+WEB_IR, 0, 0])
-circle(r=WEB_IR);
-translate([WEB_OD/2-WEB_OR, 0, 0])
-circle(r=WEB_OR);
+translate([Web_ID/2+Web_IR, 0, 0])
+circle(r=Web_IR);
+translate([Web_OD/2-Web_OR, 0, 0])
+circle(r=Web_OR);
 }
 }
 
 //extruded web hole
 module ExtrudedWeb(){
-    translate([0, 0, ROOF-5])
+    translate([0, 0, Roof-5])
     linear_extrude(8)
     TwoDWeb();
-    translate([0, 0, TOPFLAT_TO_CENTER-TOP_CHAMFER])
+    translate([0, 0, Top_Flat_To_Center-Top_Chamfer])
     hull(){
     linear_extrude(z)
     TwoDWeb();
-    translate([0, 0, TOP_CHAMFER+z])
+    translate([0, 0, Top_Chamfer+z])
     linear_extrude(z)
-    offset(TOP_CHAMFER)
+    offset(Top_Chamfer)
     TwoDWeb();
     }
 }
@@ -871,7 +884,7 @@ module ExtrudedWeb(){
 //drain holes arranged
 module ArrangeDrain(){
     for (i=[0:11])
-        if (DRAIN==1 && i!=2&&i!=8){}
+        if (Drain==1 && i!=2&&i!=8){}
         else{
             rotate([0, 0, i*360/11+360/22])
             ExtrudedWeb();
@@ -883,22 +896,22 @@ module ArrangeDrain(){
 module Render(){
     if (Render==true){
         difference(){
-            if (RENDER_VARIANT==0)
+            if (Render_Variant==0)
                 SubtractFromFull();
-            if (RENDER_VARIANT==1)
+            if (Render_Variant==1)
                 ResinPrint();
-            if (RENDER_VARIANT==2){
-                if (RENDER_MODE==0)
-                    TextGaugeComposerLine2(KBSTRING, UNITDIST);
-                if (RENDER_MODE==1)
-                    TextGauge(TESTSTRING_CUSTOM, TESTCPI);
+            if (Render_Variant==2){
+                if (Render_Mode==0)
+                    TextGaugeComposerLine2(KBSTRING, Unit_Dist);
+                if (Render_Mode==1)
+                    TextGauge(Test_String_Custom, Test_CPI);
             }
-            if (XSection==true && RENDER_VARIANT!=2)
-            rotate([0, 0, XSectionTheta-90])
+            if (X_Section==true && Render_Variant!=2)
+            rotate([0, 0, X_Section_Theta-90])
             translate([0, -50, -50])
             cube(100);
         }
-        if (CUTOUT_TEST==true||DRAFTANGLE_TEST==true||MINK_LONG_OFFSET_TEST==true||PLATEN_DIAMETER_TEST==true){
+        if (Cutout_Test==true||Draft_Angle_Test==true||Mink_Long_Offset_Test==true||Platen_Diameter_Test==true){
         ConsoleCutout();}
     }
 }
@@ -906,20 +919,20 @@ module Render(){
 // Alignment marker triangle on top face
 module Del()
 {
-    translate([DEL_BASE_FROM_CENTRE, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
-    color(ARROW_COLOR)
-    linear_extrude(DEL_DEPTH+z)
+    translate([Del_Base_From_Centre, 0, Top_Flat_To_Center - Del_Depth])
+    color(Arrow_Color)
+    linear_extrude(Del_Depth+z)
     polygon(points=[[3.4,0],[0.4,1.3],[0.4,-1.3]]);
 }
 
 // Emboss a label onto top face
 module FontName()
 {
-    translate([-8.5, 0, TOPFLAT_TO_CENTER - DEL_DEPTH])
+    translate([-8.5, 0, Top_Flat_To_Center - Del_Depth])
     color("darkslategrey")
     rotate([0,0,270])
-    linear_extrude(DEL_DEPTH+0.01)
-    offset(LABEL_FONT_WEIGHT_OFFSET)
+    linear_extrude(Del_Depth+0.01)
+    offset(Label_Font_Weight_Offset)
     Labels();
 }
 
@@ -928,22 +941,22 @@ module Labels()
 {
     {
         // Disable Label No for Composer balls
-        if (RENDER_MODE!=0) { 
-            translate([-0.1+NO_LABEL_OFFSET,14,0])
-        text(LABEL_NO, size=NO_LABEL_SIZE, font=LABEL_NO_FONT_OVERRIDE==""?FONT:LABEL_NO_FONT_OVERRIDE, halign="center");
+        if (Render_Mode!=0) { 
+            translate([-0.1+No_Label_Offset,14,0])
+        text(Label_No, size=No_Label_Size, font=Label_No_Font_Override==""?Font:Label_No_Font_Override, halign="center");
     }
-        translate([0,0.6+FONT_LABEL_OFFSET,0])
-        text(LABEL_TEXT_OVERRIDE==""?FONT:LABEL_TEXT_OVERRIDE, size=FONT_LABEL_SIZE, font=LABEL_FONT_OVERRIDE==""?FONT:LABEL_FONT_OVERRIDE, halign="center");
+        translate([0,0.6+Font_Label_Offset,0])
+        text(Label_Text_Override==""?Font:Label_Text_Override, size=Font_Label_Size, font=Label_Font_Override==""?Font:Label_Font_Override, halign="center");
         
     }
 }
 
 //create array of picas per test string character function
-function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) SearchChar(string[i])==undef?9:COMPOSER_PITCH_LIST[SearchChar(string[i])][1]];
+function TestStringPicas(string)=[0, for ( i = [0:len(string)-1] ) SearchChar(string[i])==undef?9:Composer_Pitch_List[SearchChar(string[i])][1]];
 
 
 //search char in composer list and return its units of spacing
-function SearchChar(char)=search(char, COMPOSER_PITCH_LIST)[0];
+function SearchChar(char)=search(char, Composer_Pitch_List)[0];
 
 //get row of char with integer of keyboard input
 function GetRow(int) =
@@ -958,32 +971,32 @@ function GetRow(int) =
 //composer type test gauge keyboard with keyboard string input
 module TextGaugeComposerLine2(string, unitdist)
 {
-str_overridden = CUSTOM_TEST_STRING?TESTSTRING_CUSTOM:string;
-TESTSTRINGPICAS = TestStringPicas(str_overridden);
-CUMSUMTESTSTRINGPICAS = cumulativeSum(TESTSTRINGPICAS);
-CUMSUMTESTSTRINGPICASPERLINE = [for (a=[0,12,23,34,44,56,67,78]) CUMSUMTESTSTRINGPICAS[a]];
-    color(TYPE_TEST_COLOR)
-    for ( i = [0:len(str_overridden)-1] )
+Str_Overridden = CUSTOM_TEST_STRING?Test_String_Custom:string;
+Test_String_Picas = TestStringPicas(Str_Overridden);
+Cum_Sum_Test_String_Picas = cumulativeSum(Test_String_Picas);
+Cum_Sum_Test_String_Picas_Per_Line = [for (a=[0,12,23,34,44,56,67,78]) Cum_Sum_Test_String_Picas[a]];
+    color(Type_Test_Color)
+    for ( i = [0:len(Str_Overridden)-1] )
     {
-        font=search(str_overridden[i], FONT2CHARS)==[]?FONT:FONT2;
-        size=search(str_overridden[i], FONT2CHARS)==[]?FONTSIZE:FONT2SIZE;          
-        customhalign=search(str_overridden[i], CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
-        customvalign=search(str_overridden[i], CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
+        font=search(Str_Overridden[i], Font2_Chars)==[]?Font:Font2;
+        size=search(Str_Overridden[i], Font2_Chars)==[]?Font_Size_Selected:Font2_Size_Selected;          
+        customhalign=search(Str_Overridden[i], CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
+        customvalign=search(Str_Overridden[i], CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
         row=CUSTOM_TEST_STRING?0:GetRow(i);
         echo(row);
         
         
         translate([10, -10, 0])
-        translate([customhalign-CUMSUMTESTSTRINGPICASPERLINE[row]*unitdist, customvalign-FONTSIZE*2*row, 0])
-        translate([CUMSUMTESTSTRINGPICAS[i]*unitdist,0])
+        translate([customhalign-Cum_Sum_Test_String_Picas_Per_Line[row]*unitdist, customvalign-Font_Size_Selected*2*row, 0])
+        translate([Cum_Sum_Test_String_Picas[i]*unitdist,0])
         
-        offset(FONT_WEIGHT_OFFSET)
-        text(size=size, font=font, halign="left", str_overridden[i]);
+        offset(Font_Weight_Offset)
+        text(size=size, font=font, halign="left", Str_Overridden[i]);
     }
 }
 
-//Apply RENDER_DEGREE_OFFSET
-rotate([0,0,$preview?0:RENDER_DEGREE_OFFSET])
+//Apply Render_Degree_Offset
+rotate([0,0,$preview?0:Render_Degree_Offset])
 
 ///EXECUTE CODE:
 Render();

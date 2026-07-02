@@ -8,7 +8,7 @@
 //independent world-space module) but was numerically verified to be the
 //exact same operation, just parameterized differently - solving for Blick2's
 //radial/theta/z from Bennett's actual transform gave radial = Element_Diameter
-///2 + Platen_Diameter/2 + CharProtrusion (the same formula shape as Blick2's
+///2 + Platen_Diameter/2 + Char_Protrusion (the same formula shape as Blick2's
 //cylOD/2+platenOD/2+textProtrusion) with zero angular offset and platenBaseline
 //= Cutout[row] directly, and the resulting cylinder axis matched Bennett's
 //original to within floating point. Layout data moved to
@@ -27,56 +27,59 @@
 /* [Global Parameters] */
 //to help with z fighting
 z=.001;
-//surface facet number
-surface_fn=120;
-//alignment hole facet number
-alignmenthole_fn=40;
-//critical (shaft/pin) cylinder facet number
-criticalcyl_fn=360;
-//resin support facet number
-resin_fn=20;
-//minkowski facet number
-mink_fn=10;
-//text facet number
-text_fn=10;
+//minkowski facet number (renamed from mink_fn, to match every other v2 machine)
+Mink_Fn=10;
+//text facet number (renamed from text_fn)
+Text_Fn=10;
+//critical (shaft/pin) cylinder facet number (renamed from criticalcyl_fn)
+Cyl_Fn=360;
+//surface facet number (renamed from surface_fn)
+Surface_Fn=120;
+//resin support facet number (renamed from resin_fn)
+Resin_Fn=20;
 //groove facet number
-grooveFn=40;
+Groove_Fn=40;
+//alignment hole facet number (Bennett-only, no shared equivalent - renamed
+//from alignmenthole_fn to match every other quality var's camelCase)
+Alignment_Hole_Fn=40;
 
 /* [Render Parameters] */
 //render something?
 Render=false;
-XSection=false;
-XSectionTheta=180;
 //Speedy Preview and Render with No Minkowski
 Debug_No_Minkowski=true;
-//minkOn: Bennett's Debug_No_Minkowski is the same toggle, opposite polarity.
-minkOn=!Debug_No_Minkowski;
+//Mink_On: Bennett's Debug_No_Minkowski is the same toggle, opposite polarity.
+Mink_On=!Debug_No_Minkowski;
 //Bennett's original cone (r1=.75,r2=0,h=1) was never a calibrated dimension -
 //uses the shared angle-derived formula instead, same draft angle as Blick2/
 //Postal since Bennett never had its own draft-angle concept.
-minkDraftAngle=55;
+Mink_Draft_Angle=55;
+//view cross section (reordered after Mink_On/Mink_Draft_Angle to match
+//Blick2/Postal's canonical Render Parameters order)
+X_Section=false;
+X_Section_Theta=180;
 
 /* [Testing Stuff] */
-testing_baseline=false;
-testing_cutout=false;
-testing_layout=false;
+Testing_Baseline=false;
+Testing_Cutout=false;
+Testing_Layout=false;
 //[Lowercase, Uppercase, Figures] Alignment Hole Height Offset - Bennett used
 //one shared array for both cutout and baseline sweeps (Blick2 keeps two
 //separate arrays; that's a genuine structural difference, not just naming).
 Testing_Offsets=[-.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .65, .7];
-cutoutTest=testing_cutout;
-baselineTest=testing_baseline;
-testLayout=testing_layout;
-cutoutTestArray=Testing_Offsets;
-baselineTestArray=Testing_Offsets;
-testChar="H";
+Cutout_Test=Testing_Cutout;
+Baseline_Test=Testing_Baseline;
+Test_Layout=Testing_Layout;
+Cutout_Test_Array=Testing_Offsets;
+Baseline_Test_Array=Testing_Offsets;
+Test_Char="H";
 //which keyboard the console echo identifies positions against (independent
 //of Layout_Selection below - your physical keyboard's key labels don't
 //change just because you're test-printing a different layout)
-referenceLayoutSelection=0; //[0:English, 1:British, 2:Custom, 3:International]
+Reference_Layout_Selection=0; //[0:English, 1:British, 2:Custom, 3:International]
 
 /* [Key Mapping] */
-CharLegend=[12,22,3,11,21,2,10,20,1,9,19,0,8,18,27,17,7,26,16,6,25,15,5,24,14,4,23,13];
+Char_Legend=[12,22,3,11,21,2,10,20,1,9,19,0,8,18,27,17,7,26,16,6,25,15,5,24,14,4,23,13];
 
 //Custom Layout As Seen on Keyboard. Left to Right, Top to Bottom
 Lowercase="qweruiopasdftyjkl,zxcvghbnm.";
@@ -88,21 +91,21 @@ include <lib/layouts/bennett_layouts.scad>
 //Layout Selection
 Layout_Selection=0; //[0:English, 1:British, 2:Custom, 3:International]
 Layout=LAYOUTS[Layout_Selection];
-//referencePhysicalLayout: same CharLegend hardware remap as physicalLayout
-//below, but built from referenceLayoutSelection - used only by the console
+//Reference_Physical_Layout: same Char_Legend hardware remap as Physical_Layout
+//below, but built from Reference_Layout_Selection - used only by the console
 //echo, see lib/glyph_pipeline.scad's header comment.
-referenceLayout=LAYOUTS[referenceLayoutSelection];
-referencePhysicalLayout=[for (row=[0:2]) [for (col=[0:27]) referenceLayout[row][CharLegend[col]]]];
+Reference_Layout=LAYOUTS[Reference_Layout_Selection];
+Reference_Physical_Layout=[for (row=[0:2]) [for (col=[0:27]) Reference_Layout[row][Char_Legend[col]]]];
 //[Lowercase, Uppercase, Figures] Row Height
 Baseline=[14.9,9.2,2.95];//[-1:.05:1][14.95,8.8,2.35]
 ///baseline defaults before: [15.25,9.1,2.65]
 //[Lowercase, Uppercase, Figures] Platen Cutout Height
 Cutout=[16.15,10.35,4.35];//[-1:.05:1][16.35,10.65,4.5]
-//latitudeInt negative: Bennett's Theta=-(360/cols*col+360/(2*28)) is exactly
-//Blick2's (.5+col)*latitudeInt formula with a negated latitudeInt (both reduce
+//Latitude_Int negative: Bennett's Theta=-(360/cols*col+360/(2*28)) is exactly
+//Blick2's (.5+col)*Latitude_Int formula with a negated Latitude_Int (both reduce
 //to the same 360/56 half-column-step magnitude) - verified numerically
 //alongside the platen-cutout check (thetaOffset came back exactly 0).
-latitudeInt=-360/28;
+Latitude_Int=-360/28;
 
 /* [Typeface Stuff] */
 //Typeface
@@ -112,16 +115,16 @@ Type_Size=3.00;//[1:.05:10]
 Character_Modifieds="_";
 Character_Modifieds_Offset=.1;//[-1.5:.05:1.5]
 //Character_Modifieds only ever shifted baseline in Bennett's original (no
-//font swap), so these alias to Bennett's own font/size for a no-op swap.
+//Font swap), so these alias to Bennett's own Font/size for a no-op swap.
 Character_Modifieds_Font=Typeface_;
 Character_Modifieds_Size=Type_Size;
 //offset()-based stroke weight (Blickensderfer2/Postal's system) - Bennett
 //never had this, 0 = no-op, layered independently of Weight_Adj_Mode below.
-fontWeightOffset=0;
-xFontWeightAdj=0;
-yFontWeightAdj=0;
-font=Typeface_;
-fontSize=Type_Size;
+Font_Weight_Offset=0;
+X_Font_Weight_Adj=0;
+Y_Font_Weight_Adj=0;
+Font=Typeface_;
+Font_Size=Type_Size;
 
 /* [Glyph Quality (unified across all v2 machines)] */
 Scale_Multiplier_Text=".";
@@ -134,8 +137,8 @@ Weight_Adj_Shape=0;//[0:Square, 1:Circle]
 Y_Scale=1;
 //secondary typeface for specific characters - Bennett never had this.
 Typeface_2=Typeface_;
-Type_2Size=Type_Size;
-Typeface_2Chars="";
+Type_2_Size=Type_Size;
+Typeface_2_Chars="";
 
 /* [Element Dimensions] */
 //Platen Diameter
@@ -144,7 +147,7 @@ Platen_Diameter=30;
 Element_Diameter=31.9;
 //Max Minimum Diameter Across 2 Concave Characters
 Min_Final_Character_Diameter=32.9;
-CharProtrusion=(Min_Final_Character_Diameter-Element_Diameter)/2;
+Char_Protrusion=(Min_Final_Character_Diameter-Element_Diameter)/2;
 //Element Height
 Element_Height=18;
 //Shaft Diameter
@@ -179,23 +182,23 @@ Shell_Size=1;
 //Radius of Inside Corners
 Inside_Radius=.5;
 //core groove qty
-coreGrooveQty=16;
+Core_Groove_Qty=16;
 //core groove diameter
-coreGrooveD=.6;
+Core_Groove_D=.6;
 //core chamfer
-coreChamfer=.5;
+Core_Chamfer=.5;
 //core bottom offset from bottom plane
-coreBottomOffset=0;
+Core_Bottom_Offset=0;
 //core contact length from ends where sliding fits occur for shaft to reduce friction
-coreContactLength=4;
+Core_Contact_Length=4;
 //core web width
-coreWebWidth=2;
+Core_Web_Width=2;
 //core web hole quantity
-coreWebQty=3;
+Core_Web_Qty=3;
 //core web length
-coreWebLength=6;
+Core_Web_Length=6;
 //secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
-coreSecondaryIDOffset=coreGrooveD/2+z;
+Core_Secondary_ID_Offset=Core_Groove_D/2+z;
 //[Lowercase, Uppercase, Figures] Alignment Hole Height
 Alignment_Hole=[13.19,7,1.19];//.01;
 //[-1:.05:1]
@@ -232,49 +235,47 @@ Resin_Support_Cut_Groove_Diameter=.75;
 Resin_Support_Wire_Thickness=1;
 Resin_Support_Contact_Point_Diameter=.7;
 Resin_Support_Buildplate_Diameter=1.2;
-pyramidzoffset=1/cos(atan(2/Countersink_Diameter));
+Pyramidzoffset=1/cos(atan(2/Countersink_Diameter));
 
 /* [Glyph pipeline lib wiring] */
-//physicalLayout: Layout is in keyboard order; CharLegend remaps CHARACTER
+//Physical_Layout: Layout is in keyboard order; Char_Legend remaps CHARACTER
 //SELECTION (same role as Postal's elementLayoutArrayMap) - bake that in so
 //the lib receives characters already in physical column order.
-physicalLayout=[for (row=[0:2]) [for (col=[0:27]) Layout[row][CharLegend[col]]]];
-//Element_Diameter, Platen_Diameter, CharProtrusion, Baseline, Cutout,
+Physical_Layout=[for (row=[0:2]) [for (col=[0:27]) Layout[row][Char_Legend[col]]]];
+//Element_Diameter, Platen_Diameter, Char_Protrusion, Baseline, Cutout,
 //Character_Modifieds*, Weight_Adj_*, Scale_Multiplier*, Y_Scale, Typeface_2*
 //all already declared natively above - no bridging needed (the lib reads
 //these canonical names directly).
-//baselineZOffset=0: Bennett's Baseline/Cutout are already absolute heights
+//Baseline_Z_Offset=0: Bennett's Baseline/Cutout are already absolute heights
 //from the bottom face (unlike Blick2/Postal's negative-from-clip-end
 //convention), so this shift must be a no-op here.
-baselineZOffset=0;
-//row names for TextRingDebug's console output (cutoutTest/baselineTest/testLayout)
-rowLabels=["lowercase", "uppercase", "figs"];
-//quality variable name bridging (Bennett's underscore-style names)
-cylFn=criticalcyl_fn;
-surfaceFn=surface_fn;
-textFn=text_fn;
-minkFn=mink_fn;
+Baseline_Z_Offset=0;
+//row names for TextRingDebug's console output (Cutout_Test/Baseline_Test/Test_Layout)
+Row_Labels=["lowercase", "uppercase", "figs"];
+//Cyl_Fn/Surface_Fn/Text_Fn/Mink_Fn already declared natively above (Global
+//Parameters) - no bridging needed now that Bennett uses the canonical names
+//directly instead of its old underscore-style names.
 //Bennett's placement radius is the raw Element_Diameter/2 (no protrusion
-//added there - embed depth comes from letterExtrudeOffset below instead).
-letterPlacementProtrusion=0;
+//added there - embed depth comes from Letter_Extrude_Offset below instead).
+Letter_Placement_Protrusion=0;
 //Bennett's raw pre-cutout extrusion block, trimmed down by the (verified)
 //PlatenCutout afterward.
-letterExtrudeOffset=-.5;
-letterExtrudeDepth=2;
+Letter_Extrude_Offset=-.5;
+Letter_Extrude_Depth=2;
 
 include <lib/glyph_pipeline.scad>
 
 /* [Core/shaft lib wiring] */
 //Shaft_Diameter already declared natively above - no bridging needed.
-//coreTopZ/coreBottomZ: Bennett's absolute top/bottom landmarks (no clip, so
-//unlike Blick2/Postal, coreTaperTopZ is left undefined - it defaults to
-//coreTopZ, exactly matching Bennett's original polygon which used a single
+//Core_Top_Z/Core_Bottom_Z: Bennett's absolute top/bottom landmarks (no clip, so
+//unlike Blick2/Postal, Core_Taper_Top_Z is left undefined - it defaults to
+//Core_Top_Z, exactly matching Bennett's original polygon which used a single
 //landmark for all of SecondaryCore's upper points).
-coreTopZ=Element_Height-Top_Countersink_Depth-1+s;
-coreBottomZ=Bottom_Countersink_Depth;
-//coreChamferTop=false: Bennett's original CoreChamfer had no top chamfer call
+Core_Top_Z=Element_Height-Top_Countersink_Depth-1+s;
+Core_Bottom_Z=Bottom_Countersink_Depth;
+//Core_Chamfer_Top=false: Bennett's original CoreChamfer had no top chamfer call
 //at all (commented out - no clip to chamfer under).
-coreChamferTop=false;
+Core_Chamfer_Top=false;
 
 include <lib/core_shaft.scad>
 
@@ -288,30 +289,30 @@ sphere(d=dc);
 }
 
 module Cylinder(){
-    cylinder(h=Element_Height,d=Element_Diameter, $fn=surface_fn);
+    cylinder(h=Element_Height,d=Element_Diameter, $fn=Surface_Fn);
 }
 
 module PositionerPins(){
     for (n=[0:1:1]){
         theta=180*n+90;
         translate([Element_Positioner_Pin_Radius*cos(theta),Element_Positioner_Pin_Radius*sin(theta),-z]){
-        cylinder(h=Element_Height+2*z,d=Element_Positioner_Pin_Diameter, $fn=criticalcyl_fn);
+        cylinder(h=Element_Height+2*z,d=Element_Positioner_Pin_Diameter, $fn=Cyl_Fn);
 
         //lil chamfer to clean up post print booger that drags on alignment pins
         translate([0, 0, Bottom_Countersink_Depth+Shell_Size])
-        cylinder(h=2,d1=Element_Positioner_Pin_Diameter, d2=Element_Positioner_Pin_Diameter+1, $fn=criticalcyl_fn);
+        cylinder(h=2,d1=Element_Positioner_Pin_Diameter, d2=Element_Positioner_Pin_Diameter+1, $fn=Cyl_Fn);
         }
     }
 }
-asd=1;
-drop=.5;
+Asd=1;
+Drop=.5;
 module HollowBody(){
     RoofSlope=1/(Countersink_Diameter/2);
-    XArray=[Shaft_Diameter/2+Shell_Size+coreSecondaryIDOffset, Shaft_Diameter/2+Shell_Size+coreSecondaryIDOffset+asd, ((Element_Diameter/2-Shell_Size)+(Shaft_Diameter/2+Shell_Size+coreSecondaryIDOffset))/2, Element_Diameter/2-Shell_Size-asd, Element_Diameter/2-Shell_Size];
-    YArray=[Bottom_Countersink_Depth+Shell_Size, Bottom_Countersink_Depth+Shell_Size+drop, Bottom_Countersink_Depth+Shell_Size+drop+asd, Element_Height-Top_Countersink_Depth-Shell_Size-asd, Element_Height-Top_Countersink_Depth-Shell_Size, Element_Height-Top_Countersink_Depth-Shell_Size-asd-RoofSlope*(Countersink_Diameter/2-XArray[0]), Element_Height-Top_Countersink_Depth-Shell_Size-RoofSlope*(Countersink_Diameter/2-XArray[0])];
+    XArray=[Shaft_Diameter/2+Shell_Size+Core_Secondary_ID_Offset, Shaft_Diameter/2+Shell_Size+Core_Secondary_ID_Offset+Asd, ((Element_Diameter/2-Shell_Size)+(Shaft_Diameter/2+Shell_Size+Core_Secondary_ID_Offset))/2, Element_Diameter/2-Shell_Size-Asd, Element_Diameter/2-Shell_Size];
+    YArray=[Bottom_Countersink_Depth+Shell_Size, Bottom_Countersink_Depth+Shell_Size+Drop, Bottom_Countersink_Depth+Shell_Size+Drop+Asd, Element_Height-Top_Countersink_Depth-Shell_Size-Asd, Element_Height-Top_Countersink_Depth-Shell_Size, Element_Height-Top_Countersink_Depth-Shell_Size-Asd-RoofSlope*(Countersink_Diameter/2-XArray[0]), Element_Height-Top_Countersink_Depth-Shell_Size-RoofSlope*(Countersink_Diameter/2-XArray[0])];
     XYPattern=[[0, 2], [0, 5], [1, 6], [3, 4], [4, 3], [4, 2], [3, 1], [2, 0], [1, 1]];
     polygonpath=[for (n=[0:len(XYPattern)-1]) [XArray[XYPattern[n][0]], YArray[XYPattern[n][1]]]];
-    rotate_extrude($fn=surface_fn){
+    rotate_extrude($fn=Surface_Fn){
         polygon(polygonpath);
     }
 }
@@ -322,17 +323,17 @@ module AlignmentHoles(){
             theta=-(360/(len(Layout[0]))*n+360/(2*28));
             translate([(Element_Diameter)/2*cos(theta),(Element_Diameter)/2*sin(theta),Alignment_Hole[row]])
             rotate([0,-90,theta]){
-                cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter, $fn=alignmenthole_fn);
+                cylinder(h=Alignment_Hole_Depth-Alignment_Hole_Diameter/2,d=Alignment_Hole_Diameter, $fn=Alignment_Hole_Fn);
                 hull(){
                     translate([0, 0, Alignment_Hole_Chamfer])
-                    cylinder(h=z, d=Alignment_Hole_Diameter, $fn=alignmenthole_fn);
+                    cylinder(h=z, d=Alignment_Hole_Diameter, $fn=Alignment_Hole_Fn);
                     translate([0, 0, -1])
                     scale([1, (Alignment_Hole_Diameter+2*Alignment_Hole_Chamfer)/Alignment_Hole_Diameter, 1])
-                    cylinder(h=1, d=Alignment_Hole_Diameter, $fn=alignmenthole_fn);
+                    cylinder(h=1, d=Alignment_Hole_Diameter, $fn=Alignment_Hole_Fn);
                 }
             }
             translate([((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*cos(theta),((Element_Diameter/2)-Alignment_Hole_Depth+Alignment_Hole_Diameter/2)*sin(theta),Alignment_Hole[row]])
-            sphere(d=Alignment_Hole_Diameter, $fn=alignmenthole_fn);
+            sphere(d=Alignment_Hole_Diameter, $fn=Alignment_Hole_Fn);
         }
     }
 }
@@ -358,7 +359,7 @@ module SpeedHoles(){
     for (n=[0:1:7]){
         theta=360/Speed_Hole_Quantity*n+360/(Speed_Hole_Quantity*2);
         translate([Speed_Hole_Radius*cos(theta),Speed_Hole_Radius*sin(theta),0])
-        cylinder(h=Element_Height+2*z,d=Speed_Hole_Diameter, $fn=surface_fn);
+        cylinder(h=Element_Height+2*z,d=Speed_Hole_Diameter, $fn=Surface_Fn);
     }
 }
 
@@ -371,48 +372,48 @@ module MinkCleanup(){
 
 module CenterShaft(){
     translate([0, 0, -z])
-    cylinder(h=Element_Height+2*z,d=Shaft_Diameter, $fn=criticalcyl_fn);
+    cylinder(h=Element_Height+2*z,d=Shaft_Diameter, $fn=Cyl_Fn);
 }
 
 module TopCountersink(){
     translate([0,0,Element_Height-Top_Countersink_Depth])
-    cylinder(h=Top_Countersink_Depth+z,d=Countersink_Diameter, $fn=surface_fn);
+    cylinder(h=Top_Countersink_Depth+z,d=Countersink_Diameter, $fn=Surface_Fn);
 }
 
 module BottomCountersink(){
     translate([0, 0, -z])
-    cylinder(h=Bottom_Countersink_Depth+z,d=Countersink_Diameter, $fn=surface_fn);
+    cylinder(h=Bottom_Countersink_Depth+z,d=Countersink_Diameter, $fn=Surface_Fn);
 }
 
 module RoofTaper(){
     if (Generate_Support==true)
     translate([0, 0, Element_Height-Top_Countersink_Depth-1])
-    cylinder(h=1+z, d2=Countersink_Diameter, d1=0, $fn=surface_fn);
+    cylinder(h=1+z, d2=Countersink_Diameter, d1=0, $fn=Surface_Fn);
 }
 
 
 module IndicatorHole(){
     translate([Element_Diameter/2-Shell_Size-Indicator_Diameter/2,0,Element_Height-Top_Countersink_Depth-Shell_Size-z-1])
-    cylinder(h=5,d=Indicator_Diameter, $fn=surface_fn);
+    cylinder(h=5,d=Indicator_Diameter, $fn=Surface_Fn);
 }
 
 module ResinSupport(){
-$fn=resin_fn;
+$fn=Resin_Fn;
     translate([0,0,-Resin_Support_Height+z]){
         difference(){
             //Create Ring
             translate([0, 0, .5])
-            cylinder(d=Element_Diameter, h=Resin_Support_Height-.5, $fn=surface_fn);
+            cylinder(d=Element_Diameter, h=Resin_Support_Height-.5, $fn=Surface_Fn);
             translate([0,0,-z])
-            cylinder(h=Resin_Support_Height+2*z, r=Element_Diameter/2-Resin_Support_Cut_Groove_Diameter/2-Resin_Support_Cut_Groove_Thickness, $fn=surface_fn);
+            cylinder(h=Resin_Support_Height+2*z, r=Element_Diameter/2-Resin_Support_Cut_Groove_Diameter/2-Resin_Support_Cut_Groove_Thickness, $fn=Surface_Fn);
             //Cut Groove
-            rotate_extrude($fn=surface_fn){
+            rotate_extrude($fn=Surface_Fn){
                 translate([Element_Diameter/2,Resin_Support_Height-Resin_Support_Cut_Groove_Diameter/2])
                 circle(r=Resin_Support_Cut_Groove_Diameter/2);
             }
         }
         //Create Raft
-        rotate_extrude($fn=resin_fn){
+        rotate_extrude($fn=Resin_Fn){
             polygon([[Element_Diameter/2,0], [Element_Diameter/2-Resin_Support_Thickness,0], [Element_Diameter/2-Resin_Support_Thickness,Resin_Support_Thickness], [Element_Diameter/2+Resin_Support_Thickness,Resin_Support_Thickness]]);
         }
         //Create Outer 2 Rings of 8 Supports
@@ -422,14 +423,14 @@ $fn=resin_fn;
             ResinRod (Resin_Support_Height, Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
             }
             translate([Countersink_Diameter*cos(theta)/3,Countersink_Diameter*sin(theta)/3,0]){
-            ResinRod (Resin_Support_Height+pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Countersink_Diameter/3), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+            ResinRod (Resin_Support_Height+Pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Countersink_Diameter/3), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
             }
         }
         //Create Inner Ring of 4 Supports
         for (n=[0:1:3]){
             theta=90*n;
             translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
-                ResinRod (Resin_Support_Height+pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Shaft_Diameter/2+1), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+                ResinRod (Resin_Support_Height+Pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Shaft_Diameter/2+1), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
             }
         }
     }
@@ -437,7 +438,7 @@ $fn=resin_fn;
 
 //SecondaryCore, CoreGrooves, CoreChamferShape, CoreChamfer, CoreEllipses now
 //come from lib/core_shaft.scad (included above). s is defined earlier now,
-//alongside the coreTopZ bridging that needs it.
+//alongside the Core_Top_Z bridging that needs it.
 
 module Assemble(){
     difference(){
@@ -476,8 +477,8 @@ if (Render==true){
 
 difference(){
     ResinPrint();
-    if (XSection==true)
-    rotate([0, 0, XSectionTheta])
+    if (X_Section==true)
+    rotate([0, 0, X_Section_Theta])
     translate([-50, 0, -50])
     cube(100);
 }

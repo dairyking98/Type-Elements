@@ -12,90 +12,90 @@
 //to help with z fighting
 z=.01;
 //minkowski facet number
-minkFn=20;
+Mink_Fn=20;
 //text facet number
-textFn=20;
+Text_Fn=20;
 //cylinder facet number
-cylFn=360;
+Cyl_Fn=360;
 //surface facet number
-surfaceFn=120;
+Surface_Fn=120;
 //resin support facet number
-resinFn=20;
+Resin_Fn=20;
 //groove facet number
-grooveFn=20;
+Groove_Fn=20;
 
 /* [Render Parameters] */
 //render something (renamed from render, to match every other v2 machine)
 Render=false;
 //render mode
-renderMode=0;//[0:Normal, 1:Resin print, 2:Gauge Set, 3:Type Test]
+Render_Mode=0;//[0:Normal, 1:Resin print, 2:Gauge Set, 3:Type Test]
 //turn minkowski on
-minkOn=false;
+Mink_On=false;
 //draft angle
-minkDraftAngle=55;
+Mink_Draft_Angle=55;
 //turn off core grooves (slow)
-renderCoreGroove=true;
+Render_Core_Groove=true;
 //view cross section (renamed from xSection)
-XSection=false;
+X_Section=false;
 //cross section angle (renamed from xSectionTheta)
-XSectionTheta=270;
+X_Section_Theta=270;
 
 /* [Testing Stuff] */
 include <lib/testing.scad>
 //enable cutout test
-cutoutTest=false;
+Cutout_Test=false;
 //cutout test range start
-cutoutTestStart=.7;//.1
+Cutout_Test_Start=.7;//.1
 //cutout test interval
-cutoutTestInt=-.05;
+Cutout_Test_Int=-.05;
 //cutout test array
-cutoutTestArray=testSweepArray(cutoutTestStart, cutoutTestInt, 28);
+Cutout_Test_Array=testSweepArray(Cutout_Test_Start, Cutout_Test_Int, 28);
 //enable baseline test
-baselineTest=false;
+Baseline_Test=false;
 //baseline test offset range start
-baselineTestStart=0;
+Baseline_Test_Start=0;
 //baseline test interval
-baselineTestInt=.05;
+Baseline_Test_Int=.05;
 //baseline test array
-baselineTestArray=testSweepArray(baselineTestStart, baselineTestInt, 28);
+Baseline_Test_Array=testSweepArray(Baseline_Test_Start, Baseline_Test_Int, 28);
 //enable test layout
-testLayout=false;
+Test_Layout=false;
 //test character
-testChar="l";
+Test_Char="l";
 
 /* [Key Mapping] */
 //layout for keyboard
-keyboardLayoutArray=["qwertyuiopasdfghjklzxcvbnm,.","QWERTYUIOPASDFGHJKLZXCVBNM&?","\"23456789%()@/$_;:'£äöü!+=§-"];
+Keyboard_Layout_Array=["qwertyuiopasdfghjklzxcvbnm,.","QWERTYUIOPASDFGHJKLZXCVBNM&?","\"23456789%()@/$_;:'£äöü!+=§-"];
 //keyboard to element map
-elementLayoutArrayMap=[23, 5, 15, 24, 6, 16, 25, 7, 17, 26, 8, 18, 27, 9, 0, 10, 19, 1, 11, 20, 2, 12, 21, 3, 13, 22, 4, 14];
+Element_Layout_Array_Map=[23, 5, 15, 24, 6, 16, 25, 7, 17, 26, 8, 18, 27, 9, 0, 10, 19, 1, 11, 20, 2, 12, 21, 3, 13, 22, 4, 14];
 //baseline values for characters from top of element
 Baseline=[-3.6, -10, -15.7];
 //baseline values for platen cutouts from top of element
 Cutout=[-2.65, -9.1, -14.5];//.05
 //latitude spacing
-latitudeInt=360/28;
+Latitude_Int=360/28;
 
 /* [Typeface Stuff] */
 //element typeface
-font="Alma Mono";
+Font="Alma Mono";
 //type size
-fontSize=2.4;
-//font weight offset +/-
-fontWeightOffset=0;
-//font x weight adjustment 0+
-xFontWeightAdj=0;
-//font y weight adjustment 0+
-yFontWeightAdj=0;
+Font_Size=2.4;
+//Font weight offset +/-
+Font_Weight_Offset=0;
+//Font x weight adjustment 0+
+X_Font_Weight_Adj=0;
+//Font y weight adjustment 0+
+Y_Font_Weight_Adj=0;
 
 /* [Glyph Quality (unified across all v2 machines)] */
-//per-character baseline offset + font/size override (Postal originally had
+//per-character baseline offset + Font/size override (Postal originally had
 //no such system - Character_Modifieds="" means it never matches, a no-op)
 Character_Modifieds="";
 Character_Modifieds_Offset=0;
 Character_Modifieds_Font="Alma Mono";
 Character_Modifieds_Size=2.4;
 //minkowski erosion/growth stroke-weight system, independent of and layered
-//with fontWeightOffset/xFontWeightAdj/yFontWeightAdj above.
+//with Font_Weight_Offset/X_Font_Weight_Adj/Y_Font_Weight_Adj above.
 Weight_Adj_Mode=0;//[0:None, 1:Subtractive, 2:Additive]
 Weight_Adj_Shape=0;//[0:Square, 1:Circle]
 Horizontal_Weight_Adj=.001;//[.001:.001:.2]
@@ -107,8 +107,8 @@ Scale_Multiplier=1.0;
 Y_Scale=1;
 //secondary typeface for specific characters
 Typeface_2="Alma Mono";
-Type_2Size=2.4;
-Typeface_2Chars="";
+Type_2_Size=2.4;
+Typeface_2_Chars="";
 
 /* [Element Dimensions] */
 //OD of platen
@@ -118,207 +118,207 @@ Element_Diameter=32.8;
 //OD of element between two characters (minimum distance in concave section)
 Min_Final_Character_Diameter=34.1;
 //minimum text protrustion distance
-CharProtrusion=(Min_Final_Character_Diameter-Element_Diameter)/2;
+Char_Protrusion=(Min_Final_Character_Diameter-Element_Diameter)/2;
 //element height/thickness
 Element_Height=17.4;
 //minimum wall thickness of element
-wallMinThickness=1.5;
+Wall_Min_Thickness=1.5;
 //inside wall chamfer size
-wallChamfer=.5;
+Wall_Chamfer=.5;
 //roof center height offset to reduce pulling forces when printing (reduces past min wall thickness)
-roofOffset=.5;
+Roof_Offset=.5;
 //speed hole diameter
-speedHoleID=5.2;
+Speed_Hole_ID=5.2;
 //speed hole quantity
-speedHoleQty=8;
+Speed_Hole_Qty=8;
 //speed hole radial distance
-speedHoleRadial=10.3;
+Speed_Hole_Radial=10.3;
 //core ID in inches
-coreIDin=.125;
-coreIDmm=coreIDin*25.4;
+Core_ID_In=.125;
+Core_ID_Mm=Core_ID_In*25.4;
 //core groove qty
-coreGrooveQty=16;
+Core_Groove_Qty=16;
 //core groove diameter
-coreGrooveD=.6;
+Core_Groove_D=.6;
 //core chamfer
-coreChamfer=.5;
+Core_Chamfer=.5;
 //core bottom offset from bottom plane
-coreBottomOffset=1;
+Core_Bottom_Offset=1;
 //core contact length from ends where sliding fits occur for shaft to reduce friction
-coreContactLength=4;
+Core_Contact_Length=4;
 //core web width
-coreWebWidth=2;
+Core_Web_Width=2;
 //core web hole quantity
-coreWebQty=3;
+Core_Web_Qty=3;
 //core web length
-coreWebLength=7;
+Core_Web_Length=7;
 //secondary core with larger diameter to focus friction at ends of shaft hole along core contact lengths
-coreSecondaryIDOffset=coreGrooveD/2+z;
+Core_Secondary_ID_Offset=Core_Groove_D/2+z;
 //height of top clip section
-clipHeight=3;
+Clip_Height=3;
 //clip wire diameter
-clipWireOD=.554;
+Clip_Wire_OD=.554;
 //clip opening distance
-clipOpening=1;
+Clip_Opening=1;
 //amount of bite for the clip from shaft diameter
-clipBite=.7;
+Clip_Bite=.7;
 //drive pin width
-drivePinWidthmm=2.5;
+Drive_Pin_Widthmm=2.5;
 //drive pin length
-drivePinLength=3.6;
+Drive_Pin_Length=3.6;
 //drive pin square hole radial distance (center of square)
-drivePinRadial=11.5;
+Drive_Pin_Radial=11.5;
 
 /* [Logo] */
 //Logo Offset From Pin (Degrees)
-logoPositionOffset=180;
+Logo_Position_Offset=180;
 //Logo Text Orientation
-logoTextOffset=180;
+Logo_Text_Offset=180;
 //Logo Text
-logoText="Leonard Chau 2025";
+Logo_Text="Leonard Chau 2025";
 //Logo Size
-logoTextSize=3;
+Logo_Text_Size=3;
 //Logo Font
-logoFont="FreeMono:style=Bold";
-logoTextSpacing=10;
-logoRadius=Element_Diameter/2-2.0;
+Logo_Font="FreeMono:style=Bold";
+Logo_Text_Spacing=10;
+Logo_Radius=Element_Diameter/2-2.0;
 
 /* [Print Tolerances] */
 //adds this much mm to the minor diameter of the elements shaft
-coreIDOffset=.20;//.001
-Shaft_Diameter=coreIDmm+coreIDOffset;
-drivePinWidth=drivePinWidthmm+coreIDOffset;
+Core_ID_Offset=.20;//.001
+Shaft_Diameter=Core_ID_Mm+Core_ID_Offset;
+Drive_Pin_Width=Drive_Pin_Widthmm+Core_ID_Offset;
 
 /* [Shaft Gauge Test] */
-gaugeOffsetStart=.2;//.001
-gaugeOffsetInt=.02;
+Gauge_Offset_Start=.2;//.001
+Gauge_Offset_Int=.02;
 
 /* [Type Test] */
-testString="Alma Mono";
-testSize=3;//.01
-testFont="Alma Mono";
-testCPI=10;
+Test_String="Alma Mono";
+Test_Size=3;//.01
+Test_Font="Alma Mono";
+Test_CPI=10;
 
 /* [Resin Printing] */
 //resin support enable
-resinSupport=true;
+Resin_Support=true;
 //resin rod diameter
-resinRodOD=1;
+Resin_Rod_OD=1;
 //resin tip diameter
-resinTipOD=.6;
+Resin_Tip_OD=.6;
 //resin tip length
-resinTipL=1;
+Resin_Tip_L=1;
 //resin rod inset in part
-resinInset=.3;
+Resin_Inset=.3;
 //resin rod minimum height
-resinMinRodHeight=2;
+Resin_Min_Rod_Height=2;
 //resin rod base diameter
-resinRaftOD=4;
+Resin_Raft_OD=4;
 //resin rod raft thickness
-resinRaftThickness=2;
+Resin_Raft_Thickness=2;
 //resin cut groove diameter
-resinGrooveOD=.8;
+Resin_Groove_OD=.8;
 //resin cut groove min thickness
-resinGrooveThickness=.3;
+Resin_Groove_Thickness=.3;
 
 //OD top clip section
-clipOD=Shaft_Diameter+2*wallMinThickness;
+Clip_OD=Shaft_Diameter+2*Wall_Min_Thickness;
 
 /* [Glyph pipeline lib wiring] */
-//keyboardLayoutArray is in KEYBOARD order; elementLayoutArrayMap here remaps
+//Keyboard_Layout_Array is in KEYBOARD order; Element_Layout_Array_Map here remaps
 //CHARACTER SELECTION (not placement, unlike Blickensderfer2) - bake that
-//into physicalLayout so the lib receives characters already in physical
+//into Physical_Layout so the lib receives characters already in physical
 //column order, matching what the original AssembleMinkowski produced.
-physicalLayout=[for (row=[0:2]) [for (col=[0:27])
-    keyboardLayoutArray[row][elementLayoutArrayMap[col]]
+Physical_Layout=[for (row=[0:2]) [for (col=[0:27])
+    Keyboard_Layout_Array[row][Element_Layout_Array_Map[col]]
 ]];
-//No placementMap override: Postal places column N at raw latitude N (the lib
-//defaults placementMap to identity when left undefined).
-//No rowFont/rowFontSize/charMods: Postal never had a per-row or per-char font
-//override system, so the lib's single global font/fontSize defaults apply.
+//No Placement_Map override: Postal places column N at raw latitude N (the lib
+//defaults Placement_Map to identity when left undefined).
+//No Row_Font/Row_Font_Size/charMods: Postal never had a per-row or per-char Font
+//override system, so the lib's single global Font/Font_Size defaults apply.
 
-//Postal's original Text() set $fn=minkFn locally (Blickensderfer2's didn't);
-//preserve that per-machine behavior via the lib's text2DFn hook.
-text2DFn=minkFn;
-//baselineZOffset: Postal's Baseline/Cutout arrays are negative-from-clip-end,
+//Postal's original Text() set $fn=Mink_Fn locally (Blickensderfer2's didn't);
+//preserve that per-machine behavior via the lib's Text_2D_Fn hook.
+Text_2D_Fn=Mink_Fn;
+//Baseline_Z_Offset: Postal's Baseline/Cutout arrays are negative-from-clip-end,
 //so this shifts every character placement to an absolute height.
-baselineZOffset=Element_Height;
-//row names for TextRingDebug's console output (cutoutTest/baselineTest/testLayout)
-rowLabels=["lowercase", "uppercase", "figs"];
+Baseline_Z_Offset=Element_Height;
+//row names for TextRingDebug's console output (Cutout_Test/Baseline_Test/Test_Layout)
+Row_Labels=["lowercase", "uppercase", "figs"];
 
 include <lib/glyph_pipeline.scad>
 
 //Postal's CutGroove polygon originally extended to the element's center axis,
 //forming one continuous raft plate shared by every support rod - so its
 //ResinRod()s grow no individual raft of their own (Blick2's did).
-resinRodRaft=false;
-cutGrooveInnerX=-Element_Diameter/2+wallMinThickness;
+Resin_Rod_Raft=false;
+Cut_Groove_Inner_X=-Element_Diameter/2+Wall_Min_Thickness;
 //Postal's original BottomSupports placed 5 rods per sector (a to b inclusive,
 //quarter steps) with the near-core rod at the un-offset sector angle.
-bottomSupportFractions=[0, .25, .5, .75, 1];
-bottomSupportInnerAngleOffset=0;
+Bottom_Support_Fractions=[0, .25, .5, .75, 1];
+Bottom_Support_Inner_Angle_Offset=0;
 
 include <lib/resin_support.scad>
 
 /* [Core/shaft lib wiring] */
 //Shaft_Diameter already declared natively above - no bridging needed.
-coreTopZ=Element_Height+clipHeight;
-coreBottomZ=coreBottomOffset;
-coreTaperTopZ=Element_Height;
-//coreChamferTop defaults to true, matching Postal's two-sided chamfer.
+Core_Top_Z=Element_Height+Clip_Height;
+Core_Bottom_Z=Core_Bottom_Offset;
+Core_Taper_Top_Z=Element_Height;
+//Core_Chamfer_Top defaults to true, matching Postal's two-sided chamfer.
 
 include <lib/core_shaft.scad>
 
 //main cylinder
 module Cylinder(){
-    cylinder(d=Element_Diameter, h=Element_Height, $fn=cylFn);
+    cylinder(d=Element_Diameter, h=Element_Height, $fn=Cyl_Fn);
 }
 
 module ClipCylinder(Offset){
     translate([0, 0, Element_Height-z])
-    cylinder(d=clipOD+Offset, h=clipHeight+z, $fn=surfaceFn);
+    cylinder(d=Clip_OD+Offset, h=Clip_Height+z, $fn=Surface_Fn);
 }
 
 module WireBite(){
-    $fn=surfaceFn;
+    $fn=Surface_Fn;
     rotate([0, 0, -90])
-    translate([Shaft_Diameter/2-clipBite, clipOD/2+z, Element_Height])
+    translate([Shaft_Diameter/2-Clip_Bite, Clip_OD/2+z, Element_Height])
     rotate([90, 0, 0])
-    linear_extrude(clipOD+2*z)
+    linear_extrude(Clip_OD+2*z)
     hull(){
-        translate([clipWireOD/2, clipWireOD/2])
-        circle(d=clipWireOD);
-        translate([clipBite+(clipOD-Shaft_Diameter)/2, 0])
-        square([z, clipOpening]);
+        translate([Clip_Wire_OD/2, Clip_Wire_OD/2])
+        circle(d=Clip_Wire_OD);
+        translate([Clip_Bite+(Clip_OD-Shaft_Diameter)/2, 0])
+        square([z, Clip_Opening]);
     }
 }
 
 module Core(Offset){
     translate([0, 0, -z])
-    cylinder(d=Shaft_Diameter+Offset, h=Element_Height+clipHeight+2*z, $fn=cylFn);
+    cylinder(d=Shaft_Diameter+Offset, h=Element_Height+Clip_Height+2*z, $fn=Cyl_Fn);
 }
 
 //SecondaryCore, CoreGrooves, CoreChamferShape, CoreChamfer, CoreEllipses now
 //come from lib/core_shaft.scad (included above).
 
 module SpeedHoles(){
-    for (n=[0:speedHoleQty-1])
-    rotate([0, 0, 360/speedHoleQty*n])
-    translate([speedHoleRadial, 0, -z+(n==0?Element_Height/2:0)])
-    cylinder(d=speedHoleID, h=Element_Height+2*z, $fn=surfaceFn);
+    for (n=[0:Speed_Hole_Qty-1])
+    rotate([0, 0, 360/Speed_Hole_Qty*n])
+    translate([Speed_Hole_Radial, 0, -z+(n==0?Element_Height/2:0)])
+    cylinder(d=Speed_Hole_ID, h=Element_Height+2*z, $fn=Surface_Fn);
 }
 
 module HollowSpace(){
-    $fn=surfaceFn;
+    $fn=Surface_Fn;
     rotate_extrude(){
-        polygon([[Shaft_Diameter/2+wallMinThickness, wallMinThickness+wallChamfer+coreBottomOffset], [Shaft_Diameter/2+wallMinThickness, Element_Height-wallMinThickness-wallChamfer], [Shaft_Diameter/2+wallMinThickness+wallChamfer, Element_Height-wallMinThickness], [(Shaft_Diameter+Element_Diameter)/4, Element_Height-wallMinThickness+roofOffset], [Element_Diameter/2-wallMinThickness-wallChamfer, Element_Height-wallMinThickness], [Element_Diameter/2-wallMinThickness, Element_Height-wallMinThickness-wallChamfer], [Element_Diameter/2-wallMinThickness, wallMinThickness+wallChamfer], [Element_Diameter/2-wallMinThickness-wallChamfer, wallMinThickness], [Shaft_Diameter/2+wallMinThickness+wallChamfer, wallMinThickness+coreBottomOffset]]);
+        polygon([[Shaft_Diameter/2+Wall_Min_Thickness, Wall_Min_Thickness+Wall_Chamfer+Core_Bottom_Offset], [Shaft_Diameter/2+Wall_Min_Thickness, Element_Height-Wall_Min_Thickness-Wall_Chamfer], [Shaft_Diameter/2+Wall_Min_Thickness+Wall_Chamfer, Element_Height-Wall_Min_Thickness], [(Shaft_Diameter+Element_Diameter)/4, Element_Height-Wall_Min_Thickness+Roof_Offset], [Element_Diameter/2-Wall_Min_Thickness-Wall_Chamfer, Element_Height-Wall_Min_Thickness], [Element_Diameter/2-Wall_Min_Thickness, Element_Height-Wall_Min_Thickness-Wall_Chamfer], [Element_Diameter/2-Wall_Min_Thickness, Wall_Min_Thickness+Wall_Chamfer], [Element_Diameter/2-Wall_Min_Thickness-Wall_Chamfer, Wall_Min_Thickness], [Shaft_Diameter/2+Wall_Min_Thickness+Wall_Chamfer, Wall_Min_Thickness+Core_Bottom_Offset]]);
     }
 }
 
 module BottomSlopedSpace(){
-    $fn=surfaceFn;
+    $fn=Surface_Fn;
     rotate_extrude(){
-        polygon([[0, -z-5], [0, coreBottomOffset], [bottomX(coreBottomOffset), coreBottomOffset], [Element_Diameter/2-wallMinThickness-wallChamfer, -z], [Element_Diameter/2-wallMinThickness-wallChamfer+5, -z], [Element_Diameter/2-wallMinThickness-wallChamfer+5, -z-5]]);
+        polygon([[0, -z-5], [0, Core_Bottom_Offset], [bottomX(Core_Bottom_Offset), Core_Bottom_Offset], [Element_Diameter/2-Wall_Min_Thickness-Wall_Chamfer, -z], [Element_Diameter/2-Wall_Min_Thickness-Wall_Chamfer+5, -z], [Element_Diameter/2-Wall_Min_Thickness-Wall_Chamfer+5, -z-5]]);
     }
 }
 
@@ -333,19 +333,19 @@ module TopMinkCleanup(){
 
 module DrivePin(Offset){
 linear_extrude(5)
-    translate([drivePinRadial, 0, -z])
+    translate([Drive_Pin_Radial, 0, -z])
     rotate([0, 0, 90])
-    square([drivePinWidth, drivePinLength], center=true);
+    square([Drive_Pin_Width, Drive_Pin_Length], center=true);
 }
 
 module LogoText(){
-    for (n=[0:len(logoText)-1]){
-            rotate([0,0,logoPositionOffset-90+logoTextSpacing*n-(len(logoText)-1)*logoTextSpacing/2])
+    for (n=[0:len(Logo_Text)-1]){
+            rotate([0,0,Logo_Position_Offset-90+Logo_Text_Spacing*n-(len(Logo_Text)-1)*Logo_Text_Spacing/2])
 
-            translate([0, logoRadius+1.5, Element_Height-.3])
+            translate([0, Logo_Radius+1.5, Element_Height-.3])
             linear_extrude(.4)
-            rotate([0, 0, logoTextOffset])
-            text(text=logoText[n], size=logoTextSize, font=logoFont, valign="baseline", halign="center", $fn=textFn);
+            rotate([0, 0, Logo_Text_Offset])
+            text(text=Logo_Text[n], size=Logo_Text_Size, font=Logo_Font, valign="baseline", halign="center", $fn=Text_Fn);
     }
 }
 
@@ -361,7 +361,7 @@ module Additive(){
 module Subtractive(){
     union(){
         Core(0);
-        if (renderCoreGroove==true) CoreGrooves(0);
+        if (Render_Core_Groove==true) CoreGrooves(0);
         CoreChamfer(0);
         WireBite();
         SpeedHoles();
@@ -390,36 +390,36 @@ module ResinSupport(){
     union(){
         CutGroove();
         SpeedHoleSupports();
-        DrivePinSupport(drivePinRadial, drivePinLength/2, drivePinWidth/2);
+        DrivePinSupport(Drive_Pin_Radial, Drive_Pin_Length/2, Drive_Pin_Width/2);
         BottomSupports();
     }
 }
 
 module CylinderGauge(Offset){
-    translate([0, 0, coreBottomOffset])
-    cylinder(d=Shaft_Diameter+2*wallMinThickness+Offset, h=Element_Height+clipHeight-coreBottomOffset, $fn=surfaceFn);
+    translate([0, 0, Core_Bottom_Offset])
+    cylinder(d=Shaft_Diameter+2*Wall_Min_Thickness+Offset, h=Element_Height+Clip_Height-Core_Bottom_Offset, $fn=Surface_Fn);
 }
 
 module GaugeResinSupport(Offset){
-    $fn=resinFn;
+    $fn=Resin_Fn;
     for (n=[0:7]){
         rotate([0, 0, n*360/8])
-        translate([Shaft_Diameter/2+Offset/2+wallMinThickness/2, 0, 0])
-        ResinRod(coreBottomOffset);
+        translate([Shaft_Diameter/2+Offset/2+Wall_Min_Thickness/2, 0, 0])
+        ResinRod(Core_Bottom_Offset);
     }
 }
 
 module GaugeResinSupportsRaft(){
-    translate([0, 0, -resinMinRodHeight-resinRaftThickness])
-    cylinder(d1=3*(Shaft_Diameter+2*wallMinThickness), d2=3*(Shaft_Diameter+2*wallMinThickness)+2*resinRaftThickness, h=resinRaftThickness);
+    translate([0, 0, -Resin_Min_Rod_Height-Resin_Raft_Thickness])
+    cylinder(d1=3*(Shaft_Diameter+2*Wall_Min_Thickness), d2=3*(Shaft_Diameter+2*Wall_Min_Thickness)+2*Resin_Raft_Thickness, h=Resin_Raft_Thickness);
 }
 
 module RevolverSolid(){
-    $fn=surfaceFn;
+    $fn=Surface_Fn;
     hull(){
         for (n=[0:5])
         rotate([0, 0, n*360/6])
-        translate([Shaft_Diameter+wallMinThickness*2-wallMinThickness/2, 0, 0])
+        translate([Shaft_Diameter+Wall_Min_Thickness*2-Wall_Min_Thickness/2, 0, 0])
         CylinderGauge(0);
     }
 
@@ -427,7 +427,7 @@ module RevolverSolid(){
 
 module GaugeTestSubtractive(Offset){
     Core(Offset);
-    if (renderCoreGroove==true) CoreGrooves(Offset);
+    if (Render_Core_Groove==true) CoreGrooves(Offset);
     CoreChamfer(Offset);
     SecondaryCore(Offset);
     echo (str(Offset));
@@ -438,10 +438,10 @@ module GaugeTestSubtractive(Offset){
 
 module GaugeText(Offset){
     if (Offset!=0)
-    translate([Shaft_Diameter/2+wallMinThickness-wallMinThickness/2+coreSecondaryIDOffset/2, 0, coreBottomOffset+(Element_Height+clipHeight-coreBottomOffset)/2])
+    translate([Shaft_Diameter/2+Wall_Min_Thickness-Wall_Min_Thickness/2+Core_Secondary_ID_Offset/2, 0, Core_Bottom_Offset+(Element_Height+Clip_Height-Core_Bottom_Offset)/2])
     rotate([0, 90, 0])
     linear_extrude(4)
-    text(text=str(Offset), halign="center", valign="center", $fn=textFn, size=3, font="Consolas");
+    text(text=str(Offset), halign="center", valign="center", $fn=Text_Fn, size=3, font="Consolas");
 }
 
 module GaugeTestSet(){
@@ -453,16 +453,16 @@ module GaugeTestSet(){
             }
             for (n=[0:5]){
                 rotate([0, 0, n*360/6])
-                translate([Shaft_Diameter+wallMinThickness*2-wallMinThickness/2, 0, 0])
-                GaugeTestSubtractive(gaugeOffsetStart+(n)*gaugeOffsetInt);
+                translate([Shaft_Diameter+Wall_Min_Thickness*2-Wall_Min_Thickness/2, 0, 0])
+                GaugeTestSubtractive(Gauge_Offset_Start+(n)*Gauge_Offset_Int);
             }
         }
 
         union(){
             for (n=[0:5]){
                 rotate([0, 0, n*360/6])
-                translate([Shaft_Diameter+wallMinThickness*2-wallMinThickness/2, 0, 0])
-                GaugeResinSupport(gaugeOffsetStart+(n+1)*gaugeOffsetInt);
+                translate([Shaft_Diameter+Wall_Min_Thickness*2-Wall_Min_Thickness/2, 0, 0])
+                GaugeResinSupport(Gauge_Offset_Start+(n+1)*Gauge_Offset_Int);
             }
             GaugeResinSupportsRaft();
         }
@@ -475,10 +475,10 @@ module ResinPrint(){
 }
 
 module TypeTest(){
-    testString=str(keyboardLayoutArray[0], keyboardLayoutArray[1], keyboardLayoutArray[2]);
-    for (n=[0:len(testString)-1]){
-        translate([1/testCPI*25.4*n, 0, 0])
-        text(text=testString[n], size=testSize, font=testFont, halign="center", valign="baseline", $fn=textFn);
+    Test_String=str(Keyboard_Layout_Array[0], Keyboard_Layout_Array[1], Keyboard_Layout_Array[2]);
+    for (n=[0:len(Test_String)-1]){
+        translate([1/Test_CPI*25.4*n, 0, 0])
+        text(text=Test_String[n], size=Test_Size, font=Test_Font, halign="center", valign="baseline", $fn=Text_Fn);
     }
 }
 
@@ -488,13 +488,13 @@ module TypeTest(){
 if (Render==true){
     difference(){
 //        color("lightblue")
-        if (renderMode==0) FullElement();
-        else if (renderMode==1) ResinPrint();
-        else if (renderMode==2) GaugeTestSet();
-        else if (renderMode==3)
+        if (Render_Mode==0) FullElement();
+        else if (Render_Mode==1) ResinPrint();
+        else if (Render_Mode==2) GaugeTestSet();
+        else if (Render_Mode==3)
         TypeTest();
-        if (XSection==true){
-            rotate([0, 0, XSectionTheta])
+        if (X_Section==true){
+            rotate([0, 0, X_Section_Theta])
             translate([-50, -100, -50])
             cube(100);
         }

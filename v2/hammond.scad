@@ -11,17 +11,17 @@
 //    transform as the lib's split translate([0,0,Z])+translate([R,0,0])
 //    (translation is commutative - splitting one translate into two in either
 //    order changes nothing). R = Shuttle_Arc_Radius+Shuttle_Thickness is
-//    reproduced as Element_Diameter/2+letterPlacementProtrusion below
-//    (Element_Diameter=2*Shuttle_Arc_Radius, letterPlacementProtrusion=
+//    reproduced as Element_Diameter/2+Letter_Placement_Protrusion below
+//    (Element_Diameter=2*Shuttle_Arc_Radius, Letter_Placement_Protrusion=
 //    Shuttle_Thickness - Hammond's placement radius extends past the arc body
 //    by the shuttle thickness, the same "stands proud of the surface" role
-//    CharProtrusion plays for Blick2/Postal). Z = rib_bottomz+Baseline[row] is
-//    reproduced as baselineZOffset=rib_bottomz plus the lib's own
+//    Char_Protrusion plays for Blick2/Postal). Z = Rib_Bottom_Z+Baseline[row] is
+//    reproduced as Baseline_Z_Offset=Rib_Bottom_Z plus the lib's own
 //    Baseline[row] handling in TextRing.
 //  - The original Theta formula (two branches around column 14, for the seam
 //    where the shuttle arc wraps) reduces exactly to the lib's
-//    (angleHalfStep+latitude)*latitudeInt with latitudeInt=angle_pitch and a
-//    placementMap of col-16 (col<=14) / col-14 (col>14) - checked algebraically
+//    (Angle_Half_Step+latitude)*Latitude_Int with Latitude_Int=Angle_Pitch and a
+//    Placement_Map of col-16 (col<=14) / col-14 (col>14) - checked algebraically
 //    at both branches and at the col=14/15 seam boundary.
 //  - 2DText's Character_Modifieds_Offset/Testing_Offsets shift was a 2D
 //    translate on the text's local Y axis, applied before extrude+rotate
@@ -29,33 +29,33 @@
 //    Rz(c)*Ry(b)*Rx(a) to points; here Rx(90) then Rz(90)) shows local point
 //    (x,y,z) lands at world (z,x,y) - so a local-Y shift becomes a world-Z
 //    shift, exactly the axis the lib's TextRing already applies
-//    Character_Modifieds_Offset/baselineTestArray on via charBaseline. So
+//    Character_Modifieds_Offset/Baseline_Test_Array on via charBaseline. So
 //    moving that offset out of 2DText and into TextRing's charBaseline math
 //    (which the lib already does for every machine) produces the identical
 //    final position - testing_baseline/Testing_Offsets are renamed
-//    baselineTest/baselineTestArray, same mechanism.
+//    Baseline_Test/Baseline_Test_Array, same mechanism.
 //  - GalChars/GalFont/GalFontSize is Hammond's own secondary-typeface-by-
 //    character tier, structurally the same thing Mignon's Typeface_2/
-//    Type_2Size/Typeface_2Chars already unifies (search-based char match,
-//    swaps font+size). One edge case does NOT carry over exactly: if a
+//    Type_2_Size/Typeface_2_Chars already unifies (search-based char match,
+//    swaps Font+size). One edge case does NOT carry over exactly: if a
 //    character were in *both* GalChars and Scale_Multiplier_Text, the
 //    original used Type_Size*Scale_Multiplier (ignoring GalFontSize) while
-//    the lib uses Type_2Size*Scale_Multiplier - unreachable under default
+//    the lib uses Type_2_Size*Scale_Multiplier - unreachable under default
 //    settings since Scale_Multiplier_Text="" matches nothing, only relevant
 //    if a user deliberately puts a Glagolitic character in
 //    Scale_Multiplier_Text while on the Glagolitic layout.
 //  - LetterText's minkowski cone: the lib orients its cone with its own
-//    rotate([0,-90,(angleHalfStep+latitude)*latitudeInt]) rather than nesting
+//    rotate([0,-90,(Angle_Half_Step+latitude)*Latitude_Int]) rather than nesting
 //    it inside LetterPlacement like the original did - minkowski sums only
 //    need the growth shape's orientation, not its position, which is the same
 //    "cone is an arbitrary shape, not a calibrated dimension" reasoning
-//    already applied to Bennett/Mignon/Helios. minkOn defaults to false here
+//    already applied to Bennett/Mignon/Helios. Mink_On defaults to false here
 //    (matching Hammond's own Debug_No_Minkowski=true default), so like those
 //    three machines this was accepted by structural analogy rather than a
 //    from-scratch numeric re-derivation - flagged the same way, check this
-//    first if minkOn is ever turned on for a production render.
+//    first if Mink_On is ever turned on for a production render.
 //  - LetterText has no PlatenCutout step (Hammond strikes a flat anvil, not a
-//    curved platen) - this is what the lib's skipPlatenCutout parameter
+//    curved platen) - this is what the lib's Skip_Platen_Cutout parameter
 //    (added during this migration) exists for.
 //Layout data moved to lib/layouts/hammond_layouts.scad (identical content,
 //just relocated, matching bennett_layouts.scad/mignon_layouts.scad).
@@ -64,9 +64,9 @@
 //PinSupport*, ShuttleTaper, Label, VertResinSupport2, HorizResinSupport*,
 //ResinRod2, etc.) shares nothing with the other machines (arc/rib geometry
 //instead of a cylinder+platen), so it's moved as-is: only the quality-var
-//renames (cyl_fn/resin_fn/mink_fn/text_fn -> cylFn/resinFn/minkFn/textFn) and
-//the Assert->Render / Debug_No_Minkowski->minkOn renames, matching the same
-//treatment ibm.scad got. No new XSection/half-print feature added - the
+//renames (cyl_fn/resin_fn/mink_fn/text_fn -> Cyl_Fn/Resin_Fn/Mink_Fn/Text_Fn) and
+//the Assert->Render / Debug_No_Minkowski->Mink_On renames, matching the same
+//treatment ibm.scad got. No new X_Section/half-print feature added - the
 //original never had one, and this migration doesn't invent new geometry for
 //code that isn't the glyph pipeline. Original preserved at
 //Hammond/HammondShuttle.scad. This file was HammondShuttle.scad, moved to
@@ -75,74 +75,74 @@
 /* [Global Parameters] */
 //to help with z fighting
 z=.001;
-//structural/body cylinder facet number (renamed from cyl_fn)
-cylFn=360;
-//declared for lib parity with the other v2 machines - Hammond has no
-//separate structural-quality tier from cylFn, so this just mirrors it.
-surfaceFn=360;
-//resin support facet number (renamed from resin_fn)
-resinFn=20;
 //minkowski facet number (renamed from mink_fn)
-minkFn=10;
+Mink_Fn=10;
 //text facet number (renamed from text_fn)
-textFn=44;
+Text_Fn=44;
+//structural/body cylinder facet number (renamed from cyl_fn)
+Cyl_Fn=360;
+//declared for lib parity with the other v2 machines - Hammond has no
+//separate structural-quality tier from Cyl_Fn, so this just mirrors it.
+Surface_Fn=360;
+//resin support facet number (renamed from resin_fn)
+Resin_Fn=20;
 
 /* [Render Parameters] */
 //render something? (renamed+inverted from Assert - Assert==false meant
 //render; Render==true now means render, same default behavior)
 Render=false;
-//minkOn: renamed+inverted from Debug_No_Minkowski (cone off by default,
+//Mink_On: renamed+inverted from Debug_No_Minkowski (cone off by default,
 //same behavior either way)
-minkOn=false;
+Mink_On=false;
 //Hammond's original cone (r1=.75,r2=0,h=1) was never tied to a draft angle -
 //uses the shared angle-derived formula instead, same value every other v2
-//machine uses. Off by default (minkOn=false above); see header comment.
-minkDraftAngle=55;
+//machine uses. Off by default (Mink_On=false above); see header comment.
+Mink_Draft_Angle=55;
 
 /* [Testing Stuff] */
 //renamed from testing_cutout - was already unused/dead in the original
-cutoutTest=false;
-//unused: Hammond has no platen cutout (skipPlatenCutout=true below), so
-//Cutout/cutoutTestArray never enter the geometry
-cutoutTestArray=[0];
+Cutout_Test=false;
+//unused: Hammond has no platen cutout (Skip_Platen_Cutout=true below), so
+//Cutout/Cutout_Test_Array never enter the geometry
+Cutout_Test_Array=[0];
 //renamed from testing_baseline
-baselineTest=false;
+Baseline_Test=false;
 //renamed from Testing_Offsets
-baselineTestArray=[-.7, -.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .66, .7, .75];
+Baseline_Test_Array=[-.7, -.65, -.6, -.55, -.5, -.45, -.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, 0, .05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .66, .7, .75];
 //renamed from testing_layout
-testLayout=false;
+Test_Layout=false;
 //matches the hardcoded blank character the original used when testing_layout
 //was true
-testChar=" ";
+Test_Char=" ";
 
 /* [Key Mapping] */
 include <lib/layouts/hammond_layouts.scad>
 Layout_Selection=0;//[0:Normal Universal, 1:Normal Ideal, 2:Math Universal, 3:DVORAK, 4:DHIATENSOR, 5:Comic Mono, 6:Glagolitic, 7:Attic]
 Layout=LAYOUTS[Layout_Selection][1];
-IsMath=search(LAYOUTS[Layout_Selection][3], "Math")==undef?0:1;
+Is_Math=search(LAYOUTS[Layout_Selection][3], "Math")==undef?0:1;
 //Baselines for Lowercase, Uppercase, Figures, and Math FROM BOTTOM RIB PLANE
 Baseline=[3.74, -1.21, -5.71, -9.89];
-//unused: Hammond strikes a flat anvil (skipPlatenCutout=true below), no
+//unused: Hammond strikes a flat anvil (Skip_Platen_Cutout=true below), no
 //curved-platen cutout exists to carve
 Cutout=[0, 0, 0, 0];
 
 /* [Typeface Stuff] */
 //renamed from Typeface_
-font="Iosevka Fixed Slab";//"Consolas";
+Font="Iosevka Fixed Slab";//"Consolas";
 //renamed from Type_Size
-fontSize=3.10;//[1:.05:5]
+Font_Size=3.10;//[1:.05:5]
 //Individual Character Height Adjustments
 Character_Modifieds="_";
 Character_Modifieds_Offset=-.4;//[-1.5:.05:1.5]
 //Character_Modifieds only ever shifted baseline in Hammond's original (no
-//font swap), so these alias to Hammond's own font/size for a no-op swap.
-Character_Modifieds_Font=font;
-Character_Modifieds_Size=fontSize;
+//Font swap), so these alias to Hammond's own Font/size for a no-op swap.
+Character_Modifieds_Font=Font;
+Character_Modifieds_Size=Font_Size;
 //offset()-based stroke weight (Blickensderfer2/Postal's system) - Hammond
 //never had this, 0 = no-op.
-fontWeightOffset=0;
-xFontWeightAdj=0;
-yFontWeightAdj=0;
+Font_Weight_Offset=0;
+X_Font_Weight_Adj=0;
+Y_Font_Weight_Adj=0;
 
 /* [Glyph Quality (unified across all v2 machines)] */
 //Check for Speedy Preview
@@ -154,31 +154,31 @@ Weight_Adj_Mode=0;//[0:None, 1:Subtractive, 2:Additive]
 Weight_Adj_Shape=0;//[0:Square, 1:Circle]
 //vertical glyph scale before extrusion - Hammond never had this, 1 = no-op.
 Y_Scale=1;
-//Hammond's secondary Glagolitic-font tier (renamed from GalFont/GalFontSize/
+//Hammond's secondary Glagolitic-Font tier (renamed from GalFont/GalFontSize/
 //GalChars) - always-on in the original regardless of selected Layout (any
 //character matching GlagoliticChars gets this treatment), so the default
 //here is non-empty to match, not the usual "" no-op default.
 Typeface_2="Noto Sans Glagolitic";
-Type_2Size=2;//.1
-Typeface_2Chars=GlagoliticChars;
+Type_2_Size=2;//.1
+Typeface_2_Chars=GlagoliticChars;
 
 /* [Element Dimensions] */
-Shuttle_Arc_Radius_ShrinkageMultiplier=1.00;//.001
+Shuttle_Arc_Radius_Shrinkage_Multiplier=1.00;//.001
 //Arc Radius of Shuttle
 Anvil_OD=73.15;
-Shuttle_Arc_Radius=(Anvil_OD/2)*Shuttle_Arc_Radius_ShrinkageMultiplier;//36.52
-angle_pitch=(120/32)/Shuttle_Arc_Radius_ShrinkageMultiplier;///120/32;
+Shuttle_Arc_Radius=(Anvil_OD/2)*Shuttle_Arc_Radius_Shrinkage_Multiplier;//36.52
+Angle_Pitch=(120/32)/Shuttle_Arc_Radius_Shrinkage_Multiplier;///120/32;
 
 //Thickness of Shuttle
 Shuttle_Thickness=1.36;//.01
 //Height of Text Protrusion
 Shuttle_Text_Protrusion=.9;
 //Height of Shuttle
-NormalShuttle_Height=13.6;
+Normal_Shuttle_Height=13.6;
 Shuttle_Height_Offset=3;
 
-MathShuttle_Height=18.24;
-Shuttle_Height=(IsMath==0?NormalShuttle_Height:MathShuttle_Height)+Shuttle_Height_Offset;
+Math_Shuttle_Height=18.24;
+Shuttle_Height=(Is_Math==0?Normal_Shuttle_Height:Math_Shuttle_Height)+Shuttle_Height_Offset;
 
 //Distance From Top of Shuttle to BOTTOM of RIB PLANE
 Shuttle_Rib_Plane=6.7+Shuttle_Height_Offset;
@@ -199,7 +199,7 @@ Shuttle_Square_Hole_Length=1.60;//.01//1.2
 Shuttle_Pin_Support_Height=1.5;
 Shuttle_Pin_Support_Base_Width=6;
 Shuttle_Pin_Support_Base_Length=7.8;//.1
-Shuttle_Pin_Support_HeightOffset=1.5;//.1
+Shuttle_Pin_Support_Height_Offset=1.5;//.1
 Shuttle_Pin_Support_Height2=2;//.1
 
 //Support Pin Diameter
@@ -218,17 +218,17 @@ Shuttle_Taper=2;
 //Offset From Arc Radius for Taper
 Shuttle_Taper_Step=.5;
 //Anvil Inner Diameter
-AnvilID=66.0;//.01
-anviliroffset=Shuttle_Arc_Radius-Anvil_OD/2;
-Anvil_ID=AnvilID+2*anviliroffset;
+Anvil_ID_Raw=66.0;//.01
+Anvil_IR_Offset=Shuttle_Arc_Radius-Anvil_OD/2;
+Anvil_ID=Anvil_ID_Raw+2*Anvil_IR_Offset;
 
 Groove=false;
 Shuttle_Groove_Depth=Shuttle_Thickness/2;
 Shuttle_Groove_Nub_Size=Shuttle_Thickness/2;
 Shuttle_Groove_Nub_Angle=29;
-Groove_RetainingPinDiameter=.54+.15;
-Groove_TabWidth=3+.15;
-Groove_OpeningOffset=.5;//.1
+Groove_Retaining_Pin_Diameter=.54+.15;
+Groove_Tab_Width=3+.15;
+Groove_Opening_Offset=.5;//.1
 
 /* [Logo] */
 //Shuttle Label 1
@@ -260,77 +260,77 @@ Resin_Support_Contact_Diameter=.4;
 //Rib Contact Diameter
 Resin_Support_Contact_Diameter_Rib=.2;
 //Vertical Resin Support Gap from Part Edges
-Resin_Support_EdgeGap=.1;
+Resin_Support_Edge_Gap=.1;
 //Vertical Resin Support Buildplate Radius
 Resin_Support_Buildplate_Radius=.8;
 //Horizontal Resin Support Cut Groove Diameter
 Resin_Support_Cut_Groove_Diameter=.5;
 //Horizontal Resin Support Cut Groove Minimum Thickness
 Resin_Support_Cut_Groove_Min_Thickness=.2;
-SupportGrooveThickness=.5;
-SupportGrooveR=.5*(Shuttle_Thickness-SupportGrooveThickness);
+Support_Groove_Thickness=.5;
+Support_Groove_R=.5*(Shuttle_Thickness-Support_Groove_Thickness);
 
-TipInterference=1.2;//.1
+Tip_Interference=1.2;//.1
 
 //Taper Variables
-taper_inset_x=(Shuttle_Arc_Radius-z)*cos(angle_pitch*16-Shuttle_Taper);
-taper_inset_y=(Shuttle_Arc_Radius-z)*sin(angle_pitch*16-Shuttle_Taper);
-taper_outset_x=cos(angle_pitch*16+z)*(Shuttle_Arc_Radius+Shuttle_Taper_Step);
-taper_outset_y=sin(angle_pitch*16+z)*(Shuttle_Arc_Radius+Shuttle_Taper_Step);
+Taper_Inset_X=(Shuttle_Arc_Radius-z)*cos(Angle_Pitch*16-Shuttle_Taper);
+Taper_Inset_Y=(Shuttle_Arc_Radius-z)*sin(Angle_Pitch*16-Shuttle_Taper);
+Taper_Outset_X=cos(Angle_Pitch*16+z)*(Shuttle_Arc_Radius+Shuttle_Taper_Step);
+Taper_Outset_Y=sin(Angle_Pitch*16+z)*(Shuttle_Arc_Radius+Shuttle_Taper_Step);
 
 //Reorientation Variables, Global Variables
-z_offset=Shuttle_Arc_Radius*cos(angle_pitch*16);
-y_max=Shuttle_Arc_Radius*sin(angle_pitch*16);
-x_max=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2;
-x_min=Shuttle_Height-x_max;
-rib_bottomz=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness;
+Z_Offset=Shuttle_Arc_Radius*cos(Angle_Pitch*16);
+Y_Max=Shuttle_Arc_Radius*sin(Angle_Pitch*16);
+X_Max=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness/2;
+X_Min=Shuttle_Height-X_Max;
+Rib_Bottom_Z=Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness;
 
 //Offset For Secondary Rib Circle
-Shuttle_Rib_Circle_Offset=z_offset+Shuttle_Rib_Circle+Shuttle_Rib_Hump_Distance;
+Shuttle_Rib_Circle_Offset=Z_Offset+Shuttle_Rib_Circle+Shuttle_Rib_Hump_Distance;
 
 //Support Variables
-innerarcintercept=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-z_offset^2);
-outerarcintercept=sqrt((Shuttle_Arc_Radius)^2-z_offset^2);
+Inner_Arc_Intercept=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-Z_Offset^2);
+Outer_Arc_Intercept=sqrt((Shuttle_Arc_Radius)^2-Z_Offset^2);
 
 //Shuttle Rib Radius Variables
-yprime=(2*Shuttle_Rib_Circle_Offset)^-1*(Shuttle_Rib_Circle_Offset^2+(Shuttle_Arc_Radius-Shuttle_Rib_Circle_Radius-Shuttle_Rib_Width)^2-(Shuttle_Rib_Circle_Radius+Shuttle_Rib_Circle)^2);
-xprime=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Circle_Radius-Shuttle_Rib_Width)^2-yprime^2);
-thetaa=atan(yprime/xprime);
-theta2=atan((Shuttle_Rib_Circle_Offset-yprime)/xprime);
-cp1x=Shuttle_Arc_Radius*cos(thetaa)-2;//limit of resin support
-cp1y=Shuttle_Arc_Radius*sin(thetaa);
-cp2x=xprime-Shuttle_Rib_Circle_Radius*cos(theta2);//limit of resin support
-cp2y=yprime+(Shuttle_Rib_Circle_Radius)*sin(theta2);
+Y_Prime=(2*Shuttle_Rib_Circle_Offset)^-1*(Shuttle_Rib_Circle_Offset^2+(Shuttle_Arc_Radius-Shuttle_Rib_Circle_Radius-Shuttle_Rib_Width)^2-(Shuttle_Rib_Circle_Radius+Shuttle_Rib_Circle)^2);
+X_Prime=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Circle_Radius-Shuttle_Rib_Width)^2-Y_Prime^2);
+Theta_A=atan(Y_Prime/X_Prime);
+Theta_2=atan((Shuttle_Rib_Circle_Offset-Y_Prime)/X_Prime);
+Cp_1_X=Shuttle_Arc_Radius*cos(Theta_A)-2;//limit of resin support
+Cp_1_Y=Shuttle_Arc_Radius*sin(Theta_A);
+Cp_2_X=X_Prime-Shuttle_Rib_Circle_Radius*cos(Theta_2);//limit of resin support
+Cp_2_Y=Y_Prime+(Shuttle_Rib_Circle_Radius)*sin(Theta_2);
 
 /* [Glyph pipeline lib wiring] */
-//physicalLayout: Layout is already in final physical column order - no
+//Physical_Layout: Layout is already in final physical column order - no
 //character-legend/hemisphere remapping needed for Hammond.
-physicalLayout=Layout;
-//Element_Diameter/letterPlacementProtrusion below reproduce the original
+Physical_Layout=Layout;
+//Element_Diameter/Letter_Placement_Protrusion below reproduce the original
 //placement radius Shuttle_Arc_Radius+Shuttle_Thickness exactly (see header
 //comment for the full derivation).
 Element_Diameter=2*Shuttle_Arc_Radius;
-//unused: skipPlatenCutout=true means PlatenCutout is never called, so
-//Platen_Diameter/CharProtrusion never enter the geometry.
+//unused: Skip_Platen_Cutout=true means PlatenCutout is never called, so
+//Platen_Diameter/Char_Protrusion never enter the geometry.
 Platen_Diameter=0;
-CharProtrusion=0;
-latitudeInt=angle_pitch;
+Char_Protrusion=0;
+Latitude_Int=Angle_Pitch;
 //reproduces the original two-branch Theta formula around the shuttle's seam
 //at column 14/15 - see header comment for the algebraic check.
-placementMap=[for (col=[0:len(Layout[0])-1]) col<=14 ? col-16 : col-14];
-baselineZOffset=rib_bottomz;
-//row names for TextRingDebug's console output (cutoutTest/baselineTest/testLayout) -
+Placement_Map=[for (col=[0:len(Layout[0])-1]) col<=14 ? col-16 : col-14];
+Baseline_Z_Offset=Rib_Bottom_Z;
+//row names for TextRingDebug's console output (Cutout_Test/Baseline_Test/Test_Layout) -
 //covers all 4 of Baseline's rows even though only 3 are used unless the Math
 //layout is selected.
-rowLabels=["lowercase", "uppercase", "figs", "math"];
+Row_Labels=["lowercase", "uppercase", "figs", "math"];
 //Hammond's placement radius stands proud of the arc body by Shuttle_Thickness
-//(the same "stands proud of the surface" role CharProtrusion plays for
+//(the same "stands proud of the surface" role Char_Protrusion plays for
 //Blick2/Postal), rather than being the raw Element_Diameter/2.
-letterPlacementProtrusion=Shuttle_Thickness;
-letterExtrudeOffset=-.5;
-letterExtrudeDepth=Shuttle_Text_Protrusion+.5;
+Letter_Placement_Protrusion=Shuttle_Thickness;
+Letter_Extrude_Offset=-.5;
+Letter_Extrude_Depth=Shuttle_Text_Protrusion+.5;
 //Hammond strikes a flat anvil, not a curved platen - no cutout to carve.
-skipPlatenCutout=true;
+Skip_Platen_Cutout=true;
 
 include <lib/glyph_pipeline.scad>
 
@@ -377,14 +377,14 @@ module ConnectingRod (p1, p2, t){
 module ShuttleCylinder(){
     translate([0, 0, -z])
         linear_extrude(Shuttle_Height+2*z)
-        circle(r=Shuttle_Arc_Radius+Shuttle_Thickness, $fn=cylFn);
+        circle(r=Shuttle_Arc_Radius+Shuttle_Thickness, $fn=Cyl_Fn);
 }
 
 module AnvilShape(){
     translate([0, 0, -5])
         linear_extrude(Shuttle_Height+10){
-            polygon([[Shuttle_Arc_Radius*3*cos(16*angle_pitch), -Shuttle_Arc_Radius*3*sin(16*angle_pitch)],[0, 0],  [Shuttle_Arc_Radius*3*cos(16*angle_pitch), Shuttle_Arc_Radius*3*sin(16*angle_pitch)], [0, 100], [-100, 0], [0, -100]]);
-            circle(r=Shuttle_Arc_Radius, $fn=cylFn);
+            polygon([[Shuttle_Arc_Radius*3*cos(16*Angle_Pitch), -Shuttle_Arc_Radius*3*sin(16*Angle_Pitch)],[0, 0],  [Shuttle_Arc_Radius*3*cos(16*Angle_Pitch), Shuttle_Arc_Radius*3*sin(16*Angle_Pitch)], [0, 100], [-100, 0], [0, -100]]);
+            circle(r=Shuttle_Arc_Radius, $fn=Cyl_Fn);
         }
 }
 
@@ -398,33 +398,33 @@ module MinkCleanup(){
 }
 
 module Rib(){
-    translate([0, 0, rib_bottomz]){
+    translate([0, 0, Rib_Bottom_Z]){
         linear_extrude(Shuttle_Rib_Thickness){
             difference(){
                 union(){
                     difference(){
-                        circle(r=Shuttle_Arc_Radius+z, $fn=cylFn);
-                        circle(r=Shuttle_Arc_Radius-Shuttle_Rib_Width, $fn=cylFn);
-                        polygon([[0, 0], [Shuttle_Arc_Radius*cos(angle_pitch*16), Shuttle_Arc_Radius*sin(angle_pitch*16)], [Shuttle_Arc_Radius*cos(angle_pitch*16), -Shuttle_Arc_Radius*sin(angle_pitch*16)]]);
+                        circle(r=Shuttle_Arc_Radius+z, $fn=Cyl_Fn);
+                        circle(r=Shuttle_Arc_Radius-Shuttle_Rib_Width, $fn=Cyl_Fn);
+                        polygon([[0, 0], [Shuttle_Arc_Radius*cos(Angle_Pitch*16), Shuttle_Arc_Radius*sin(Angle_Pitch*16)], [Shuttle_Arc_Radius*cos(Angle_Pitch*16), -Shuttle_Arc_Radius*sin(Angle_Pitch*16)]]);
                     }
 
                     //Rib Circle
                     intersection(){
                         translate([Shuttle_Rib_Circle_Offset, 0, 0])
-                        circle(r=Shuttle_Rib_Circle, $fn=cylFn);
-                        circle(r=Shuttle_Arc_Radius, $fn=cylFn);
+                        circle(r=Shuttle_Rib_Circle, $fn=Cyl_Fn);
+                        circle(r=Shuttle_Arc_Radius, $fn=Cyl_Fn);
                     }
 
                     //Add Rib Circle Radius
                     for (n=[-1, 1])
                     difference(){
-                        polygon([[yprime, n*xprime], [cp1y, n*cp1x],  [30,n*20],[sqrt(Shuttle_Arc_Radius^2-(n*cp2x)^2),n*cp2x], [cp2y, n*cp2x] ]);
-                        translate([yprime, n*xprime, 0])
+                        polygon([[Y_Prime, n*X_Prime], [Cp_1_Y, n*Cp_1_X],  [30,n*20],[sqrt(Shuttle_Arc_Radius^2-(n*Cp_2_X)^2),n*Cp_2_X], [Cp_2_Y, n*Cp_2_X] ]);
+                        translate([Y_Prime, n*X_Prime, 0])
                     circle(r=Shuttle_Rib_Circle_Radius, $fn=360);
                     }
                 }
 
-            polygon([[Shuttle_Arc_Radius*cos(angle_pitch*16), -Shuttle_Arc_Radius*sin(angle_pitch*16)],[z_offset, 0],  [Shuttle_Arc_Radius*cos(angle_pitch*16), Shuttle_Arc_Radius*sin(angle_pitch*16)], [0, 100], [-100, 0], [0, -100]]);
+            polygon([[Shuttle_Arc_Radius*cos(Angle_Pitch*16), -Shuttle_Arc_Radius*sin(Angle_Pitch*16)],[Z_Offset, 0],  [Shuttle_Arc_Radius*cos(Angle_Pitch*16), Shuttle_Arc_Radius*sin(Angle_Pitch*16)], [0, 100], [-100, 0], [0, -100]]);
             }
         }
     }
@@ -432,17 +432,17 @@ module Rib(){
 
 module Groove(){
     union(){
-        translate([0, 0, rib_bottomz])
+        translate([0, 0, Rib_Bottom_Z])
         difference(){
             union(){
-                cylinder(r=Shuttle_Arc_Radius+Shuttle_Groove_Depth, h=Shuttle_Rib_Thickness, $fn=cylFn);
-                translate([0, -Groove_TabWidth/2, -Groove_OpeningOffset/2])
-                cube([50, Groove_TabWidth, Shuttle_Rib_Thickness+Groove_OpeningOffset]);
+                cylinder(r=Shuttle_Arc_Radius+Shuttle_Groove_Depth, h=Shuttle_Rib_Thickness, $fn=Cyl_Fn);
+                translate([0, -Groove_Tab_Width/2, -Groove_Opening_Offset/2])
+                cube([50, Groove_Tab_Width, Shuttle_Rib_Thickness+Groove_Opening_Offset]);
             }
             for (n=[-2, -1, 1, 2]){
             rotate([0, 0, Shuttle_Groove_Nub_Angle*n])
             translate([Shuttle_Arc_Radius+Shuttle_Groove_Depth, 0, -z])
-            cylinder(h=Shuttle_Rib_Thickness+2*z, r=Shuttle_Groove_Nub_Size, $fn=cylFn);
+            cylinder(h=Shuttle_Rib_Thickness+2*z, r=Shuttle_Groove_Nub_Size, $fn=Cyl_Fn);
             }
         }
     }
@@ -452,10 +452,10 @@ module PinSupportHull(){
     hull(){
         translate([0, -Shuttle_Square_Hole_Width/2, Shuttle_Pin_Support_Height])
         linear_extrude(z)
-        RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, cylFn);
-        translate([0-Shuttle_Pin_Support_Base_Length/2+Shuttle_Square_Hole_Length/2+Shuttle_Pin_Support_HeightOffset, -Shuttle_Pin_Support_Base_Width/2])
+        RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, Cyl_Fn);
+        translate([0-Shuttle_Pin_Support_Base_Length/2+Shuttle_Square_Hole_Length/2+Shuttle_Pin_Support_Height_Offset, -Shuttle_Pin_Support_Base_Width/2])
         linear_extrude(z)
-        RadiusSquare(Shuttle_Pin_Support_Base_Length, Shuttle_Pin_Support_Base_Width, Shuttle_Square_Hole_Radius, cylFn);
+        RadiusSquare(Shuttle_Pin_Support_Base_Length, Shuttle_Pin_Support_Base_Width, Shuttle_Square_Hole_Radius, Cyl_Fn);
     }
 }
 
@@ -472,8 +472,8 @@ module PinSupport(){
 
      //Inner Anvil ID clearance
         difference(){
-        cylinder(h=40, d=Anvil_ID+10, $fn=cylFn, center=true);
-        cylinder(h=41, r=Anvil_ID/2+.3, $fn=cylFn, center=true);
+        cylinder(h=40, d=Anvil_ID+10, $fn=Cyl_Fn, center=true);
+        cylinder(h=41, r=Anvil_ID/2+.3, $fn=Cyl_Fn, center=true);
         }
     }
 }
@@ -482,60 +482,60 @@ module PinSupportHole(){
     translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset, 0, 0])
     translate([0, -Shuttle_Square_Hole_Width/2, -z])
     linear_extrude(Shuttle_Height+z)
-    RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, cylFn);
+    RadiusSquare(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width, Shuttle_Square_Hole_Radius, Cyl_Fn);
 }
 
 module PinSupport2(){
     difference(){
         union(){
-        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, rib_bottomz+z])
+        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, Rib_Bottom_Z+z])
         rotate([180,0,0]){
-            cylinder(d=Shuttle_Pin_Support_Diameter, h=Shuttle_Pin_Support_Height2+z-Shuttle_Pin_Support_Chamfer, $fn=cylFn);
+            cylinder(d=Shuttle_Pin_Support_Diameter, h=Shuttle_Pin_Support_Height2+z-Shuttle_Pin_Support_Chamfer, $fn=Cyl_Fn);
             translate([0, 0, Shuttle_Pin_Support_Height2-Shuttle_Pin_Support_Chamfer-z])
-            cylinder(d1=Shuttle_Pin_Support_Diameter,d2=Shuttle_Pin_Support_Diameter-Shuttle_Pin_Support_Chamfer*2, h=Shuttle_Pin_Support_Chamfer+z, $fn=cylFn);
+            cylinder(d1=Shuttle_Pin_Support_Diameter,d2=Shuttle_Pin_Support_Diameter-Shuttle_Pin_Support_Chamfer*2, h=Shuttle_Pin_Support_Chamfer+z, $fn=Cyl_Fn);
         }
 
-        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, rib_bottomz+Shuttle_Rib_Thickness-z]){
-            cylinder(d=Shuttle_Pin_Support_Diameter, h=Shuttle_Pin_Support_Height2+z-Shuttle_Pin_Support_Chamfer-1, $fn=cylFn);
+        translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, Rib_Bottom_Z+Shuttle_Rib_Thickness-z]){
+            cylinder(d=Shuttle_Pin_Support_Diameter, h=Shuttle_Pin_Support_Height2+z-Shuttle_Pin_Support_Chamfer-1, $fn=Cyl_Fn);
             translate([0, 0, Shuttle_Pin_Support_Height2-Shuttle_Pin_Support_Chamfer-z-1])
-            cylinder(d1=Shuttle_Pin_Support_Diameter,d2=Shuttle_Pin_Support_Diameter-Shuttle_Pin_Support_Chamfer*2, h=Shuttle_Pin_Support_Chamfer+z, $fn=cylFn);
+            cylinder(d1=Shuttle_Pin_Support_Diameter,d2=Shuttle_Pin_Support_Diameter-Shuttle_Pin_Support_Chamfer*2, h=Shuttle_Pin_Support_Chamfer+z, $fn=Cyl_Fn);
         }
         }
 
         difference(){
-            cylinder(h=20, d=Anvil_ID+10, $fn=cylFn, center=true);
-            cylinder(h=21, r=Anvil_ID/2+.3, $fn=cylFn, center=true);
+            cylinder(h=20, d=Anvil_ID+10, $fn=Cyl_Fn, center=true);
+            cylinder(h=21, r=Anvil_ID/2+.3, $fn=Cyl_Fn, center=true);
         }
 
-    translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, rib_bottomz+z])
+    translate([Shuttle_Arc_Radius-Shuttle_Square_Hole_Offset+Shuttle_Square_Hole_Length/2, 0, Rib_Bottom_Z+z])
     rotate([180,0,0])
     translate([0, 0, Shuttle_Pin_Support_Height2])
-    sphere(d=Shuttle_Pin_Support_Diameter-Shuttle_Pin_Support_Chamfer*2-.5, $fn=cylFn);
+    sphere(d=Shuttle_Pin_Support_Diameter-Shuttle_Pin_Support_Chamfer*2-.5, $fn=Cyl_Fn);
     }
 }
 
 module ShuttleTaper(){
     for (a=[0,1]){
         b=[-z, Shuttle_Height-Shuttle_Rib_Plane];
-        c=[rib_bottomz+z+(Groove?2:0), 10];
+        c=[Rib_Bottom_Z+z+(Groove?2:0), 10];
         d=[-1,1];
         translate([0, 0, b[a]])
         linear_extrude(c[a])
-        polygon([[taper_inset_x, taper_inset_y], [taper_outset_x, taper_outset_y], (Shuttle_Arc_Radius-z)*[cos(angle_pitch*16+z), sin(angle_pitch*16+z)]]);
+        polygon([[Taper_Inset_X, Taper_Inset_Y], [Taper_Outset_X, Taper_Outset_Y], (Shuttle_Arc_Radius-z)*[cos(Angle_Pitch*16+z), sin(Angle_Pitch*16+z)]]);
         translate([0, 0, b[a]])
         linear_extrude(c[a])
-        polygon([[taper_inset_x, -taper_inset_y], [taper_outset_x, -taper_outset_y], (Shuttle_Arc_Radius-z)*[cos(angle_pitch*16+z), -sin(angle_pitch*16+z)]]);
+        polygon([[Taper_Inset_X, -Taper_Inset_Y], [Taper_Outset_X, -Taper_Outset_Y], (Shuttle_Arc_Radius-z)*[cos(Angle_Pitch*16+z), -sin(Angle_Pitch*16+z)]]);
     }
 }
 
 module Label(){
-    rotate([0, 0, angle_pitch*.25])
+    rotate([0, 0, Angle_Pitch*.25])
     translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, (Shuttle_Height-Shuttle_Height_Offset)/2])
     rotate([0, 90, 0])
     linear_extrude(2)
     text(text=Shuttle_Label1, size=Shuttle_Label_Size, font=Shuttle_Label_Font, halign="center", valign="baseline");
 
-    rotate([0, 0, -angle_pitch+angle_pitch*.25])
+    rotate([0, 0, -Angle_Pitch+Angle_Pitch*.25])
     translate([Shuttle_Arc_Radius+Shuttle_Thickness-Shuttle_Label_Depth, 0, (Shuttle_Height-Shuttle_Height_Offset)/2])
     rotate([0, 90, 0])
     linear_extrude(2)
@@ -548,61 +548,61 @@ module RodTip(){
     sphere(r=Resin_Support_Contact_Diameter/2);
 }
 
-xnotmath=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/3, x_max*2/3, x_max-Resin_Support_Contact_Diameter/2];
+X_Not_Math=[-X_Min+Resin_Support_Contact_Diameter/2,-X_Min*2/3, -X_Min*1/3, X_Max*1/3, X_Max*2/3, X_Max-Resin_Support_Contact_Diameter/2];
 
-xmath=[-x_min+Resin_Support_Contact_Diameter/2,-x_min*2/3, -x_min*1/3, x_max*1/4, x_max*2/4, x_max*3/4, x_max-Resin_Support_Contact_Diameter/2];
+X_Math=[-X_Min+Resin_Support_Contact_Diameter/2,-X_Min*2/3, -X_Min*1/3, X_Max*1/4, X_Max*2/4, X_Max*3/4, X_Max-Resin_Support_Contact_Diameter/2];
 
-xx=IsMath==0?xnotmath:xmath;
-xxx=IsMath==0?3:4;
+Xx=Is_Math==0?X_Not_Math:X_Math;
+Xxx=Is_Math==0?3:4;
 
 module VertResinSupport2(){
-    $fn=resinFn;
+    $fn=Resin_Fn;
     translate([0, 0, -Resin_Support_Min_Height-Resin_Support_Base_Thickness])
     union(){
         //Under Large Arc
-        thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+        thetamax=Angle_Pitch*32*PI/180-2*Shuttle_Taper*PI/180;
         thetaspacing=Resin_Support_Spacing/Shuttle_Arc_Radius;
         for (s=[-1,1]){
-            for (x=xx){
+            for (x=Xx){
 
                 //Under Shuttle Arc Radius
                 for (theta=[0:thetaspacing:thetamax/2]){
-                    translate([x, 0, -z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness])
+                    translate([x, 0, -Z_Offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness])
                     rotate([theta*180/PI*s, 0, ])
                     translate([0, 0, Shuttle_Arc_Radius-1])
                     RodTip();
                     y=(Shuttle_Arc_Radius-1)*cos(90+theta*180/PI*s);
                     za=(Shuttle_Arc_Radius-1)*sin(90+theta*180/PI*s);
-                    ConnectingRod([x, y, za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height], [x, y, Resin_Support_Rod_Thickness], Resin_Support_Rod_Thickness);
+                    ConnectingRod([x, y, za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height], [x, y, Resin_Support_Rod_Thickness], Resin_Support_Rod_Thickness);
                     translate([x, y, 0])
                     ResinRod (Resin_Support_Min_Height, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
 
                     //at the taper
-                    translate([x, 0, -z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness])
+                    translate([x, 0, -Z_Offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness])
                     rotate([thetamax/2*180/PI*s, 0, ])
                     translate([0, 0, Shuttle_Arc_Radius-1])
                     RodTip();
                     y1=(Shuttle_Arc_Radius-1)*cos(90+thetamax/2*180/PI*s);
                     z1=(Shuttle_Arc_Radius-1)*sin(90+thetamax/2*180/PI*s);
-                    ConnectingRod([x, y1, z1-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height], [x, y1-.5*-s, Resin_Support_Rod_Thickness], Resin_Support_Rod_Thickness);
+                    ConnectingRod([x, y1, z1-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height], [x, y1-.5*-s, Resin_Support_Rod_Thickness], Resin_Support_Rod_Thickness);
 
                     //Under Shuttle Arc ConRods
-                    if (abs(y)<=taper_inset_y-Resin_Support_Spacing)
+                    if (abs(y)<=Taper_Inset_Y-Resin_Support_Spacing)
                     for (n=[0,1]){
                     ConnectingRod(
-                        [[-x_min*2/3, x_max*(IsMath==0?2:3)/xxx][n],y,za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2],
-                        [[-(x_min-Resin_Support_Contact_Diameter/2), (x_max-Resin_Support_Contact_Diameter/2)][n],y,za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2-3],
+                        [[-X_Min*2/3, X_Max*(Is_Math==0?2:3)/Xxx][n],y,za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2],
+                        [[-(X_Min-Resin_Support_Contact_Diameter/2), (X_Max-Resin_Support_Contact_Diameter/2)][n],y,za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2-3],
                     Resin_Support_Rod_Thickness);
 
                     ConnectingRod(
-                        [[-x_min*1/3, x_max*1/xxx][n],y,za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2],
-                        [[-x_min*2/3, x_max*2/xxx][n],y,za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2-3],
+                        [[-X_Min*1/3, X_Max*1/Xxx][n],y,za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2],
+                        [[-X_Min*2/3, X_Max*2/Xxx][n],y,za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2-3],
                     Resin_Support_Rod_Thickness);
 
-                    if (IsMath==1){
+                    if (Is_Math==1){
                     ConnectingRod(
-                        [[-x_min*1/3, x_max*2/xxx][n],y,za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2],
-                        [[-x_min*2/3, x_max*3/xxx][n],y,za-z_offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2-3],
+                        [[-X_Min*1/3, X_Max*2/Xxx][n],y,za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2],
+                        [[-X_Min*2/3, X_Max*3/Xxx][n],y,za-Z_Offset+Resin_Support_Base_Thickness+Resin_Support_Min_Height-2-3],
                     Resin_Support_Rod_Thickness);
                     }
 
@@ -611,24 +611,24 @@ module VertResinSupport2(){
                     //Under Rib Supports
                     if (Groove==false){
                         //Under Rib - Radius
-                        if (abs(y)<=cp1x && abs(y)>cp2x){
-                            h=sqrt(Shuttle_Rib_Circle_Radius^2-(abs(y)-xprime)^2)+yprime-z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
+                        if (abs(y)<=Cp_1_X && abs(y)>Cp_2_X){
+                            h=sqrt(Shuttle_Rib_Circle_Radius^2-(abs(y)-X_Prime)^2)+Y_Prime-Z_Offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
                             translate([0, y,0])
                             ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter_Rib/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
                             if (h-1>=3+Resin_Support_Base_Thickness+Resin_Support_Min_Height)
-                                for (n=[-x_min*1/3,x_max*1/xxx])
+                                for (n=[-X_Min*1/3,X_Max*1/Xxx])
                                 ConnectingRod([0,y,h-1],[n,y,h-4],Resin_Support_Rod_Thickness);
 
                         }
 
                         //Under Rib - Center
-                        if (abs(y)<=cp2x){
-                        d=Shuttle_Rib_Circle_Offset-z_offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
+                        if (abs(y)<=Cp_2_X){
+                        d=Shuttle_Rib_Circle_Offset-Z_Offset+Resin_Support_Min_Height+Resin_Support_Base_Thickness;
                         h=d-(Shuttle_Rib_Circle^2-y^2)^.5+z;
                     translate([0, y,0])
                     ResinRod (h, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter_Rib/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
                     if (h-1>=3+Resin_Support_Base_Thickness+Resin_Support_Min_Height)
-                        for (n=[-x_min*1/3,x_max*1/xxx])
+                        for (n=[-X_Min*1/3,X_Max*1/Xxx])
                             ConnectingRod([0,y,h-1],[n,y,h-4],Resin_Support_Rod_Thickness);
                         }
 
@@ -639,43 +639,43 @@ module VertResinSupport2(){
 
         //Under Rib - Rib Thickness on Edges
         //Associated Variables
-        y_component_taper=(Shuttle_Arc_Radius+Shuttle_Taper_Step)*cos(90-angle_pitch*16);
-        z_component=(Shuttle_Taper_Step)*sin(90-angle_pitch*16);
-        y_component=(Shuttle_Arc_Radius)*cos(90-angle_pitch*16)-.3;
-        y_component_inner=y_component-Shuttle_Rib_Width*cos(90-angle_pitch*16)-.2;
+        y_component_taper=(Shuttle_Arc_Radius+Shuttle_Taper_Step)*cos(90-Angle_Pitch*16);
+        z_component=(Shuttle_Taper_Step)*sin(90-Angle_Pitch*16);
+        y_component=(Shuttle_Arc_Radius)*cos(90-Angle_Pitch*16)-.3;
+        y_component_inner=y_component-Shuttle_Rib_Width*cos(90-Angle_Pitch*16)-.2;
 
         //tall part
         if (Groove==false){
-            translate([0, -outerarcintercept+Resin_Support_EdgeGap, 0])
+            translate([0, -Outer_Arc_Intercept+Resin_Support_Edge_Gap, 0])
             ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter_Rib/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
 
-            translate([0, -innerarcintercept-Resin_Support_EdgeGap, 0])
+            translate([0, -Inner_Arc_Intercept-Resin_Support_Edge_Gap, 0])
             ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter_Rib/2, 0, Resin_Support_Buildplate_Radius);
 
             //tall part
-            translate([0, outerarcintercept-Resin_Support_EdgeGap, 0])
+            translate([0, Outer_Arc_Intercept-Resin_Support_Edge_Gap, 0])
             ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter_Rib/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
-            translate([0, innerarcintercept+Resin_Support_EdgeGap, 0])
+            translate([0, Inner_Arc_Intercept+Resin_Support_Edge_Gap, 0])
             ResinRod (Resin_Support_Min_Height+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter_Rib/2, 0, Resin_Support_Buildplate_Radius);
         }
 
         //Outer Edge Supports
-        for (x=xx){
+        for (x=Xx){
             translate([x, y_component_taper,0])
             ResinRod (Resin_Support_Min_Height+z_component+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
         }
 
-        for (x=xx){
+        for (x=Xx){
             translate([x, -y_component_taper,0])
             ResinRod (Resin_Support_Min_Height+z_component+Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, 0, Resin_Support_Buildplate_Radius);
         }
 
-        for (x=xx){
+        for (x=Xx){
             translate([x, y_component_taper,0])
             ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
         }
 
-        for (x=xx){
+        for (x=Xx){
             translate([x, -y_component_taper,0])
             ResinRod (Resin_Support_Base_Thickness, Resin_Support_Rod_Thickness/2, Resin_Support_Contact_Diameter/2, Resin_Support_Base_Thickness, Resin_Support_Buildplate_Radius);
         }
@@ -684,10 +684,10 @@ module VertResinSupport2(){
 }
 
 module HorizResinSupport(){
-    $fn=resinFn;
-    translate([-Shuttle_Arc_Radius*cos(angle_pitch*16),0,0])
-    rotate([0, 0, -angle_pitch*16])
-    rotate_extrude(angle=120, $fn=cylFn)
+    $fn=Resin_Fn;
+    translate([-Shuttle_Arc_Radius*cos(Angle_Pitch*16),0,0])
+    rotate([0, 0, -Angle_Pitch*16])
+    rotate_extrude(angle=120, $fn=Cyl_Fn)
     difference(){
         polygon([
         [Shuttle_Arc_Radius, -Resin_Support_Cut_Groove_Diameter-Resin_Support_Base_Thickness],//1
@@ -699,9 +699,9 @@ module HorizResinSupport(){
             ]);
         translate([Shuttle_Arc_Radius+Resin_Support_Cut_Groove_Diameter/2+Resin_Support_Cut_Groove_Min_Thickness, -Resin_Support_Cut_Groove_Diameter/2]){
             hull(){
-                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=cylFn);
+                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cyl_Fn);
                 translate([2, 0, -Resin_Support_Cut_Groove_Diameter/2])
-                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=cylFn);
+                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cyl_Fn);
             }
         }
     }
@@ -736,8 +736,8 @@ module RibbedShuttle(){
 }
 
 module ResinChamfer(){
-    $fn=cylFn;
-    cylinder(r1=Anvil_OD/2+SupportGrooveR, r2=Anvil_OD/2, h=SupportGrooveR);
+    $fn=Cyl_Fn;
+    cylinder(r1=Anvil_OD/2+Support_Groove_R, r2=Anvil_OD/2, h=Support_Groove_R);
 }
 
 module GroovedShuttle(){
@@ -760,7 +760,7 @@ module GroovedShuttle(){
 module VertResinPrint2(){
     union(){
         rotate([0, -90, 0])
-        translate([-Shuttle_Arc_Radius*cos(angle_pitch*16), 0, -x_max])
+        translate([-Shuttle_Arc_Radius*cos(Angle_Pitch*16), 0, -X_Max])
         if (Groove==false)
         RibbedShuttle();
         else
@@ -772,11 +772,11 @@ module VertResinPrint2(){
 
 module HorizResinPrint(){
     union(){
-        translate([-Shuttle_Arc_Radius*cos(angle_pitch*16), 0, 0])
+        translate([-Shuttle_Arc_Radius*cos(Angle_Pitch*16), 0, 0])
         GroovedShuttle();
-        translate([-Shuttle_Arc_Radius*cos(angle_pitch*16),0,0])
-        rotate([0, 0, -angle_pitch*16])
-        rotate_extrude(angle=120, $fn=cylFn)
+        translate([-Shuttle_Arc_Radius*cos(Angle_Pitch*16),0,0])
+        rotate([0, 0, -Angle_Pitch*16])
+        rotate_extrude(angle=120, $fn=Cyl_Fn)
         difference(){
             polygon([
             [Shuttle_Arc_Radius, -Resin_Support_Cut_Groove_Diameter-Resin_Support_Base_Thickness],//1
@@ -788,31 +788,31 @@ module HorizResinPrint(){
                 ]);
             translate([Shuttle_Arc_Radius+Resin_Support_Cut_Groove_Diameter/2+Resin_Support_Cut_Groove_Min_Thickness, -Resin_Support_Cut_Groove_Diameter/2])
             hull(){
-                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=cylFn);
+                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cyl_Fn);
                 translate([2, 0, -Resin_Support_Cut_Groove_Diameter/2])
-                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=cylFn);
+                circle(d=Resin_Support_Cut_Groove_Diameter, $fn=Cyl_Fn);
             }
         }
     }
 }
 
 module ResinRod2(h){
-    $fn=resinFn;
+    $fn=Resin_Fn;
     union(){
         translate([0, 0, -2-Resin_Support_Base_Thickness])
         cylinder(r1=Resin_Support_Buildplate_Radius, r2=Resin_Support_Buildplate_Radius+Resin_Support_Base_Thickness, h=Resin_Support_Base_Thickness);
         translate([0, 0, -Resin_Support_Base_Thickness-2])
-        cylinder(d=Resin_Support_Rod_Thickness, h=h+Resin_Support_Base_Thickness-Resin_Support_Contact_Diameter/2+TipInterference);
-        translate([0, 0, h-2-Resin_Support_Contact_Diameter/2+TipInterference])
+        cylinder(d=Resin_Support_Rod_Thickness, h=h+Resin_Support_Base_Thickness-Resin_Support_Contact_Diameter/2+Tip_Interference);
+        translate([0, 0, h-2-Resin_Support_Contact_Diameter/2+Tip_Interference])
         cylinder(d1=Resin_Support_Rod_Thickness, d2=Resin_Support_Contact_Diameter, h=2);
-        translate([0, 0, h-Resin_Support_Contact_Diameter/2+TipInterference])
+        translate([0, 0, h-Resin_Support_Contact_Diameter/2+Tip_Interference])
         sphere(d=Resin_Support_Contact_Diameter);
     }
 }
 
 module HorizResinSupport2(){
-    $fn=resinFn;
-    translate([-z_offset, 0, 0])
+    $fn=Resin_Fn;
+    translate([-Z_Offset, 0, 0])
     union(){
         //Outer Supports
         for (theta=[-60:120/22:60])
@@ -833,11 +833,11 @@ module HorizResinSupport2(){
         ResinRod2(0);
 
         for (s=[-1,1])
-        for (y=innerarcintercept)
-        translate([z_offset,s*y, 0])
+        for (y=Inner_Arc_Intercept)
+        translate([Z_Offset,s*y, 0])
         ResinRod2(Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness);
 
-        thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+        thetamax=Angle_Pitch*32*PI/180-2*Shuttle_Taper*PI/180;
         thetaspacing=Resin_Support_Spacing/Shuttle_Arc_Radius;
 
         for (s=[-1,1])
@@ -846,21 +846,21 @@ module HorizResinSupport2(){
             y=(Shuttle_Arc_Radius-1)*cos(90+theta*180/PI*s);
 
             //Under Rib - Outer
-            if (abs(y)>cp1x && abs(y)<=innerarcintercept){
+            if (abs(y)>Cp_1_X && abs(y)<=Inner_Arc_Intercept){
                 x=sqrt((Shuttle_Arc_Radius-Shuttle_Rib_Width)^2-y^2);
             translate([x, y,0])
                 ResinRod2(Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness);
             }
 
             //Under Rib - Radius
-            if (abs(y)<=cp1x && abs(y)>cp2x){
-                x=sqrt(Shuttle_Rib_Circle_Radius^2-(abs(y)-xprime)^2)+yprime;
+            if (abs(y)<=Cp_1_X && abs(y)>Cp_2_X){
+                x=sqrt(Shuttle_Rib_Circle_Radius^2-(abs(y)-X_Prime)^2)+Y_Prime;
                 translate([x, y,0])
                 ResinRod2 (Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness);
             }
 
             //Under Rib - Center
-            if (abs(y)<=cp2x){
+            if (abs(y)<=Cp_2_X){
                 d=Shuttle_Rib_Circle_Offset;
                 x=d-(Shuttle_Rib_Circle^2-y^2)^.5+z;
             translate([x, y,0])
@@ -900,7 +900,7 @@ module HorizResinSupport2(){
 
 module HorizResinPrint2(){
     union(){
-    translate([-z_offset, 0, 0])
+    translate([-Z_Offset, 0, 0])
     translate([0, 0, Shuttle_Height])
         rotate([180, 0, 0])
         RibbedShuttle();
@@ -912,8 +912,8 @@ module HorizResinPrint2(){
 }
 
 module HorizGroovedResin(){
-    thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
-    translate([-z_offset, 0, 0])
+    thetamax=Angle_Pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+    translate([-Z_Offset, 0, 0])
     union(){
         GroovedShuttle();
                 //Outer Supports
@@ -930,16 +930,16 @@ module HorizGroovedResin(){
         ResinRod2(0);
 
         for (theta=[60-atan(Resin_Support_Contact_Diameter/Anvil_OD),-60+atan(Resin_Support_Contact_Diameter/Anvil_OD)])
-        for (xxx=[Anvil_OD/2+Shuttle_Taper_Step+Resin_Support_Contact_Diameter/2, Anvil_OD/2+Shuttle_Thickness-Resin_Support_Contact_Diameter/2])
+        for (Xxx=[Anvil_OD/2+Shuttle_Taper_Step+Resin_Support_Contact_Diameter/2, Anvil_OD/2+Shuttle_Thickness-Resin_Support_Contact_Diameter/2])
         rotate([0, 0, theta])
-        translate([xxx, 0, 0])
+        translate([Xxx, 0, 0])
         ResinRod2(0);
     }
 }
 
 module HorizGroovedResin2(){
-    thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
-    translate([-z_offset, 0, 0])
+    thetamax=Angle_Pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+    translate([-Z_Offset, 0, 0])
     union(){
         GroovedShuttle();
         difference(){
@@ -953,8 +953,8 @@ module HorizGroovedResin2(){
 }
 
 module HorizGroovedResin3(){
-    thetamax=angle_pitch*32*PI/180-2*Shuttle_Taper*PI/180;
-    translate([-z_offset, 0, 0])
+    thetamax=Angle_Pitch*32*PI/180-2*Shuttle_Taper*PI/180;
+    translate([-Z_Offset, 0, 0])
     union(){
         rotate([180, 0, 0])
         translate([0, 0, -Shuttle_Height])
@@ -979,10 +979,10 @@ module Resin2Profile(){
         [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius, -Resin_Support_Min_Height-Resin_Support_Base_Thickness],
         [Shuttle_Thickness/2-Resin_Support_Buildplate_Radius-Resin_Support_Base_Thickness, -Resin_Support_Min_Height],
         [0, -Resin_Support_Min_Height]]);
-        translate([Shuttle_Thickness, -SupportGrooveR, 0])
-        circle(r=SupportGrooveR, $fn=resinFn);
-        translate([0, -SupportGrooveR, 0])
-        circle(r=SupportGrooveR, $fn=resinFn);
+        translate([Shuttle_Thickness, -Support_Groove_R, 0])
+        circle(r=Support_Groove_R, $fn=Resin_Fn);
+        translate([0, -Support_Groove_R, 0])
+        circle(r=Support_Groove_R, $fn=Resin_Fn);
     }
 }
 
@@ -998,10 +998,10 @@ module Resin3Profile(){
         [0, -Resin_Support_Min_Height]]);
 
         hull(){
-            translate([0, -SupportGrooveR+z, 0])
-            circle(r=SupportGrooveR, $fn=resinFn);
-            translate([-SupportGrooveR+Shuttle_Thickness-SupportGrooveThickness, -SupportGrooveR+z, 0])
-            circle(r=SupportGrooveR, $fn=resinFn);
+            translate([0, -Support_Groove_R+z, 0])
+            circle(r=Support_Groove_R, $fn=Resin_Fn);
+            translate([-Support_Groove_R+Shuttle_Thickness-Support_Groove_Thickness, -Support_Groove_R+z, 0])
+            circle(r=Support_Groove_R, $fn=Resin_Fn);
         }
     }
 }

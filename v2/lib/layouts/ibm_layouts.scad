@@ -4,7 +4,7 @@
 //lib/layouts/bennett_layouts.scad: the CUSTOM entry point (CUSTOMCASES88)
 //stays in ibm.scad itself (matching Bennett's CUSTOMLAYOUT staying local),
 //so this file must be included AFTER CUSTOMCASES88 is defined. Also needs
-//S12_88_LANGUAGE, COMPOSER_LANGUAGE, and RENDER_MODE defined first (all in
+//S12_88_Language, Composer_Language, and Render_Mode defined first (all in
 //ibm.scad, earlier in the file).
 
 /* [ Hidden] */
@@ -42,7 +42,7 @@ S12_US_HEMISPHERE88=S12_LC_HEMISPHERE88_US;//I dont think hemisphere positions f
 
 ALL_S12=[S12_US, CUSTOMCASES88];
 
-S12CASES88=ALL_S12[S12_88_LANGUAGE];
+S12CASES88=ALL_S12[S12_88_Language];
 
 //SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
 ////lowercase selectric 3 layout on machine; left to right, top to bottom
@@ -178,7 +178,7 @@ C_LA=[LOWERCASECOMPOSER_LA,UPPERCASECOMPOSER_LA];
 
 ALL_C=[C_US, C_UK, C_NO, C_DE, C_LA, CUSTOMCASES88];
 
-COMPOSERCASES88=ALL_C[COMPOSER_LANGUAGE];
+COMPOSERCASES88=ALL_C[Composer_Language];
 
 
 
@@ -188,7 +188,7 @@ ALL88CASES=[COMPOSERCASES88, S12CASES88];
 
 
 //set keyboard layout for character mapping
-CASES88=ALL88CASES[RENDER_MODE];
+CASES88=ALL88CASES[Render_Mode];
 
 //keyboard string
 KBSTRING=str(CASES88[0], CASES88[1]);
@@ -214,7 +214,7 @@ COMPOSER_HEMISPHERE_MAP = [[6], [9], [3], [4], [21], [2], [20], [10], [8], [7], 
 ////all hemisphere layouts
 ALL88HEMIS=[COMPOSER_HEMISPHERE_MAP, S12_HEMISPHERE_MAP];
 
-HEMISPHERE_MAP=ALL88HEMIS[RENDER_MODE];
+HEMISPHERE_MAP=ALL88HEMIS[Render_Mode];
 
 //echo(HEMISPHERE_MAP);
 //create latitude, longitude integer array for one hemisphere
