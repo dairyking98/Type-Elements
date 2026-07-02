@@ -17,6 +17,15 @@ Preview → Render → Export STL.
 - debug / no minkowski: render element without embossing (faster)
 - preview / render / export: typical OpenSCAD workflow
 
+## Documentation
+
+- [Machine specifications](docs/machine-specs.md) — all dimensions and calibrated values per machine
+- [Glyph pipeline](docs/glyph-pipeline.md) — how characters are rendered, draft angles, platen cutout, CharLegend
+- [Resin support systems](docs/resin-supports.md) — CutGroove, rod geometry, per-machine support placement
+- [Calibration procedures](docs/calibration.md) — sweep tests, debugging symptoms, procedure order
+- [IBM Composer](docs/ibm-composer.md) — proportional unit system, hemisphere mapping, Composer vs Selectric
+- [Refactoring plan](docs/refactoring-plan.md) — shared library architecture, extraction order, old vs new code style
+
 ## SCAD files by directory
 The following directories contain machine-specific type elements:
 - Bennett
