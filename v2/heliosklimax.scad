@@ -49,9 +49,8 @@ Surface_Fn = $preview ? 60 : 360;
 /* [Render Parameters] */
 //render something?
 Render=false;
-//Speedy Preview and Render with No Minkowski
-Debug_No_Minkowski=true;
-Mink_On=!Debug_No_Minkowski;
+//turn minkowski on
+Mink_On=false;
 //Helios's original cone (r1=0,r2=.75,h=1.5) already matched Blick2/Postal's
 //r1=0,r2=X convention (unlike Bennett/Mignon's reversed r1=X,r2=0) - still
 //not a calibrated dimension, uses the shared angle-derived formula.

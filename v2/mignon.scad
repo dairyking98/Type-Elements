@@ -49,9 +49,8 @@ Resin_Fn=20;
 //assert(false,...)" gate (per docs/glyph-pipeline.md's V1/V2 pattern note) -
 //switched to the same Render=false; boolean gate Bennett/Blick2/Postal use.
 Render=false;
-//Speedy Preview and Render with No Minkowski
-Debug_No_Minkowski=true;
-Mink_On=!Debug_No_Minkowski;
+//turn minkowski on
+Mink_On=false;
 //Mignon's original cone (r1=.75*6,r2=0,h=6) was never a calibrated dimension -
 //uses the shared angle-derived formula instead, same draft angle as Blick2/
 //Postal since Mignon never had its own draft-angle concept.
@@ -297,7 +296,7 @@ module ElementLabel(){
         minkowski(){
             linear_extrude(.09)
             text(text=Cylinder_Label[n], size=Cylinder_Label_Size, font=Cylinder_Label_Font, valign="baseline", halign="center");
-            if (Debug_No_Minkowski!=true)
+            if (Mink_On==true)
             scale([1,1,3])
             sphere(r=.05);
         }

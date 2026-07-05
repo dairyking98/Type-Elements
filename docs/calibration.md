@@ -118,7 +118,7 @@ Cross-sections the element at angle `XSECTION_THETA`. Verify platen cutout depth
 3. Record and lock `coreIDOffset` in `.json`
 
 ### Step 2: Drive pin fit
-1. Print test element with `Debug_No_Minkowski=true`
+1. Print test element with `Mink_On=false`
 2. Check drive pin slot engages without forcing
 3. Adjust `drivePinWidthOffset` (typically 0.10–0.20 mm)
 

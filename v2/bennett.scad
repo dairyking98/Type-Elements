@@ -46,10 +46,8 @@ Alignment_Hole_Fn=40;
 /* [Render Parameters] */
 //render something?
 Render=false;
-//Speedy Preview and Render with No Minkowski
-Debug_No_Minkowski=true;
-//Mink_On: Bennett's Debug_No_Minkowski is the same toggle, opposite polarity.
-Mink_On=!Debug_No_Minkowski;
+//turn minkowski on
+Mink_On=false;
 //Bennett's original cone (r1=.75,r2=0,h=1) was never a calibrated dimension -
 //uses the shared angle-derived formula instead, same draft angle as Blick2/
 //Postal since Bennett never had its own draft-angle concept.

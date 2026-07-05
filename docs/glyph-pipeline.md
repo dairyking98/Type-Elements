@@ -86,7 +86,7 @@ Minkowski-summing the glyph solid with an upward-pointing cone adds a taper to e
 
 The cone tip points toward the cylinder center (downward in glyph-local coords), so the draft tapers toward the typing face.
 
-**Performance:** `Debug_No_Minkowski=true` / `MINKOWSKI_OFF=true` skips this step entirely. Preview is fast; geometry is accurate except for missing draft angle. Always work in this mode unless checking the final taper.
+**Performance:** `Mink_On=false` skips this step entirely. Preview is fast; geometry is accurate except for missing draft angle. Always work in this mode unless checking the final taper.
 
 `mink_fn` (typically 10–20) controls cone polygon count. Higher = rounder cone = smoother draft = slower render.
 

@@ -289,3 +289,16 @@ renders manifold with zero errors post-migration, and isolated
 `ResinSupport()` renders + mid-part cross-sections were checked visually to
 confirm every rod still reaches its target contact point with no floating
 gaps.
+
+### `Mink_On` naming unified across all v2 machines
+
+Bennett/Mignon/Helios Klimax each carried a leftover `Debug_No_Minkowski`
+boolean (`Debug_No_Minkowski=true; Mink_On=!Debug_No_Minkowski;`) - two names
+for the same toggle, inconsistent with Blickensderfer2/Postal/IBM/Hammond/
+`hammond_split.scad`, which all declare `Mink_On=false;` directly. Collapsed
+to the single name everywhere: same default (`false`), same behavior.
+Mignon's `ElementLabel()` had one other live reference
+(`if (Debug_No_Minkowski!=true)`), updated to the equivalent
+`if (Mink_On==true)`. `docs/glyph-pipeline.md` and `docs/calibration.md`'s
+mentions of the old name updated to match. Verified byte-identical STL
+output before/after for all three machines.
