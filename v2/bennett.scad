@@ -279,14 +279,30 @@ Core_Chamfer_Top=false;
 
 include <lib/core_shaft.scad>
 
-module ResinRod (h,  dr, dc, t,db){
-cylinder(h=h-1,d=dr);
-translate([0,0,h-1])
-cylinder(h=1, d2=dc, d1=dr);
-cylinder(h=t,d2=2.4*.5+2*t,d1=2.4);
-translate([0, 0, h])
-sphere(d=dc);
-}
+/* [Resin lib wiring] */
+//Bennett's own Resin_Support_* knobs, mapped onto the canonical names
+//lib/resin_rod.scad's shared ResinRod() expects.
+Resin_Rod_OD=Resin_Support_Wire_Thickness;
+Resin_Tip_OD=Resin_Support_Contact_Point_Diameter;
+//previously accepted but unused (dead `db` param on the old local ResinRod) -
+//now actually wired up to the shared primitive's raft diameter.
+Resin_Raft_OD=Resin_Support_Buildplate_Diameter;
+//matches the old local ResinRod's hardcoded 1mm cone taper segment.
+Resin_Tip_L=1;
+//faithful port: the old local ResinRod centered its tip sphere AT z=h
+//(translate([0,0,h]) sphere(d=dc)), so the sphere's actual apex sat at
+//h+dc/2, not h - matching that requires an inset of exactly dc/2 here
+//(the lib's apex is at h+Resin_Inset).
+Resin_Inset=Resin_Support_Contact_Point_Diameter/2;
+//Bennett builds its own raft/groove ring directly in ResinSupport() below
+//(same role as Postal's own raft), so the shared primitive's per-rod raft
+//is disabled and its base datum pinned to local z=0, matching where
+//Bennett's own raft ring already sits.
+Resin_Rod_Raft=false;
+Resin_Min_Rod_Height=0;
+Resin_Raft_Thickness=0;
+
+include <lib/resin_rod.scad>
 
 module Cylinder(){
     cylinder(h=Element_Height,d=Element_Diameter, $fn=Surface_Fn);
@@ -420,17 +436,17 @@ $fn=Resin_Fn;
         for (n=[0:1:7]){
             theta=360/8*n;
             translate([(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*cos(theta),(Countersink_Diameter+Resin_Support_Wire_Thickness)/2*sin(theta),0]){
-            ResinRod (Resin_Support_Height, Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+            ResinRod (Resin_Support_Height);
             }
             translate([Countersink_Diameter*cos(theta)/3,Countersink_Diameter*sin(theta)/3,0]){
-            ResinRod (Resin_Support_Height+Pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Countersink_Diameter/3), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+            ResinRod (Resin_Support_Height+Pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Countersink_Diameter/3));
             }
         }
         //Create Inner Ring of 4 Supports
         for (n=[0:1:3]){
             theta=90*n;
             translate([(Shaft_Diameter/2+1)*cos(theta),(Shaft_Diameter/2+1)*sin(theta),0]){
-                ResinRod (Resin_Support_Height+Pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Shaft_Diameter/2+1), Resin_Support_Wire_Thickness, Resin_Support_Contact_Point_Diameter, Resin_Support_Thickness, Resin_Support_Buildplate_Diameter);
+                ResinRod (Resin_Support_Height+Pyramidzoffset+Top_Countersink_Depth-(2/Countersink_Diameter)*(Shaft_Diameter/2+1));
             }
         }
     }

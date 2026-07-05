@@ -245,6 +245,26 @@ include <lib/glyph_pipeline.scad>
 //at all - its shaft bore is a plain rotate_extrude() polygon (HollowBody
 //below), so lib/core_shaft.scad is NOT included here. Nothing to bridge.
 
+/* [Resin lib wiring] */
+//Mignon's own Resin_Support_* knobs, mapped onto the canonical names
+//lib/resin_rod.scad's shared ResinRod() expects.
+Resin_Rod_OD=Resin_Support_Wire_Thickness;
+Resin_Tip_OD=Resin_Support_Contact_Point_Diameter;
+//matches the old inline rod's hardcoded 1mm cone tip segment.
+Resin_Tip_L=1;
+//faithful port: the old inline rod had zero embed/overlap at the tip.
+Resin_Inset=0;
+//Mignon's raft is its own separate rotate_extrude ring built directly in
+//ResinSupport() below (same reasoning as Bennett), so the shared
+//primitive's per-rod raft is disabled and its base datum pinned to local
+//z=0, matching where Mignon's own raft ring already sits.
+Resin_Rod_Raft=false;
+Resin_Min_Rod_Height=0;
+Resin_Raft_Thickness=0;
+Resin_Raft_OD=Resin_Rod_OD; //unused since Resin_Rod_Raft=false, defined for clarity only
+
+include <lib/resin_rod.scad>
+
  module regular_polygon(order,SomeCylinder_Diameter){
      angles=[ for (i = [0:order-1]) i*(360/order) ];
      coords=[ for (th=angles) [SomeCylinder_Diameter/2*cos(th), SomeCylinder_Diameter/2*sin(th)] ];
@@ -322,18 +342,12 @@ translate([0,0,-Resin_Support_Height+z]){
             for (n=[0:1:11]){
                 r1=(Element_Diameter+Cylinder_Bottom_Shaft_Diameter)/4-.1;
                 theta=360/12*n+360/12;
-                translate([r1*cos(theta),r1*sin(theta),1]){
-                    cylinder(h=Resin_Support_Height-2+Cylinder_Top_Height_Offset,d=Resin_Support_Wire_Thickness);
-                    translate([0,0,Resin_Support_Height-2+Cylinder_Top_Height_Offset])
-                    cylinder(h=1, d2=Resin_Support_Contact_Point_Diameter, d1=Resin_Support_Wire_Thickness);
-                }
+                translate([r1*cos(theta),r1*sin(theta),0])
+                ResinRod(Resin_Support_Height+Cylinder_Top_Height_Offset);
                 r2=(Cylinder_Top_Shaft_Diameter+Cylinder_Top_Diameter)/4;
-                translate([r2*cos(theta+360/24),r2*sin(theta+360/24),1]){
-                    if (n%2==0){
-                        cylinder(h=-2+Resin_Support_Height,d=Resin_Support_Wire_Thickness);
-                        translate([0,0,-2+Resin_Support_Height])
-                        cylinder(h=1, d2=Resin_Support_Contact_Point_Diameter, d1=Resin_Support_Wire_Thickness);
-                    }
+                translate([r2*cos(theta+360/24),r2*sin(theta+360/24),0])
+                if (n%2==0){
+                    ResinRod(Resin_Support_Height);
                 }
             }
         }

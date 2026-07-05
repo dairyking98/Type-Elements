@@ -20,11 +20,17 @@ comment.
   per-machine equivalence notes (numeric verification for Bennett's platen
   cutout, algebraic verification for Helios, structural-analogy verification
   for Hammond's placement/baseline axis mapping).
-- `resin_support.scad` — Blickensderfer2/Postal's `ResinRod`/`CutGroove`/
-  `SpeedHoleSupport`/`DrivePinSupport`/`BottomSupports` system. Not shared by
-  Bennett/Mignon/Helios/IBM/Hammond, whose resin-support geometry is
-  genuinely different (see `docs/resin-supports.md`) and stays local to each
-  v2 file.
+- `resin_support.scad` — Blickensderfer2/Postal's `CutGroove`/
+  `SpeedHoleSupport`/`DrivePinSupport`/`BottomSupports` placement system
+  (the single-rod primitive itself now lives in `resin_rod.scad`, see below).
+  Not shared by Helios/IBM/Hammond, whose resin-support geometry is genuinely
+  different (see `docs/resin-supports.md`) and stays local to each v2 file.
+- `resin_rod.scad` — the universal single resin-support-rod shape (`hull()`
+  tapered tip + `hull()` capsule shaft + optional raft frustum), split out of
+  `resin_support.scad` so machines with their own placement pattern can still
+  reuse the one rod primitive. `resin_support.scad` includes it internally,
+  so Blickensderfer2/Postal need no changes. Bennett and Mignon now include
+  it directly (see below) - see `docs/resin-supports.md`.
 - `core_shaft.scad` — Blickensderfer2/Postal/Bennett's core-groove/chamfer
   system (`SecondaryCore`, `CoreGrooves`, `CoreChamfer`, `CoreEllipses`).
   Mignon and Helios Klimax have no equivalent groove system.
@@ -242,3 +248,44 @@ Still not independently re-verified beyond "renders without error/warning":
   accepted by structural analogy rather than a from-scratch numeric
   derivation - turning `Mink_On=true` renders without error, but the actual
   taper shape against the original hasn't been compared point-by-point
+
+### Bennett/Mignon migrated onto the shared `ResinRod()` primitive
+
+Bennett and Mignon each hand-rolled their own resin-support-rod shape
+(Bennett: flat cylinder shaft + 1mm cone taper + sphere tip + a base cone
+flare with a `db` buildplate-diameter parameter that was accepted but never
+actually used, the flare was hardcoded to `2.4` instead; Mignon: cylinder
+shaft + 1mm cone tip ending in a flat disk, no sphere at all). Both were
+already structurally close to Blickensderfer2/Postal's shared `ResinRod(h)`
+(`lib/resin_rod.scad`, split out of `resin_support.scad` above), so this was
+a faithful port of the rod shape only - each machine's own rod *placement*
+(Bennett's 2 outer rings + 1 inner ring with a `Pyramidzoffset` curvature
+correction; Mignon's 2 interleaved 12-fold rings) stays local, since neither
+matches Blick/Postal's speed-hole/sloped-floor placement system.
+
+Both wire `Resin_Rod_Raft=false`/`Resin_Min_Rod_Height=0`/
+`Resin_Raft_Thickness=0` since each already builds its own separate raft/
+groove ring directly in `ResinSupport()` - same override pattern Postal
+already uses for the same reason. Bennett's previously-dead `db` parameter
+(`Resin_Support_Buildplate_Diameter`) is now actually wired to
+`Resin_Raft_OD`, though it goes unused while `Resin_Rod_Raft=false`.
+
+One real discrepancy caught mid-migration: Bennett's original centered its
+tip sphere directly *at* z=h (`translate([0,0,h]) sphere(d=dc)`), so the
+sphere's true apex sat at `h+dc/2`, not `h`. A first pass set
+`Resin_Inset=0` (a "faithful port"), which actually under-reached the
+original by `dc/2` (~0.35mm) - fixed by setting
+`Resin_Inset=Resin_Support_Contact_Point_Diameter/2` instead, which restores
+the exact original apex height. Confirmed by re-rendering: the STL's genus
+(a coarse topology fingerprint) matched Bennett's pre-migration baseline
+exactly (89) once fixed, versus 81 with the `Resin_Inset=0` mistake. Mignon
+needed no such correction - its original tip was a flat disk with zero
+embed, exactly matching `Resin_Inset=0`.
+
+Verified with `openscad-nightly`: Blickensderfer2/Postal's resin-print STL
+is byte-for-byte identical before/after the `resin_rod.scad` split (the
+placement lib's behavior is untouched). Bennett/Mignon's full resin-print
+renders manifold with zero errors post-migration, and isolated
+`ResinSupport()` renders + mid-part cross-sections were checked visually to
+confirm every rod still reaches its target contact point with no floating
+gaps.

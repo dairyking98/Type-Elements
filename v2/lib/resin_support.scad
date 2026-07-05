@@ -1,18 +1,20 @@
-//Shared Resin Support System (v2.0 lib) - cylinder machines only (Blick/Postal)
-//Extracted from Blickensderfer2.scad / Postal.scad. Per docs/resin-supports.md
-//this pattern (CutGroove breakaway, bottomZ sloped-surface calc) is specific
-//to the cylinder machine family - do not include this from Hammond/IBM, which
-//keep their own angle-aware rod systems.
+//Shared Resin Support placement system (v2.0 lib) - cylinder machines only
+//(Blick/Postal). Extracted from Blickensderfer2.scad / Postal.scad. Per
+//docs/resin-supports.md this pattern (CutGroove breakaway, bottomZ
+//sloped-surface calc) is specific to the cylinder machine family - do not
+//include this from Hammond/IBM, which keep their own angle-aware rod
+//systems. The single-rod primitive itself (ResinRod()) lives in
+//resin_rod.scad (included below) since it's universal - Bennett/Mignon
+//include just that file directly, without this placement layer.
 //
 //Include this AFTER the machine file has defined its own globals, same rule
 //as glyph_pipeline.scad.
 //
-//Required from including machine file:
-//  z, Resin_Fn, Surface_Fn
+//Required from including machine file (beyond resin_rod.scad's own list):
+//  Surface_Fn
 //  Element_Diameter, Shaft_Diameter, Core_Chamfer, Core_Bottom_Offset, Wall_Min_Thickness, Wall_Chamfer
 //  Speed_Hole_Qty, Speed_Hole_Radial, Speed_Hole_ID
-//  Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD, Resin_Inset, Resin_Min_Rod_Height,
-//  Resin_Raft_OD, Resin_Raft_Thickness, Resin_Groove_OD, Resin_Groove_Thickness
+//  Resin_Groove_OD, Resin_Groove_Thickness
 //
 //Optional (lib supplies a default if the machine file leaves these undefined):
 //  Resin_Rod_Raft            - whether ResinRod() grows its own small raft disk.
@@ -36,29 +38,14 @@
 //                            near-core rod in BottomSupports(). Default .5
 //                            (Blickensderfer2). Postal uses 0.
 
+include <resin_rod.scad>
+
 //function for obtaining z height of radial point X on the bottom sloped
 //section of the element
 Bottom_Slope=Core_Bottom_Offset/((Shaft_Diameter/2+Wall_Min_Thickness+Wall_Chamfer)-(Element_Diameter/2-Wall_Min_Thickness-Wall_Chamfer));
 Bottom_Z_Offset=-Bottom_Slope*(Shaft_Diameter/2+Wall_Min_Thickness+Wall_Chamfer)+Core_Bottom_Offset;
 function bottomZ(X)=Bottom_Slope*X+Bottom_Z_Offset;
 function bottomX(Z)=(Z-Bottom_Z_Offset)/Bottom_Slope;
-
-module ResinRod(h){
-    $fn=Resin_Fn;
-    _raft = is_undef(Resin_Rod_Raft) ? true : Resin_Rod_Raft;
-    hull(){
-        translate([0, 0, -Resin_Tip_OD/2+Resin_Inset+h]){
-            sphere(d=Resin_Tip_OD);
-            translate([0, 0, -Resin_Tip_L])
-            sphere(d=Resin_Rod_OD);
-        }
-        translate([0, 0, -Resin_Min_Rod_Height-Resin_Raft_Thickness+Resin_Rod_OD/2+z])
-        sphere(d=Resin_Rod_OD);
-    }
-    if (_raft)
-    translate([0, 0, -Resin_Min_Rod_Height-Resin_Raft_Thickness])
-    cylinder(d1=Resin_Raft_OD, d2=Resin_Raft_OD+1*Resin_Raft_Thickness, h=Resin_Raft_Thickness);
-}
 
 module CutGroove(){
     $fn=Surface_Fn;
