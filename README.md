@@ -48,31 +48,31 @@ still opens/renders exactly as before.
 - [hammond_split.scad](v2/hammond_split.scad)
 
 ## v1 SCAD files by directory
-The following directories contain the original machine-specific type elements:
+The following directories (now under `v1/`) contain the original machine-specific type elements:
 - Bennett
-  - [BennettElement.scad](Bennett/BennettElement.scad)
-  - [BennettLayouts.scad](Bennett/BennettLayouts.scad)
+  - [BennettElement.scad](v1/Bennett/BennettElement.scad)
+  - [BennettLayouts.scad](v1/Bennett/BennettLayouts.scad)
 - Blickensderfer
-  - [Blickensderfer2.scad](Blickensderfer/Blickensderfer2.scad)
-  - [BlickensderferElement.scad](Blickensderfer/BlickensderferElement.scad)
-  - [HebrewBlickensderferElement.scad](Blickensderfer/HebrewBlickensderferElement.scad)
+  - [Blickensderfer2.scad](v1/Blickensderfer/Blickensderfer2.scad)
+  - [BlickensderferElement.scad](v1/Blickensderfer/BlickensderferElement.scad)
+  - [HebrewBlickensderferElement.scad](v1/Blickensderfer/HebrewBlickensderferElement.scad)
 - Hammond
-  - [GalgolicHammondShuttle.scad](Hammond/GalgolicHammondShuttle.scad)
-  - [HammondIndex.scad](Hammond/HammondIndex.scad)
-  - [HammondShuttle.scad](Hammond/HammondShuttle.scad)
-  - [HammondSplitShuttle.scad](Hammond/HammondSplitShuttle.scad)
-  - [HammondSplitShuttle2.scad](Hammond/HammondSplitShuttle2.scad)
+  - [GalgolicHammondShuttle.scad](v1/Hammond/GalgolicHammondShuttle.scad)
+  - [HammondIndex.scad](v1/Hammond/HammondIndex.scad)
+  - [HammondShuttle.scad](v1/Hammond/HammondShuttle.scad)
+  - [HammondSplitShuttle.scad](v1/Hammond/HammondSplitShuttle.scad)
+  - [HammondSplitShuttle2.scad](v1/Hammond/HammondSplitShuttle2.scad)
 - HeliosKlimax
-  - [HeliosKlimaxElement.scad](HeliosKlimax/HeliosKlimaxElement.scad)
-  - [HeliosKlimaxTester.scad](HeliosKlimax/HeliosKlimaxTester.scad)
-  - [imagetest.scad](HeliosKlimax/imagetest.scad)
+  - [HeliosKlimaxElement.scad](v1/HeliosKlimax/HeliosKlimaxElement.scad)
+  - [HeliosKlimaxTester.scad](v1/HeliosKlimax/HeliosKlimaxTester.scad)
+  - [imagetest.scad](v1/HeliosKlimax/imagetest.scad)
 - IBM
-  - [IBM2.scad](IBM/IBM2.scad)
+  - [IBM2.scad](v1/IBM/IBM2.scad)
 - Mignon
-  - [MignonCylinder.scad](Mignon/MignonCylinder.scad)
-  - [MignonIndex.scad](Mignon/MignonIndex.scad)
-  - [MignonIndexLayouts.scad](Mignon/MignonIndexLayouts.scad)
+  - [MignonCylinder.scad](v1/Mignon/MignonCylinder.scad)
+  - [MignonIndex.scad](v1/Mignon/MignonIndex.scad)
+  - [MignonIndexLayouts.scad](v1/Mignon/MignonIndexLayouts.scad)
 - Postal
-  - [Postal.scad](Postal/Postal.scad)
+  - [Postal.scad](v1/Postal/Postal.scad)
 
 
