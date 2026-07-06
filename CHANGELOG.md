@@ -411,3 +411,30 @@ ring's clocking can be tuned independently of the teeth geometry itself -
 unchanged. Verified Composer/Selectric I-II still render byte-identical
 (both offsets default to 0, so behavior is unchanged unless one is tuned
 away from the other going forward).
+
+### Fixed: Bennett's resin rods had no raft (regression from the ResinRod migration)
+
+`v2/bennett.scad`'s `Resin lib wiring` set `Resin_Rod_Raft=false` on the
+assumption that `ResinSupport()`'s own big raft/groove ring (a
+`rotate_extrude` at `Element_Diameter/2`, the very outer edge) already
+covered every rod. It doesn't - the middle ring (`Countersink_Diameter/3`)
+and inner ring (`Shaft_Diameter/2+1`) sit well inside that radius and never
+touch it, so disabling the shared primitive's per-rod raft left every rod
+in those two rings with a bare bottom and no anchor to the build plate at
+all. The old local `ResinRod` (before the migration) had its own small
+per-rod base flare for exactly this reason - removing it was the actual
+regression, not a cleanup.
+
+Fixed by re-enabling `Resin_Rod_Raft=true` and giving it a real
+`Resin_Raft_Thickness` (was `0`, which degenerates the raft `cylinder()` to
+zero height even when enabled). Uses `Resin_Support_Thickness` (already an
+exposed Bennett customizer parameter) for the taper rather than reproducing
+the old formula's disconnected hardcoded literal exactly - a couple tenths
+of a mm difference at the default thickness, immaterial for a print
+support. `Resin_Raft_OD` reverts to the old hardcoded `2.4` base diameter
+instead of the `Resin_Support_Buildplate_Diameter` it was wired to during
+the migration - that parameter was truly dead/unused in the original code
+(the `db` argument was accepted but ignored, so its old default of `1.2`
+was never actually the real base diameter), and wiring it up changed the
+effective size without evidence that was intended. Verified visually:
+every rod (outer, middle, and inner rings) now has its own raft foot.

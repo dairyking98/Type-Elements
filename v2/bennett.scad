@@ -282,9 +282,6 @@ include <lib/core_shaft.scad>
 //lib/resin_rod.scad's shared ResinRod() expects.
 Resin_Rod_OD=Resin_Support_Wire_Thickness;
 Resin_Tip_OD=Resin_Support_Contact_Point_Diameter;
-//previously accepted but unused (dead `db` param on the old local ResinRod) -
-//now actually wired up to the shared primitive's raft diameter.
-Resin_Raft_OD=Resin_Support_Buildplate_Diameter;
 //matches the old local ResinRod's hardcoded 1mm cone taper segment.
 Resin_Tip_L=1;
 //faithful port: the old local ResinRod centered its tip sphere AT z=h
@@ -292,13 +289,21 @@ Resin_Tip_L=1;
 //h+dc/2, not h - matching that requires an inset of exactly dc/2 here
 //(the lib's apex is at h+Resin_Inset).
 Resin_Inset=Resin_Support_Contact_Point_Diameter/2;
-//Bennett builds its own raft/groove ring directly in ResinSupport() below
-//(same role as Postal's own raft), so the shared primitive's per-rod raft
-//is disabled and its base datum pinned to local z=0, matching where
-//Bennett's own raft ring already sits.
-Resin_Rod_Raft=false;
+//Bennett's own big raft/groove ring in ResinSupport() below only reaches
+//the outer edge (Element_Diameter/2) - the middle and inner rod rings sit
+//much closer to center and never touch it. The old local ResinRod gave
+//every rod its own small base flare (hardcoded d1=2.4, tapering to
+//d2=1.2+2*Resin_Support_Thickness) for exactly this reason - disabling it
+//during the migration (assuming the big ring covered everything) was wrong
+//and left the middle/inner rods with no raft at all. Restored, using
+//Resin_Support_Thickness (already an exposed Bennett parameter) for the
+//taper instead of the old formula's disconnected literal - same idea, a
+//couple tenths of a mm different at the default thickness, immaterial for
+//a print support's actual job.
+Resin_Rod_Raft=true;
+Resin_Raft_OD=2.4;
 Resin_Min_Rod_Height=0;
-Resin_Raft_Thickness=0;
+Resin_Raft_Thickness=Resin_Support_Thickness;
 
 include <lib/resin_rod.scad>
 
