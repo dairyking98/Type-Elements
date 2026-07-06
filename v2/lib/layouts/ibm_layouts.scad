@@ -7,8 +7,7 @@
 //S12_88_Language, Composer_Language, and Render_Mode defined first (all in
 //ibm.scad, earlier in the file).
 
-/* [ Hidden] */
-//Character Mapping - Selectric I/II 88char
+/* [Character Mapping - Selectric I/II] */
 
 //lowercase selectric 1/2 layout on machine; left to right, top to bottom
 LOWERCASE88_US="
@@ -44,7 +43,8 @@ ALL_S12=[S12_US, CUSTOMCASES88];
 
 S12CASES88=ALL_S12[S12_88_Language];
 
-//Character Mapping - Selectric III 96char. Source: the reference repo
+/* [Character Mapping - Selectric III] */
+//Source: the reference repo
 //https://github.com/selectricrescueatx/TypeElements (SelectricElement96.scad,
 //CC BY 4.0, Dave Hayden/Steve Malikoff)'s LOWER_CASE/UPPER_CASE + charmap96 -
 //see CHANGELOG.md for the derivation. Supersedes an earlier abandoned draft
@@ -92,8 +92,7 @@ S3_US_HEMISPHERE96=S3_LC_HEMISPHERE96;//same reasoning as S12_US_HEMISPHERE88 - 
 //hardcoded result of [for (i=[0:len(LOWERCASE96_US)-1]) search(LOWERCASE96_US[i], S3_LC_HEMISPHERE96)] - computed once with openscad-nightly, same as S12_HEMISPHERE_MAP below.
 S3_HEMISPHERE_MAP = [[35], [37], [4], [10], [7], [3], [6], [2], [8], [9], [5], [36], [23], [40], [26], [17], [29], [16], [42], [21], [14], [28], [41], [34], [46], [31], [15], [27], [43], [45], [33], [39], [20], [44], [12], [13], [0], [32], [18], [24], [19], [30], [25], [47], [38], [11], [1], [22]];
 
-/* [ Hidden ] */
-// Character Mapping - Composer 88char
+/* [Character Mapping - Composer] */
 
 //uppercase composer layout on machine; left to right, top to bottom
 

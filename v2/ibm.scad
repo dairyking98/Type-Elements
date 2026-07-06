@@ -303,8 +303,7 @@ Snoot_Droop_Compensation=.42;//.01
 
 
 
-/* [ Hidden ] */
-//Typeball Dimensions
+/* [Typeball Dimensions] */
 
 //sphere diameter
 Sphere_OD=33.4;
@@ -393,8 +392,7 @@ Del_Base_From_Centre = 8.2;
 //Label deboss depth
 Del_Depth = 0.6;
 
-/* [ Hidden ] */
-//Character Polar Positioning Offsets
+/* [Character Polar Positioning Offsets] */
 
 //individual baseline adjustment angles
 Baseline_Longitude_Offsets=[0, 0, 0, 0];//.05
@@ -703,10 +701,15 @@ module HollowProfile3(){
     square([Boss_Step+z, Boss_To_Center+Boss_Clearance]);
 }
 
-//detent tooth profile
+//detent tooth profile. Narrowed for render modes with more teeth per row
+//than the 22 this profile was tuned for (e.g. Selectric III's 24) - same
+//reasoning and ratio as the reference repo's own
+//scale([1.0,88/96,1.0]) on this identical polygon, generalized to this
+//codebase's per-mode Chars_Per_Row_All instead of a hardcoded 88/96.
 module Tooth(){
     translate([0, Detent_Valley_To_Center, -Floor-z])
     rotate([180, -90, 0])
+    scale([1, Chars_Per_Row_All[1]/Chars_Per_Row_All[Render_Mode], 1])
     {
         // notch between teeth must be big enough to trap detent
         linear_extrude(30)
