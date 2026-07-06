@@ -398,3 +398,16 @@ comparison didn't show obvious tooth overlap even without this fix, but a
 thin overlap is easy to miss visually and would still silently fuse in the
 boolean union, so the reference repo's own established fix was applied
 rather than relying on that inconclusive visual check.
+
+### `Resin_Detent_Clock_Offset`: decoupled from `Detent_Skirt_Clock_Offset`
+
+The tooth-width narrowing above shifts each tooth's angular position
+slightly, which also nudged `ResinRodAssemble()`'s "detent teeth supports"
+resin rod ring, since it shared `Detent_Skirt_Clock_Offset` (the actual
+teeth geometry's clock alignment) for its own placement. Added a separate
+`Resin_Detent_Clock_Offset` (default 0, same as before) so the resin rod
+ring's clocking can be tuned independently of the teeth geometry itself -
+`Drive_Notch_Theta` and `Teeth()` still use `Detent_Skirt_Clock_Offset`
+unchanged. Verified Composer/Selectric I-II still render byte-identical
+(both offsets default to 0, so behavior is unchanged unless one is tuned
+away from the other going forward).

@@ -360,6 +360,11 @@ Drive_Notch_Theta_=131.0;//.01
 Detent_Valley_To_Center=6;
 //detent teeth clock offset
 Detent_Skirt_Clock_Offset=0;//.01
+//resin support rod clock offset for the detent-teeth ring, independent from
+//Detent_Skirt_Clock_Offset - the rod attachment points don't necessarily
+//need to track the actual teeth geometry's clocking 1:1, and moved slightly
+//when the tooth width was narrowed for Selectric III's tighter spacing.
+Resin_Detent_Clock_Offset=0;//.01
 //modeled boss to center value
 Boss_To_Center=Boss_To_Center_+Snoot_Droop_Compensation;
 
@@ -785,7 +790,7 @@ module ResinRodAssemble(){
     for (i=[0:Chars_Per_Row_All[Render_Mode]-1])
 
         //detent teeth supports
-        rotate([0, 0, i*Longitude_Step+Detent_Skirt_Clock_Offset])
+        rotate([0, 0, i*Longitude_Step+Resin_Detent_Clock_Offset])
         translate([(Skirt_Bottom_OD+Inside_ID)/4, 0, 0])
         ResinRod(0, 0, Tip_D);
     
