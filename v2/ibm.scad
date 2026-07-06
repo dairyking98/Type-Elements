@@ -56,7 +56,7 @@ $fn=44;
 //Render something
 Render=false;
 //Render selection
-Render_Mode=0;//[0:Composer (88char), 1:Selectric I/II (88char)]
+Render_Mode=0;//[0:Composer (88char), 1:Selectric I/II (88char), 2:Selectric III (96char)]
 //Render variant
 Render_Variant=0;//[0:plain, 1:resin print top up, 2:type test]
 //Turn on minkowski
@@ -184,8 +184,10 @@ Font="Arial";
 Font_Size=2.4;//.05
 // Composer font Cap Height in points, use instead of Font_Size!
 Composer_Cap_Height=7;
-//all font sizes
-All_Font_Sizes=[Composer_Cap_Height/2.834, Font_Size];
+//all font sizes (Selectric III reuses Selectric I/II's Font_Size as a
+//starting default - both are direct point-size, not Composer's cap-height
+//convention - tune via Font_Size directly if Selectric III needs its own)
+All_Font_Sizes=[Composer_Cap_Height/2.834, Font_Size, Font_Size];
 //global font size
 Font_Size_Selected=All_Font_Sizes[Render_Mode];
 //secondary element typeface
@@ -194,8 +196,9 @@ Font2="Times New Roman";
 Font2_Size=2.4;//.05
 // Composer font 2 Cap Height in points, use instead of Font_Size!
 Composer2_Cap_Height=7;
-//all font2 sizes
-All_Font2_Sizes=[Composer2_Cap_Height/2.834, Font2_Size];
+//all font2 sizes (Selectric III reuses Selectric I/II's Font2_Size as a
+//starting default, same reasoning as All_Font_Sizes above)
+All_Font2_Sizes=[Composer2_Cap_Height/2.834, Font2_Size, Font2_Size];
 //global font2 size
 Font2_Size_Selected=All_Font2_Sizes[Render_Mode];
 //list of chars to adopt font2 parameters
@@ -223,16 +226,17 @@ Y_Pos_Offset_Composer=-1.30;//1.01;//.01
 X_Pos_Offset_S12=0;//.01
 //y vert alignment offset for selectric 1/2
 Y_Pos_Offset_S12=-1.5;
-//all y offsets
-All_Y_Offsets=[Y_Pos_Offset_Composer, Y_Pos_Offset_S12];
+//all y offsets (Selectric III reuses Selectric I/II's offset as a starting
+//default - same class of machine/typeface convention, tunable if wrong)
+All_Y_Offsets=[Y_Pos_Offset_Composer, Y_Pos_Offset_S12, Y_Pos_Offset_S12];
 //all x offsets
-All_X_Offsets=[X_Pos_Offset_Composer, X_Pos_Offset_S12];
+All_X_Offsets=[X_Pos_Offset_Composer, X_Pos_Offset_S12, X_Pos_Offset_S12];
 //global y offset
 Y_Pos_Offset=All_Y_Offsets[Render_Mode];
 //global x offset
 X_Pos_Offset=All_X_Offsets[Render_Mode];
 //all h alignments
-All_H_Alignments=["left", "center"];
+All_H_Alignments=["left", "center", "center"];
 //h alignment 
 H_Alignment=Cutout_Test==true?"center":All_H_Alignments[Render_Mode];
 
@@ -285,8 +289,10 @@ Boss_Step=0;//.1
 Platen_OD_C=43;
 //platen diameter selectric 1/2
 Platen_OD_S12=36;
-//platen diameter
-Platen_OD=Render_Mode==0?Platen_OD_C:Platen_OD_S12;
+//platen diameter (Selectric III reuses Selectric I/II's platen - same class
+//of typewriter platen, tunable via Platen_OD_S12 if it turns out different)
+Platen_OD_All=[Platen_OD_C, Platen_OD_S12, Platen_OD_S12];
+Platen_OD=Platen_OD_All[Render_Mode];
 //drive notch width
 Drive_Notch_Width=1.06;//.01
 //drive notch height
@@ -319,16 +325,36 @@ Boss_To_Center_=2.5;//leo's calculated value. dave's was 2.38 (calculated);
 Top_Flat_R=(Sphere_R^2-Top_Flat_To_Center^2)^.5;
 //center to detent teeth tips of element
 Floor=10.7;//abs(Top_Flat_To_Center-ELEMENT_OAT) = 10.7;
-//angle between characters
-Latitude_Spacing=360/22;
+//Selectric III (96char) added a third render mode alongside Composer/
+//Selectric I-II - both of the following are now indexed [Composer,
+//Selectric I/II, Selectric III] rather than a single flat 88-char value.
+//chars per row/hemisphere-ring (Composer and Selectric I/II are both 4
+//rows of 22; Selectric III is 4 rows of 24 per docs.google-cited reference
+//https://github.com/selectricrescueatx/TypeElements SelectricElement96.scad)
+Chars_Per_Row_All=[22, 22, 24];
+//total characters (4 rows x Chars_Per_Row_All)
+Total_Chars_All=[88, 88, 96];
+//hemisphere columns per row (half of Chars_Per_Row_All - upper/lowercase
+//sit on opposite hemispheres, 180 degrees apart)
+Hemisphere_Cols_Per_Row_All=[11, 11, 12];
+//angle between characters around a ring (this is a LONGITUDE quantity -
+//renamed from the previous Latitude_Spacing, which was backwards: rotating
+//around the ring changes longitude, not latitude)
+Longitude_Step=360/Chars_Per_Row_All[Render_Mode];
 //skirt top OD
 Skirt_Top_OD=32.3;
 //skirt bottom OD
 Skirt_Bottom_OD=30.2;
 //overall thickness of element
 //echo(str(Floor+Top_Flat_To_Center, " (modeled) = 21.7 (measured)? Leo's measured overall thickness?"));
-//angle between rows
-Longitude_Spacing=[32.8, 16.4, 0, -16.4];
+//tilt angle of each of the 4 rows from the equator (this is a LATITUDE
+//quantity - renamed from the previous Longitude_Spacing, which was
+//backwards: this is each row's elevation from the equator, not a
+//longitude). Shared across all 3 render modes (same physical ball for
+//Composer/Selectric I-II; Selectric III reuses these exact measured values
+//rather than the reference repo's own [31.1, 15.7, 0, -15.7] - both are
+//close, these are the ones that have been measured/tuned here).
+Row_Latitudes=[32.8, 16.4, 0, -16.4];
 //drive notch theta from arrow
 Drive_Notch_Theta_=131.0;//.01
 //detent valley from center
@@ -398,7 +424,7 @@ Roof=Top_Flat_To_Center-Top_Flat_Thickness;
 
 //Selectric I/II and Composer language layouts, hemisphere maps, and the
 //language/mode selection logic that combines them (CASES88, HEMISPHERE_MAP,
-//LATITUDE_LONGITUDE, etc.) all moved to lib/layouts/ibm_layouts.scad - pure
+//LONGITUDE_LATITUDE, etc.) all moved to lib/layouts/ibm_layouts.scad - pure
 //data plus straightforward combining logic, no geometry. Needs CUSTOMCASES88
 //(above), S12_88_Language, Composer_Language, and Render_Mode already
 //defined, which they are by this point in the file.
@@ -445,9 +471,9 @@ Web_OD=Top_Flat_R*2-2;
 
 //rays
 module Rays(){
-    for (lat=[0:21])
-    for (long=[0:3])
-    rotate([0, Longitude_Spacing[long], lat*Latitude_Spacing])
+    for (col=[0:Chars_Per_Row_All[Render_Mode]-1])
+    for (row=[0:3])
+    rotate([0, Row_Latitudes[row], col*Longitude_Step])
     rotate([0, -90, 0])
     #cylinder(r=.1, h=20);
 }
@@ -477,17 +503,17 @@ module Text(char, font, size, customhalign, customvalign){
 }
 
 //platen cutout
-module PlatenCutout(latitude, longitude,platendia){
+module PlatenCutout(longitude, latitude,platendia){
             platenr=platendia/2;
-            rotate([0, -longitude, latitude])
+            rotate([0, -latitude, longitude])
             translate([Sphere_R+platenr+Type_Altitude, 0, 0])
             rotate([90, 0, 0])
             cylinder(d=platendia, h=10, center=true, $fn=Cyl_Fn);        
 }
 
 //position extruded character
-module PositionText(latitude, longitude){
-    rotate([90 - longitude, 0, 90 + latitude])
+module PositionText(longitude, latitude){
+    rotate([90 - latitude, 0, 90 + longitude])
     translate([0, 0, Sphere_R+z])
     children();
 //    linear_extrude(6)
@@ -495,17 +521,17 @@ module PositionText(latitude, longitude){
 }
 
 ////minkowski single character
-//module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle){
+//module SingleMinkowski(char, font, size, customhalign, customvalign, longitude, latitude, plat_offset, base_offset, minklongoffset, draft_angle){
 //    minkowski(){
 //        difference(){
-//            PositionText(latitude, longitude+base_offset)
+//            PositionText(longitude, latitude+base_offset)
 //            linear_extrude(6)
 //            Text(char, font, size, customhalign, customvalign);
-//            PlatenCutout(latitude, longitude+plat_offset);
+//            PlatenCutout(longitude, latitude+plat_offset);
 //            
 //        }
 //        if (Mink_On==true){
-//            rotate([90 - longitude, 0, 90 + latitude])
+//            rotate([90 - latitude, 0, 90 + longitude])
 //            hull(){
 //                translate([0, 0, -2])
 //                cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=Mink_Fn);
@@ -520,26 +546,26 @@ module PositionText(latitude, longitude){
 //}
 //SingleMinkowski("A", "Courier New", 3, 0, 0, 0, 0, 0, 0, 0, 65);
 //minkowski single character
-module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset, base_offset, minklongoffset, draft_angle,platendia){
+module SingleMinkowski(char, font, size, customhalign, customvalign, longitude, latitude, plat_offset, base_offset, minklongoffset, draft_angle,platendia){
     union(){
     if (Mink_Flat==true){
     difference(){
-        PositionText(latitude, longitude+base_offset)
+        PositionText(longitude, latitude+base_offset)
         linear_extrude(6)
         Text(char, font, size, customhalign, customvalign);
-        PlatenCutout(latitude, longitude+plat_offset,platendia);
+        PlatenCutout(longitude, latitude+plat_offset,platendia);
         }
         }
     minkowski(){
         difference(){
-        PositionText(latitude, longitude+base_offset)
+        PositionText(longitude, latitude+base_offset)
         linear_extrude(6)
         Text(char, font, size, customhalign, customvalign);
-        PlatenCutout(latitude, longitude+plat_offset,platendia);
+        PlatenCutout(longitude, latitude+plat_offset,platendia);
         
     }
         if (Mink_On==true){
-            rotate([90 - longitude, 0, 90 + latitude])
+            rotate([90 - latitude, 0, 90 + longitude])
             hull(){
                 translate([0, 0, -2-Minkowski_Flat_Offset])
                 cylinder(r1=MINK_TEXT_R(draft_angle), d2=0, h=2, $fn=Mink_Fn);
@@ -556,62 +582,70 @@ module SingleMinkowski(char, font, size, customhalign, customvalign, latitude, l
     }
 }
 
+//always-US reference layouts (independent of Composer_Language/
+//S12_88_Language custom selection) - used only for the debug echo's
+//"US KB Char" column below, so it stays a stable reference regardless of
+//which language/custom layout is actually active.
+All_US_Cases=[C_US, S12_US, S3_US];
+
 //cutout test console output array
  //[ Element Row, Element Column, US KB Char, Cutout Offset Value, Draft Angle, Mink Long Offset]
-Char_Info = [for (case_int=[0:1]) for (hemi_int=[0:43]) [
-    (LATITUDE_LONGITUDE[hemi_int][1]), 
-    (LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing),
-    (Render_Mode==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int]),
-    Cutout_Test?(Cutout_Test_Angle_Array[(LATITUDE_LONGITUDE[hemi_int][0]*Latitude_Spacing+case_int*180)/Latitude_Spacing]):Platen_Longitude_Offsets[LATITUDE_LONGITUDE[hemi_int][1]],
-    Draft_Angle_Test?Draft_Angle_Test_Array[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing)]:Mink_Draft_Angle,
-    Mink_Long_Offset_Test?Mink_Long_Offset_Test_Array[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing)]:Minkowski_Longitudinal_Offsets[LATITUDE_LONGITUDE[hemi_int][1]],Platen_Diameter_Test?Platen_Diameter_Test_Array[(LATITUDE_LONGITUDE[hemi_int][0]+case_int*180/Latitude_Spacing)]:Platen_OD,
+Char_Info = [for (case_int=[0:1]) for (hemi_int=[0:Hemisphere_Cols_Per_Row_All[Render_Mode]*4-1]) [
+    (LONGITUDE_LATITUDE[hemi_int][1]),
+    (LONGITUDE_LATITUDE[hemi_int][0]+case_int*180/Longitude_Step),
+    (All_US_Cases[Render_Mode][case_int][hemi_int]),
+    Cutout_Test?(Cutout_Test_Angle_Array[(LONGITUDE_LATITUDE[hemi_int][0]*Longitude_Step+case_int*180)/Longitude_Step]):Platen_Longitude_Offsets[LONGITUDE_LATITUDE[hemi_int][1]],
+    Draft_Angle_Test?Draft_Angle_Test_Array[(LONGITUDE_LATITUDE[hemi_int][0]+case_int*180/Longitude_Step)]:Mink_Draft_Angle,
+    Mink_Long_Offset_Test?Mink_Long_Offset_Test_Array[(LONGITUDE_LATITUDE[hemi_int][0]+case_int*180/Longitude_Step)]:Minkowski_Longitudinal_Offsets[LONGITUDE_LATITUDE[hemi_int][1]],Platen_Diameter_Test?Platen_Diameter_Test_Array[(LONGITUDE_LATITUDE[hemi_int][0]+case_int*180/Longitude_Step)]:Platen_OD,
  ]];
 
-Char_Info_Row_Sorted = [for (row=[0:3]) for (char=[0:87]) if (Char_Info[char][0]==row) [row, Char_Info[char][1], Char_Info[char][2], Char_Info[char][3], Char_Info[char][4], Char_Info[char][5],Char_Info[char][6]]];
+Char_Info_Row_Sorted = [for (row=[0:3]) for (char=[0:Total_Chars_All[Render_Mode]-1]) if (Char_Info[char][0]==row) [row, Char_Info[char][1], Char_Info[char][2], Char_Info[char][3], Char_Info[char][4], Char_Info[char][5],Char_Info[char][6]]];
 
-Char_Info_Row_Col_Sorted = [for (row=[0:3]) for (latitude=[0:21])  for (n=[0:87]) if (Char_Info[n][1]==latitude && Char_Info[n][0]==row)  [Char_Info[n][0], Char_Info[n][1], Char_Info[n][2], Char_Info[n][3], Char_Info[n][4], Char_Info[n][5],Char_Info[n][6]]];
+Char_Info_Row_Col_Sorted = [for (row=[0:3]) for (longitude=[0:Chars_Per_Row_All[Render_Mode]-1])  for (n=[0:Total_Chars_All[Render_Mode]-1]) if (Char_Info[n][1]==longitude && Char_Info[n][0]==row)  [Char_Info[n][0], Char_Info[n][1], Char_Info[n][2], Char_Info[n][3], Char_Info[n][4], Char_Info[n][5],Char_Info[n][6]]];
+
+All_Render_Mode_Labels=["US Composer", "US Selectric1/2", "US Selectric3"];
 
 module ConsoleCutout(){
-    for (i=[0:87])
-    echo(str(Render_Mode==0?"US Composer":"US Selectric1/2", " KB char = ", Char_Info_Row_Col_Sorted[i][2], " on row ", Char_Info_Row_Col_Sorted[i][0], " and latitude ", Char_Info_Row_Col_Sorted[i][1], " ––– cutout offset: ", Char_Info_Row_Col_Sorted[i][3], " ––– draft angle: ", Char_Info_Row_Col_Sorted[i][4], " ––– mink long offset: ", Char_Info_Row_Col_Sorted[i][5], " ––– platen diameter: ",Char_Info_Row_Col_Sorted[i][6]));
+    for (i=[0:Total_Chars_All[Render_Mode]-1])
+    echo(str(All_Render_Mode_Labels[Render_Mode], " KB char = ", Char_Info_Row_Col_Sorted[i][2], " on row ", Char_Info_Row_Col_Sorted[i][0], " and longitude ", Char_Info_Row_Col_Sorted[i][1], " ––– cutout offset: ", Char_Info_Row_Col_Sorted[i][3], " ––– draft angle: ", Char_Info_Row_Col_Sorted[i][4], " ––– mink long offset: ", Char_Info_Row_Col_Sorted[i][5], " ––– platen diameter: ",Char_Info_Row_Col_Sorted[i][6]));
 }
 
 //assemble minkowski characters
 module AssembleMinkowski(){
-    rotate([0, 0, -5*Latitude_Spacing])
+    rotate([0, 0, -5*Longitude_Step])
     for (case_int=[0:1])
-    for (hemi_int=[0:43]){
-    
+    for (hemi_int=[0:Hemisphere_Cols_Per_Row_All[Render_Mode]*4-1]){
+
         char=CASES88[case_int][hemi_int];
-        uskbchar=Render_Mode==0?C_US[case_int][hemi_int]:S12_US[case_int][hemi_int];
-        latitude=LATITUDE_LONGITUDE[hemi_int][0]*Latitude_Spacing+case_int*180;
-        longitude=Longitude_Spacing[LATITUDE_LONGITUDE[hemi_int][1]];
+        uskbchar=All_US_Cases[Render_Mode][case_int][hemi_int];
+        longitude=LONGITUDE_LATITUDE[hemi_int][0]*Longitude_Step+case_int*180;
+        latitude=Row_Latitudes[LONGITUDE_LATITUDE[hemi_int][1]];
         
-        plat_offset_test=Cutout_Test==true?Cutout_Test_Angle_Array[latitude/Latitude_Spacing]:0;
-        draft_angle=Draft_Angle_Test==true?Draft_Angle_Test_Array[latitude/21]:Mink_Draft_Angle;
+        plat_offset_test=Cutout_Test==true?Cutout_Test_Angle_Array[longitude/Longitude_Step]:0;
+        draft_angle=Draft_Angle_Test==true?Draft_Angle_Test_Array[longitude/21]:Mink_Draft_Angle;
         //mink_long_offset_test
         
 //        if (Cutout_Test==true){
-//            //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LATITUDE_LONGITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
+//            //echo (str("united states keyboard char = ", uskbchar, " , element row = ", LONGITUDE_LATITUDE[hemi_int][1], " (0=top, 3=bottom), platen cutout offset = ", plat_offset_test, " degrees"));
 //        }
             
-        plat_offset=Cutout_Test==false?Platen_Longitude_Offsets[LATITUDE_LONGITUDE[hemi_int][1]]:0;
-        base_offset=Baseline_Longitude_Offsets[LATITUDE_LONGITUDE[hemi_int][1]];
+        plat_offset=Cutout_Test==false?Platen_Longitude_Offsets[LONGITUDE_LATITUDE[hemi_int][1]]:0;
+        base_offset=Baseline_Longitude_Offsets[LONGITUDE_LATITUDE[hemi_int][1]];
         font=search(char, Font2_Chars)==[]?Font:Font2;
         size=search(char, Font2_Chars)==[]?Font_Size_Selected:Font2_Size_Selected;
         customhalign=search(char, CUSTOMHALIGNCHARS)==[]?0:CUSTOMHALIGNOFFSET;
         customvalign=search(char, CUSTOMVALIGNCHARS)==[]?0:CUSTOMVALIGNOFFSET;
-        minklongoffset=Mink_Long_Offset_Test==false?Minkowski_Longitudinal_Offsets[LATITUDE_LONGITUDE[hemi_int][1]]:Mink_Long_Offset_Test_Array[latitude/21];
-        platendia=Platen_Diameter_Test==true?Platen_Diameter_Test_Array[latitude/21]:Platen_OD;
+        minklongoffset=Mink_Long_Offset_Test==false?Minkowski_Longitudinal_Offsets[LONGITUDE_LATITUDE[hemi_int][1]]:Mink_Long_Offset_Test_Array[longitude/21];
+        platendia=Platen_Diameter_Test==true?Platen_Diameter_Test_Array[longitude/21]:Platen_OD;
         //echo(platendia);
         
         if (Selective_Render==true && search(char, Selective_Render_Chars)!= [])
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset, minklongoffset, draft_angle,platendia);
+        SingleMinkowski(char, font, size, customhalign, customvalign, longitude, latitude, plat_offset+plat_offset_test, base_offset, minklongoffset, draft_angle,platendia);
         
         else if (Selective_Render==true && search(char, Selective_Render_Chars)== []) {}
         
         else
-        SingleMinkowski(char, font, size, customhalign, customvalign, latitude, longitude, plat_offset+plat_offset_test, base_offset,minklongoffset, draft_angle,platendia);
+        SingleMinkowski(char, font, size, customhalign, customvalign, longitude, latitude, plat_offset+plat_offset_test, base_offset,minklongoffset, draft_angle,platendia);
     }
    
 }
@@ -680,10 +714,11 @@ module Tooth(){
     }
 }
 
-//detent teeth profile
+//detent teeth profile - one tooth per character index position (24 for
+//Selectric III instead of 22, a real mechanical count, not cosmetic)
 module Teeth(){
-    for (i=[0:22-1])
-    rotate([0, 0, i*Latitude_Spacing])
+    for (i=[0:Chars_Per_Row_All[Render_Mode]-1])
+    rotate([0, 0, i*Longitude_Step])
     Tooth();
 }
 
@@ -744,10 +779,10 @@ module ResinRod(h, a1, d){
 
 //assemble resin support rods
 module ResinRodAssemble(){
-    for (i=[0:22-1])
-    
+    for (i=[0:Chars_Per_Row_All[Render_Mode]-1])
+
         //detent teeth supports
-        rotate([0, 0, i*Latitude_Spacing+Detent_Skirt_Clock_Offset])
+        rotate([0, 0, i*Longitude_Step+Detent_Skirt_Clock_Offset])
         translate([(Skirt_Bottom_OD+Inside_ID)/4, 0, 0])
         ResinRod(0, 0, Tip_D);
     
@@ -903,7 +938,7 @@ module Render(){
             if (Render_Variant==2){
                 if (Render_Mode==0)
                     TextGaugeComposerLine2(KBSTRING, Unit_Dist);
-                if (Render_Mode==1)
+                if (Render_Mode==1 || Render_Mode==2)
                     TextGauge(Test_String_Custom, Test_CPI);
             }
             if (X_Section==true && Render_Variant!=2)

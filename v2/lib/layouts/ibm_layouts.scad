@@ -44,34 +44,53 @@ ALL_S12=[S12_US, CUSTOMCASES88];
 
 S12CASES88=ALL_S12[S12_88_Language];
 
-//SELECTRIC 3 STUFF I AM NOT WORRYING ABOUT FOR THE TIME BEING
-////lowercase selectric 3 layout on machine; left to right, top to bottom
-//LOWERCASE96="
-//±1234567890-=
-//qwertyuiop½[
-//ASDFGHJKL;'
-//ZXCVBNM,./
-//";
-//
-////uppercase selectric 3 layout on machine; left to right, top to bottom
-//UPPERCASE96="
-//°!@#$%¢&*()_+
-//QWERTYUIOP¼]
-//ASDFGHJKL:\"
-//ZXCVBNM.,?
-//";
-//
-//
-//S3CASES96=[LOWERCASE96, UPPERCASE96];
+//Character Mapping - Selectric III 96char. Source: the reference repo
+//https://github.com/selectricrescueatx/TypeElements (SelectricElement96.scad,
+//CC BY 4.0, Dave Hayden/Steve Malikoff)'s LOWER_CASE/UPPER_CASE + charmap96 -
+//see CHANGELOG.md for the derivation. Supersedes an earlier abandoned draft
+//that had a bug (rows 2-3 still capitalized) and didn't include the extra
+//²/§/³/¶ characters (on the ball but not reachable via the S3 keyboard,
+//per the reference repo's own comment).
 
+//lowercase selectric 3 layout on machine; left to right, top to bottom
+LOWERCASE96_US="
+±1234567890-=
+qwertyuiop½]
+asdfghjkl;'
+zxcvbnm,./
+²§
+";
 
-//lowercase hemisphere of selectric 3 element from the top moving counter clockwise, top to bottom
-//S3_LC_HEMISPHERE96="
-//z2752064893/
-//;'istecbku§=
-//vmwdornaxh½±
-//-1.jpqyflg],
-//";
+//uppercase selectric 3 layout on machine; left to right, top to bottom
+UPPERCASE96_US="
+°!@#$%¢&*()_+
+QWERTYUIOP¼[
+ASDFGHJKL:\"
+ZXCVBNM,.?
+³¶
+";
+
+S3_US=[LOWERCASE96_US, UPPERCASE96_US];
+
+//lowercase hemisphere of selectric 3 element from the top moving counter
+//clockwise, top to bottom. Row characters are re-derived from charmap96 -
+//the FIRST derivation (matching charmap96's own column order p=0..11
+//directly) rendered with the longitudinal order swapped/mirrored, caught by
+//checking against a real Selectric III element. Reversing each row's
+//column order fixed it, confirmed against the user's physical element -
+//and this reversed order also happens to closely match (with 2 minor
+//transcription typos fixed) an earlier abandoned draft of this same data.
+S3_LC_HEMISPHERE96="
+z²752064893/
+;'istecbku§=
+vmwdornaxh½±
+-1.jqpyflg],
+";
+
+S3_US_HEMISPHERE96=S3_LC_HEMISPHERE96;//same reasoning as S12_US_HEMISPHERE88 - shift-case symmetry (charmap96 uses the same physical-position index for both cases), so uppercase reuses the lowercase hemisphere positions rather than needing its own map.
+
+//hardcoded result of [for (i=[0:len(LOWERCASE96_US)-1]) search(LOWERCASE96_US[i], S3_LC_HEMISPHERE96)] - computed once with openscad-nightly, same as S12_HEMISPHERE_MAP below.
+S3_HEMISPHERE_MAP = [[35], [37], [4], [10], [7], [3], [6], [2], [8], [9], [5], [36], [23], [40], [26], [17], [29], [16], [42], [21], [14], [28], [41], [34], [46], [31], [15], [27], [43], [45], [33], [39], [20], [44], [12], [13], [0], [32], [18], [24], [19], [30], [25], [47], [38], [11], [1], [22]];
 
 /* [ Hidden ] */
 // Character Mapping - Composer 88char
@@ -182,13 +201,14 @@ COMPOSERCASES88=ALL_C[Composer_Language];
 
 
 
-//all keyboard layouts
-ALL88CASES=[COMPOSERCASES88, S12CASES88];
+//all keyboard layouts (Selectric III has no custom-language variant yet,
+//unlike Composer/Selectric I-II - S3_US used directly)
+ALL_CASES=[COMPOSERCASES88, S12CASES88, S3_US];
 
 
 
 //set keyboard layout for character mapping
-CASES88=ALL88CASES[Render_Mode];
+CASES88=ALL_CASES[Render_Mode];
 
 //keyboard string
 KBSTRING=str(CASES88[0], CASES88[1]);
@@ -212,10 +232,13 @@ LC_COMP_LAYOUT_TO_HEMISPHERE_MAP = [for (i=[0:len(C_US[0])-1]) search(C_US[0][i]
 COMPOSER_HEMISPHERE_MAP = [[6], [9], [3], [4], [21], [2], [20], [10], [8], [7], [12], [33], [41], [31], [38], [28], [18], [37], [24], [16], [29], [36], [11], [17], [5], [30], [39], [40], [26], [43], [32], [15], [34], [13], [35], [22], [14], [23], [19], [27], [25], [1], [0], [42]];
 
 ////all hemisphere layouts
-ALL88HEMIS=[COMPOSER_HEMISPHERE_MAP, S12_HEMISPHERE_MAP];
+ALL_HEMISPHERE_MAPS=[COMPOSER_HEMISPHERE_MAP, S12_HEMISPHERE_MAP, S3_HEMISPHERE_MAP];
 
-HEMISPHERE_MAP=ALL88HEMIS[Render_Mode];
+HEMISPHERE_MAP=ALL_HEMISPHERE_MAPS[Render_Mode];
 
 //echo(HEMISPHERE_MAP);
-//create latitude, longitude integer array for one hemisphere
-LATITUDE_LONGITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%11, ceil(HEMISPHERE_MAP[i][0]/11+.001)-1, CASES88[0][i], i]];
+//create longitude (ring position), latitude (row) integer array for one
+//hemisphere - field order matches the corrected LONGITUDE_LATITUDE name
+//(previously LATITUDE_LONGITUDE, which had it backwards: field[0] is a
+//ring/longitude position, field[1] is a row/latitude index)
+LONGITUDE_LATITUDE = [for (i=[0:len(HEMISPHERE_MAP)-1]) [HEMISPHERE_MAP[i][0]%Hemisphere_Cols_Per_Row_All[Render_Mode], ceil(HEMISPHERE_MAP[i][0]/Hemisphere_Cols_Per_Row_All[Render_Mode]+.001)-1, CASES88[0][i], i]];

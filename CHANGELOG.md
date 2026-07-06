@@ -302,3 +302,99 @@ Mignon's `ElementLabel()` had one other live reference
 `if (Mink_On==true)`. `docs/glyph-pipeline.md` and `docs/calibration.md`'s
 mentions of the old name updated to match. Verified byte-identical STL
 output before/after for all three machines.
+
+### `v2/ibm.scad`: added Selectric III (96char) as a third `Render_Mode`
+
+Adds `Render_Mode=2` alongside the existing Composer (88char) and Selectric
+I/II (88char) modes - 4 rows of 24 characters instead of 22, same physical
+ball shell (`Sphere_OD`/`Inside_ID` etc. unchanged - Selectric II and III
+typeballs are the same shell, just a different character layout/count).
+
+Character layout data (`LOWERCASE96_US`/`UPPERCASE96_US`/
+`S3_LC_HEMISPHERE96`/`S3_HEMISPHERE_MAP` in `lib/layouts/ibm_layouts.scad`)
+is derived from https://github.com/selectricrescueatx/TypeElements
+(`SelectricElement96.scad`, CC BY 4.0, Dave Hayden/Steve Malikoff)'s
+`LOWER_CASE`/`UPPER_CASE`/`charmap96` - re-derived here (row-by-row from
+`charmap96`), not copied verbatim, since the reference repo builds the ball
+with a different placement algorithm (one combined 24-position ring per
+row) than this codebase's two-opposite-hemispheres-180-degrees-apart
+convention. First attempt used `charmap96`'s own column order (p=0..11)
+directly per row and initially matched that file's own "Keyboard location
+of each letter on the ball" comment exactly - but checking the rendered
+result against a real physical Selectric III element found the
+longitudinal order (position going around each ring) came out mirrored.
+Fixed by reversing each row's column order; the reversed order also turned
+out to closely match (module 2 minor transcription typos) an earlier
+abandoned draft of this same data already sitting in this file, commented
+out. `S3_HEMISPHERE_MAP` was computed the same way the existing
+`S12_HEMISPHERE_MAP`/`COMPOSER_HEMISPHERE_MAP` were (a `search()`-based
+derivation, run once with `openscad-nightly` and hardcoded), not
+hand-derived. This supersedes that earlier abandoned draft (commented out,
+marked "I AM NOT WORRYING ABOUT FOR THE TIME BEING") which also had a real
+bug - rows 2-3 of its `LOWERCASE96` were still capitalized - and didn't
+include the reference repo's extra `²`/`§`/`³`/`¶` characters (present on
+the ball but not reachable via the S3 keyboard).
+
+Row latitudes (the 4-row tilt array, shared across all three modes) keep
+this codebase's own existing measured values (`[32.8, 16.4, 0, -16.4]`)
+rather than adopting the reference repo's own tuned values
+(`[31.1, 15.7, 0, -15.7]`) - both are close, these are the ones already
+proven out here.
+
+Also fixed a real naming bug while touching this: `Latitude_Spacing` (the
+`360/22` angle between characters around a ring) and `Longitude_Spacing`
+(the 4-row tilt array) were swapped relative to standard geographic
+convention - tracing actual usage showed the ring-position value was being
+called "latitude" and the row-tilt value "longitude", backwards both ways.
+Renamed to `Longitude_Step`/`Row_Latitudes` respectively, and cascaded the
+same fix through every local variable/parameter that used `lat`/`long`/
+`latitude`/`longitude` (`LATITUDE_LONGITUDE` -> `LONGITUDE_LATITUDE`,
+`PlatenCutout`/`PositionText`/`SingleMinkowski`'s parameter names, etc.) -
+purely a rename, no behavior change (verified byte-identical STL for
+Composer/Selectric I-II before and after).
+
+Every place that hardcoded "22 characters per row" / "88 total" now reads
+from `Chars_Per_Row_All`/`Total_Chars_All`/`Hemisphere_Cols_Per_Row_All`
+(indexed `[Composer, Selectric I/II, Selectric III]`), following the same
+`All_Font_Sizes[Render_Mode]`-style indexing idiom already used throughout
+this file. This included one genuinely mechanical (not cosmetic) count:
+`Teeth()`'s detent-tooth loop, since the tilt-ring detent mechanism needs
+one tooth per character index position (24 for Selectric III), confirmed by
+the reference repo's own `DetentTeeth()` using the same
+`CHARACTERS_PER_LATITUDE` for its tooth count.
+
+Not extended to Selectric III (deferred, not required for a working
+render): the `testSweepArray(...,22)`-based calibration sweep arrays
+(`Cutout_Test_Angle_Array`/`Draft_Angle_Test_Array`/etc.) are still
+fixed at length 22, so `Cutout_Test=true`/`Draft_Angle_Test=true` will
+show `undef` for the last 2 characters of each Selectric III row. The
+character mapping itself is unaffected (confirmed via the
+`Char_Info_Row_Col_Sorted` debug echo: all 96 characters appear exactly
+once, correctly positioned, with the two apparent "duplicates" - `,`/`.`
+each appearing twice - being intentional/correct, matching the reference
+repo's own source data where the comma/period keys have no distinct
+shifted symbol).
+
+Verified: Composer/Selectric I-II render byte-identical STL before and
+after every step of this change (including the longitudinal-order fix, which
+touches Selectric-III-only data). Selectric III renders manifold with zero
+errors/warnings and its character-position mapping was checked against the
+user's own physical Selectric III element - which is what caught the
+mirrored longitudinal order in the first derivation attempt.
+
+`Tooth()`'s detent-notch profile is narrowed for render modes with more
+teeth per row than the 22 it was tuned for, matching a difference found by
+diffing the reference repo's `SelectricElement88.scad` against
+`SelectricElement96.scad`: the 96-char file applies
+`scale([1.0,88/96,1.0])` to the identical tooth polygon, since 24 teeth
+around the same ring need to be individually narrower than 22 to avoid
+touching. Generalized to `scale([1, Chars_Per_Row_All[1]/
+Chars_Per_Row_All[Render_Mode], 1])` (a no-op for Composer/Selectric I-II,
+since both use the same 22-count). This codebase's tooth-ring radius
+(`Detent_Valley_To_Center=6`) is nearly identical to the reference repo's
+(`TOOTH_PEAK_OFFSET_FROM_CENTRE=6.1`), so the same crowding the reference
+repo's own maintainers found applies here too - a side-by-side render
+comparison didn't show obvious tooth overlap even without this fix, but a
+thin overlap is easy to miss visually and would still silently fuse in the
+boolean union, so the reference repo's own established fix was applied
+rather than relying on that inconclusive visual check.
