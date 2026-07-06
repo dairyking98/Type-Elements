@@ -360,12 +360,6 @@ Drive_Notch_Theta_=131.0;//.01
 Detent_Valley_To_Center=6;
 //detent teeth clock offset
 Detent_Skirt_Clock_Offset=0;//.01
-//additional resin support rod clock offset for the detent-teeth ring, added
-//on top of Detent_Skirt_Clock_Offset (so the rods still track wherever the
-//actual teeth are, but can be fine-tuned independently) - needed since
-//narrowing the tooth width for Selectric III's tighter spacing shifted the
-//rod attachment points slightly relative to the teeth.
-Resin_Detent_Clock_Offset=0;//.01
 //modeled boss to center value
 Boss_To_Center=Boss_To_Center_+Snoot_Droop_Compensation;
 
@@ -458,6 +452,12 @@ Base_D=4;
 Base_H=2;
 //minimum support height
 Min_Rod_H=2;
+//additional resin support rod clock offset for the detent-teeth ring, added
+//on top of Detent_Skirt_Clock_Offset (so the rods still track wherever the
+//actual teeth are, but can be fine-tuned independently) - needed since
+//narrowing the tooth width for Selectric III's tighter spacing shifted the
+//rod attachment points slightly relative to the teeth.
+Resin_Detent_Clock_Offset=0;//.01
 
 /* [Experimental Drain Holes] */
 
