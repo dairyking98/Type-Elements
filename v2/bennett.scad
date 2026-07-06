@@ -302,8 +302,15 @@ Resin_Inset=Resin_Support_Contact_Point_Diameter/2;
 //a print support's actual job.
 Resin_Rod_Raft=true;
 Resin_Raft_OD=2.4;
-Resin_Min_Rod_Height=0;
+//lib's raft cylinder spans [-Min_Rod_Height-Raft_Thickness, -Min_Rod_Height] -
+//the old local ResinRod's raft (and the big outer "Create Raft" ring right
+//below) both sit at local z=[0, Resin_Support_Thickness], ABOVE the
+//datum, not below it. Min_Rod_Height=0 (tried first) put the per-rod raft
+//at z=[-thickness, 0] instead - the wrong side of z=0, not coplanar with
+//the outer ring. Min_Rod_Height=-Resin_Raft_Thickness cancels that out so
+//the raft spans [0, Resin_Support_Thickness], matching both.
 Resin_Raft_Thickness=Resin_Support_Thickness;
+Resin_Min_Rod_Height=-Resin_Raft_Thickness;
 
 include <lib/resin_rod.scad>
 

@@ -438,3 +438,17 @@ the migration - that parameter was truly dead/unused in the original code
 was never actually the real base diameter), and wiring it up changed the
 effective size without evidence that was intended. Verified visually:
 every rod (outer, middle, and inner rings) now has its own raft foot.
+
+Follow-up (found by comparing against Blickensderfer2/Postal's own resin
+wiring): the first pass left `Resin_Min_Rod_Height=0`, which - per
+`lib/resin_rod.scad`'s own formula (`translate([0,0,
+-Resin_Min_Rod_Height-Resin_Raft_Thickness])`) - puts the per-rod raft at
+local z=`[-Resin_Support_Thickness, 0]`. Both the old local `ResinRod`'s
+raft flare and Bennett's own big outer "Create Raft" ring sit at
+z=`[0, Resin_Support_Thickness]` instead - the opposite side of the z=0
+datum - so the per-rod feet were floating below where they belonged rather
+than coplanar with the outer ring. Fixed by setting
+`Resin_Min_Rod_Height=-Resin_Raft_Thickness`, which cancels out to put the
+raft back at `[0, Resin_Support_Thickness]`, matching both. Confirmed
+visually: raft feet now sit flush with the outer ring band instead of
+hanging below it.
