@@ -2,16 +2,39 @@
 //Leonard Chau
 //
 //v2.0: glyph pipeline unified with Blickensderfer2/Postal/Bennett/Mignon's
-//shared lib/glyph_pipeline.scad. Helios's transform reduces to the exact
-//same world-frame formula algebraically (not approximately): its platen
-//cutout radius Platen_Diameter/2+Min_Final_Character_Diameter/2 expands to
+//shared lib/glyph_pipeline.scad. Helios's platen cutout radius
+//Platen_Diameter/2+Min_Final_Character_Diameter/2 expands to
 //Element_Diameter/2+Platen_Diameter/2+Char_Protrusion (same as Blick2's
 //formula, since Char_Protrusion=(Min_Final_Character_Diameter-Element_Diameter)/2
-//cancels the Element_Diameter/2 term), and its placement radius is the raw
-//Element_Diameter/2 (Bennett/Mignon's convention, needs
-//Letter_Placement_Protrusion=0). Its Character_Modifieds baseline shift is a
-//plain world-Z addition after the radial placement translate, matching the
-//lib's TextRing charBaseline computation directly. Core/shaft groove family
+//cancels the Element_Diameter/2 term). Its Character_Modifieds baseline
+//shift is a plain world-Z addition after the radial placement translate,
+//matching the lib's TextRing charBaseline computation directly.
+//
+//CORRECTION (2026-07-08): the first pass of this file had two bugs, found by
+//byte-comparing rendered STLs against v1/HeliosKlimax/HeliosKlimaxElement.scad
+//(see docs, byte-check parameter sets dated 2026-07-08):
+//  1. Baseline_Z_Offset was set to 0 with Baseline/Cutout copied verbatim as
+//     positive values, on the mistaken premise that Helios's arrays were
+//     already absolute-from-bottom like Bennett/Mignon's. They are not - the
+//     original computed Element_Height-Baselines[row]/Element_Height-
+//     Cutouts[row] (top-down), the same negative-from-clip-end convention
+//     Blick2/Postal use. This placed every character near the wrong end of
+//     the element. Fixed by negating Baseline/Cutout and setting
+//     Baseline_Z_Offset=Element_Height.
+//  2. The placement radius was assumed to be the raw Element_Diameter/2
+//     (Bennett/Mignon's convention, Letter_Placement_Protrusion=0), but the
+//     original actually passed (Element_Diameter-.1) as the placement
+//     diameter - a small built-in 0.05mm radial inset that only affects
+//     placement, not the platen-cutout radius. Fixed with
+//     Letter_Placement_Protrusion=-.05.
+//Both fixes verified against v1's render: topology now matches exactly
+//(same genus) once the shared lib's z-fighting epsilon inset on the
+//placement radius (lib/glyph_pipeline.scad's LetterPlacement, same effect
+//documented in hammond.scad) is zeroed out for comparison. A residual
+//sub-thousandth-mm vertex-level difference remains from that epsilon inset,
+//well below print resolution - same known/accepted residual as Hammond's,
+//not specific to this fix.
+//Core/shaft groove family
 //not applicable - Helios has no SecondaryCore/CoreGrooves/CoreChamfer/
 //CoreEllipses system in the original. Clip+wire-bite system (similar in
 //spirit to Blick2/Postal's) stays local, same as Blick2/Postal's own
@@ -83,10 +106,12 @@ GERMAN_MOD=["wertuionklpasdcfghbvm",
         "'!+züjö.:xyä23456789q",
        "\"()Z⁄J=,;XY¢ß&%/-_§?Q"];
 LAYOUT=GERMAN_MOD;
-//Row Height
-Baseline=[3.0, 7.8, 12.5, 17.3];
-//Platen Cutout Height
-Cutout=[2.5, 7.3, 12, 16.8];
+//Row Height (negative-from-clip-end, same convention as Blick2/Postal -
+//the original computed Element_Height-Baselines[row], not an absolute
+//from-bottom height; see Baseline_Z_Offset below)
+Baseline=[-3.0, -7.8, -12.5, -17.3];
+//Platen Cutout Height (negative-from-clip-end, see Baseline above)
+Cutout=[-2.5, -7.3, -12, -16.8];
 //Latitude_Int/Angle_Half_Step: Helios's Theta=theta*column with theta=360/21 has
 //no half-column-step term (like Mignon), and places column N at raw Theta
 //(no CharLegend-style remap - LAYOUT is already in physical column order).
@@ -174,15 +199,21 @@ Physical_Layout=LAYOUT;
 //Element_Diameter, Platen_Diameter, Char_Protrusion, Baseline, Cutout,
 //Character_Modifieds*, Weight_Adj_*, Scale_Multiplier*, Y_Scale, Typeface_2*
 //all already declared natively above - no bridging needed.
-//Baseline_Z_Offset=0: Helios's Baseline/Cutout are already absolute heights
-//from the bottom face, same convention as Bennett/Mignon.
-Baseline_Z_Offset=0;
+//Baseline_Z_Offset=Element_Height: Helios's original computed
+//Element_Height-Baselines[row]/Element_Height-Cutouts[row] (top-down), the
+//same negative-from-clip-end convention as Blick2/Postal, not the
+//absolute-from-bottom convention Bennett/Mignon use. Baseline/Cutout above
+//were corrected to negative values to match.
+Baseline_Z_Offset=Element_Height;
 //Cyl_Fn/Surface_Fn/Text_Fn/Mink_Fn already declared natively above (Global
 //Parameters) - no bridging needed now that Helios uses the canonical names
 //directly instead of its old underscore-style names.
-//Helios's placement radius is the raw Element_Diameter/2 (no protrusion
-//added there - Bennett/Mignon's convention, not Blick2/Postal's).
-Letter_Placement_Protrusion=0;
+//Helios's original passed (Element_Diameter-.1) as the placement diameter
+//(not the raw Element_Diameter) - a small built-in 0.05mm radial inset,
+//independent of the platen-cutout radius which does use the full
+//Element_Diameter/2. Reproduced here as a small negative protrusion rather
+//than 0.
+Letter_Placement_Protrusion=-.05;
 //Helios's raw pre-cutout extrusion block: starts exactly at the placement
 //radius (no offset), extends 2mm outward, trimmed down by the (verified)
 //PlatenCutout afterward.
