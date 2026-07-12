@@ -25,9 +25,9 @@
 //
 //Customizer sections below follow Blickensderfer's canonical layout (Global
 //Parameters, Render Parameters, Testing Stuff, Key Mapping, Typeface Stuff,
-//Glyph Quality, Element Dimensions, Logo, Resin Printing, lib wiring) so all
-//four v2 machine files are organized the same way. Sections with no Mignon
-//equivalent (Print Tolerances, Shaft Gauge Test, Type Test) are omitted
+//Glyph Quality, Element Dimensions, Logo, Type Test, Resin Printing, lib
+//wiring) so all four v2 machine files are organized the same way. Sections
+//with no Mignon equivalent (Print Tolerances, Shaft Gauge Test) are omitted
 //rather than left empty.
 
 /* [Global Parameters] */
@@ -49,6 +49,8 @@ Resin_Fn=20;
 //assert(false,...)" gate (per docs/glyph-pipeline.md's V1/V2 pattern note) -
 //switched to the same Render=false; boolean gate Bennett/Blick2/Postal use.
 Render=false;
+//render mode
+Render_Mode=0;//[0:Resin Print, 1:Type Test]
 //turn minkowski on
 Mink_On=false;
 //Mignon's original cone (r1=.75*6,r2=0,h=6) was never a calibrated dimension -
@@ -201,6 +203,10 @@ Cylinder_Label_Height_Offset=.5;
 Cylinder_Label_Spacing=15;
 //Label Offset From Pin (Degrees)
 Cylinder_Label_Offset=0;
+
+/* [Type Test] */
+//characters per inch for the flat type-test string
+Test_CPI=10;
 
 /* [Resin Printing] */
 //Generate Print Support?
@@ -392,8 +398,25 @@ module ResinPrint(){
 
 }
 
+//flat readable layout of the whole character set, for checking kerning/
+//legibility at print size before generating full element geometry - same
+//role as Blickensderfer/Postal's TypeTest.
+module TypeTest(){
+    Test_Chars=[for (row=[0:len(Layout)-1]) for (col=[0:len(Layout[row])-1]) Layout[row][col]];
+    for (n=[0:len(Test_Chars)-1]){
+        char=Test_Chars[n];
+        charModsMatch=search(char, Character_Modifieds)!=[];
+        font=charModsMatch?Character_Modifieds_Font:Font;
+        size=charModsMatch?Character_Modifieds_Size:Font_Size;
+        baselineOffset=charModsMatch?Character_Modifieds_Offset:0;
+        translate([1/Test_CPI*25.4*n, baselineOffset, 0])
+        text(text=char, size=size, font=font, halign="center", valign="baseline", $fn=Text_Fn);
+    }
+}
+
 if (Render==true){
 
+if (Render_Mode==0)
 difference(){
     ResinPrint();
     if (X_Section==true)
@@ -401,5 +424,8 @@ difference(){
     translate([-50, 0, -50])
     cube(100);
 }
+
+if (Render_Mode==1)
+TypeTest();
 
 }

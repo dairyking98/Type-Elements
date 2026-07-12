@@ -57,7 +57,7 @@ Resin_Fn=20;
 //render something? (renamed from render)
 Render=false;
 //render mode
-Render_Mode=1;//[0:Normal, 1:ResinPrint]
+Render_Mode=1;//[0:Normal, 1:ResinPrint, 2:Type Test]
 //render left shuttle?
 Render_Left=true;
 //render right shuttle?
@@ -178,6 +178,10 @@ Logo_Font="OCR\\A-II";
 Logo_Size=1.9;
 //Logo depth
 Logo_Depth=.3;
+
+/* [Type Test] */
+//characters per inch for the flat type-test string
+Test_CPI=10;
 
 /* [Resin Offsets] */
 //tube and pin offset
@@ -740,9 +744,28 @@ module AssembleResin(){
     ResinPrintHalf(1);
 }
 
+//flat readable layout of the whole character set, for checking kerning/
+//legibility at print size before generating full element geometry - same
+//role as Blickensderfer/Postal's TypeTest. Layout here is a single flat
+//30-char-per-row array (unlike TextAssemble's split left/right halves), so
+//no side parameter is needed.
+module TypeTest(){
+    Test_Chars=[for (row=[0:len(Layout)-1]) for (col=[0:len(Layout[row])-1]) Layout[row][col]];
+    for (n=[0:len(Test_Chars)-1]){
+        char=Test_Chars[n];
+        ismod=search(char, Char_Mod)!=[];
+        font=ismod?Char_Mod_Font:Type_Face;
+        size=ismod?Char_Mod_Size:Type_Size;
+        translate([1/Test_CPI*25.4*n, 0, 0])
+        text(text=char, size=size, font=font, halign="center", valign="baseline", $fn=Text_Fn);
+    }
+}
+
 if (Render==true){
     if (Render_Mode==0)
         Assemble();
     if (Render_Mode==1)
         AssembleResin();
+    if (Render_Mode==2)
+        TypeTest();
 }

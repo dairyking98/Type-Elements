@@ -49,10 +49,10 @@
 //
 //Customizer sections below follow Blickensderfer's canonical layout (Global
 //Parameters, Render Parameters, Testing Stuff, Key Mapping, Typeface Stuff,
-//Glyph Quality, Element Dimensions, Resin Printing, lib wiring) so all v2
-//machine files are organized the same way. Sections with no Helios
-//equivalent (Logo, Print Tolerances, Shaft Gauge Test, Type Test) are
-//omitted rather than left empty.
+//Glyph Quality, Element Dimensions, Type Test, Resin Printing, lib wiring)
+//so all v2 machine files are organized the same way. Sections with no Helios
+//equivalent (Logo, Print Tolerances, Shaft Gauge Test) are omitted rather
+//than left empty.
 
 /* [Global Parameters] */
 //to help with z fighting
@@ -72,6 +72,8 @@ Surface_Fn = $preview ? 60 : 360;
 /* [Render Parameters] */
 //render something?
 Render=false;
+//render mode
+Render_Mode=0;//[0:Normal, 1:Type Test]
 //turn minkowski on
 Mink_On=false;
 //Helios's original cone (r1=0,r2=.75,h=1.5) already matched Blick2/Postal's
@@ -181,6 +183,10 @@ Element_Clip_Diameter=7;
 Element_Wire_Diameter=.554;
 Element_Clip_Bite=.7;
 Element_Clip_Angle=180;
+
+/* [Type Test] */
+//characters per inch for the flat type-test string
+Test_CPI=10;
 
 /* [Resin Printing] */
 //NOTE: declared but unused in the original - see file header. Preserved
@@ -308,8 +314,25 @@ difference(){
 }
 }
 
+//flat readable layout of the whole character set, for checking kerning/
+//legibility at print size before generating full element geometry - same
+//role as Blickensderfer/Postal's TypeTest.
+module TypeTest(){
+    Test_Chars=[for (row=[0:len(LAYOUT)-1]) for (col=[0:len(LAYOUT[row])-1]) LAYOUT[row][col]];
+    for (n=[0:len(Test_Chars)-1]){
+        char=Test_Chars[n];
+        charModsMatch=search(char, Character_Modifieds)!=[];
+        font=charModsMatch?Character_Modifieds_Font:Font;
+        size=charModsMatch?Character_Modifieds_Size:Font_Size;
+        baselineOffset=charModsMatch?Character_Modifieds_Offset:0;
+        translate([1/Test_CPI*25.4*n, baselineOffset, 0])
+        text(text=char, size=size, font=font, halign="center", valign="baseline", $fn=Text_Fn);
+    }
+}
+
 if (Render==true){
 
+if (Render_Mode==0)
 difference(){
     Assemble();
     if (X_Section==true)
@@ -317,5 +340,8 @@ difference(){
     translate([-50, 0, -50])
     cube(100);
 }
+
+if (Render_Mode==1)
+TypeTest();
 
 }

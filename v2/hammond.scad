@@ -91,6 +91,8 @@ Resin_Fn=20;
 //render something? (renamed+inverted from Assert - Assert==false meant
 //render; Render==true now means render, same default behavior)
 Render=false;
+//render mode
+Render_Mode=0;//[0:Resin Print, 1:Type Test]
 //Mink_On: renamed+inverted from Debug_No_Minkowski (cone off by default,
 //same behavior either way)
 Mink_On=false;
@@ -241,6 +243,10 @@ Shuttle_Label_Size=1.3;
 Shuttle_Label_Font="OCR\\-A II";
 //Shuttle Label Extrusion Deptth
 Shuttle_Label_Depth=.2;
+
+/* [Type Test] */
+//characters per inch for the flat type-test string
+Test_CPI=10;
 
 /* [Resin Printing] */
 //Generate Support?
@@ -1021,5 +1027,28 @@ module ResinPrint(){
     }
 }
 
-if (Render==true)
-ResinPrint();
+//flat readable layout of the whole character set, for checking kerning/
+//legibility at print size before generating full element geometry - same
+//role as Blickensderfer/Postal's TypeTest. Typeface_2Chars (Glagolitic) takes
+//precedence over Character_Modifieds, matching TwoDText's resolution order
+//in lib/glyph_pipeline.scad.
+module TypeTest(){
+    Test_Chars=[for (row=[0:len(Layout)-1]) for (col=[0:len(Layout[row])-1]) Layout[row][col]];
+    for (n=[0:len(Test_Chars)-1]){
+        char=Test_Chars[n];
+        charModsMatch=search(char, Character_Modifieds)!=[];
+        isTypeface2=search(char, Typeface_2_Chars)!=[];
+        font=isTypeface2?Typeface_2:(charModsMatch?Character_Modifieds_Font:Font);
+        size=isTypeface2?Type_2_Size:(charModsMatch?Character_Modifieds_Size:Font_Size);
+        baselineOffset=charModsMatch?Character_Modifieds_Offset:0;
+        translate([1/Test_CPI*25.4*n, baselineOffset, 0])
+        text(text=char, size=size, font=font, halign="center", valign="baseline", $fn=Text_Fn);
+    }
+}
+
+if (Render==true){
+    if (Render_Mode==0)
+    ResinPrint();
+    if (Render_Mode==1)
+    TypeTest();
+}
