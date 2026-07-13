@@ -146,8 +146,58 @@
 //                         Bennett all center each column between latitude band
 //                         edges this way). Mignon has no such half-column
 //                         offset, so it sets this to 0.
+//  Text_Align_Method, Text_Align_X_Offset
+//                       - horizontal glyph alignment, see AlignedText() below
+//                         and docs/text-centering.md for the full derivation.
+//                         Default 0/0 = today's halign="center" ink-bbox
+//                         centering with no offset, i.e. a no-op for every
+//                         machine file until explicitly opted into. Method 2
+//                         reads Test_CPI (already declared by every v2
+//                         machine for its own type-test string) to derive
+//                         the slot pitch - no separate pitch parameter.
 
 function minkTextR(draft_angle) = 2*tan(.5*draft_angle);
+
+//Resolves Text_Align_Method (see text-centering.md for the full derivation):
+//  0 (default) = "halign_center" - legacy ink-bbox centering, today's
+//                behavior everywhere. translate([Text_Align_X_Offset, 0]).
+//  1 = "textmetrics_center" - centers the glyph's OWN advance box
+//                (textmetrics().advance.x), preserving whatever native
+//                left/right bearing asymmetry the font was drawn with,
+//                instead of centering the ink.
+//  2 = "textmetrics_left" - pins the natural (unshifted halign="left") pen
+//                origin to a fixed external slot pitch P=25.4/Test_CPI,
+//                i.e. the same 25.4/CPI escapement math each machine file
+//                already uses for its own type-test string (see e.g.
+//                blickensderfer.scad's TextGauge: translate([1/Test_CPI*25.4*n,...])).
+//                Deliberately does NOT reference textmetrics() at all -
+//                native left bearing carries through unmeasured because
+//                nothing shifts it away.
+//Text_Align_X_Offset is a universal fine-tune nudge (mm) layered on top of
+//whichever method is selected - same "_Offset defaults to 0 = no-op" pattern
+//as Baseline_Z_Offset/Font_Weight_Offset elsewhere in this file.
+//Both are new (no v2 machine file declares them yet) so they default via
+//is_undef, matching this file's "Optional" fallback convention, until/unless
+//promoted to the unified declared set with real Customizer sliders per machine.
+//WARNING: method 1 requires OpenSCAD's "Text Metrics" experimental feature
+//enabled (Edit>Preferences>Features, or --enable=textmetrics on the CLI).
+//Verified: without it, this does NOT error - it prints easy-to-miss console
+//warnings and silently renders as if untranslated (glyph ends up unshifted
+//halign="left", not centered). Confirm the flag is on before trusting
+//method 1 output for anything physical.
+module AlignedText(char, font, size){
+    _method = is_undef(Text_Align_Method) ? 0 : Text_Align_Method;
+    _xOffset = is_undef(Text_Align_X_Offset) ? 0 : Text_Align_X_Offset;
+    if (_method==1)
+        translate([-textmetrics(text=char, size=size, font=font).advance.x/2+_xOffset, 0])
+        text(text=char, size=size, font=font, valign="baseline", halign="left", $fn=Text_Fn);
+    else if (_method==2)
+        translate([-(25.4/Test_CPI)/2+_xOffset, 0])
+        text(text=char, size=size, font=font, valign="baseline", halign="left", $fn=Text_Fn);
+    else
+        translate([_xOffset, 0])
+        text(text=char, size=size, font=font, valign="baseline", halign="center", $fn=Text_Fn);
+}
 
 //2D glyph shape, mirrored so it reads correctly once placed facing outward.
 //NOTE: preserves a pre-existing typo from Blick2/Postal - the y term of the
@@ -168,23 +218,23 @@ module TwoDText(char, font, size){
     mirror([1, 0, 0]){
         if (_weightAdjMode==2)//Additive
             minkowski(){
-                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
+                AlignedText(char, _font, _useSize);
                 WeightAdjShape();
             }
         else if (_weightAdjMode==1)//Subtractive
             difference(){
-                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
+                AlignedText(char, _font, _useSize);
                 minkowski(){
                     difference(){
                         square([10, 10], center=true);
-                        text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
+                        AlignedText(char, _font, _useSize);
                     }
                     WeightAdjShape();
                 }
             }
         else //None - Blick2/Postal's original offset+square weight system
             minkowski(){
-                text(text=char, size=_useSize, font=_font, valign="baseline", halign="center", $fn=Text_Fn);
+                AlignedText(char, _font, _useSize);
                 if (X_Font_Weight_Adj>0 || Y_Font_Weight_Adj>0)
                 square([z+X_Font_Weight_Adj, z+yFontWieghtAdj], center=true);
             }

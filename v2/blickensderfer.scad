@@ -130,6 +130,13 @@ Y_Scale=1;
 Typeface_2="Arial";
 Type_2_Size=3.7;
 Typeface_2_Chars="";
+//horizontal alignment method for TwoDText/AlignedText, see docs/text-centering.md.
+//Method 1 requires OpenSCAD's "Text Metrics" experimental feature enabled
+//(Preferences>Features, or --enable=textmetrics) - without it this silently
+//renders unshifted, no error.
+Text_Align_Method=0;//[0:Legacy Center (ink bbox), 1:Textmetrics Center (advance box), 2:Textmetrics Left (fixed CPI pitch)]
+//universal fine-tune nudge (mm), layered on top of whichever method above is selected
+Text_Align_X_Offset=0;
 
 
 
@@ -569,7 +576,7 @@ module TypeTest(){
         baselineOffset=search(char, Character_Modifieds)==[]?0:Character_Modifieds_Offset;
 
         translate([1/Test_CPI*25.4*n, baselineOffset, 0])
-        text(text=char, size=Font_Size, font=Font, halign="center", valign="baseline", $fn=Text_Fn);
+        AlignedText(char, Font, Font_Size);
 
 
     }

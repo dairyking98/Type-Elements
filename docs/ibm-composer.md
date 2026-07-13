@@ -94,6 +94,19 @@ These are separate from the global `Character_Modifieds` system used in cylinder
 
 ---
 
+## Current alignment model (frozen — migration candidate)
+
+**Do not touch this section's code without recalibrating from scratch — Composer's geometry is already physically tuned.** Noted here only so a future migration onto the shared `glyph_pipeline.scad` alignment methods (see [text-centering.md](text-centering.md)'s proposed `Text_Align_Method`) can be checked for bit-identical output before it replaces this.
+
+Composer already implements, by hand, the same idea as the proposed `textmetrics_left` method — it just predates `textmetrics()` and uses a hand-authored width table instead of live font metrics:
+
+- **Ball placement** (`Text()` in `ibm.scad`): `H_ALIGNMENT="left"` for Composer (vs `"center"` for Selectric I/II) — i.e. natural/un-shifted glyph rendering, not ink-bbox centering. Per-character correction comes from `CUSTOMHALIGNCHARS`/`CUSTOMHALIGNOFFSET` (and the `Y` equivalents), an additive `translate` applied on top of the natural render — conceptually the same per-character override pattern as `Character_Modifieds_Offset` elsewhere, but Composer's own table, kept separate ("These are separate from the global `Character_Modifieds` system used in cylinder elements").
+- **Type test line** (`TextGaugeComposerLine2`): each character is rendered `halign="left"` (natural, unshifted) and placed via `translate([Cum_Sum_Test_String_Picas[i]*unitdist, 0])` — a running cumulative sum of `COMPOSER_PITCH_LIST` unit widths (IBM's published per-character unit table, not a measured font metric). This is exactly the escapement model: pin each glyph's natural pen origin to a computed left position and let it advance from there, rather than centering it in a slot.
+
+The difference from the proposed `textmetrics_left` method is only the source of the per-character width: Composer uses `COMPOSER_PITCH_LIST` (a fixed table matching the physical machine's published unit spacing), while the new method would derive the same kind of value live from `textmetrics()`'s `advance`/`position` fields. If the two are ever unified, the check is whether `textmetrics()` on the actual font in use reproduces `COMPOSER_PITCH_LIST`'s unit widths closely enough — if not, Composer should keep its own table rather than drift from its calibrated state.
+
+---
+
 ## Snoot droop compensation
 
 `SNOOT_DROOP_COMPENSATION=0.42 mm` — the boss face droops downward under gravity during resin curing (ball is printed with boss facing the vat). This lowers the boss height in the model by 0.42 mm so the printed boss measures exactly correct (8.5 mm from top flat to boss face).

@@ -21,6 +21,7 @@ Preview → Render → Export STL.
 
 - [Machine specifications](docs/machine-specs.md) — all dimensions and calibrated values per machine
 - [Glyph pipeline](docs/glyph-pipeline.md) — how characters are rendered, draft angles, platen cutout, CharLegend
+- [Text centering & dead space](docs/text-centering.md) — how `halign="center"` actually centers glyphs, why narrow characters can sit off-center in their slot, and options to correct it
 - [Resin support systems](docs/resin-supports.md) — CutGroove, rod geometry, per-machine support placement
 - [Calibration procedures](docs/calibration.md) — sweep tests, debugging symptoms, procedure order
 - [IBM Composer](docs/ibm-composer.md) — proportional unit system, hemisphere mapping, Composer vs Selectric

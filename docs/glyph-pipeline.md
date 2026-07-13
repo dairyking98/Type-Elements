@@ -27,6 +27,8 @@ AssembleMinkowski()
 
 Renders a **mirrored** `text()` shape. Mirrored because the character is placed facing outward and then rotated 90° — the mirror pre-compensates so it reads correctly on paper.
 
+`halign="center"` centers on the glyph's ink bounding box, not the font's advance width — see [text-centering.md](text-centering.md) for what this means for narrow glyphs (`.`, `1`, `i`, etc.) and options to correct it.
+
 Optional weight adjustments:
 - **Additive** (`Weight_Adj_Mode=2`): `minkowski(text, small_square)` — fattens strokes
 - **Subtractive** (`Weight_Adj_Mode=1`): erodes glyph edges inward
