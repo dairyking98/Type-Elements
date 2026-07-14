@@ -149,54 +149,84 @@
 //  Text_Align_Method, Text_Align_X_Offset
 //                       - horizontal glyph alignment, see AlignedText() below
 //                         and docs/text-centering.md for the full derivation.
-//                         Default 0/0 = today's halign="center" ink-bbox
-//                         centering with no offset, i.e. a no-op for every
-//                         machine file until explicitly opted into. Method 2
-//                         reads Test_CPI (already declared by every v2
-//                         machine for its own type-test string) to derive
-//                         the slot pitch - no separate pitch parameter.
+//                         Default 0/0 = today's halign="center" (native
+//                         OpenSCAD advance-box centering - see AlignedText's
+//                         comment for the empirical correction, this is NOT
+//                         ink-bbox centering despite earlier docs saying so)
+//                         with no offset, i.e. a no-op for every machine file
+//                         until explicitly opted into. Methods 1/2 read
+//                         Test_CPI (already declared by every v2 machine for
+//                         its own type-test string) and/or textmetrics() -
+//                         no separate pitch parameter.
 
 function minkTextR(draft_angle) = 2*tan(.5*draft_angle);
 
-//Resolves Text_Align_Method (see text-centering.md for the full derivation):
-//  0 (default) = "halign_center" - legacy ink-bbox centering, today's
-//                behavior everywhere. translate([Text_Align_X_Offset, 0]).
-//  1 = "textmetrics_center" - centers the glyph's OWN advance box
-//                (textmetrics().advance.x), preserving whatever native
-//                left/right bearing asymmetry the font was drawn with,
-//                instead of centering the ink.
-//  2 = "textmetrics_left" - pins the natural (unshifted halign="left") pen
-//                origin to a fixed external slot pitch P=25.4/Test_CPI,
-//                i.e. the same 25.4/CPI escapement math each machine file
-//                already uses for its own type-test string (see e.g.
-//                blickensderfer.scad's TextGauge: translate([1/Test_CPI*25.4*n,...])).
-//                Deliberately does NOT reference textmetrics() at all -
-//                native left bearing carries through unmeasured because
-//                nothing shifts it away.
+//Resolves Text_Align_Method (see text-centering.md for the full derivation
+//AND its correction note - the original design assumed OpenSCAD's native
+//halign="center" centers on ink bounds; empirically verified via textmetrics()
+//probes that it actually centers on the ADVANCE box: measured offset.x at
+//halign="center" equals -advance.x/2 exactly, for every glyph/font tested,
+//including glyphs with clearly asymmetric left/right bearing. This changed
+//what methods 1/2 needed to do to be genuinely different from method 0):
+//  0 (default) = "halign_center" - native OpenSCAD centering. Centers the
+//                ADVANCE box (verified, not ink). translate([Text_Align_X_Offset, 0]).
+//  1 = "ink_center" - TRUE ink-bbox centering (position.x+size.x/2), a
+//                capability OpenSCAD has no native halign for. Makes the
+//                visible ink dead-center, ERASING whatever native left/right
+//                bearing asymmetry the font was drawn with (opposite of
+//                method 0, which preserves it inside a centered advance box).
+//  2 = "textmetrics_left" - pins the glyph's own INK left edge (position.x),
+//                not the pen origin, to a fixed external slot pitch
+//                P=25.4/Test_CPI (i.e. -P/2), so translate =
+//                -(25.4/Test_CPI)/2 - position.x. Guarantees the ink sits at
+//                a fixed, non-center position for any narrow glyph, even
+//                when the font's own advance.x happens to equal P (in which
+//                case pinning the pen origin instead - the original design -
+//                would coincide exactly with method 0, since sliding a
+//                same-width box to align its left edge vs its center at
+//                matching anchors produces the same final box position;
+//                pinning the ink edge instead avoids that coincidence).
 //Text_Align_X_Offset is a universal fine-tune nudge (mm) layered on top of
 //whichever method is selected - same "_Offset defaults to 0 = no-op" pattern
 //as Baseline_Z_Offset/Font_Weight_Offset elsewhere in this file.
 //Both are new (no v2 machine file declares them yet) so they default via
 //is_undef, matching this file's "Optional" fallback convention, until/unless
 //promoted to the unified declared set with real Customizer sliders per machine.
-//WARNING: method 1 requires OpenSCAD's "Text Metrics" experimental feature
-//enabled (Edit>Preferences>Features, or --enable=textmetrics on the CLI).
-//Verified: without it, this does NOT error - it prints easy-to-miss console
+//WARNING: methods 1 AND 2 require OpenSCAD's "Text Metrics" experimental
+//feature enabled (Edit>Preferences>Features, or --enable=textmetrics on the
+//CLI) - method 2 now reads position.x too, not just Test_CPI. Verified:
+//without the flag, this does NOT error - it prints easy-to-miss console
 //warnings and silently renders as if untranslated (glyph ends up unshifted
-//halign="left", not centered). Confirm the flag is on before trusting
-//method 1 output for anything physical.
+//halign="left", not centered/aligned). Confirm the flag is on before trusting
+//method 1/2 output for anything physical.
 module AlignedText(char, font, size){
     _method = is_undef(Text_Align_Method) ? 0 : Text_Align_Method;
     _xOffset = is_undef(Text_Align_X_Offset) ? 0 : Text_Align_X_Offset;
-    if (_method==1)
-        translate([-textmetrics(text=char, size=size, font=font).advance.x/2+_xOffset, 0])
+    if (_method==1){
+        _m = textmetrics(text=char, size=size, font=font);
+        translate([-(_m.position.x+_m.size.x/2)+_xOffset, 0])
         text(text=char, size=size, font=font, valign="baseline", halign="left", $fn=Text_Fn);
-    else if (_method==2)
-        translate([-(25.4/Test_CPI)/2+_xOffset, 0])
+    } else if (_method==2){
+        _posX = textmetrics(text=char, size=size, font=font).position.x;
+        translate([-(25.4/Test_CPI)/2-_posX+_xOffset, 0])
         text(text=char, size=size, font=font, valign="baseline", halign="left", $fn=Text_Fn);
-    else
+    } else
         translate([_xOffset, 0])
         text(text=char, size=size, font=font, valign="baseline", halign="center", $fn=Text_Fn);
+}
+
+//Thin semi-transparent frame showing the width-`pitch` "character window"
+//AlignedText's methods reason about (P=25.4/Test_CPI, centered on local x=0 -
+//the same local frame TypeTest() places each character's AlignedText() call
+//into), so the actual ink can be visually compared against it in preview
+//(F5) - a filled/solid frame would obscure the glyph, hence outline-only
+//with alpha. Not used by the physical element geometry, TypeTest()-only.
+module AlignBoundsBox(pitch, height, thickness=0.05, alpha=0.35){
+    color("red", alpha)
+    difference(){
+        square([pitch, height], center=true);
+        square([max(pitch-2*thickness, 0), max(height-2*thickness, 0)], center=true);
+    }
 }
 
 //2D glyph shape, mirrored so it reads correctly once placed facing outward.

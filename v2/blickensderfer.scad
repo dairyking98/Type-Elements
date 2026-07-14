@@ -131,10 +131,10 @@ Typeface_2="Arial";
 Type_2_Size=3.7;
 Typeface_2_Chars="";
 //horizontal alignment method for TwoDText/AlignedText, see docs/text-centering.md.
-//Method 1 requires OpenSCAD's "Text Metrics" experimental feature enabled
+//Methods 1/2 require OpenSCAD's "Text Metrics" experimental feature enabled
 //(Preferences>Features, or --enable=textmetrics) - without it this silently
 //renders unshifted, no error.
-Text_Align_Method=0;//[0:Legacy Center (ink bbox), 1:Textmetrics Center (advance box), 2:Textmetrics Left (fixed CPI pitch)]
+Text_Align_Method=0;//[0:Advance Center (native), 1:Ink Center, 2:Ink Left (fixed CPI pitch)]
 //universal fine-tune nudge (mm), layered on top of whichever method above is selected
 Text_Align_X_Offset=0;
 
@@ -244,6 +244,9 @@ Gauge_Offset_Int=.025;
 /* [Type Test] */
 Test_String="now is the time";
 Test_CPI=10;
+//thin semi-transparent frame around each character's window (25.4/Test_CPI
+//wide), so ink position can be checked against the slot - preview (F5) only
+Show_Align_Bounds=false;
 
 /* [Resin Printing] */
 //resin support enable
@@ -575,9 +578,10 @@ module TypeTest(){
 
         baselineOffset=search(char, Character_Modifieds)==[]?0:Character_Modifieds_Offset;
 
-        translate([1/Test_CPI*25.4*n, baselineOffset, 0])
-        AlignedText(char, Font, Font_Size);
-
+        translate([1/Test_CPI*25.4*n, baselineOffset, 0]){
+            AlignedText(char, Font, Font_Size);
+            if (Show_Align_Bounds) AlignBoundsBox(25.4/Test_CPI, Font_Size*1.5);
+        }
 
     }
     translate([-2.54/2, -5, 0])
