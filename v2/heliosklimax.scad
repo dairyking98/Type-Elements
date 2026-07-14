@@ -164,6 +164,16 @@ Typeface_2_Chars="";
 Text_Align_Method=0;//[0:Advance Center (native), 1:Ink Center, 2:Ink Left (fixed CPI pitch)]
 //universal fine-tune nudge (mm), layered on top of whichever method above is selected
 Text_Align_X_Offset=0;
+//characters that get their OWN alignment method + offset, separate from
+//the pair above (e.g. thin punctuation ".,:;") - lets the main alphabet
+//stay on native centering while these get independent treatment. See
+//AlignedText() in glyph_pipeline.scad. ""=no-op.
+Text_Align_Modified_Chars="";
+//alignment method (same enum as Text_Align_Method above) applied only to
+//characters in Text_Align_Modified_Chars.
+Text_Align_Method_Modified=0;//[0:Advance Center (native), 1:Ink Center, 2:Ink Left (fixed CPI pitch)]
+//fine-tune nudge (mm) applied only to characters in Text_Align_Modified_Chars.
+Text_Align_X_Offset_Modified=0;
 
 /* [Element Dimensions] */
 //Platen Diameter

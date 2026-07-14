@@ -199,9 +199,25 @@ function minkTextR(draft_angle) = 2*tan(.5*draft_angle);
 //warnings and silently renders as if untranslated (glyph ends up unshifted
 //halign="left", not centered/aligned). Confirm the flag is on before trusting
 //method 1/2 output for anything physical.
+//
+//Text_Align_Modified_Chars/Text_Align_Method_Modified/Text_Align_X_Offset_Modified
+//mirror Character_Modifieds/Character_Modifieds_Font/Character_Modifieds_Offset's
+//per-character-override pattern, but for horizontal alignment instead of
+//baseline/font: characters in Text_Align_Modified_Chars get
+//Text_Align_Method_Modified/Text_Align_X_Offset_Modified instead of the
+//top-level Text_Align_Method/Text_Align_X_Offset, so the main alphabet can
+//stay on native advance-box centering while narrow punctuation (e.g. ".,:;")
+//gets its own method+offset. Text_Align_Modified_Chars="" (default) = no-op,
+//same empty-string convention as Typeface_2_Chars/Scale_Multiplier_Text.
 module AlignedText(char, font, size){
-    _method = is_undef(Text_Align_Method) ? 0 : Text_Align_Method;
-    _xOffset = is_undef(Text_Align_X_Offset) ? 0 : Text_Align_X_Offset;
+    _modChars = is_undef(Text_Align_Modified_Chars) ? "" : Text_Align_Modified_Chars;
+    _isModified = search(char, _modChars)!=[];
+    _method = _isModified
+        ? (is_undef(Text_Align_Method_Modified) ? 0 : Text_Align_Method_Modified)
+        : (is_undef(Text_Align_Method) ? 0 : Text_Align_Method);
+    _xOffset = _isModified
+        ? (is_undef(Text_Align_X_Offset_Modified) ? 0 : Text_Align_X_Offset_Modified)
+        : (is_undef(Text_Align_X_Offset) ? 0 : Text_Align_X_Offset);
     if (_method==1){
         _m = textmetrics(text=char, size=size, font=font);
         translate([-(_m.position.x+_m.size.x/2)+_xOffset, 0])
