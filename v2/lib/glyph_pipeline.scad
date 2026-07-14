@@ -186,38 +186,54 @@ function minkTextR(draft_angle) = 2*tan(.5*draft_angle);
 //                same-width box to align its left edge vs its center at
 //                matching anchors produces the same final box position;
 //                pinning the ink edge instead avoids that coincidence).
+//  3 = "textmetrics_right" - mirror of method 2: pins the glyph's own INK
+//                RIGHT edge (position.x+size.x) to the slot's fixed right
+//                edge P/2, so translate = (25.4/Test_CPI)/2 -
+//                (position.x+size.x). Same fixed-pitch guarantee as method 2,
+//                anchored to the opposite side of the slot.
 //Text_Align_X_Offset is a universal fine-tune nudge (mm) layered on top of
 //whichever method is selected - same "_Offset defaults to 0 = no-op" pattern
 //as Baseline_Z_Offset/Font_Weight_Offset elsewhere in this file.
 //Both are new (no v2 machine file declares them yet) so they default via
 //is_undef, matching this file's "Optional" fallback convention, until/unless
 //promoted to the unified declared set with real Customizer sliders per machine.
-//WARNING: methods 1 AND 2 require OpenSCAD's "Text Metrics" experimental
+//WARNING: methods 1, 2 AND 3 require OpenSCAD's "Text Metrics" experimental
 //feature enabled (Edit>Preferences>Features, or --enable=textmetrics on the
-//CLI) - method 2 now reads position.x too, not just Test_CPI. Verified:
-//without the flag, this does NOT error - it prints easy-to-miss console
-//warnings and silently renders as if untranslated (glyph ends up unshifted
-//halign="left", not centered/aligned). Confirm the flag is on before trusting
-//method 1/2 output for anything physical.
+//CLI) - methods 2/3 read position.x (and 3 also size.x) too, not just
+//Test_CPI. Verified: without the flag, this does NOT error - it prints
+//easy-to-miss console warnings and silently renders as if untranslated
+//(glyph ends up unshifted halign="left", not centered/aligned). Confirm the
+//flag is on before trusting method 1/2/3 output for anything physical.
 //
 //Text_Align_Modified_Chars/Text_Align_Method_Modified/Text_Align_X_Offset_Modified
-//mirror Character_Modifieds/Character_Modifieds_Font/Character_Modifieds_Offset's
+//and their Text_Align_Modified2_* counterparts mirror
+//Character_Modifieds/Character_Modifieds_Font/Character_Modifieds_Offset's
 //per-character-override pattern, but for horizontal alignment instead of
 //baseline/font: characters in Text_Align_Modified_Chars get
 //Text_Align_Method_Modified/Text_Align_X_Offset_Modified instead of the
 //top-level Text_Align_Method/Text_Align_X_Offset, so the main alphabet can
 //stay on native advance-box centering while narrow punctuation (e.g. ".,:;")
-//gets its own method+offset. Text_Align_Modified_Chars="" (default) = no-op,
+//gets its own method+offset. Modified2 is a second, independent override set
+//(e.g. a different subset of chars that need right-alignment via method 3
+//instead of whatever method the first Modified set uses) - a char matching
+//BOTH Modified2 and Modified resolves to Modified2 (checked first below).
+//Text_Align_Modified_Chars/Text_Align_Modified2_Chars="" (default) = no-op,
 //same empty-string convention as Typeface_2_Chars/Scale_Multiplier_Text.
 module AlignedText(char, font, size){
     _modChars = is_undef(Text_Align_Modified_Chars) ? "" : Text_Align_Modified_Chars;
-    _isModified = search(char, _modChars)!=[];
-    _method = _isModified
-        ? (is_undef(Text_Align_Method_Modified) ? 0 : Text_Align_Method_Modified)
-        : (is_undef(Text_Align_Method) ? 0 : Text_Align_Method);
-    _xOffset = _isModified
-        ? (is_undef(Text_Align_X_Offset_Modified) ? 0 : Text_Align_X_Offset_Modified)
-        : (is_undef(Text_Align_X_Offset) ? 0 : Text_Align_X_Offset);
+    _mod2Chars = is_undef(Text_Align_Modified2_Chars) ? "" : Text_Align_Modified2_Chars;
+    _isModified2 = search(char, _mod2Chars)!=[];
+    _isModified = !_isModified2 && search(char, _modChars)!=[];
+    _method = _isModified2
+        ? (is_undef(Text_Align_Method_Modified2) ? 0 : Text_Align_Method_Modified2)
+        : _isModified
+            ? (is_undef(Text_Align_Method_Modified) ? 0 : Text_Align_Method_Modified)
+            : (is_undef(Text_Align_Method) ? 0 : Text_Align_Method);
+    _xOffset = _isModified2
+        ? (is_undef(Text_Align_X_Offset_Modified2) ? 0 : Text_Align_X_Offset_Modified2)
+        : _isModified
+            ? (is_undef(Text_Align_X_Offset_Modified) ? 0 : Text_Align_X_Offset_Modified)
+            : (is_undef(Text_Align_X_Offset) ? 0 : Text_Align_X_Offset);
     if (_method==1){
         _m = textmetrics(text=char, size=size, font=font);
         translate([-(_m.position.x+_m.size.x/2)+_xOffset, 0])
@@ -225,6 +241,10 @@ module AlignedText(char, font, size){
     } else if (_method==2){
         _posX = textmetrics(text=char, size=size, font=font).position.x;
         translate([-(25.4/Test_CPI)/2-_posX+_xOffset, 0])
+        text(text=char, size=size, font=font, valign="baseline", halign="left", $fn=Text_Fn);
+    } else if (_method==3){
+        _m = textmetrics(text=char, size=size, font=font);
+        translate([(25.4/Test_CPI)/2-(_m.position.x+_m.size.x)+_xOffset, 0])
         text(text=char, size=size, font=font, valign="baseline", halign="left", $fn=Text_Fn);
     } else
         translate([_xOffset, 0])
