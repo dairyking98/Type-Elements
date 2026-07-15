@@ -262,8 +262,14 @@ Gauge_Offset_Start=0;//.001
 Gauge_Offset_Int=.025;
 
 /* [Type Test] */
-Test_String="now is the time";
 Test_CPI=10;
+//Default reconstructs today's behavior (every character in the current
+//physical layout, row by row); Test String instead prints
+//Test_String_Text verbatim, replacing the default on BOTH the
+//embossed/CPI-spaced character row and the flat reference caption line
+//beneath it, for direct comparison against the physical printout.
+Test_Content=0;//[0:Default, 1:Test String]
+Test_String_Text="The quick brown fox jumps over the lazy dog 1234567890";
 //thin semi-transparent frame around each character's window (25.4/Test_CPI
 //wide), so ink position can be checked against the slot - preview (F5) only
 Show_Align_Bounds=false;
@@ -579,9 +585,10 @@ module ResinPrint(){
 }
 
 module TypeTest(){
-    Test_String=str(Element_Layout_Array[0], Element_Layout_Array[1], Element_Layout_Array[2]);
-    for (n=[0:len(Test_String)-1]){
-            char_prime=Test_String[n];
+    _defaultTestString=JoinRows(Element_Layout_Array);
+    _testString=Test_Content==1?Test_String_Text:_defaultTestString;
+    for (n=[0:len(_testString)-1]){
+            char_prime=_testString[n];
 
         char=(Font_Hebrew_Insert_Niqqud==true && char_prime==
         "ך"
@@ -605,7 +612,7 @@ module TypeTest(){
 
     }
     translate([-2.54/2, -5, 0])
-    text(text=Test_String, size=Font_Size, font=Font, halign="left", valign="baseline", $fn=Text_Fn);
+    text(text=_testString, size=Font_Size, font=Font, halign="left", valign="baseline", $fn=Text_Fn);
 }
 
 //render

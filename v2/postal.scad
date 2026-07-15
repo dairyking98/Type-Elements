@@ -221,10 +221,16 @@ Gauge_Offset_Start=.2;//.001
 Gauge_Offset_Int=.02;
 
 /* [Type Test] */
-Test_String="Alma Mono";
 Test_Size=3;//.01
 Test_Font="Alma Mono";
 Test_CPI=10;
+//Default reconstructs today's behavior (every character in the current
+//physical layout, row by row); Test String instead prints
+//Test_String_Text verbatim, replacing the default on BOTH the
+//embossed/CPI-spaced character row and the flat reference caption line
+//beneath it, for direct comparison against the physical printout.
+Test_Content=0;//[0:Default, 1:Test String]
+Test_String_Text="The quick brown fox jumps over the lazy dog 1234567890";
 //thin semi-transparent frame around each character's window (25.4/Test_CPI
 //wide), so ink position can be checked against the slot - preview (F5) only
 Show_Align_Bounds=false;
@@ -505,13 +511,16 @@ module ResinPrint(){
 }
 
 module TypeTest(){
-    Test_String=str(Keyboard_Layout_Array[0], Keyboard_Layout_Array[1], Keyboard_Layout_Array[2]);
-    for (n=[0:len(Test_String)-1]){
+    _defaultTestString=JoinRows(Keyboard_Layout_Array);
+    _testString=Test_Content==1?Test_String_Text:_defaultTestString;
+    for (n=[0:len(_testString)-1]){
         translate([1/Test_CPI*25.4*n, 0, 0]){
-            AlignedText(Test_String[n], Test_Font, Test_Size);
+            AlignedText(_testString[n], Test_Font, Test_Size);
             if (Show_Align_Bounds) AlignBoundsBox(25.4/Test_CPI, Test_Size*1.5);
         }
     }
+    translate([-2.54/2, -5, 0])
+    text(text=_testString, size=Test_Size, font=Test_Font, halign="left", valign="baseline", $fn=Text_Fn);
 }
 
 //render

@@ -237,6 +237,13 @@ s=.2;
 /* [Type Test] */
 //characters per inch for the flat type-test string
 Test_CPI=10;
+//Default reconstructs today's behavior (every character in the current
+//physical layout, row by row); Test String instead prints
+//Test_String_Text verbatim, replacing the default on BOTH the
+//embossed/CPI-spaced character row and the flat reference caption line
+//beneath it, for direct comparison against the physical printout.
+Test_Content=0;//[0:Default, 1:Test String]
+Test_String_Text="The quick brown fox jumps over the lazy dog 1234567890";
 //thin semi-transparent frame around each character's window (25.4/Test_CPI
 //wide), so ink position can be checked against the slot - preview (F5) only
 Show_Align_Bounds=false;
@@ -539,9 +546,10 @@ module ResinPrint(){
 //legibility at print size before generating full element geometry - same
 //role as Blickensderfer/Postal's TypeTest.
 module TypeTest(){
-    Test_Chars=[for (row=[0:len(Layout)-1]) for (col=[0:len(Layout[row])-1]) Layout[row][col]];
-    for (n=[0:len(Test_Chars)-1]){
-        char=Test_Chars[n];
+    _defaultTestString=JoinRows(Layout);
+    _testString=Test_Content==1?Test_String_Text:_defaultTestString;
+    for (n=[0:len(_testString)-1]){
+        char=_testString[n];
         charModsMatch=search(char, Character_Modifieds)!=[];
         font=charModsMatch?Character_Modifieds_Font:Font;
         size=charModsMatch?Character_Modifieds_Size:Font_Size;
@@ -551,6 +559,8 @@ module TypeTest(){
             if (Show_Align_Bounds) AlignBoundsBox(25.4/Test_CPI, size*1.5);
         }
     }
+    translate([-2.54/2, -5, 0])
+    text(text=_testString, size=Font_Size, font=Font, halign="left", valign="baseline", $fn=Text_Fn);
 }
 
 if (Render==true){

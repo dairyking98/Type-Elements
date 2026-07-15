@@ -161,6 +161,14 @@
 
 function minkTextR(draft_angle) = 2*tan(.5*draft_angle);
 
+//Joins an array of row-strings (e.g. a keyboard Layout's 3-4 shift rows)
+//into one flat string. Used by each machine's TypeTest() to build its
+//Default type-test content (today's "concatenate every row in order"
+//behavior, previously duplicated per-file as str(Array[0], Array[1], ...)
+//or a flattening list comprehension) and shared so the Test_Content
+//dropdown's "Test String" override runs through the same code path.
+function JoinRows(rows) = len(rows)==0 ? "" : str(rows[0], JoinRows([for (i=[1:len(rows)-1]) rows[i]]));
+
 //Resolves Text_Align_Method (see text-centering.md for the full derivation
 //AND its correction note - the original design assumed OpenSCAD's native
 //halign="center" centers on ink bounds; empirically verified via textmetrics()
