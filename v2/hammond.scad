@@ -281,6 +281,10 @@ Test_CPI=10;
 //beneath it, for direct comparison against the physical printout.
 Test_Content=0;//[0:Default, 1:Test String]
 Test_String_Text="The quick brown fox jumps over the lazy dog 1234567890";
+//flat reference caption line beneath the embossed/CPI-spaced character
+//row (same text as Test_Content above, at natural/proportional spacing) -
+//off hides it, leaving only the embossed row.
+Show_Reference_Line=true;
 //thin semi-transparent frame around each character's window (25.4/Test_CPI
 //wide), so ink position can be checked against the slot - preview (F5) only
 Show_Align_Bounds=false;
@@ -1084,6 +1088,7 @@ module TypeTest(){
             if (Show_Align_Bounds) AlignBoundsBox(25.4/Test_CPI, size*1.5);
         }
     }
+    if (Show_Reference_Line)
     translate([-2.54/2, -5, 0])
     text(text=_testString, size=Font_Size, font=Font, halign="left", valign="baseline", $fn=Text_Fn);
 }
