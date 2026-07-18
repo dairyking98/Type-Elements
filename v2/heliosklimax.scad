@@ -61,9 +61,14 @@ z=.01;
 //(the minkowski cone reused text_fn's facet count); given its own literal
 //here to match every other v2 machine's independent Mink_Fn. Inert unless
 //Mink_On is enabled (off by default).
-Mink_Fn=20;
+Mink_Fn=12;
 //text facet number (renamed from text_fn)
-Text_Fn = $preview ? 22 : 44;
+Text_Fn = $preview ? 10 : 20;
+//Helios's original Text() set $fn=text_fn locally (it's also what the
+//minkowski cone reused - see Mink_Fn above); wire that into the lib's
+//Text_2D_Fn hook so glyph curves use this instead of silently inheriting
+//Surface_Fn (every v2 machine should set this - see blickensderfer.scad).
+Text_2D_Fn=Text_Fn;
 //critical (shaft/pin) cylinder facet number (renamed from criticalcyl_fn)
 Cyl_Fn = $preview ? 60 : 360;
 //surface facet number (renamed from surface_fn)

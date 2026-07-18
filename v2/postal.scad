@@ -12,7 +12,7 @@
 //to help with z fighting
 z=.01;
 //minkowski facet number
-Mink_Fn=20;
+Mink_Fn=12;
 //text facet number
 Text_Fn=20;
 //cylinder facet number
@@ -277,9 +277,13 @@ Physical_Layout=[for (row=[0:2]) [for (col=[0:27])
 //No Row_Font/Row_Font_Size/charMods: Postal never had a per-row or per-char Font
 //override system, so the lib's single global Font/Font_Size defaults apply.
 
-//Postal's original Text() set $fn=Mink_Fn locally (Blickensderfer2's didn't);
-//preserve that per-machine behavior via the lib's Text_2D_Fn hook.
-Text_2D_Fn=Mink_Fn;
+//Postal's original Text() set $fn=Mink_Fn locally, back when Mink_Fn and
+//Text_Fn happened to be tuned to the same value (20/20). Now that every v2
+//machine shares one Mink_Fn/Text_Fn default (12/20, no longer equal), wire
+//this to Text_Fn like every other machine instead, so glyph curves keep
+//following the shared text-quality default rather than silently tracking
+//Mink_Fn's now-different value.
+Text_2D_Fn=Text_Fn;
 //Baseline_Z_Offset: Postal's Baseline/Cutout arrays are negative-from-clip-end,
 //so this shifts every character placement to an absolute height.
 Baseline_Z_Offset=Element_Height;

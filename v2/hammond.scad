@@ -76,9 +76,13 @@
 //to help with z fighting
 z=.001;
 //minkowski facet number (renamed from mink_fn)
-Mink_Fn=10;
+Mink_Fn=12;
 //text facet number (renamed from text_fn)
-Text_Fn=44;
+Text_Fn=20;
+//Hammond's original Text() set $fn=text_fn locally; wire that into the lib's
+//Text_2D_Fn hook so glyph curves use this instead of silently inheriting
+//Surface_Fn (every v2 machine should set this - see blickensderfer.scad).
+Text_2D_Fn=Text_Fn;
 //structural/body cylinder facet number (renamed from cyl_fn)
 Cyl_Fn=360;
 //declared for lib parity with the other v2 machines - Hammond has no

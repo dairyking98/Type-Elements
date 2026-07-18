@@ -34,9 +34,13 @@
 //to help with z fighting
 z=.001;
 //minkowski facet number (renamed from mink_fn, to match every other v2 machine)
-Mink_Fn=10;
+Mink_Fn=12;
 //text facet number (renamed from text_fn)
-Text_Fn=44;
+Text_Fn=20;
+//Mignon's original Text() set $fn=text_fn locally; wire that into the lib's
+//Text_2D_Fn hook so glyph curves use this instead of silently inheriting
+//Surface_Fn (every v2 machine should set this - see blickensderfer.scad).
+Text_2D_Fn=Text_Fn;
 //critical (shaft/pin) cylinder facet number (renamed from criticalcyl_fn)
 Cyl_Fn=360;
 //surface facet number (renamed from surface_fn)

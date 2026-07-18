@@ -11,9 +11,14 @@
 //to help with z fighting
 z=.01;
 //minkowski facet number
-Mink_Fn=20;
+Mink_Fn=12;
 //text facet number
-Text_Fn=40;
+Text_Fn=20;
+//Blickensderfer2's original Text() set $fn=textFn=20 locally; wire Text_Fn
+//into the lib's Text_2D_Fn hook so glyph curves use a dedicated value
+//instead of silently inheriting Surface_Fn=120 (every v2 machine should set
+//this - measured ~3-9x slower minkowski renders from the missing hook alone).
+Text_2D_Fn=Text_Fn;
 //cylinder facet number
 Cyl_Fn=360;
 //surface facet number
