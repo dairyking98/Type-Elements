@@ -17,6 +17,12 @@ instead of TypeCylinder's original arbitrary pixel constants, and fixes
 several defects found in the original along the way (see "Fixed defects"
 below).
 
+See `SESSION_LOG.md` for the chronological development history and,
+importantly, the current status/resume point for ongoing work (as of the
+last session: an attempt to replace the draft mechanism below with a
+lofted `shapely.buffer()`-based taper, on branch `v4-real-offset`, fixed
+most letters but hit a real unresolved limitation on `e` - not merged).
+
 ## Setup
 
 ```
