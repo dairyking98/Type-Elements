@@ -1,0 +1,8 @@
+shapely
+trimesh
+triangle
+bezier
+freetype-py
+numpy
+scipy
+pyyaml

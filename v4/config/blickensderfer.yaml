@@ -1,0 +1,115 @@
+# Blickensderfer type element - all real parameters ported 1:1 from
+# v2/blickensderfer.scad (see that file for authoritative source/comments).
+# Derived values (Shaft_Diameter, Clip_OD, Drive_Pin_Countersink_ID,
+# Bottom_Slope/Bottom_Z_Offset, Core_Top_Z/Core_Bottom_Z/Core_Taper_Top_Z,
+# Baseline_Z_Offset, Logo_Radius) are computed in code from these, not
+# duplicated here.
+
+font:
+  path: "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+  size_mm: 3.7
+
+logo:
+  font_path: "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf"
+  text: "Leonard Chau 2025"
+  text_size_mm: 2.5
+  text_spacing: 8.0
+  position_offset_deg: 180.0
+  text_offset_deg: 180.0
+
+element:
+  element_diameter: 34.0
+  platen_diameter: 32.258
+  min_final_character_diameter: 35.0   # Char_Protrusion = (this - element_diameter)/2
+  element_height: 17.15
+  wall_min_thickness: 1.5
+  wall_chamfer: 0.5
+  roof_offset: 0.5
+  speed_hole_id: 5.568
+  speed_hole_qty: 8
+  speed_hole_radial: 11.25
+  core_id_in: 0.125                    # Core_ID_Mm = this * 25.4
+  core_groove_qty: 16
+  core_groove_d: 0.6
+  core_chamfer: 0.5
+  core_bottom_offset: 2.5
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 7.0
+  clip_height: 3.0
+  clip_wire_od: 0.554
+  clip_opening: 1.0
+  clip_bite: 0.7
+  drive_pin_widthmm: 3.737
+  drive_pin_length: 3.6
+  drive_pin_radial: 10.9
+  drive_pin_countersink_depth: 2.0
+  drive_pin_support_radial_offset: 0.5
+  drive_pin_support_height: 2.0
+  drive_pin_style: 0                   # 0=later, 1=old (not ported)
+  core_id_offset: 0.14                 # print-tolerance addition to shaft minor diameter
+  drive_pin_width_offset: 0.15
+
+# quality/facet counts
+quality:
+  surface_fn: 120
+  cyl_fn: 360
+  groove_fn: 20
+
+# per-row baseline/cutout (mm from clip end - Baseline_Z_Offset shifts to
+# absolute), latitude spacing, and the DHIATENSOR physical layout + its
+# keyboard->physical column remap (Element_Layout_Array_Map).
+layout:
+  baseline_row: [-4, -10.3, -16.1]
+  cutout_row: [-2.55, -8.66, -14.45]
+  latitude_columns: 28
+  placement_map: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                   27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14]
+  rows:
+    - "zxkg.pwfudhiatensorlcmy,bvqj"
+    - "ZXKG.PWFUDHIATENSORLCMY&BVQJ"
+    - "-^_(./'\"!1234567890;?%¢$)@#:"
+
+# horizontal alignment - see glyph_poc.alignment_x_offset(). Not from
+# v2/blickensderfer.scad (Text_Align_Modified_Chars="" there, i.e. no
+# override active) - this is the from-scratch scheme built for v4.
+alignment:
+  mode: center             # "center" or "left"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: "!,.;:)"
+  modified_left_offset_mm: 0.0
+  modified_right_chars: "("
+  modified_right_offset_mm: 0.0
+
+# mesh-pipeline build settings (v4-specific, not from v2/blickensderfer.scad)
+build:
+  points_per_mm: 15.0
+  separation_mm: 2.0
+  render_core_groove: true
+  resin_support: true   # ResinPrint() equivalent - union(FullElement(), ResinSupport())
+
+# lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
+# print supports - Blickensderfer/Postal only, not Hammond/IBM). Values
+# below are Blickensderfer's from v2/blickensderfer.scad's
+# [Resin Printing] section; Resin_Fn is from [Global Parameters].
+resin:
+  resin_fn: 20
+  rod_od: 1.0
+  tip_od: 0.6
+  tip_l: 1.0
+  inset: 0.3
+  min_rod_height: 4.0
+  raft_od: 2.0
+  raft_thickness: 1.0
+  groove_od: 0.8
+  groove_thickness: 0.3
+  rod_raft: true               # Resin_Rod_Raft - Blickensderfer default (Postal sets false)
+  cut_groove_inner_x: 0.0       # Blickensderfer default (Postal uses a different value)
+  bottom_support_fractions: [0.2]        # Blickensderfer default (Postal uses [0,.25,.5,.75,1])
+  bottom_support_inner_angle_offset: 0.5  # Blickensderfer default (Postal uses 0)
+
+output:
+  directory: "output"
+  stl_name: "blickensderfer_full_element.stl"

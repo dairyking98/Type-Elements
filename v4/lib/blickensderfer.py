@@ -1,0 +1,643 @@
+"""
+v4 full-fidelity Blickensderfer body - ports v2/blickensderfer.scad's
+Additive()/Subtractive()/FullElement() structure directly, using the SAME
+origin/orientation convention as the OpenSCAD file (Z=0 at the bottom face
+of the main disk, Z+ up through the clip end; Baseline_Z_Offset shifts the
+negative-from-clip-end Baseline/Cutout arrays into this absolute frame).
+
+All real-machine numbers live in config/blickensderfer.yaml, not here -
+call configure(path) once before using anything else in this module (see
+generate.py). Derived values (Shaft_Diameter, Clip_OD, etc.) are computed
+in configure() from that file's base parameters, matching how
+v2/blickensderfer.scad itself derives them.
+"""
+
+import numpy as np
+import trimesh
+import yaml
+
+from glyph_poc import build_glyph, build_flat_text
+import scad_primitives as sp
+
+_configured = False
+
+
+def configure(config_path):
+    """Loads config_path (YAML) and sets this module's globals - base
+    parameters copied straight from the file, derived ones computed the
+    same way v2/blickensderfer.scad (and lib/core_shaft.scad,
+    lib/resin_support.scad) derive them from their own base parameters."""
+    global _configured
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+
+    g = globals()
+    g["CONFIG"] = cfg
+
+    font = cfg["font"]
+    g["FONT_PATH"] = font["path"]
+    g["FONT_SIZE_MM"] = font["size_mm"]
+
+    logo = cfg["logo"]
+    g["LOGO_FONT_PATH"] = logo["font_path"]
+    g["Logo_Text"] = logo["text"]
+    g["Logo_Text_Size"] = logo["text_size_mm"]
+    g["Logo_Text_Spacing"] = logo["text_spacing"]
+    g["Logo_Position_Offset"] = logo["position_offset_deg"]
+    g["Logo_Text_Offset"] = logo["text_offset_deg"]
+
+    e = cfg["element"]
+    g["z"] = 0.01
+    g["Element_Diameter"] = e["element_diameter"]
+    g["Platen_Diameter"] = e["platen_diameter"]
+    g["Min_Final_Character_Diameter"] = e["min_final_character_diameter"]
+    g["Char_Protrusion"] = (e["min_final_character_diameter"] - e["element_diameter"]) / 2.0
+    g["Element_Height"] = e["element_height"]
+    g["Wall_Min_Thickness"] = e["wall_min_thickness"]
+    g["Wall_Chamfer"] = e["wall_chamfer"]
+    g["Roof_Offset"] = e["roof_offset"]
+    g["Speed_Hole_ID"] = e["speed_hole_id"]
+    g["Speed_Hole_Qty"] = e["speed_hole_qty"]
+    g["Speed_Hole_Radial"] = e["speed_hole_radial"]
+    g["Core_ID_In"] = e["core_id_in"]
+    g["Core_ID_Mm"] = e["core_id_in"] * 25.4
+    g["Core_Groove_Qty"] = e["core_groove_qty"]
+    g["Core_Groove_D"] = e["core_groove_d"]
+    g["Core_Chamfer"] = e["core_chamfer"]
+    g["Core_Bottom_Offset"] = e["core_bottom_offset"]
+    g["Core_Contact_Length"] = e["core_contact_length"]
+    g["Core_Web_Width"] = e["core_web_width"]
+    g["Core_Web_Qty"] = e["core_web_qty"]
+    g["Core_Web_Length"] = e["core_web_length"]
+    g["Core_Secondary_ID_Offset"] = e["core_groove_d"] / 2 + g["z"]
+    g["Clip_Height"] = e["clip_height"]
+    g["Clip_Wire_OD"] = e["clip_wire_od"]
+    g["Clip_Opening"] = e["clip_opening"]
+    g["Clip_Bite"] = e["clip_bite"]
+    g["Drive_Pin_Widthmm"] = e["drive_pin_widthmm"]
+    g["Drive_Pin_Length"] = e["drive_pin_length"]
+    g["Drive_Pin_Radial"] = e["drive_pin_radial"]
+    g["Drive_Pin_Countersink_Depth"] = e["drive_pin_countersink_depth"]
+    g["Drive_Pin_Support_Radial_Offset"] = e["drive_pin_support_radial_offset"]
+    g["Drive_Pin_Support_Height"] = e["drive_pin_support_height"]
+    g["Drive_Pin_Style"] = e["drive_pin_style"]
+    g["Core_ID_Offset"] = e["core_id_offset"]
+    g["Drive_Pin_Width_Offset"] = e["drive_pin_width_offset"]
+
+    g["Shaft_Diameter"] = g["Core_ID_Mm"] + g["Core_ID_Offset"]
+    g["Drive_Pin_Width"] = g["Drive_Pin_Widthmm"] + g["Drive_Pin_Width_Offset"]
+    g["Drive_Pin_Countersink_ID"] = np.sqrt(g["Drive_Pin_Width"] ** 2 + g["Drive_Pin_Length"] ** 2)
+    g["Clip_OD"] = g["Shaft_Diameter"] + 2 * g["Wall_Min_Thickness"]
+    g["Logo_Radius"] = g["Element_Diameter"] / 2 - 2.0
+
+    g["Core_Top_Z"] = g["Element_Height"] + g["Clip_Height"]
+    g["Core_Bottom_Z"] = g["Core_Bottom_Offset"]
+    g["Core_Taper_Top_Z"] = g["Element_Height"]
+
+    q = cfg["quality"]
+    g["Surface_Fn"] = q["surface_fn"]
+    g["Cyl_Fn"] = q["cyl_fn"]
+    g["Groove_Fn"] = q["groove_fn"]
+
+    layout = cfg["layout"]
+    g["BASELINE_ROW"] = layout["baseline_row"]
+    g["CUTOUT_ROW"] = layout["cutout_row"]
+    g["LATITUDE_INT"] = 360.0 / layout["latitude_columns"]
+    g["BASELINE_Z_OFFSET"] = g["Element_Height"]
+    g["PLACEMENT_MAP"] = layout["placement_map"]
+    g["DHIATENSOR"] = layout["rows"]
+
+    g["PLATEN_RADIUS_MM"] = 1.0 / g["Platen_Diameter"]
+
+    align = cfg["alignment"]
+    g["ALIGN_KWARGS"] = {
+        "mode": align["mode"],
+        "center_offset_mm": align["center_offset_mm"],
+        "left_offset_mm": align["left_offset_mm"],
+        "modified_left_chars": align["modified_left_chars"],
+        "modified_left_offset_mm": align["modified_left_offset_mm"],
+        "modified_right_chars": align["modified_right_chars"],
+        "modified_right_offset_mm": align["modified_right_offset_mm"],
+    }
+
+    b = cfg["build"]
+    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
+    g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
+    g["DEFAULT_RENDER_CORE_GROOVE"] = b["render_core_groove"]
+    g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
+
+    r = cfg["resin"]
+    g["Resin_Fn"] = r["resin_fn"]
+    g["Resin_Rod_OD"] = r["rod_od"]
+    g["Resin_Tip_OD"] = r["tip_od"]
+    g["Resin_Tip_L"] = r["tip_l"]
+    g["Resin_Inset"] = r["inset"]
+    g["Resin_Min_Rod_Height"] = r["min_rod_height"]
+    g["Resin_Raft_OD"] = r["raft_od"]
+    g["Resin_Raft_Thickness"] = r["raft_thickness"]
+    g["Resin_Groove_OD"] = r["groove_od"]
+    g["Resin_Groove_Thickness"] = r["groove_thickness"]
+    g["Resin_Rod_Raft"] = r["rod_raft"]
+    g["Cut_Groove_Inner_X"] = r["cut_groove_inner_x"]
+    g["Bottom_Support_Fractions"] = r["bottom_support_fractions"]
+    g["Bottom_Support_Inner_Angle_Offset"] = r["bottom_support_inner_angle_offset"]
+
+    g["OUTPUT_DIR"] = cfg["output"]["directory"]
+    g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
+
+    # bottomZ/bottomX, ported exactly from lib/resin_support.scad
+    # (Blickensderfer takes the lib defaults - no override in
+    # blickensderfer.scad).
+    g["Bottom_Slope"] = g["Core_Bottom_Offset"] / (
+        (g["Shaft_Diameter"] / 2 + g["Wall_Min_Thickness"] + g["Wall_Chamfer"])
+        - (g["Element_Diameter"] / 2 - g["Wall_Min_Thickness"] - g["Wall_Chamfer"]))
+    g["Bottom_Z_Offset"] = (-g["Bottom_Slope"] * (g["Shaft_Diameter"] / 2 + g["Wall_Min_Thickness"] + g["Wall_Chamfer"])
+                            + g["Core_Bottom_Offset"])
+
+    _configured = True
+
+
+def _require_configured():
+    if not _configured:
+        raise RuntimeError("call blickensderfer.configure(config_path) before using this module")
+
+
+# ---------------------------------------------------------------- Additive
+
+def Cylinder():
+    return sp.cylinder_z(Element_Diameter, Element_Height, sections=Surface_Fn)
+
+
+def ClipCylinder(Offset):
+    c = sp.cylinder_z(Clip_OD + Offset, Clip_Height + z, sections=Surface_Fn)
+    return sp.translate(c, [0, 0, Element_Height - z])
+
+
+def place_on_cylinder(mesh, row, col, separation_mm):
+    """LetterPlacement() equivalent - see conversation for the full
+    derivation from rotate([90,0,90])+translate((R+protrusion),0,0)+
+    translate(0,0,textBaseline)+rotate([0,0,angle]).
+
+    Radial anchor: the platen-bite point (the print face's deepest/
+    narrowest point, at y=radius_y_offset where the scallop is zero, i.e.
+    mesh z_local=separation_mm exactly) sits at
+    Element_Diameter/2+Char_Protrusion - a FIXED real-machine value, not
+    separation_mm. The root (z_local=0) sits INWARD from that anchor by
+    separation_mm - the base pushes toward the axis as it widens (like a
+    nail driven in with a wide head sitting proud), not flush-and-sideways."""
+    v = mesh.vertices
+    x_local, y_local, z_local = v[:, 0], v[:, 1], v[:, 2]
+    radial = (Element_Diameter / 2.0 + Char_Protrusion - separation_mm) + z_local
+    axial = BASELINE_Z_OFFSET + BASELINE_ROW[row] + y_local
+    lateral = x_local
+    placement_col = PLACEMENT_MAP[col]
+    angle = np.radians((0.5 + placement_col) * LATITUDE_INT)
+    ca, sa = np.cos(angle), np.sin(angle)
+    world_x = radial * ca - lateral * sa
+    world_y = radial * sa + lateral * ca
+    new_v = np.stack([world_x, world_y, axial], axis=1)
+    # process=False: this is a pure coordinate move (rotation+translation),
+    # topology is unchanged - trimesh's default process=True re-runs vertex
+    # merging on construction, which was found to CORRUPT already-valid
+    # self-unioned meshes here (identity-transform reconstruction alone
+    # reproduced it: 2195->1507 vertices, watertight True->False - nothing
+    # to do with the rotation/translation itself, purely re-processing a
+    # mesh that's already correct).
+    return trimesh.Trimesh(vertices=new_v, faces=mesh.faces, process=False)
+
+
+def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None):
+    _require_configured()
+    points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
+    align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
+    parts = []
+    skipped = []
+    self_intersecting = []
+    for row in (0, 1, 2):
+        for col, ch in enumerate(DHIATENSOR[row]):
+            try:
+                mesh, loop_simple = build_glyph(
+                    ch, points_per_mm, separation_mm=separation_mm, row=row,
+                    align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
+                    radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
+                    platen_radius_mm=PLATEN_RADIUS_MM)
+            except Exception as e:
+                skipped.append((row, col, ch, str(e)))
+                continue
+            if not all(loop_simple):
+                # Detection only. Tried self-union (mesh.union(mesh,
+                # engine="manifold")) as an automatic repair here - it
+                # DOES cleanly resolve outer-boundary self-intersection
+                # (confirmed on 'H': volume 20.24->15.88mm3, the X-fold
+                # became a proper pinched valley) but on hole-boundary
+                # self-intersection (e.g. 'o'/'O', where loop_simple's
+                # SECOND entry - the hole - is the one that's False) it
+                # instead caps the hole with a spurious flat membrane - a
+                # different, worse defect than the original pinch. Not
+                # safe to apply blanket across all failures, so reverted
+                # to report-only for both cases rather than special-case
+                # outer-vs-hole (which loop_simple's index-per-contour
+                # already distinguishes, if this is revisited later).
+                self_intersecting.append((row, col, ch))
+            parts.append(place_on_cylinder(mesh, row, col, separation_mm))
+    print(f"TextRing: placed {len(parts)}, skipped {len(skipped)}: {skipped}")
+    if self_intersecting:
+        print(f"TextRing: {len(self_intersecting)} characters have a self-intersecting "
+              f"draft offset (detection only, not repaired): {self_intersecting}")
+
+    collisions = _check_inter_character_collisions(parts)
+    if collisions:
+        print(f"TextRing: {len(collisions)} inter-character collisions detected "
+              f"(detection only, not repaired): {sorted(collisions)}")
+
+    return trimesh.util.concatenate(parts), parts
+
+
+def _check_inter_character_collisions(parts):
+    """Real mesh-vs-mesh collision check between DIFFERENT character
+    parts (trimesh.collision.CollisionManager IS designed for exactly
+    this - between distinct registered objects - unlike the earlier,
+    meaningless single-mesh use of in_collision_internal() from the
+    conversation history, which never flags anything because there's
+    nothing else registered to collide with)."""
+    cm = trimesh.collision.CollisionManager()
+    for i, part in enumerate(parts):
+        cm.add_object(str(i), part)
+    _, names = cm.in_collision_internal(return_names=True)
+    return names
+
+
+def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None):
+    text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs)
+    return trimesh.util.concatenate([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
+
+
+# ------------------------------------------------------------- Subtractive
+
+def Core(Offset):
+    c = sp.cylinder_z(Shaft_Diameter + Offset, Element_Height + Clip_Height + 2 * z,
+                       sections=Cyl_Fn)
+    return sp.translate(c, [0, 0, -z])
+
+
+def SpeedHoles():
+    parts = []
+    for n in range(Speed_Hole_Qty):
+        h = sp.cylinder_z(Speed_Hole_ID, Element_Height + 2 * z, sections=Surface_Fn,
+                           base_z=-z + (Element_Height / 2.0 if n == 0 else 0.0))
+        h = sp.translate(h, [Speed_Hole_Radial, 0, 0])
+        h = sp.rotate_z(h, 360.0 / Speed_Hole_Qty * n)
+        parts.append(h)
+    return sp.union_all(parts)
+
+
+def _hollow_space_profile():
+    return [
+        (Shaft_Diameter / 2 + Wall_Min_Thickness, Wall_Min_Thickness + Wall_Chamfer + Core_Bottom_Offset),
+        (Shaft_Diameter / 2 + Wall_Min_Thickness, Element_Height - Wall_Min_Thickness - Wall_Chamfer),
+        (Shaft_Diameter / 2 + Wall_Min_Thickness + Wall_Chamfer, Element_Height - Wall_Min_Thickness),
+        ((Shaft_Diameter + Element_Diameter) / 4, Element_Height - Wall_Min_Thickness + Roof_Offset),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer, Element_Height - Wall_Min_Thickness),
+        (Element_Diameter / 2 - Wall_Min_Thickness, Element_Height - Wall_Min_Thickness - Wall_Chamfer),
+        (Element_Diameter / 2 - Wall_Min_Thickness, Wall_Min_Thickness + Wall_Chamfer),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer, Wall_Min_Thickness),
+        (Shaft_Diameter / 2 + Wall_Min_Thickness + Wall_Chamfer, Wall_Min_Thickness + Core_Bottom_Offset),
+    ]
+
+
+def HollowSpace():
+    body = sp.revolve_polygon(_hollow_space_profile(), sections=Surface_Fn)
+    countersink_id = Drive_Pin_Countersink_ID if Drive_Pin_Style == 0 else None
+    radius = Drive_Pin_Radial if Drive_Pin_Style == 0 else None
+    cutter = sp.cylinder_z(countersink_id + 2 * Drive_Pin_Support_Radial_Offset,
+                            Drive_Pin_Countersink_Depth + Drive_Pin_Support_Height,
+                            sections=Surface_Fn)
+    cutter = sp.translate(cutter, [radius, 0, 0])
+    return body.difference(cutter, engine="manifold")
+
+
+def _bottom_x(zval):
+    return (zval - Bottom_Z_Offset) / Bottom_Slope
+
+
+def BottomSlopedSpace():
+    profile = [
+        (0, -z - 5),
+        (0, Core_Bottom_Offset),
+        (_bottom_x(Core_Bottom_Offset), Core_Bottom_Offset),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer, 0),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer + 5, 0),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer + 5, -z - 5),
+    ]
+    return sp.revolve_polygon(profile, sections=Surface_Fn)
+
+
+def TopMinkCleanup():
+    outer = sp.cylinder_z(Element_Diameter, 5, sections=Surface_Fn, base_z=Element_Height)
+    inner = sp.cylinder_z(Element_Diameter - 15, 15, sections=Surface_Fn,
+                           base_z=Element_Height, center=True)
+    return outer.difference(inner, engine="manifold")
+
+
+def WireBite():
+    """WireBite(): rotate([0,0,-90]) translate([...]) rotate([90,0,0])
+    linear_extrude(Clip_OD+2z) hull(circle, square). Built as: true 2D
+    shapely hull (matching OpenSCAD's hull() exactly) -> extrude_polygon
+    along LOCAL Z (matching linear_extrude's own axis) -> the full
+    rotate/translate/rotate stack applied via scad_transform, in the same
+    top-to-bottom order as the SCAD source."""
+    from shapely.geometry import Point, box as shapely_box
+    from shapely.ops import unary_union
+
+    circle_poly = Point(Clip_Wire_OD / 2, Clip_Wire_OD / 2).buffer(Clip_Wire_OD / 2, resolution=32)
+    sq_x0 = Clip_Bite + (Clip_OD - Shaft_Diameter) / 2
+    square_poly = shapely_box(sq_x0, 0, sq_x0 + z, Clip_Opening)
+    hull_poly = unary_union([circle_poly, square_poly]).convex_hull
+
+    shape = trimesh.creation.extrude_polygon(hull_poly, Clip_OD + 2 * z)
+
+    out = sp.scad_transform(
+        shape,
+        ("rotate", [0, 0, -90]),
+        ("translate", [Shaft_Diameter / 2 - Clip_Bite, Clip_OD / 2 + z, Element_Height]),
+        ("rotate", [90, 0, 0]),
+    )
+    return out
+
+
+def SecondaryCore(Offset):
+    """lib/core_shaft.scad - Blickensderfer sets Core_Taper_Top_Z=Element_Height
+    (below the clip), distinct from Core_Top_Z=Element_Height+Clip_Height."""
+    taper_top_z = Core_Taper_Top_Z
+    profile = [
+        (0, Core_Bottom_Z + Core_Contact_Length),
+        (0, Core_Top_Z),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset, Core_Top_Z),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset, taper_top_z),
+        (Shaft_Diameter / 2 + Offset / 2, taper_top_z - Core_Secondary_ID_Offset),
+        (Shaft_Diameter / 2 + Offset / 2, taper_top_z - Core_Contact_Length),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset,
+         taper_top_z - Core_Contact_Length - Core_Secondary_ID_Offset),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset,
+         Core_Bottom_Z + Core_Contact_Length + Core_Secondary_ID_Offset),
+        (Shaft_Diameter / 2 + Offset / 2, Core_Bottom_Z + Core_Contact_Length),
+    ]
+    return sp.revolve_polygon(profile, sections=Surface_Fn)
+
+
+def CoreGrooves(Offset):
+    parts = []
+    circle_theta = np.linspace(0, 2 * np.pi, Groove_Fn, endpoint=False)
+    r = Core_Groove_D / 2.0
+    radial = Shaft_Diameter / 2 + Offset / 2
+    profile = np.column_stack([radial + r * np.cos(circle_theta), r * np.sin(circle_theta)])
+    height = Core_Top_Z + 2 * z
+    twist_span = Core_Top_Z - Core_Bottom_Z + 2 * z
+    for n in range(Core_Groove_Qty):
+        sign = 1 if n % 2 == 0 else -1
+        twist = 360 * twist_span / (np.pi * (Shaft_Diameter + Offset)) * sign
+        groove = sp.linear_extrude_twist(profile, height=height, twist_degrees=twist,
+                                          z_steps=96, base_z=-z)
+        groove = sp.rotate_z(groove, 360.0 / Core_Groove_Qty * n)
+        parts.append(groove)
+    return sp.union_all(parts)
+
+
+def CoreChamferShape(Offset):
+    return sp.frustum_z(Shaft_Diameter + Offset + 2 * Core_Chamfer,
+                         Shaft_Diameter + Offset, Core_Chamfer + z, sections=Surface_Fn)
+
+
+def CoreChamfer(Offset, chamfer_top=True):
+    bottom = sp.translate(CoreChamferShape(Offset), [0, 0, Core_Bottom_Z - z])
+    parts = [bottom]
+    if chamfer_top:
+        top_shape = CoreChamferShape(Offset + Core_Secondary_ID_Offset / 2)
+        top = sp.scad_transform(top_shape,
+                                 ("translate", [0, 0, Core_Top_Z + z]),
+                                 ("rotate", [180, 0, 0]))
+        parts.append(top)
+    return sp.union_all(parts)
+
+
+def CoreEllipses():
+    taper_top_z = Core_Taper_Top_Z
+    parts = []
+    for n in range(Core_Web_Qty):
+        c1 = sp.cylinder_z(Core_Web_Width, 5, sections=32, base_z=0)
+        c1 = sp.translate(c1, [0, Core_Web_Width / 2.0, 0])
+        c2 = sp.cylinder_z(Core_Web_Width, 5, sections=32, base_z=0)
+        c2 = sp.translate(c2, [0, Core_Web_Length - Core_Web_Width / 2.0, 0])
+        shape = trimesh.util.concatenate([c1, c2]).convex_hull
+        shape = sp.scad_transform(
+            shape,
+            ("translate", [0, 0, Core_Bottom_Z + (taper_top_z - Core_Bottom_Z) / 2 - Core_Web_Length / 2]),
+            ("rotate", [90, 0, 90]),
+        )
+        shape = sp.rotate_z(shape, n * 360.0 / Core_Web_Qty)
+        parts.append(shape)
+    return sp.union_all(parts)
+
+
+def LogoText(points_per_mm=20.0):
+    """LogoText(): each character gets its own angular position, sitting
+    flat on the XY plane (extruded along Z, not wrapped radially like
+    TextRing characters) near the top face. halign=center in the real
+    file centers on the advance box (see docs/text-centering.md); this
+    port centers on the ink bbox instead - a simplification, fine for a
+    decorative logo, not attempted to match exactly."""
+    n_chars = len(Logo_Text)
+    parts = []
+    for n, ch in enumerate(Logo_Text):
+        if ch == " ":
+            continue
+        mesh = build_flat_text(ch, points_per_mm, 0.4, font_size_mm=Logo_Text_Size,
+                                font_path=LOGO_FONT_PATH)
+        center_xy = (mesh.bounds[0][:2] + mesh.bounds[1][:2]) / 2.0
+        mesh.apply_translation([-center_xy[0], -center_xy[1], 0])
+
+        angle_n = Logo_Position_Offset - 90 + Logo_Text_Spacing * n - (n_chars - 1) * Logo_Text_Spacing / 2
+        placed = sp.scad_transform(mesh, ("rotate", [0, 0, Logo_Text_Offset]))
+        placed = sp.translate(placed, [0, Logo_Radius + 1.5, Element_Height - 0.3])
+        placed = sp.rotate_z(placed, angle_n)
+        parts.append(placed)
+    return sp.union_all(parts)
+
+
+def DrivePin():
+    if Drive_Pin_Style != 0:
+        raise NotImplementedError("Drive_Pin_Style=1 (old) not ported")
+    pin = trimesh.creation.box(extents=[Drive_Pin_Width, Drive_Pin_Length, 5])
+    pin = sp.scad_transform(
+        pin,
+        ("translate", [Drive_Pin_Radial, 0, -z + 2.5]),
+        ("rotate", [0, 0, 90]),
+    )
+    sink = sp.cylinder_z(Drive_Pin_Countersink_ID, z + Drive_Pin_Countersink_Depth, sections=Surface_Fn)
+    sink = sp.translate(sink, [Drive_Pin_Radial, 0, -z])
+    return sp.union_all([pin, sink])
+
+
+# ------------------------------------------------------------------ Element
+
+def Subtractive(render_core_groove=None):
+    render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
+    parts = [
+        Core(0),
+        CoreChamfer(0),
+        WireBite(),
+        SpeedHoles(),
+        HollowSpace(),
+        DrivePin(),
+        BottomSlopedSpace(),
+        SecondaryCore(0),
+        CoreEllipses(),
+        TopMinkCleanup(),
+        LogoText(),
+    ]
+    if render_core_groove:
+        parts.append(CoreGrooves(0))
+    print("Subtractive: unioning", len(parts), "parts")
+    return sp.union_all(parts)
+
+
+def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None):
+    _require_configured()
+    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs)
+    print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
+          f"watertight={additive.is_watertight}")
+    subtractive = Subtractive(render_core_groove)
+    print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
+          f"watertight={subtractive.is_watertight}")
+    full = additive.difference(subtractive, engine="manifold")
+    full, _, _, _ = sp.check_and_repair(full, label="FullElement")
+    return full, char_parts
+
+
+# ------------------------------------------------------------- Resin support
+# lib/resin_rod.scad + lib/resin_support.scad - cylinder-machine-family
+# (Blickensderfer/Postal only) print supports. ResinSupport() is UNIONED
+# onto FullElement() (support material to be broken off after printing),
+# not subtracted - matches ResinPrint() = union(FullElement(), ResinSupport()).
+
+def _resin_rod(h, add_raft=None):
+    add_raft = Resin_Rod_Raft if add_raft is None else add_raft
+    return sp.resin_rod(h, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD, Resin_Inset,
+                         Resin_Min_Rod_Height, Resin_Raft_Thickness, Resin_Raft_OD,
+                         add_raft=add_raft, resin_fn=Resin_Fn)
+
+
+def _bottom_z(xval):
+    return Bottom_Slope * xval + Bottom_Z_Offset
+
+
+def CutGroove():
+    """CutGroove(): rotate_extrude() of (ring profile - 2 circular holes),
+    at radius Element_Diameter/2-Wall_Min_Thickness. The 2D difference
+    happens BEFORE the revolve in the real file, so each hole becomes a
+    full 360deg toroidal channel (a continuous score line to snap the
+    support ring off), not discrete point perforations. Built as
+    revolve(profile) - revolve(hole1) - revolve(hole2), since revolving is
+    linear with respect to this kind of cross-section boolean."""
+    inner_x = Cut_Groove_Inner_X
+    wmt = Wall_Min_Thickness
+    radius = Element_Diameter / 2 - Wall_Min_Thickness
+    profile = [
+        (radius + inner_x, -Resin_Min_Rod_Height - Resin_Raft_Thickness),
+        (radius + inner_x, -Resin_Min_Rod_Height),
+        (radius + wmt - Resin_Groove_OD - Resin_Groove_Thickness, -Resin_Groove_OD),
+        (radius + wmt - Resin_Groove_OD - Resin_Groove_Thickness, z),
+        (radius + wmt, z),
+        (radius + wmt, -Resin_Min_Rod_Height),
+        (radius + wmt + Resin_Raft_Thickness, -Resin_Min_Rod_Height),
+        (radius + wmt, -Resin_Min_Rod_Height - Resin_Raft_Thickness),
+    ]
+    base = sp.revolve_polygon(profile, sections=Surface_Fn)
+
+    hole_r = Resin_Groove_OD / 2
+    theta = np.linspace(0, 2 * np.pi, 32, endpoint=False)
+
+    def circle_profile(cx, cz):
+        return np.column_stack([cx + hole_r * np.cos(theta), cz + hole_r * np.sin(theta)])
+
+    hole1 = sp.revolve_polygon(circle_profile(radius + wmt, -Resin_Groove_OD / 2), sections=Surface_Fn)
+    hole2 = sp.revolve_polygon(
+        circle_profile(radius + wmt - Resin_Groove_OD - Resin_Groove_Thickness, -Resin_Groove_OD / 2),
+        sections=Surface_Fn)
+
+    return base.difference(hole1, engine="manifold").difference(hole2, engine="manifold")
+
+
+def SpeedHoleSupport():
+    parts = []
+    r1 = Speed_Hole_Radial + Speed_Hole_ID / 2 + Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(r1)), [r1, 0, 0]))
+    r2 = Speed_Hole_Radial - Speed_Hole_ID / 2 - Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(r2)), [r2, 0, 0]))
+    r3 = np.hypot(Speed_Hole_Radial, Speed_Hole_ID / 2 + Resin_Tip_OD / 2)
+    parts.append(sp.translate(_resin_rod(_bottom_z(r3)), [Speed_Hole_Radial, Speed_Hole_ID / 2 + Resin_Tip_OD / 2, 0]))
+    r4 = np.hypot(Speed_Hole_Radial, Speed_Hole_ID / 2 + Resin_Tip_OD / 2)
+    parts.append(sp.translate(_resin_rod(_bottom_z(r4)), [Speed_Hole_Radial, -(Speed_Hole_ID / 2 + Resin_Tip_OD / 2), 0]))
+    return sp.union_all(parts)
+
+
+def SpeedHoleSupports():
+    parts = []
+    for n in range(Speed_Hole_Qty):
+        if n == 0:
+            continue
+        parts.append(sp.rotate_z(SpeedHoleSupport(), 360.0 / Speed_Hole_Qty * n))
+    return sp.union_all(parts)
+
+
+def DrivePinSupport(radius, half_extent_x, half_extent_y):
+    parts = []
+    x1 = radius + half_extent_x + Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(x1)), [x1, 0, 0]))
+    x2 = radius - half_extent_x - Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(x2)), [x2, 0, 0]))
+    r3 = np.hypot(radius, half_extent_y + Resin_Tip_OD / 2)
+    parts.append(sp.translate(_resin_rod(_bottom_z(r3)), [radius, half_extent_y + Resin_Tip_OD / 2, 0]))
+    parts.append(sp.translate(_resin_rod(_bottom_z(r3)), [radius, -(half_extent_y + Resin_Tip_OD / 2), 0]))
+    return sp.union_all(parts)
+
+
+def BottomSupports():
+    fractions = Bottom_Support_Fractions
+    inner_angle_offset = Bottom_Support_Inner_Angle_Offset
+    a = _bottom_x(Core_Bottom_Offset)
+    b = Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer
+    parts = []
+    for n in range(Speed_Hole_Qty):
+        outer_rods = [sp.translate(_resin_rod(_bottom_z(a + (b - a) * f)), [a + (b - a) * f, 0, 0])
+                      for f in fractions]
+        parts.append(sp.rotate_z(sp.union_all(outer_rods), (n + 0.5) * 360.0 / Speed_Hole_Qty))
+
+        inner_x = Shaft_Diameter / 2 + Core_Chamfer + Resin_Tip_OD / 2
+        inner_rod = sp.translate(_resin_rod(Core_Bottom_Offset), [inner_x, 0, 0])
+        parts.append(sp.rotate_z(inner_rod, (n + inner_angle_offset) * 360.0 / Speed_Hole_Qty))
+    return sp.union_all(parts)
+
+
+def ResinSupport():
+    _require_configured()
+    countersink_id = Drive_Pin_Countersink_ID
+    radius = Drive_Pin_Radial
+    parts = [
+        CutGroove(),
+        SpeedHoleSupports(),
+        DrivePinSupport(radius, countersink_id / 2, countersink_id / 2),
+        BottomSupports(),
+    ]
+    return sp.union_all(parts)
+
+
+def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None):
+    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs)
+    support = ResinSupport()
+    print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
+          f"watertight={support.is_watertight}")
+    combined = sp.union_all([full, support])
+    combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
+    return combined, char_parts
