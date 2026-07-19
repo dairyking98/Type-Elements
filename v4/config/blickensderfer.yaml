@@ -155,7 +155,12 @@ build:
 # lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
 # print supports - Blickensderfer/Postal only, not Hammond/IBM). Values
 # below are Blickensderfer's from v2/blickensderfer.scad's
-# [Resin Printing] section; Resin_Fn is from [Global Parameters].
+# [Resin Printing] section; Resin_Fn is from [Global Parameters]. This
+# section's SHAPE (not just most values) matches config/postal.yaml's -
+# the two machines' resin supports are damn near identical by design
+# (same shared lib/resin_support.scad-derived code, see
+# lib/cylinder_machine.py), so there's no reason for their config schemas
+# to diverge either.
 resin:
   resin_fn: 20
   rod_od: 1.0
@@ -167,8 +172,16 @@ resin:
   raft_thickness: 1.0
   groove_od: 0.8
   groove_thickness: 0.3
-  rod_raft: true               # Resin_Rod_Raft - Blickensderfer default (Postal sets false)
-  cut_groove_inner_x: 0.0       # Blickensderfer default (Postal uses a different value)
+  # false = each resin support rod grows its own small individual raft
+  # cone (Resin_Rod_Raft=true, Cut_Groove_Inner_X=0 - v2's original
+  # Blickensderfer behavior). true = one continuous raft plate shared by
+  # every rod, reaching all the way to the element's center axis
+  # (Resin_Rod_Raft=false, Cut_Groove_Inner_X pushed inward accordingly -
+  # v2's original Postal behavior) - a real, useful option for EITHER
+  # machine, not something Postal-exclusive, so it's a plain tunable here
+  # instead of a silent per-machine default. See
+  # cylinder_machine.resin_raft_config's docstring for the derivation.
+  raft: false
   bottom_support_fractions: [0.2]        # Blickensderfer default (Postal uses [0,.25,.5,.75,1])
   bottom_support_inner_angle_offset: 0.5  # Blickensderfer default (Postal uses 0)
 

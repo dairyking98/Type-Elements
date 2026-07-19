@@ -374,7 +374,9 @@ Ports `lib/resin_rod.scad` (`ResinRod` -> `scad_primitives.resin_rod`, a
 generic hull-of-spheres tapered support rod, reusable across future
 machines) and `lib/resin_support.scad`'s cylinder-machine-family placement
 logic (`CutGroove`, `SpeedHoleSupport(s)`, `DrivePinSupport`,
-`BottomSupports`, `ResinSupport`) in `lib/blickensderfer.py`.
+`BottomSupports`, `ResinPrint`) - shared between machines in
+`lib/cylinder_machine.py` (see "Multiple machines" above); only
+`ResinSupport()` itself is machine-specific (the drive-pin trio).
 `CutGroove()` - the breakaway ring - is built as `revolve(profile) -
 revolve(hole1) - revolve(hole2)`: the real file's 2D difference happens
 *before* `rotate_extrude()`, so each hole becomes a full 360deg toroidal
@@ -384,6 +386,20 @@ score line around the circumference, not discrete perforation points.
 material to be broken off after printing, not subtracted). Off by default
 (`build.resin_support: false` in the config) since it's only needed right
 before slicing for print; enable via `--resin-support` or the config.
+
+**`resin.raft`** (also on tune.py's Resin tab as "Continuous raft"): `false`
+(default, both machines) - each support rod grows its own small raft
+cone. `true` - one continuous raft plate shared by every rod, reaching
+all the way to the element's center axis. This was originally two
+separate hardcoded per-machine values (v2's Blickensderfer always used
+individual rafts, Postal always used the continuous plate) - collapsed
+into one shared, user-facing toggle (`cylinder_machine.resin_raft_config`
+derives `Resin_Rod_Raft`/`Cut_Groove_Inner_X` from it) since the
+continuous-plate option is genuinely useful for either machine, not
+something that should silently differ by default between them. Verified
+all 4 combinations (each machine x both settings) watertight/winding-
+consistent/`is_volume`, and confirmed both machines' `false` default and
+Postal's `true` reproduce byte-identical geometry to before this change.
 
 ### Shaft Gauge Test (`GaugeTestSet`)
 

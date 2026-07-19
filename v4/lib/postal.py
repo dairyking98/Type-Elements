@@ -163,8 +163,12 @@ def configure(config_path):
     g["Resin_Raft_Thickness"] = r["raft_thickness"]
     g["Resin_Groove_OD"] = r["groove_od"]
     g["Resin_Groove_Thickness"] = r["groove_thickness"]
-    g["Resin_Rod_Raft"] = r["rod_raft"]
-    g["Cut_Groove_Inner_X"] = r["cut_groove_inner_x"]
+    # resin.raft - see blickensderfer.configure()'s matching comment /
+    # cylinder_machine.resin_raft_config's docstring. Defaults to false
+    # (Blickensderfer's original behavior) here too now, not Postal's
+    # original true - see config/postal.yaml's own comment on why.
+    g["Resin_Rod_Raft"], g["Cut_Groove_Inner_X"] = cylinder_machine.resin_raft_config(
+        g["Element_Diameter"], g["Wall_Min_Thickness"], r.get("raft", False))
     g["Bottom_Support_Fractions"] = r["bottom_support_fractions"]
     g["Bottom_Support_Inner_Angle_Offset"] = r["bottom_support_inner_angle_offset"]
 

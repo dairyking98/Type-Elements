@@ -767,6 +767,67 @@ screenshot (converted SVG->PNG with `convert`) - centered picker layout,
 correct status text ("machine: Postal | master: config/postal.yaml"), all
 three status-row buttons fit on one row.
 
+## 12. Unified `resin.raft` toggle (was a silent per-machine divergence)
+
+User caught a real issue: Postal's resin support didn't look "damn near
+identical" to Blickensderfer's like everything else in the shared module -
+Postal was growing one big continuous raft plate. Root cause: v2's two
+machines genuinely differ here - Blickensderfer's `CutGroove()` ring sits
+right at the wall (`Cut_Groove_Inner_X=0`) and each rod grows its own
+small raft (`Resin_Rod_Raft=true`); Postal's `Cut_Groove_Inner_X=-14.9`
+pushes the ring's inner profile point all the way to the element's center
+axis, forming one continuous plate, and its rods grow no individual raft
+of their own (`Resin_Rod_Raft=false`) - this was ported faithfully in
+part 8, correctly reproducing each machine's real v2 behavior, but never
+surfaced as an intentional *choice* - just two silently-diverging
+per-machine config defaults.
+
+User's fix, exactly as specified: a single "Continuous raft" checkbox on
+the Resin tab - off (now the default for BOTH machines) = Blickensderfer's
+original individual-raft behavior, on = Postal's original continuous-plate
+behavior - available for EITHER machine now, not Postal-exclusive.
+
+**Implementation**: added `cylinder_machine.resin_raft_config(
+element_diameter, wall_min_thickness, raft_enabled)` - a real shared
+function (not per-machine copy-paste) that derives both
+`Resin_Rod_Raft`/`Cut_Groove_Inner_X` from the one boolean, called from
+both `blickensderfer.py` and `postal.py`'s `configure()`. Removed the raw
+`resin.rod_raft`/`resin.cut_groove_inner_x` YAML keys entirely (fully
+derived now, not independently settable) and replaced with `resin.raft:
+false` in both config files - `config/blickensderfer.yaml` and
+`config/postal.yaml`'s `resin:` sections are now identical in shape.
+tune.py's Resin tab field table (already shared between machines, part 9)
+swapped its `cut_groove_inner_x` float field for a `raft` bool field
+(automatic `Switch` widget via the existing generic FIELDS mechanism, no
+special-casing needed).
+
+**Verified all 4 combinations** (each machine x both settings) via direct
+`generate.py --resin-support` runs: Blickensderfer `raft:false` (default)
+reproduces the EXACT pre-change `ResinSupport` vert/face counts
+(13648/27196); Postal `raft:true` reproduces Postal's exact pre-change
+numbers (15851/31698) - confirming the derivation is mathematically
+exact, not just visually similar; Postal `raft:false` (new default) and
+Blickensderfer `raft:true` (a combination that never existed in v2) both
+produce new, watertight/winding-consistent/`is_volume` geometry. Also
+verified the new checkbox in tune.py (`Switch` widget, correct initial
+value, save round-trip) via headless `App.run_test()`.
+
+**Self-caught mistake**: an early headless test instantiated `TuneApp`
+directly against the user's REAL master config paths (`config/
+blickensderfer.yaml`) to check the new checkbox's default value, then
+saved during the same test - this went through the real master/running
+migration + save path and actually flipped `raft: true` in the user's
+live, gitignored `config/blickensderfer.running.yaml` scratch file
+(their real working config, with real customizations). Caught immediately
+by checking `git status`/grepping the file after the test, fixed by hand
+(set `raft: false` back, and removed the now-dead migrated-in
+`rod_raft`/`cut_groove_inner_x` lines the same migration had left
+behind) - the user's actual settings were otherwise untouched. Lesson for
+future headless tests that exercise save paths: use a scratch copy of a
+config, not the user's real master/running files, even for read-only-
+seeming checks - `TuneApp.__init__` itself performs a real migration
+side-effect on the running file as soon as it's constructed.
+
 ## Resuming later
 
 1. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things

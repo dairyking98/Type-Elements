@@ -183,8 +183,13 @@ def configure(config_path):
     g["Resin_Raft_Thickness"] = r["raft_thickness"]
     g["Resin_Groove_OD"] = r["groove_od"]
     g["Resin_Groove_Thickness"] = r["groove_thickness"]
-    g["Resin_Rod_Raft"] = r["rod_raft"]
-    g["Cut_Groove_Inner_X"] = r["cut_groove_inner_x"]
+    # resin.raft: false (default, matches v2's original Blickensderfer
+    # behavior) = each rod grows its own small raft; true = one
+    # continuous raft plate shared by every rod (v2's original Postal
+    # behavior) - see cylinder_machine.resin_raft_config's docstring.
+    # Shared with postal.py so the two stay exactly in sync.
+    g["Resin_Rod_Raft"], g["Cut_Groove_Inner_X"] = cylinder_machine.resin_raft_config(
+        g["Element_Diameter"], g["Wall_Min_Thickness"], r.get("raft", False))
     g["Bottom_Support_Fractions"] = r["bottom_support_fractions"]
     g["Bottom_Support_Inner_Angle_Offset"] = r["bottom_support_inner_angle_offset"]
 

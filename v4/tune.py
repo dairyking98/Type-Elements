@@ -91,8 +91,12 @@ Tabs (in display order):
     starts f3d in camera view 7 (Top View) - only takes effect on a
     fresh launch, since f3d has no CLI way to change an already-running
     instance's camera.
-  Resin            - resin.* (Resin_Rod_Raft is not exposed - Blickensderfer
-    always uses the default true, no reason to flip it interactively)
+  Resin            - resin.* including the "Continuous raft" checkbox
+    (resin.raft) - off (default, both machines) gives each rod its own
+    small raft; on gives one continuous raft plate shared by every rod,
+    reaching the element's center axis (v2's original Postal-only
+    behavior, now a real option for either machine - see
+    cylinder_machine.resin_raft_config's docstring).
   Gauge            - gauge.offset_start/offset_int, the Shaft Gauge Test's
     only tunables (ported from v2's [Shaft Gauge Test]/GaugeTestSet() -
     see blickensderfer.GaugeTestSet's docstring for the full port notes).
@@ -288,7 +292,9 @@ SECTIONS_COMMON = {
         ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
         ("groove_od", ["resin", "groove_od"], float, "Groove OD (mm)", ""),
         ("groove_thickness", ["resin", "groove_thickness"], float, "Groove thickness (mm)", ""),
-        ("cut_groove_inner_x", ["resin", "cut_groove_inner_x"], float, "Cut groove inner X (mm)", ""),
+        ("raft", ["resin", "raft"], bool, "Continuous raft",
+         "Off: each rod grows its own small raft. On: one continuous raft "
+         "plate shared by every rod, reaching the element's center axis."),
         ("bottom_support_inner_angle_offset", ["resin", "bottom_support_inner_angle_offset"], float,
          "Bottom support angle offset (deg)", ""),
     ],
