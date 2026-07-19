@@ -651,12 +651,25 @@ class TuneApp(App):
                             yield Static(help_text, classes="field-help")
 
     def _display_rows_for_preset(self):
-        """The 3 rows to show as the read-only "original" reference -
-        the selected preset's rows if one's selected, else whatever
-        layout.rows currently is (the "custom - not a known preset"
-        case)."""
+        """The 3 rows to show as the read-only "original" reference,
+        reflecting DISK state (self.cfg) - correct at compose()/
+        _refresh_widgets_from_cfg() time, when the dropdown and self.cfg
+        are still in sync. NOT correct for reacting to the dropdown
+        itself changing (see _rows_for_layout_select_value) - self.cfg
+        only updates on an actual save, so this would keep returning the
+        OLD preset's rows while the user is still just browsing the
+        dropdown pre-save."""
         preset_now = self._current_layout_preset()
         return LAYOUT_PRESETS[preset_now] if preset_now else self.cfg["layout"]["rows"]
+
+    def _rows_for_layout_select_value(self, value):
+        """The 3 rows to preview for a given #layout-select VALUE
+        (typically its live current value, mid-browse and not yet
+        saved) - the preset's own rows, or self.cfg's current custom
+        rows for Select.NULL/an unrecognized value."""
+        if value is Select.NULL or value not in LAYOUT_PRESETS:
+            return self.cfg["layout"]["rows"]
+        return LAYOUT_PRESETS[value]
 
     def _compose_layout_tab(self):
         # named-layout picker only - latitude_columns must stay in sync
@@ -1144,8 +1157,12 @@ class TuneApp(App):
         # keep the read-only "original" preview in sync with whichever
         # preset is now selected - deliberately does NOT touch the
         # editable custom rows (would silently blow away in-progress
-        # hand edits), even while Modify glyphs is on
-        display_rows = self._display_rows_for_preset()
+        # hand edits), even while Modify glyphs is on. Uses event.value
+        # (the dropdown's own live value), NOT _display_rows_for_preset()
+        # (which re-derives "current preset" from self.cfg on disk) -
+        # self.cfg only updates on an actual save, so that would have
+        # kept showing the OLD preset while just browsing the dropdown.
+        display_rows = self._rows_for_layout_select_value(event.value)
         for i in range(3):
             self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
 
@@ -1156,10 +1173,11 @@ class TuneApp(App):
         container.display = event.value
         if event.value:
             # freshly unlocked - seed the editable copy from the current
-            # read-only preview (whatever preset's selected, or the
-            # existing custom rows if already "custom"), so it starts as
-            # an exact copy to hand-edit from, per the request
-            display_rows = self._display_rows_for_preset()
+            # read-only preview (whatever preset's selected in the
+            # dropdown right now, or the existing custom rows if
+            # "custom"), so it starts as an exact copy to hand-edit from
+            layout_select_value = self.query_one("#layout-select", Select).value
+            display_rows = self._rows_for_layout_select_value(layout_select_value)
             for i in range(3):
                 self.query_one(f"#layout-custom-row-{i}", Input).value = display_rows[i]
 
