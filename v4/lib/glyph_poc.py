@@ -70,6 +70,7 @@ import freetype
 import trimesh
 from shapely.geometry import Polygon
 from shapely.affinity import scale as shapely_scale
+import shapely.ops
 from manifold3d import Manifold, Mesh as ManifoldMesh
 
 # --- Parameters ported from v2/blickensderfer.scad ---
@@ -332,48 +333,111 @@ def alignment_x_offset(char, advance_mm,
     return base
 
 
+# Anything smaller than this (mm^2) is floating-point noise from boolean-op
+# cleanup (buffer(0)/difference() on self-intersecting input can leave
+# slivers down around 1e-18 mm^2), not a real decorative detail - the
+# smallest genuine feature seen in practice (a script font's fine serif
+# loop) is ~0.005 mm^2, several orders of magnitude above this.
+_MIN_PART_AREA_MM2 = 1e-6
+
+
+def _polygon_parts(geom):
+    """Flattens a Polygon/MultiPolygon/GeometryCollection (as produced by
+    shapely boolean ops) into a list of real-area Polygons, dropping
+    degenerate slivers and non-area geometry (stray LineString/Point
+    artifacts buffer(0) can leave behind when cleaning up a
+    self-intersection)."""
+    if geom is None or geom.is_empty:
+        return []
+    if geom.geom_type == "Polygon":
+        return [geom] if geom.area > _MIN_PART_AREA_MM2 else []
+    if geom.geom_type in ("MultiPolygon", "GeometryCollection"):
+        out = []
+        for g in geom.geoms:
+            out.extend(_polygon_parts(g))
+        return out
+    return []
+
+
 def classify_and_triangulate(contours_mm):
     """Mirrors MeshMaker.py: classify each closed contour as outer island
-    or hole via containment, triangulate each outer island (with its
-    holes) independently, concatenate. Returns a flat (z=0) trimesh.
+    or hole via containment, boolean-compose them into real filled
+    polygons (union same-depth material, subtract same-depth holes,
+    ascending by nesting depth), triangulate, concatenate. Returns a flat
+    (z=0) trimesh.
 
     His original (and this port's first pass) only handled ONE level of
     nesting: "contained by something -> hole". That breaks on genuinely
     nested glyphs - e.g. DejaVu Sans Mono's '0' has a small slash mark
     nested INSIDE its counter/hole, to distinguish it from 'O' - shapely
     correctly rejects a hole-within-a-hole ("Holes are nested"). Fixed
-    with nesting-DEPTH parity instead of raw containment (same problem
-    v3/draft_via_plateau.py solved for build123d's face nesting): even
-    depth = solid island (material again, like the slash mark), odd depth
-    = hole of its immediate (tightest-containing) parent."""
-    polys = [Polygon(c) for c in contours_mm]
+    with nesting-DEPTH parity (same problem v3/draft_via_plateau.py solved
+    for build123d's face nesting): even depth = solid island (material
+    again, like the slash mark), odd depth = hole.
+
+    A second, later problem with the ORIGINAL per-shell approach (assign
+    each hole to its single tightest-containing shell via
+    Polygon(shell=..., holes=[...]), triangulate each shell independently):
+    it assumes outer islands never overlap each other. That's false for
+    hand-digitized script fonts, which are routinely built from several
+    separately-drawn pen-stroke shapes that deliberately overlap where
+    they should join (confirmed on Blick Script's '3'/'E' - real,
+    non-self-intersecting stroke shapes whose overlap zone contains a tiny
+    decorative loop-hole, so shapely's raw contains() count reported that
+    hole as "contained by" every one of the overlapping strokes at once,
+    an inconsistent depth chain no single-shell assignment can represent
+    correctly). Real per-level boolean union/difference handles overlap
+    natively - union doesn't care whether its inputs already intersect -
+    so it needs no per-shell assignment at all, just depth parity to know
+    which polygons are material and which are voids at each level.
+
+    A third, unrelated problem this same rewrite absorbs: individual
+    contours that are internally self-intersecting (e.g. AverageMono's
+    '6', Mono Fraktur's 'T', Rotunda Pommerania's 's', Spencerian's 'R' -
+    all confirmed pre-existing, sub-visual glitches in hand-digitized
+    outlines, not something any of THESE fonts' edits introduced).
+    shapely's raw Polygon(c) rejects those outright ("invalid shapely
+    polygon passed!" from trimesh's triangulate_polygon). `.buffer(0)` is
+    the standard shapely self-repair idiom for exactly this - it resolves
+    a self-intersecting ring into the equivalent valid (Multi)Polygon,
+    confirmed here to reproduce the same silhouette area as the raw
+    (invalid) shape, i.e. a real, harmless, sub-visual fix, not a
+    reshaping.
+
+    A fourth, also-unrelated problem: FreeType occasionally hands back a
+    contour with fewer than 3 points - a single stray on/off-curve point
+    (confirmed on real fonts: e.g. Tremble 308's 'b', Blackletter
+    Asterisk's 'R') or a duplicated-point 2-point "contour", both leftover
+    editing debris from whatever tool last touched the glyph, not real
+    geometry. A <3-point contour can never enclose area, so it's always
+    safe to drop outright - Polygon() itself agrees, rejecting it before
+    even .buffer(0) gets a chance ("A linearring requires at least 4
+    coordinates" - 3 points plus the auto-closing repeat of the first)."""
+    contours_mm = [c for c in contours_mm if len(c) >= 3]
+    raw_polys = [Polygon(c) for c in contours_mm]
+    # .buffer(0) BEFORE depth classification too: contains() on an invalid
+    # (self-intersecting) polygon is undefined/unreliable, so depth needs
+    # the same repaired shapes the union/difference pass below uses.
+    polys = [p.buffer(0) for p in raw_polys]
     n = len(polys)
     depth = [sum(1 for j in range(n) if j != i and polys[j].contains(polys[i]))
              for i in range(n)]
-    is_hole = [d % 2 == 1 for d in depth]
 
-    def immediate_parent(i):
-        # Was: require a container at EXACTLY depth[i]-1. depth[] is a raw
-        # contains() count, which isn't guaranteed to form a clean depth
-        # chain - very small or boundary-touching loops (e.g. Blick Script's
-        # fine decorative serif loops) can hit shapely floating-point
-        # containment quirks that inflate one polygon's depth without a
-        # matching polygon existing at the exact rung below it, so this
-        # search came up empty and min() on an empty list raised
-        # ValueError, even though the containers themselves are all valid,
-        # non-self-intersecting shapes (confirmed - not a font defect). The
-        # smallest-AREA container that contains i is the immediate/tightest
-        # parent by construction, independent of whether the depth chain
-        # is clean, so drop the depth[j]==depth[i]-1 requirement entirely.
-        candidates = [j for j in range(n) if j != i and polys[j].contains(polys[i])]
-        return min(candidates, key=lambda j: polys[j].area)
-
-    outer_idx = [i for i, h in enumerate(is_hole) if not h]
+    result = None
+    for d in range(max(depth, default=-1) + 1):
+        level = [polys[i] for i in range(n) if depth[i] == d]
+        if not level:
+            continue
+        level_union = shapely.ops.unary_union(level) if len(level) > 1 else level[0]
+        if result is None:
+            result = level_union          # depth 0 always starts as material
+        elif d % 2 == 0:
+            result = result.union(level_union)       # even depth: material again
+        else:
+            result = result.difference(level_union)  # odd depth: a hole
 
     mesh_compound = None
-    for oi in outer_idx:
-        holes = [contours_mm[hi] for hi in range(n) if is_hole[hi] and immediate_parent(hi) == oi]
-        poly = Polygon(shell=contours_mm[oi], holes=holes if holes else None)
+    for poly in _polygon_parts(result):
         vertices, faces = trimesh.creation.triangulate_polygon(
             poly, triangle_args='p', engine="triangle")
         vertices = np.hstack((vertices, np.zeros((len(vertices), 1))))
