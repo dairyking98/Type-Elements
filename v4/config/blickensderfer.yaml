@@ -108,6 +108,13 @@ build:
   separation_mm: 2.0
   render_core_groove: true
   resin_support: true   # ResinPrint() equivalent - union(FullElement(), ResinSupport())
+  # tune.py's Build tab dropdown - "element"/"resin"/"gauge". Only tune.py
+  # reads this (it's how the 3-way dropdown remembers its state across
+  # restarts); generate.py's own default build target is still driven by
+  # resin_support above (which tune.py keeps in sync: true only when
+  # target is "resin"). "gauge" builds GaugeTestSet() instead - see the
+  # Gauge tab/config section.
+  target: "element"
   # manifold3d's cost scales with the product of face counts, so
   # quality.minkowski_fn and points_per_mm together set generation time:
   # ~16-24s for the full 84-char ring at ppm=6-8/minkowski_fn=8-12, ~66s
@@ -170,3 +177,13 @@ type_test:
     wait! uh... no,
     (parentheses)
     excitement!
+
+# lib/gauge (v2's [Shaft Gauge Test] section, blickensderfer.scad:265-267/
+# 517-589) - a 6-pocket "revolver" test print for calibrating
+# element.core_id_offset: each pocket bores the shaft passage at
+# offset_start + n*offset_int (n=0..5), engraved with its own offset value.
+# Print it, test-fit each numbered pocket on the real machine's shaft, and
+# set element.core_id_offset to whichever number fits best.
+gauge:
+  offset_start: 0.0
+  offset_int: 0.025

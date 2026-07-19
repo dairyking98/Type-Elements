@@ -33,7 +33,11 @@ Config file: three tiers, master/running/saved.
     "once changed, always changed" - it persists across tune.py
     restarts against the same master, picking up wherever you left off.
     Reset to Defaults (also top of screen) overwrites the running copy
-    with a fresh copy of master, discarding all accumulated edits.
+    with a fresh copy of master, discarding all accumulated edits. If
+    master has since gained fields the running copy predates (e.g. a
+    codebase update adds a new config section), they're auto-backfilled
+    from master on load - see _migrate_running_config() - without
+    touching anything you've already customized.
   - SAVED is whatever Save produces (see above) - a deliberate,
     named/timestamped snapshot, independent of both master and running.
 
@@ -74,11 +78,18 @@ Tabs (in display order):
     starts f3d in camera view 7 (Top View) - only takes effect on a
     fresh launch, since f3d has no CLI way to change an already-running
     instance's camera.
-  Build            - stripped down to ONE dropdown: Element Only vs.
-    Element + Resin Print (build.resin_support). Resin tab's own fields
-    only matter when Resin Print is selected.
   Resin            - resin.* (Resin_Rod_Raft is not exposed - Blickensderfer
     always uses the default true, no reason to flip it interactively)
+  Gauge            - gauge.offset_start/offset_int, the Shaft Gauge Test's
+    only tunables (ported from v2's [Shaft Gauge Test]/GaugeTestSet() -
+    see blickensderfer.GaugeTestSet's docstring for the full port notes).
+    Not part of the real element - a small 6-pocket calibration test
+    print for finding element.core_id_offset. Select "Shaft Gauge" on
+    the Build tab to actually build it via Preview/Render.
+  Build            - ONE dropdown: Element Only / Element Resin Print
+    (build.resin_support, kept in sync with this dropdown) / Shaft Gauge
+    (build.target - this dropdown's own tri-state, see the Gauge tab).
+    Resin tab's own fields only matter when Resin Print is selected.
   Layout           - a dropdown of named Blickensderfer keyboard layouts
     (ported from v2/lib/layouts/blick_layouts.scad), a read-only 3-row
     preview of whichever one's selected, and a "Modify glyphs" switch
@@ -280,6 +291,31 @@ SECTIONS = {
         ("bottom_support_inner_angle_offset", ["resin", "bottom_support_inner_angle_offset"], float,
          "Bottom support angle offset (deg)", ""),
     ],
+    "Gauge": [
+        # keys must be the literal YAML key names (patch_yaml_value matches
+        # by bare key, not the full path) - confirmed no collision with any
+        # other field in the file
+        ("offset_start", ["gauge", "offset_start"], float, "Offset start (mm)",
+         "First pocket's core_id_offset value - usually 0."),
+        ("offset_int", ["gauge", "offset_int"], float, "Offset increment (mm)",
+         "Added per pocket - pocket n tests offset_start + n*offset_int."),
+    ],
+}
+
+# Static intro banner shown above a section tab's fields, keyed by section
+# name - (text, css class). Only sections that need one appear here.
+SECTION_INTROS = {
+    "Element": ("ADVANCED - real machine dimensions.\nGenerally shouldn't need to change these.",
+                "advanced-warning"),
+    "Gauge": (
+        "Shaft Gauge Test (v2's GaugeTestSet()) - a small 6-pocket\n"
+        "calibration test print, NOT part of the real element. Each pocket\n"
+        "bores the shaft passage at offset_start + n*offset_int (n=0..5),\n"
+        "engraved with its own value. Print it, test-fit each numbered\n"
+        "pocket on the real machine's shaft, and set Element > Core ID\n"
+        "offset to whichever number fits. Select \"Shaft Gauge\" on the\n"
+        "Build tab, then Preview/Render as usual to build this instead.",
+        "picker-help"),
 }
 
 FIELDS = [field for fields in SECTIONS.values() for field in fields]
@@ -424,6 +460,7 @@ class TuneApp(App):
         self.master_config_path = os.path.abspath(config_path)
         self.config_path = self._running_config_path(self.master_config_path)
         self._ensure_running_config()
+        self._migrate_running_config()  # no log_line here - RichLog isn't mounted yet
         self.inputs = {}
         self._last_build_info = None
         self._f3d_proc = None
@@ -445,6 +482,74 @@ class TuneApp(App):
     def _ensure_running_config(self):
         if not os.path.exists(self.config_path):
             shutil.copy2(self.master_config_path, self.config_path)
+
+    def _migrate_running_config(self):
+        """A running copy can predate a later codebase update that added
+        new config fields (e.g. this session's `gauge:` section and
+        `build.target`) - "once changed, always changed" means it never
+        auto-resyncs with master, so it'd be missing them entirely and
+        crash (patch_yaml_value raises if a field it tries to save doesn't
+        exist to patch). Back-fills, verbatim (comments included) from
+        master's raw text: whole top-level sections the running copy is
+        missing entirely, AND individual missing keys within a section
+        that DOES already exist in both (e.g. build.target, added to the
+        existing build: section) - inserted right after that section's
+        header line, order doesn't matter in a YAML mapping. Never
+        touches a key that already exists in the running copy, so no
+        customization is ever overwritten. Returns the list of
+        section/section.key strings backfilled (empty if none)."""
+        with open(self.master_config_path) as f:
+            master_text = f.read()
+        master_cfg = yaml.safe_load(master_text)
+        with open(self.config_path) as f:
+            running_text = f.read()
+        running_cfg = yaml.safe_load(running_text) or {}
+        migrated = []
+
+        for key in master_cfg:
+            if key in running_cfg:
+                continue
+            m = re.search(rf'(^|\n)((?:#[^\n]*\n)*{re.escape(key)}:.*?)(?=\n\S|\Z)',
+                           master_text, re.DOTALL)
+            if m:
+                running_text = running_text.rstrip("\n") + "\n\n" + m.group(2).rstrip("\n") + "\n"
+                migrated.append(key)
+
+        for key, master_val in master_cfg.items():
+            if key in migrated or not isinstance(master_val, dict):
+                continue
+            running_val = running_cfg.get(key)
+            if not isinstance(running_val, dict):
+                continue
+            missing_subkeys = [sk for sk in master_val if sk not in running_val]
+            if not missing_subkeys:
+                continue
+            sec_m = re.search(rf'(^|\n)(\s*){re.escape(key)}:[ \t]*\n', master_text)
+            if not sec_m:
+                continue
+            sec_start = sec_m.end()
+            sec_end_m = re.search(r'\n\S', master_text[sec_start:])
+            sec_body = master_text[sec_start:sec_start + sec_end_m.start() + 1] if sec_end_m \
+                else master_text[sec_start:]
+            additions = []
+            for sk in missing_subkeys:
+                sub_m = re.search(rf'(^|\n)((?:[ \t]*#[^\n]*\n)*[ \t]+{re.escape(sk)}:.*?)(?=\n[ \t]*\S|\Z)',
+                                   sec_body, re.DOTALL)
+                if sub_m:
+                    additions.append(sub_m.group(2).rstrip("\n"))
+            if not additions:
+                continue
+            run_sec_m = re.search(rf'(^|\n)(\s*){re.escape(key)}:[ \t]*\n', running_text)
+            if not run_sec_m:
+                continue
+            insert_at = run_sec_m.end()
+            running_text = running_text[:insert_at] + "\n".join(additions) + "\n" + running_text[insert_at:]
+            migrated.append(f"{key}.{','.join(missing_subkeys)}")
+
+        if migrated:
+            with open(self.config_path, "w") as f:
+                f.write(running_text)
+        return migrated
 
     def _status_text(self):
         # kept short - #status is squeezed into a 1-row-tall Horizontal
@@ -515,10 +620,10 @@ class TuneApp(App):
         tab_id = f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"
         with TabPane(section, id=tab_id):
             with VerticalScroll():
-                if section == "Element":
-                    yield Static(
-                        "ADVANCED - real machine dimensions.\nGenerally shouldn't need to change these.",
-                        classes="advanced-warning")
+                intro = SECTION_INTROS.get(section)
+                if intro:
+                    text, css_class = intro
+                    yield Static(text, classes=css_class)
                 for key, path, typ, label, help_text in fields:
                     current = get_nested(self.cfg, path)
                     with Vertical(classes="field-row"):
@@ -605,16 +710,20 @@ class TuneApp(App):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
                     yield Static("Build target", classes="field-label")
-                    resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
+                    target_now = self.cfg.get("build", {}).get("target", "element")
+                    if target_now not in ("element", "resin", "gauge"):
+                        target_now = "element"
                     build_select = Select(
-                        [("Element Only", False), ("Element Resin Print", True)],
-                        value=resin_now, id="build-select", allow_blank=False)
+                        [("Element Only", "element"), ("Element Resin Print", "resin"),
+                         ("Shaft Gauge", "gauge")],
+                        value=target_now, id="build-select", allow_blank=False)
                     yield build_select
                 yield Static(
-                    "Element Only = FullElement() (build.resin_support: false).\n"
-                    "Element Resin Print = ResinPrint(), adds ResinSupport()'s rods/\n"
-                    "breakaway ring (build.resin_support: true) - see the Resin tab\n"
-                    "for its own settings, which only matter in this mode.",
+                    "Element Only = FullElement(). Element Resin Print = ResinPrint(),\n"
+                    "adds ResinSupport()'s rods/breakaway ring - see the Resin tab for\n"
+                    "its own settings, which only matter in this mode. Shaft Gauge =\n"
+                    "GaugeTestSet() (see the Gauge tab) - a calibration test print, not\n"
+                    "part of the real element at all.",
                     classes="picker-help")
 
     def _compose_type_test_tab(self):
@@ -650,8 +759,9 @@ class TuneApp(App):
             with TabbedContent():
                 yield from self._compose_section_tab("Font & Alignment")
                 yield from self._compose_type_test_tab()
-                yield from self._compose_build_tab()
                 yield from self._compose_section_tab("Resin")
+                yield from self._compose_section_tab("Gauge")
+                yield from self._compose_build_tab()
                 yield from self._compose_layout_tab()
                 yield from self._compose_section_tab("Quality")
                 yield from self._compose_section_tab("Logo")
@@ -693,8 +803,13 @@ class TuneApp(App):
                 except ValueError:
                     self.log_line(f"[red]bad value for {key!r}: {raw!r} (expected {typ.__name__})[/red]")
                     return None
-        # build target dropdown -> resin_support
-        values["resin_support"] = self.query_one("#build-select", Select).value
+        # build target dropdown -> target (tune.py's own tri-state) +
+        # resin_support (generate.py's own default, kept in sync - true
+        # only when target is "resin"; irrelevant when target is "gauge",
+        # since _run_build passes --gauge explicitly in that case anyway)
+        target = self.query_one("#build-select", Select).value
+        values["target"] = target
+        values["resin_support"] = (target == "resin")
         # Type Test's own cpi/lpi - bespoke widgets, not in FIELDS, but
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
@@ -756,7 +871,10 @@ class TuneApp(App):
                 widget.value = str(current)
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
-        self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
+        target_now = self.cfg.get("build", {}).get("target", "element")
+        if target_now not in ("element", "resin", "gauge"):
+            target_now = "element"
+        self.query_one("#build-select", Select).value = target_now
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
@@ -794,10 +912,13 @@ class TuneApp(App):
         self.master_config_path = os.path.abspath(new_master_path)
         self.config_path = self._running_config_path(self.master_config_path)
         self._ensure_running_config()
+        migrated = self._migrate_running_config()
         self._load_current()
         self._refresh_widgets_from_cfg()
         self.query_one("#status", Static).update(self._status_text())
         self.log_line(f"[cyan]switched to {os.path.relpath(self.master_config_path, REPO_ROOT)}[/cyan]")
+        if migrated:
+            self.log_line(f"[cyan]backfilled missing section(s) from master: {', '.join(migrated)}[/cyan]")
 
     async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
         """Called after a successful Preview/Render/Render Text. If f3d
@@ -838,22 +959,31 @@ class TuneApp(App):
         label = "Quick Preview" if fast else "Render"
         self.log_line(f"[bold]--- {label} ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
-        # Minkowski draft sweep is not a config field the user tunes - it's
-        # entirely determined by which button was pressed, forced explicitly
-        # either way so the config's build.minkowski_enabled default is
-        # never consulted here. Build target (Element Only vs. Resin Print)
-        # is NOT forced here though - both buttons defer to whatever
-        # build.resin_support was just saved from the Build tab's dropdown,
-        # so Quick Preview still shows resin supports when that's selected.
-        if fast:
-            cmd += ["--no-minkowski", "--no-core-groove"]
+        if values["target"] == "gauge":
+            # GaugeTestSet() doesn't touch TextRing/build_glyph at all, so
+            # the Minkowski/points-per-mm knobs don't apply here - only
+            # --no-core-groove (still worth skipping for a quick check)
+            cmd += ["--gauge"]
+            if fast:
+                cmd += ["--no-core-groove"]
         else:
-            cmd += ["--minkowski"]
+            # Minkowski draft sweep is not a config field the user tunes -
+            # it's entirely determined by which button was pressed, forced
+            # explicitly either way so the config's build.minkowski_enabled
+            # default is never consulted here. Build target (Element Only
+            # vs. Resin Print) is NOT forced here though - both buttons
+            # defer to whatever build.resin_support was just saved from the
+            # Build tab's dropdown, so Quick Preview still shows resin
+            # supports when that's selected.
+            if fast:
+                cmd += ["--no-minkowski", "--no-core-groove"]
+            else:
+                cmd += ["--minkowski"]
         returncode = await self._stream_subprocess(cmd)
         if returncode == 0:
             self._last_build_info = {
                 "kind": "preview" if fast else "render",
-                "resin_support": values["resin_support"],
+                "target": values["target"],
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
             out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])

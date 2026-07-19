@@ -14,12 +14,13 @@ v2/blickensderfer.scad itself derives them.
 
 import time
 
+import freetype
 import numpy as np
 import trimesh
 import yaml
 
 from glyph_poc import (
-    build_glyph, build_flat_text,
+    build_glyph, build_flat_text, get_glyph_contours_and_advance,
     DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
     DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
@@ -179,6 +180,12 @@ def configure(config_path):
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
     g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
+
+    # [Shaft Gauge Test] - see GaugeTestSet()'s docstring. .get() with v2's
+    # own defaults so older configs without a `gauge:` section still work.
+    gauge = cfg.get("gauge", {})
+    g["Gauge_Offset_Start"] = gauge.get("offset_start", 0.0)
+    g["Gauge_Offset_Int"] = gauge.get("offset_int", 0.025)
 
     # bottomZ/bottomX, ported exactly from lib/resin_support.scad
     # (Blickensderfer takes the lib defaults - no override in
@@ -721,3 +728,134 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
     combined = sp.union_all([full, support])
     combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
     return combined, char_parts
+
+
+# ------------------------------------------------------------ Shaft Gauge
+# Ported from v2/blickensderfer.scad's [Shaft Gauge Test] section
+# (Render_Mode==2 -> GaugeTestSet(), lines 265-267/517-589). A 6-pocket
+# "revolver" test print: each pocket bores the real shaft passage
+# (Core/CoreChamfer/SecondaryCore/CoreGrooves, all Offset-parameterized,
+# already ported above and reused verbatim here) at
+# Gauge_Offset_Start + n*Gauge_Offset_Int for n=0..5, engraved with its
+# own offset value so you can tell pockets apart after printing. Workflow:
+# print it, test-fit each numbered pocket on the real machine's shaft, and
+# set element.core_id_offset (config) to whichever number fits. Blickensderfer/
+# Postal-only in v2 (the other machine families explicitly omit it) -
+# v4 currently only has Blickensderfer, so no gating needed here.
+
+def CylinderGauge(offset):
+    h = Element_Height + Clip_Height - Core_Bottom_Offset
+    c = sp.cylinder_z(Shaft_Diameter + 2 * Wall_Min_Thickness + offset, h, sections=Surface_Fn)
+    return sp.translate(c, [0, 0, Core_Bottom_Offset])
+
+
+def GaugeResinSupport(offset):
+    parts = []
+    for n in range(8):
+        rod = sp.translate(_resin_rod(Core_Bottom_Offset),
+                            [Shaft_Diameter / 2 + offset / 2 + Wall_Min_Thickness / 2, 0, 0])
+        parts.append(sp.rotate_z(rod, n * 360.0 / 8))
+    return sp.union_all(parts)
+
+
+def GaugeResinSupportsRaft():
+    d = 3 * (Shaft_Diameter + 2 * Wall_Min_Thickness)
+    return sp.frustum_z(d, d + 2 * Resin_Raft_Thickness, Resin_Raft_Thickness, sections=Resin_Fn,
+                         base_z=-Resin_Min_Rod_Height - Resin_Raft_Thickness)
+
+
+def RevolverSolid():
+    """hull() of 6 CylinderGauge(0) posts on a hexagonal ring - trimesh has
+    no hull-of-solids primitive, so (as with CoreEllipses() above)
+    concatenate their vertices and take .convex_hull; valid here because
+    every input is itself convex, matching hull(union(convex_i)) ==
+    convex_hull(union(vertices_i))."""
+    radius = Shaft_Diameter + Wall_Min_Thickness * 2 - Wall_Min_Thickness / 2
+    posts = []
+    for n in range(6):
+        c = sp.translate(CylinderGauge(0), [radius, 0, 0])
+        posts.append(sp.rotate_z(c, n * 360.0 / 6))
+    return trimesh.util.concatenate(posts).convex_hull
+
+
+def GaugeText(offset):
+    """GaugeText(Offset) - blickensderfer.scad:558-564. Engraves the
+    pocket's calibration offset (e.g. "0.025") on its outer wall, using
+    natural (advance-based) character spacing, not the fixed-pitch CPI
+    convention type_test.py uses - this is a plain label, not simulating
+    struck type. Reuses the logo's engraved font (v2 uses "Consolas"
+    specifically for this, which isn't a font v4 has a config slot for -
+    the logo font serves the same "small engraved label" role). Skipped
+    entirely for Offset==0, matching v2's `if (Offset!=0)`."""
+    if offset == 0:
+        return None
+    label = f"{round(offset, 4):g}"
+    size_mm = 3.0
+    depth = 4.0
+    face = freetype.Face(LOGO_FONT_PATH)
+    scale = size_mm / face.units_per_EM
+
+    parts = []
+    advances = []
+    cursor = 0.0
+    for ch in label:
+        _, advance_mm = get_glyph_contours_and_advance(ch, 8.0, scale, font_path=LOGO_FONT_PATH)
+        mesh = build_flat_text(ch, 8.0, depth, font_size_mm=size_mm, font_path=LOGO_FONT_PATH)
+        mesh.apply_translation([cursor, 0, 0])
+        parts.append(mesh)
+        advances.append(advance_mm)
+        cursor += advance_mm
+    total_width = cursor
+    text_mesh = sp.union_all(parts)
+    text_mesh.apply_translation([-total_width / 2.0, 0, 0])
+
+    # v2 source order is translate() THEN rotate([0,90,0]) (translate
+    # outermost) - scad_transform's ops list must match that top-to-bottom
+    # source order, not the reverse
+    return sp.scad_transform(
+        text_mesh,
+        ("translate", [Shaft_Diameter / 2 + Wall_Min_Thickness - Wall_Min_Thickness / 2
+                        + Core_Secondary_ID_Offset / 2,
+                        0, Core_Bottom_Offset + (Element_Height + Clip_Height - Core_Bottom_Offset) / 2]),
+        ("rotate", [0, 90, 0]),
+    )
+
+
+def GaugeTestSubtractive(offset, render_core_groove=None):
+    render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
+    parts = [Core(offset), CoreChamfer(offset), SecondaryCore(offset), sp.rotate_z(CoreEllipses(), 180)]
+    if render_core_groove:
+        parts.append(CoreGrooves(offset))
+    text = GaugeText(offset)
+    if text is not None:
+        parts.append(text)
+    return sp.union_all(parts)
+
+
+def GaugeTestSet(render_core_groove=None, gauge_offset_start=None, gauge_offset_int=None):
+    _require_configured()
+    gauge_offset_start = Gauge_Offset_Start if gauge_offset_start is None else gauge_offset_start
+    gauge_offset_int = Gauge_Offset_Int if gauge_offset_int is None else gauge_offset_int
+    radius = Shaft_Diameter + Wall_Min_Thickness * 2 - Wall_Min_Thickness / 2
+
+    subtractive_parts = [GaugeTestSubtractive(0, render_core_groove)]
+    for n in range(6):
+        offset = gauge_offset_start + n * gauge_offset_int
+        pocket = sp.translate(GaugeTestSubtractive(offset, render_core_groove), [radius, 0, 0])
+        subtractive_parts.append(sp.rotate_z(pocket, n * 360.0 / 6))
+    subtractive = sp.union_all(subtractive_parts)
+    print(f"GaugeTestSet: subtractive unioned, {len(subtractive_parts)} parts", flush=True)
+
+    body = RevolverSolid().difference(subtractive, engine="manifold")
+
+    support_parts = []
+    for n in range(6):
+        offset = gauge_offset_start + (n + 1) * gauge_offset_int
+        support = sp.translate(GaugeResinSupport(offset), [radius, 0, 0])
+        support_parts.append(sp.rotate_z(support, n * 360.0 / 6))
+    support_parts.append(GaugeResinSupportsRaft())
+    supports = sp.union_all(support_parts)
+
+    combined = sp.union_all([body, supports])
+    combined, _, _, _ = sp.check_and_repair(combined, label="GaugeTestSet")
+    return combined

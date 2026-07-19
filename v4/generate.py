@@ -48,6 +48,10 @@ def main():
                          help="add ResinPrint()'s support rods/breakaway ring, regardless of the config")
     parser.add_argument("--no-resin-support", dest="resin_support", action="store_false",
                          help="skip resin supports, regardless of the config")
+    parser.add_argument("--gauge", action="store_true",
+                         help="build the Shaft Gauge Test set (a small calibration test "
+                              "print for finding element.core_id_offset) instead of the "
+                              "real element - see blickensderfer.GaugeTestSet")
     parser.add_argument("--out", default=None,
                          help="override output.directory/output.stl_name from the config "
                               "(full path to the .stl to write)")
@@ -56,6 +60,24 @@ def main():
     bd.configure(args.config)
 
     render_core_groove = False if args.no_core_groove else None  # None = use config default
+
+    out_path = args.out
+    if out_path is None:
+        out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), bd.OUTPUT_DIR)
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = os.path.join(out_dir, bd.OUTPUT_STL_NAME)
+
+    if args.gauge:
+        # not part of the real element at all - no char placement, no
+        # HollowSpace intersection check (nothing to check it against)
+        full = bd.GaugeTestSet(render_core_groove=render_core_groove)
+        print(f"GaugeTestSet: verts={len(full.vertices)} faces={len(full.faces)} "
+              f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
+              f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+        full.export(out_path)
+        print(f"wrote {out_path}", flush=True)
+        return
+
     resin_support = args.resin_support if args.resin_support is not None else bd.DEFAULT_RESIN_SUPPORT
 
     build_fn = bd.ResinPrint if resin_support else bd.FullElement
@@ -74,11 +96,6 @@ def main():
           f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
           f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
 
-    out_path = args.out
-    if out_path is None:
-        out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), bd.OUTPUT_DIR)
-        os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, bd.OUTPUT_STL_NAME)
     full.export(out_path)
     print(f"wrote {out_path}", flush=True)
 
