@@ -245,10 +245,17 @@ def alignment_x_offset(char, advance_mm,
     - mode="left": no centering shift, just left_offset_mm (0 = glyph's
       natural left-side-bearing origin, unmoved).
     Then, independently of mode: characters in modified_left_chars get an
-    ADDITIONAL shift of -modified_left_offset_mm (further left);
-    characters in modified_right_chars get +modified_right_offset_mm
-    (further right). A char matching both resolves to left (checked
-    first), matching v2's Modified/Modified2 precedence convention."""
+    ADDITIONAL shift of +modified_left_offset_mm; characters in
+    modified_right_chars get +modified_right_offset_mm. Both are plain
+    signed x-offsets (negative = left, positive = right), same
+    convention as center_offset_mm/left_offset_mm - deliberately
+    symmetric, unlike an earlier version of this function which negated
+    modified_left_offset_mm (meant to read as "how far left to push",
+    but that made a negative value push RIGHT - confusing, and there's
+    no v2 convention to match here (this whole scheme is v4-only, see
+    the module docstring above), so there was no reason to keep it). A
+    char matching both resolves to left (checked first), matching v2's
+    Modified/Modified2 precedence convention."""
     if mode == "center":
         base = -advance_mm / 2.0 + center_offset_mm
     elif mode == "left":
@@ -257,7 +264,7 @@ def alignment_x_offset(char, advance_mm,
         raise ValueError(f"unknown alignment mode {mode!r}")
 
     if char in modified_left_chars:
-        base -= modified_left_offset_mm
+        base += modified_left_offset_mm
     elif char in modified_right_chars:
         base += modified_right_offset_mm
     return base
