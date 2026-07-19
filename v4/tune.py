@@ -90,12 +90,17 @@ def patch_yaml_value(text, key, value):
 class TuneApp(App):
     CSS = """
     Screen { layout: horizontal; }
-    #form { width: 46; border: solid $accent; padding: 1; }
-    #log-pane { border: solid $accent; padding: 1; }
-    .field-row { height: 3; }
-    .field-label { width: 26; content-align: left middle; }
+    #form { width: 54; height: 100%; border: solid $accent; padding: 0 1; }
+    #log-pane { width: 1fr; height: 100%; border: solid $accent; padding: 0 1; }
+    #log { height: 1fr; }
+    .field-row { height: 2; }
+    .field-row Horizontal { height: 1; }
+    .field-label { width: 24; height: 1; content-align: left middle; }
+    .field-row Input { width: 1fr; height: 1; border: none; padding: 0 1; background: $panel; }
+    .field-row Switch { width: auto; height: 1; border: none; padding: 0; }
     .field-help { color: $text-muted; height: 1; }
-    #buttons { height: 3; }
+    #buttons { height: 3; dock: bottom; }
+    #buttons Button { width: 1fr; }
     #status { height: 1; color: $text-muted; }
     """
     BINDINGS = [
@@ -139,7 +144,7 @@ class TuneApp(App):
                 yield Button("Full Build [b]", id="btn-full", variant="primary")
                 yield Button("Launch f3d [f]", id="btn-f3d")
         with Vertical(id="log-pane"):
-            yield RichLog(id="log", wrap=True, markup=True)
+            yield RichLog(id="log", wrap=True, markup=True, min_width=1)
         yield Footer()
 
     def log_line(self, text):
