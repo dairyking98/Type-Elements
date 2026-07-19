@@ -877,3 +877,107 @@ different `Element_Diameter`/`Wall_Min_Thickness`/etc, not a bug).
 5. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
    direction, "may both be set at 360") - 720 was floated for `platen_fn`
    if the scallop needs to be smoother; not tested.
+
+## 14. Roadmap: branch merged to main, next is Calibration then Mignon/Bennett/Helios
+
+`v4-tui` was fast-forward merged into `main` and pushed (40 commits,
+clean linear history, no divergence). New branch `v4-models` created off
+`main` for the next phase: user's stated order is Mignon next (should
+reuse a lot from `cylinder_machine.py`), then Bennett, then Helios (both
+also cylinder-machine-family) - but the **Calibration feature** needs to
+land FIRST, before diving into more machine ports, since every future
+machine will want it too.
+
+**Explicitly NOT started yet** - user is about to run out of credits,
+asked for a plan only, will say "start" when ready to resume. This
+section is that plan, written here specifically so it survives a
+context/credit gap.
+
+### What "Calibration" actually is (traced from v2, not guessed)
+
+`v2/lib/testing.scad` (`testSweepArray(start, interval, count)` - a
+trivial linear sweep, `[start + interval*n for n in 0..count-1]`) +
+`v2/lib/glyph_pipeline.scad`'s `TextRing()`/`TextRingDebug()` (~line
+407-451) implement a real, already-designed mechanism, not something to
+invent from scratch:
+
+- `Test_Layout` (bool): every position renders the same `Test_Char`
+  instead of the real per-position character.
+- `Cutout_Test` / `Baseline_Test` (bool, independent - test one variable
+  at a time in practice): when on, adds a PER-COLUMN swept offset
+  (`Cutout_Test_Array[col]` / `Baseline_Test_Array[col]`, each a 28-long
+  `testSweepArray(start, interval, 28)`) onto that row's platen-cutout or
+  character-baseline value - so each of the 28 physical positions around
+  the ring gets a DIFFERENT offset of whichever variable is under test.
+- Whenever any of the three is on, `TextRingDebug()` echoes one line per
+  position: `"character keyboard key 'k' (rendered as 'X') on lowercase
+  row at the 7 oclock position with platen cutout at 0.15mm and character
+  baseline at 0mm"` - refChar (the real keyboard key physically at that
+  slot) vs char (what's actually rendered, `Test_Char` under
+  `Test_Layout`) are tracked separately for exactly this reason.
+- Blickensderfer/Postal both default `Cutout_Test_Start=0`/
+  `Cutout_Test_Int=.05` (Blick) or `.7`/`-.05` (Postal) - `testing.scad`'s
+  own comment notes Bennett/Mignon/Helios/Hammond use a fixed literal
+  offset array instead of a uniform sweep for this, since they already
+  have measured values - not a blocker for v4's first pass (a uniform
+  start+interval sweep, matching what the user asked for: "specified
+  intervals of adjustment").
+
+### v4 implementation shape (design, not yet built)
+
+- **Shared, not per-machine**: `TextRing`/placement already live in
+  `lib/cylinder_machine.py` (see part 8) - a `CalibrationElement()`-style
+  function belongs there too, so it's automatically available to
+  Mignon/Bennett/Helios the moment they're configured, not something
+  reimplemented per machine.
+- **Config**: new `calibration:` section (parallel to the existing
+  `gauge:` section) - `test_char` (str), `variable` ("baseline" |
+  "cutout"), `start` (float), `interval` (float). Both
+  `config/blickensderfer.yaml` and `config/postal.yaml` need it added
+  (shared schema, like `resin:`/`gauge:` already are).
+- **Build dispatch**: extends the existing Build tab pattern (Element /
+  Shaft Gauge) with a third option, Calibration - mirrors how Gauge was
+  added (part 8's `GaugeTestSet`/`--gauge` precedent): a
+  `--calibrate` flag on `generate.py`, a `CalibrationTextRing()` (or a
+  `test_layout`/`test_variable` kwarg threaded through the existing
+  `TextRing()`) that applies the swept per-column offset and forces
+  `Test_Char` everywhere.
+- **Console output**: reuse the already-established
+  `print(..., flush=True)` pattern (part 7/8) - one line per position,
+  same content as v2's `TextRingDebug` echo (keyboard key, row label,
+  o'clock position, the actual cutout/baseline value used at that
+  position).
+- **tune.py**: new "Calibration" tab (test char field, a variable
+  dropdown "baseline"/"cutout", start/interval fields) - added to
+  `SECTIONS_COMMON` (shared between machines, like Resin/Gauge already
+  are) so it's free for every future machine too. Build tab's dropdown
+  gains "Calibration" as a third option.
+- **Saved `.txt` mapping**: user's explicit ask - "when saving a test
+  element, it also outputs a .txt of the keyboard mapping to set
+  variable." `action_save()` (tune.py) already writes an STL + a `.yaml`
+  sidecar per save (see the module docstring's Save explanation) - add a
+  third sidecar, a `.txt` with the same per-position lines the console
+  already printed, when `self._last_build_info["kind"] == "calibration"`
+  (mirrors the existing `_last_build_info` tracking used for the STL/YAML
+  metadata header).
+- **No new "reference layout" abstraction needed** - v2's
+  `Reference_Physical_Layout` (a keyboard-key-labels-vs-content-layout
+  split, used by Blickensderfer/Bennett/Mignon for language/layout
+  testing) has no v4 equivalent yet and isn't needed for a first pass -
+  the "keyboard key at this position" in the console/`.txt` output can
+  just be whatever `layout.rows`/`DHIATENSOR` currently has configured at
+  that row/col (same source TextRing already reads), matching what
+  Postal/Helios/Hammond do in v2 anyway (no reference override - refChar
+  == char's position source).
+
+### After Calibration lands
+
+Mignon, then Bennett, then Helios, each following the extraction
+playbook already proven twice (part 8's Blickensderfer/Postal split,
+part 9's tune.py per-machine SECTIONS, part 12/13's shared resin
+config) - read the real v2 file, diff it against `cylinder_machine.py`'s
+existing shared functions to find genuine code-level divergences (not
+just parameter values, per part 8's methodology), port only the
+machine-specific pieces, add `config/<machine>.yaml`, regression-verify
+against the master configs directly (not the user's running copies - see
+part 12's lesson).
