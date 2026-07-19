@@ -177,6 +177,27 @@ def contour_to_points(points, tags, points_per_mm, scale):
     on = [bool(t & 1) for t in tags]
     is_cubic = [(t & 0x3) == 2 for t in tags]
 
+    # All-off-curve contour: a legal, common TrueType shorthand for smooth
+    # loops (e.g. a small dot/bubble, like '%'s two "o"s or 'i'/'.''s dot) -
+    # every consecutive off-curve pair implies its own on-curve midpoint, so
+    # a contour can close with no EXPLICIT on-curve point anywhere. FreeType/
+    # FontForge both render these correctly. Without this, `next(i for i in
+    # range(n) if on[i])` below (which needs a real anchor to seed the walk)
+    # finds nothing and raises StopIteration, mis-flagging a perfectly valid
+    # glyph as broken. Fix: synthesize the same implied on-curve point
+    # FreeType would use to start on - the midpoint of the last and first
+    # points (both off-curve here) - then walk normally; the existing
+    # consecutive-off-curve handling below already covers the rest of the
+    # loop once a real anchor exists.
+    if n and not any(on):
+        mx = (points[-1][0] + points[0][0]) / 2.0
+        my = (points[-1][1] + points[0][1]) / 2.0
+        points = [(mx, my)] + list(points)
+        tags = [1] + list(tags)
+        on = [True] + on
+        is_cubic = [False] + is_cubic
+        n += 1
+
     # rotate so we start on an on-curve point
     if not on[0]:
         start = next(i for i in range(n) if on[i])
@@ -332,8 +353,19 @@ def classify_and_triangulate(contours_mm):
     is_hole = [d % 2 == 1 for d in depth]
 
     def immediate_parent(i):
-        candidates = [j for j in range(n) if j != i and polys[j].contains(polys[i])
-                      and depth[j] == depth[i] - 1]
+        # Was: require a container at EXACTLY depth[i]-1. depth[] is a raw
+        # contains() count, which isn't guaranteed to form a clean depth
+        # chain - very small or boundary-touching loops (e.g. Blick Script's
+        # fine decorative serif loops) can hit shapely floating-point
+        # containment quirks that inflate one polygon's depth without a
+        # matching polygon existing at the exact rung below it, so this
+        # search came up empty and min() on an empty list raised
+        # ValueError, even though the containers themselves are all valid,
+        # non-self-intersecting shapes (confirmed - not a font defect). The
+        # smallest-AREA container that contains i is the immediate/tightest
+        # parent by construction, independent of whether the depth chain
+        # is clean, so drop the depth[j]==depth[i]-1 requirement entirely.
+        candidates = [j for j in range(n) if j != i and polys[j].contains(polys[i])]
         return min(candidates, key=lambda j: polys[j].area)
 
     outer_idx = [i for i, h in enumerate(is_hole) if not h]
