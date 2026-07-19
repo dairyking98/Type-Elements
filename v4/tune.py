@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
 Interactive terminal GUI for tuning config/blickensderfer.yaml and
-triggering rebuilds, meant to run alongside an f3d --watch window (f3d
-auto-reloads whenever the STL file it's watching changes on disk, so a
-Render/Quick Preview here just needs to overwrite that same fixed path).
-f3d is never launched automatically - use the "Launch f3d" button (or
-run it yourself) whenever you actually want to look.
+triggering rebuilds. The "f3d preview" checkbox (on by default) controls
+an f3d --watch window: after a successful Preview or Render, if f3d
+isn't already running (or the one we launched has exited), it's opened
+fresh on the output STL; if it's already running, we just wait a beat
+for its own file watcher to reload the updated model and then try to
+raise the window to the front (best-effort - needs wmctrl on PATH; a
+one-time log message says so if it's missing). Uncheck the box to stop
+all of that and drive f3d yourself.
 
 Workflow: Quick Preview (fast, undrafted) until it looks right, Render
 (full quality, slow) to confirm, then Save to keep it. Preview/Render/
@@ -19,10 +22,6 @@ support on/off, timestamp) - only Save actually keeps anything.
 Usage:
     python3 tune.py config/blickensderfer.yaml
 
-Then in another terminal:
-    f3d --watch output/blickensderfer_full_element.stl -g -x
-(or use the "Launch f3d" button here, which does exactly that)
-
 Edits are NOT round-tripped through a YAML parser/dumper - the config
 file has extensive prose comments documenting where every real-machine
 value comes from, and a naive yaml.safe_load()+yaml.dump() would silently
@@ -35,12 +34,14 @@ Tabs (in display order):
   Font & Alignment - font.* + alignment.* (combined, both are "how
     characters are placed/rendered" concerns). alignment.mode is a
     dropdown ("center"/"left"), not free text.
-  Type Test        - NOT part of the real element. A flat, CPI-spaced
-    test block (matches v2's TypeTest() fixed-pitch convention, supports
-    multiple lines) using the Font tab's path/size, for instant
-    text/legibility checks. Overwrites the same output STL path as
-    Render/Quick Preview (so the same f3d --watch window shows it) -
-    it's a scratch preview, not saved anywhere else (see Save).
+  Type Test        - NOT part of the real element. A flat, CPI/LPI-spaced
+    test block (matches v2's TypeTest() fixed-pitch convention; LPI is
+    the vertical equivalent for multi-line text, default 6) using the
+    Font tab's path/size, for instant text/legibility checks. Overwrites
+    the same output STL path as Render/Quick Preview (so the same f3d
+    --watch window shows it) - it's a scratch preview, not saved
+    anywhere else (see Save). Does NOT auto-open/raise f3d itself (only
+    Preview/Render do) - the same open window still picks it up though.
   Build            - stripped down to ONE dropdown: Element Only vs.
     Element + Resin Print (build.resin_support). Resin tab's own fields
     only matter when Resin Print is selected.
@@ -286,23 +287,24 @@ class TuneApp(App):
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .field-help { color: $text-muted; height: 1; }
-    #buttons { height: 8; dock: bottom; padding: 0 1; }
+    #buttons { height: 7; dock: bottom; padding: 0 1; }
     #primary-buttons { height: 5; }
     #primary-buttons Button { width: 1fr; height: 5; text-style: bold; }
-    #btn-f3d { height: 3; margin-top: 0; }
+    #f3d-row { height: 1; margin-top: 1; }
+    #f3d-row .field-label { width: auto; margin-right: 1; }
+    #f3d-row Switch { width: auto; height: 1; border: none; padding: 0; }
     #status { height: 1; color: $text-muted; padding: 0 1; }
     .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: 1; }
     #btn-type-test { height: 3; margin-top: 1; }
-    #type-test-text { height: 8; margin-bottom: 1; }
+    #type-test-text { height: 8; }
     """
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("p", "preview", "Quick Preview"),
         ("b", "render", "Render"),
         ("s", "save", "Save"),
-        ("f", "launch_f3d", "Launch f3d"),
         ("r", "reload", "Reload from file"),
     ]
 
@@ -311,6 +313,8 @@ class TuneApp(App):
         self.config_path = os.path.abspath(config_path)
         self.inputs = {}
         self._last_build_info = None
+        self._f3d_proc = None
+        self._warned_no_wmctrl = False
         self._load_current()
 
     def _load_current(self):
@@ -409,6 +413,11 @@ class TuneApp(App):
                         yield Static("CPI", classes="field-label")
                         yield Input(value="10", id="type-test-cpi")
                     yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
+                with Vertical(classes="field-row"):
+                    with Horizontal():
+                        yield Static("LPI", classes="field-label")
+                        yield Input(value="6", id="type-test-lpi")
+                    yield Static("Lines per inch - vertical spacing for multi-line text.", classes="field-help")
                 yield Button("Render Test Line", id="btn-type-test", variant="primary")
 
     def compose(self) -> ComposeResult:
@@ -430,7 +439,9 @@ class TuneApp(App):
                     yield Button("PREVIEW [p]", id="btn-preview", variant="success")
                     yield Button("RENDER [b]", id="btn-render", variant="primary")
                     yield Button("SAVE [s]", id="btn-save", variant="warning")
-                yield Button("Launch f3d [f]", id="btn-f3d")
+                with Horizontal(id="f3d-row"):
+                    yield Static("f3d preview", classes="field-label")
+                    yield Switch(value=True, id="f3d-preview-checkbox")
         with Vertical(id="log-pane"):
             yield RichLog(id="log", wrap=True, markup=True, min_width=1)
         yield Footer()
@@ -489,18 +500,32 @@ class TuneApp(App):
         self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
         self.log_line("[cyan]reloaded values from disk[/cyan]")
 
-    def action_launch_f3d(self):
-        out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"],
-                                 self.cfg["output"]["stl_name"])
-        if not os.path.exists(out_path):
-            self.log_line(f"[yellow]{out_path} doesn't exist yet - Render/Quick Preview first[/yellow]")
+    async def _ensure_f3d_after_build(self, out_path):
+        """Called after a successful Preview/Render. If f3d isn't running
+        (or the process we launched has since exited), launch it fresh -
+        it'll show the just-written STL immediately. If it's already
+        running, its own --watch reloads the model automatically; we just
+        try to raise the window, after a short pause so the reload has
+        actually happened first (raising it to show the STALE model would
+        defeat the point)."""
+        if not self.query_one("#f3d-preview-checkbox", Switch).value:
             return
-        try:
-            subprocess.Popen(["f3d", "--watch", out_path, "-g", "-x"],
-                              cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            self.log_line(f"[cyan]launched f3d --watch on {out_path}[/cyan]")
-        except FileNotFoundError:
-            self.log_line("[red]f3d not found on PATH[/red]")
+        if self._f3d_proc is None or self._f3d_proc.poll() is not None:
+            try:
+                self._f3d_proc = subprocess.Popen(
+                    ["f3d", "--watch", out_path, "-g", "-x"],
+                    cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self.log_line(f"[cyan]launched f3d --watch on {out_path}[/cyan]")
+            except FileNotFoundError:
+                self.log_line("[red]f3d not found on PATH[/red]")
+            return
+        await asyncio.sleep(0.3)  # let f3d's own file watcher reload first
+        if shutil.which("wmctrl"):
+            subprocess.run(["wmctrl", "-a", "f3d"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif not self._warned_no_wmctrl:
+            self._warned_no_wmctrl = True
+            self.log_line("[yellow]f3d already open with the updated model, but can't bring it "
+                           "to front - install wmctrl (sudo apt install wmctrl) to enable that[/yellow]")
 
     async def _run_build(self, fast):
         values = self._collect_values()
@@ -528,6 +553,8 @@ class TuneApp(App):
                 "resin_support": values["resin_support"],
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
+            out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
+            await self._ensure_f3d_after_build(out_path)
 
     async def action_render_type_test(self):
         text = self.query_one("#type-test-text", TextArea).text
@@ -537,6 +564,12 @@ class TuneApp(App):
         except ValueError:
             self.log_line(f"[red]bad CPI value: {cpi_raw!r}[/red]")
             return
+        lpi_raw = self.query_one("#type-test-lpi", Input).value.strip()
+        try:
+            lpi = float(lpi_raw)
+        except ValueError:
+            self.log_line(f"[red]bad LPI value: {lpi_raw!r}[/red]")
+            return
         if not text.strip():
             self.log_line("[red]test text is empty[/red]")
             return
@@ -545,7 +578,7 @@ class TuneApp(App):
         out_path = os.path.join(self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
         self.log_line(f"[bold]--- Type Test (overwrites {out_path}) ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "type_test.py"), text,
-               "--cpi", str(cpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
+               "--cpi", str(cpi), "--lpi", str(lpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
                "--out", out_path]
         returncode = await self._stream_subprocess(cmd)
         if returncode == 0:
@@ -553,6 +586,7 @@ class TuneApp(App):
                 "kind": "type_test",
                 "text": text,
                 "cpi": cpi,
+                "lpi": lpi,
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
 
@@ -605,8 +639,6 @@ class TuneApp(App):
             self.action_preview()
         elif event.button.id == "btn-save":
             self.action_save()
-        elif event.button.id == "btn-f3d":
-            self.action_launch_f3d()
         elif event.button.id == "btn-type-test":
             self.run_worker(self.action_render_type_test(), exclusive=True)
 
