@@ -494,9 +494,12 @@ class TuneApp(App):
         # Minkowski draft sweep is not a config field the user tunes - it's
         # entirely determined by which button was pressed, forced explicitly
         # either way so the config's build.minkowski_enabled default is
-        # never consulted here.
+        # never consulted here. Build target (Element Only vs. Resin Print)
+        # is NOT forced here though - both buttons defer to whatever
+        # build.resin_support was just saved from the Build tab's dropdown,
+        # so Quick Preview still shows resin supports when that's selected.
         if fast:
-            cmd += ["--no-minkowski", "--no-core-groove", "--no-resin-support"]
+            cmd += ["--no-minkowski", "--no-core-groove"]
         else:
             cmd += ["--minkowski"]
         await self._stream_subprocess(cmd)
