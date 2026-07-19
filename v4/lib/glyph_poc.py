@@ -70,6 +70,7 @@ import freetype
 import trimesh
 from shapely.geometry import Polygon
 from shapely.affinity import scale as shapely_scale
+from manifold3d import Manifold, Mesh as ManifoldMesh
 
 # --- Parameters ported from v2/blickensderfer.scad ---
 ELEMENT_DIAMETER = 34.0
@@ -101,6 +102,23 @@ BASE_EXPANSION_WIDTH_MM = FRONT_BACK_SEPARATION_MM * np.tan(DRAFT_HALF_ANGLE_RAD
 # self-intersection on tight glyphs (already present for 'e' even at the real
 # 0.5mm) is fine for this use case - not treating it as a defect to avoid.
 DEFAULT_SEPARATION_MM = 2.0
+
+# Circular segments for the Minkowski cone kernel (see build_glyph). Purely a
+# speed/roundness knob on the cone itself - manifold3d's own docs warn cost
+# scales with the PRODUCT of the two operands' face counts, so this is kept
+# modest rather than matching Surface_Fn-style smoothness counts elsewhere.
+DEFAULT_CONE_SEGMENTS = 16
+
+# manifold3d's raw minkowski_sum output is drastically over-triangulated on
+# nominally FLAT regions (confirmed: a single straight wall facet came out
+# as ~24 separate near-coplanar micro-triangles whose normals wobble by a
+# fraction of a degree from pure floating-point/algorithmic noise, visible
+# as faceting/rippling on straight edges like 'M's strokes - not a real
+# draft-angle inconsistency). Manifold.simplify(tolerance) collapses this
+# cleanly (2918->182 triangles at even 0.0005mm tolerance in testing,
+# single flat face per straight run) without visibly affecting real
+# curvature (0.005mm is far below any meaningful glyph feature size).
+DEFAULT_SIMPLIFY_TOLERANCE_MM = 0.005
 
 
 def quadratic_bezier(p0, p1, p2, n):
@@ -294,26 +312,6 @@ def orthogonal_offset_vertex(p_prev, p_next, p_curr, width_mm):
     return p_curr + np.array([nx, ny])
 
 
-def back_loops_are_simple(mesh, expansion_width_mm):
-    """Real self-intersection check for the offset step, replacing an
-    earlier attempt that used trimesh's FCL CollisionManager on a single
-    mesh object - that never actually flagged anything (in_collision_internal
-    isn't a self-intersection test), which is how the direction bug and
-    later this pinch case both went unnoticed until checked directly. This
-    checks each offset outline loop's own 2D simplicity with shapely,
-    which IS a real, direct check of exactly the failure mode in question
-    (see conversation: found the 'o' hole self-intersects between 80-85 deg
-    draft angle at Blickensderfer's Font_Size/Char_Protrusion)."""
-    from shapely.geometry import Polygon
-    outline = mesh.outline()
-    results = []
-    for path in outline.entities:
-        idx = [n[0] for n in path.nodes]
-        loop = mesh.vertices[idx][:, :2]
-        results.append(Polygon(loop).is_simple)
-    return results
-
-
 def make_back(mesh, expansion_width_mm):
     """Mirrors MeshBackCompound.py: for each outline loop independently,
     push outline vertices outward by a fixed distance; interior vertices
@@ -395,11 +393,74 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     return join_front_back(front, back, front_outline)
 
 
+def _to_manifold(mesh):
+    return Manifold(mesh=ManifoldMesh(
+        vert_properties=np.array(mesh.vertices, dtype=np.float32),
+        tri_verts=np.array(mesh.faces, dtype=np.uint32)))
+
+
+def _from_manifold(manifold):
+    m = manifold.to_mesh()
+    return trimesh.Trimesh(vertices=m.vert_properties, faces=m.tri_verts, process=False)
+
+
 def build_glyph(char, points_per_mm, expansion_width_mm=None,
                  separation_mm=DEFAULT_SEPARATION_MM, row=TEST_ROW,
                  align_kwargs=None, font_path=None, font_size_mm=None,
-                 radius_y_offset_mm=None, platen_radius_mm=None):
-    """font_path/font_size_mm/radius_y_offset_mm/platen_radius_mm default to
+                 radius_y_offset_mm=None, platen_radius_mm=None,
+                 cone_segments=DEFAULT_CONE_SEGMENTS,
+                 simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM):
+    """Builds one struck-character solid via a REAL Minkowski sum
+    (manifold3d's Manifold.minkowski_sum), replacing the per-vertex
+    outline-offset approximation this function used before (fixed-distance
+    push per outline vertex, then stitch front/back caps - see git history).
+    That approach had no topology awareness: on any glyph with a locally
+    narrow feature (H's inter-stroke gap, k/m's diagonal junctions, o/e's
+    counters) the offset outline could fold through itself, and per-glyph
+    patching (a self-union repair, gated by hole-vs-island classification)
+    didn't fully resolve it without its own new failure modes - self-union
+    on a multi-island glyph (e.g. 'i', dot separate from stem) was found to
+    weld the islands together and lose real volume, and 'm' still produced
+    a visible fold even with that repair in place.
+
+    A true Minkowski sum can't produce that defect: dilating a shape by a
+    convex kernel (a cone here) is mathematically guaranteed to stay a
+    valid, simple solid on ANY input topology (holes, disjoint islands,
+    arbitrarily narrow gaps) - so there is no self-intersection case left
+    to detect or repair, and no per-glyph special-casing needed at all.
+
+    Mechanism: build the flat (un-drafted) glyph as a simple prism (extrude
+    the 2D outline straight up by separation_mm - no offset yet), then
+    Minkowski-sum it with a cone (apex at the tip/z=separation_mm where its
+    radius is 0, base at the root/z=0 where its radius is
+    expansion_width_mm) - the sum's cross-section at any depth is exactly
+    the original outline dilated by the cone's radius there, i.e. the same
+    widen-toward-the-root taper as before, just computed by a real CSG
+    kernel instead of approximated per-vertex. The platen scallop is then
+    applied as a pure per-vertex Z-warp to the resulting top-face vertices
+    only (radius=0 there, so they're still exactly the flat, un-dilated
+    outline - same formula the old make_front used, just applied after the
+    boolean instead of before it).
+
+    manifold3d's raw minkowski_sum output is also drastically over-
+    triangulated on nominally FLAT regions - a single straight wall facet
+    (e.g. 'M's strokes) came out as ~24 separate near-coplanar micro-
+    triangles whose normals wobble by a fraction of a degree from pure
+    floating-point/algorithmic noise, visible as faceting on straight
+    edges even though the true geometry is flat there. simplify_tolerance_mm
+    (via Manifold.simplify()) collapses this cleanly before it's ever
+    converted back to trimesh.
+
+    Real cost: manifold3d warns Minkowski performance scales with the
+    PRODUCT of the two operands' face counts, confirmed empirically at
+    ~0.2-1.2s per character (vs. a few ms before) depending on
+    points_per_mm/cone_segments - roughly 16-66s for the full 84-character
+    TextRing depending on quality settings, vs. ~3-6s before. Accepted
+    tradeoff: this is offline batch generation, not interactive, in
+    exchange for eliminating an entire class of per-glyph bugs rather than
+    chasing them one at a time.
+
+    font_path/font_size_mm/radius_y_offset_mm/platen_radius_mm default to
     this module's own reference constants (FONT_PATH/FONT_SIZE_MM/
     CUTOUT_ROW-BASELINE_ROW/PLATEN_RADIUS_MM) when not given, so this
     still works standalone for the CLI/diagnostic sweeps below - but a
@@ -422,22 +483,75 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
         radius_y_offset_mm = CUTOUT_ROW[row] - BASELINE_ROW[row]
     if platen_radius_mm is None:
         platen_radius_mm = PLATEN_RADIUS_MM
+
     flat = classify_and_triangulate(contours_mm)
-    front = make_front(flat, radius_y_offset_mm, platen_radius_mm, separation_mm)
-    back, front_outline = make_back(front, expansion_width_mm)
-    loop_simple = back_loops_are_simple(back, expansion_width_mm)
-    joined = join_front_back(front, back, front_outline)
-    return joined, loop_simple
+
+    # Minkowski sum ADDS extents in each dimension - a full-separation_mm
+    # prism summed with a full-separation_mm cone doubles the Z depth
+    # (confirmed: bbox came out [0, 2*separation_mm], not [0,
+    # separation_mm]). Fix: the prism is a thin sliver sitting at the TIP
+    # end (just enough thickness to be a valid non-degenerate solid - a
+    # truly flat/zero-volume shape isn't valid minkowski_sum input), and
+    # the CONE carries (almost) the entire separation_mm depth. Critically,
+    # the cone's own origin must be at its APEX (the radius=0 point), not
+    # its base: manifold3d's cylinder() places the local origin at the
+    # radius_low end, so building it wide-at-bottom/apex-at-top
+    # (radius_low=expansion_width_mm, radius_high=0, matching how the
+    # non-translated version was built) then translating by -cone_height
+    # puts the apex at z=0 and the wide base BELOW it (negative z) -
+    # summed with the tip sliver (sitting at [separation_mm-tip_h,
+    # separation_mm]), the apex contributes zero offset at the tip and the
+    # base contributes the full expansion at z=0, giving exactly the
+    # intended [0, separation_mm] range. (First attempt at this got the
+    # radius_low/radius_high swapped AND translated, which cancelled out
+    # and put the dilation back at the tip instead of the root - verified
+    # by checking cross-section width at z=0 vs z=separation_mm directly,
+    # not just watertightness/volume, which don't catch a reversed draft.)
+    tip_h = min(0.01, separation_mm * 0.01)
+    cone_h = separation_mm - tip_h
+
+    prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces, tip_h)
+    prism.apply_translation([0, 0, separation_mm - tip_h])
+
+    # Platen Z-warp applied to the PRISM's top cap, BEFORE the Minkowski sum -
+    # not to the swept result's top ring afterward (an earlier version of
+    # this did that, and it's wrong: the cone's own geometry - and therefore
+    # the realized draft angle - is only valid for a FLAT tip. Nudging just
+    # the final top ring after the sweep leaves the walls built as if the
+    # tip were still flat, so wherever the platen bulge is large (far from
+    # radius_y_offset - e.g. the bottom of 'M'/'A', nowhere near it, vs. 'L'/
+    # 'I's mostly-vertical runs which stay close to it) the wall no longer
+    # tapers at the specified angle over the actual (now longer) distance to
+    # the tip - visible as inconsistent/wrong-looking facets specifically on
+    # those runs. Matches how the real v2 SCAD file does it too: PlatenCutout
+    # is subtracted from the base extrusion BEFORE the minkowski() call, not
+    # patched onto the result after.
+    #
+    # Warping the prism's top cap first means the cone (unmodified, exactly
+    # as specified) sweeps a surface that's already the true curved shape,
+    # so the draft angle is preserved everywhere by construction - not just
+    # near the tangent point.
+    pv = prism.vertices.copy()
+    top = np.isclose(pv[:, 2], separation_mm, atol=tip_h / 2)
+    y = pv[top, 1]
+    pv[top, 2] = (y - radius_y_offset_mm) ** 2 * platen_radius_mm + separation_mm
+    prism = trimesh.Trimesh(vertices=pv, faces=prism.faces, process=False)
+
+    cone = Manifold.cylinder(cone_h, expansion_width_mm, 0.0, circular_segments=cone_segments)
+    cone = cone.translate([0, 0, -cone_h])
+
+    drafted = _to_manifold(prism).minkowski_sum(cone)
+    if simplify_tolerance_mm > 0:
+        drafted = drafted.simplify(simplify_tolerance_mm)
+    return _from_manifold(drafted)
 
 
-def report(mesh, loop_simple, label):
+def report(mesh, label):
     print(f"--- {label} ---")
     print(f"  vertices={len(mesh.vertices)} faces={len(mesh.faces)}")
     print(f"  volume={mesh.volume:.6f} mm3  watertight={mesh.is_watertight} "
           f"winding_consistent={mesh.is_winding_consistent} is_volume={mesh.is_volume}")
     print(f"  bbox={mesh.bounds.tolist()}")
-    print(f"  back_outline_loops_simple={loop_simple}"
-          + ("  <-- offset self-intersected on at least one loop!" if not all(loop_simple) else ""))
 
 
 if __name__ == "__main__":
@@ -457,6 +571,18 @@ if __name__ == "__main__":
                               "comment. At a fixed draft angle, expansion_mm = "
                               "separation_mm * tan(angle/2), so this also grows "
                               "the outward push, same as a steeper angle would.")
+    parser.add_argument("--cone-segments", type=int, default=DEFAULT_CONE_SEGMENTS,
+                         help="circular segments for the Minkowski cone kernel - "
+                              "trades roundness for speed (manifold3d's cost "
+                              "scales with the product of the two operands' "
+                              "face counts, so this and --points-per-mm both "
+                              "matter for generation time).")
+    parser.add_argument("--simplify-tolerance-mm", type=float, default=DEFAULT_SIMPLIFY_TOLERANCE_MM,
+                         help="Manifold.simplify() tolerance applied to the raw "
+                              "minkowski_sum output - collapses the drastic "
+                              "over-triangulation/faceting noise manifold3d "
+                              "produces on flat regions (e.g. straight strokes "
+                              "like 'M's). 0 disables.")
     args = parser.parse_args()
 
     expansion_mm = args.separation_mm * np.tan(np.radians(args.draft_angle / 2.0))
@@ -469,8 +595,12 @@ if __name__ == "__main__":
     print()
 
     for ch in args.chars:
-        mesh, loop_simple = build_glyph(ch, args.points_per_mm, expansion_mm, args.separation_mm)
-        report(mesh, loop_simple, f"char='{ch}' points_per_mm={args.points_per_mm} "
-                                   f"separation_mm={args.separation_mm} draft_angle={args.draft_angle}")
+        mesh = build_glyph(ch, args.points_per_mm, expansion_mm, args.separation_mm,
+                            cone_segments=args.cone_segments,
+                            simplify_tolerance_mm=args.simplify_tolerance_mm)
+        report(mesh, f"char='{ch}' points_per_mm={args.points_per_mm} "
+                     f"separation_mm={args.separation_mm} draft_angle={args.draft_angle} "
+                     f"cone_segments={args.cone_segments} "
+                     f"simplify_tolerance_mm={args.simplify_tolerance_mm}")
         safe = ch if ch.isalnum() else f"u{ord(ch):04x}"
         mesh.export(f"out_{safe}_ppm{int(args.points_per_mm)}_sep{args.separation_mm:.2f}.stl")

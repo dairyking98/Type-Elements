@@ -89,6 +89,23 @@ build:
   separation_mm: 2.0
   render_core_groove: true
   resin_support: true   # ResinPrint() equivalent - union(FullElement(), ResinSupport())
+  # circular segments for build_glyph's Minkowski cone kernel (the draft
+  # taper is now a real Minkowski sum, not a per-vertex offset - see
+  # glyph_poc.build_glyph's docstring). manifold3d's cost scales with the
+  # product of face counts, so this and points_per_mm together set
+  # generation time: ~16-24s for the full 84-char ring at ppm=6-8/segs=8-12,
+  # ~66s at this file's ppm=15/segs=16. Lower --points-per-mm/--cone-segments
+  # via the CLI for faster iteration; quality difference is minor even at
+  # the fast end (confirmed visually on 'e'/'m').
+  cone_segments: 16
+  # manifold3d's raw minkowski_sum output is drastically over-triangulated
+  # on flat regions (a single straight wall facet came out as ~24 near-
+  # coplanar micro-triangles with slightly wobbling normals - visible as
+  # faceting/rippling on straight strokes like 'M's, not a real draft-angle
+  # problem). Manifold.simplify() at this tolerance collapses it to a
+  # single flat face per straight run; far below any real glyph feature
+  # size, so it doesn't visibly affect real curvature. 0 disables.
+  simplify_tolerance_mm: 0.005
 
 # lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
 # print supports - Blickensderfer/Postal only, not Hammond/IBM). Values

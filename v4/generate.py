@@ -25,6 +25,14 @@ def main():
                          help="override build.points_per_mm from the config")
     parser.add_argument("--separation-mm", type=float, default=None,
                          help="override build.separation_mm from the config")
+    parser.add_argument("--cone-segments", type=int, default=None,
+                         help="override build.cone_segments from the config - circular "
+                              "segments for the draft's Minkowski cone kernel, trades "
+                              "roundness for generation speed")
+    parser.add_argument("--simplify-tolerance-mm", type=float, default=None,
+                         help="override build.simplify_tolerance_mm from the config - "
+                              "collapses manifold3d's minkowski_sum over-triangulation "
+                              "noise on flat regions")
     parser.add_argument("--no-core-groove", action="store_true",
                          help="skip CoreGrooves (slow) regardless of the config")
     parser.add_argument("--resin-support", dest="resin_support", action="store_true", default=None,
@@ -46,6 +54,8 @@ def main():
         points_per_mm=args.points_per_mm,
         separation_mm=args.separation_mm,
         render_core_groove=render_core_groove,
+        cone_segments=args.cone_segments,
+        simplify_tolerance_mm=args.simplify_tolerance_mm,
     )
 
     label = "ResinPrint" if resin_support else "FullElement"

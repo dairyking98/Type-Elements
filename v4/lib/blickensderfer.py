@@ -16,7 +16,11 @@ import numpy as np
 import trimesh
 import yaml
 
-from glyph_poc import build_glyph, build_flat_text
+from glyph_poc import (
+    build_glyph, build_flat_text,
+    DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
+    DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
+)
 import scad_primitives as sp
 
 _configured = False
@@ -125,6 +129,12 @@ def configure(config_path):
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
     g["DEFAULT_RENDER_CORE_GROOVE"] = b["render_core_groove"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
+    # circular segments for build_glyph's Minkowski cone kernel - see
+    # glyph_poc.DEFAULT_CONE_SEGMENTS docstring. Not in older configs, so
+    # defaults to glyph_poc's own default rather than requiring every
+    # config file to be updated.
+    g["DEFAULT_CONE_SEGMENTS"] = b.get("cone_segments", GLYPH_DEFAULT_CONE_SEGMENTS)
+    g["DEFAULT_SIMPLIFY_TOLERANCE_MM"] = b.get("simplify_tolerance_mm", GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM)
 
     r = cfg["resin"]
     g["Resin_Fn"] = r["resin_fn"]
@@ -206,45 +216,39 @@ def place_on_cylinder(mesh, row, col, separation_mm):
     return trimesh.Trimesh(vertices=new_v, faces=mesh.faces, process=False)
 
 
-def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None):
+def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+             simplify_tolerance_mm=None):
+    """Per-character self-intersection ('the draft offset folds through
+    itself on narrow features like H's inter-stroke gap or m's diagonal
+    junctions') used to be a real, unsolved problem here - build_glyph now
+    builds the draft via a real Minkowski sum (manifold3d), which cannot
+    produce that defect on any input topology (see build_glyph's
+    docstring). So there's nothing left to detect/report per character;
+    only inter-character collisions (a placement/spacing issue, unrelated
+    to a single glyph's own geometry) are still checked below."""
     _require_configured()
     points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
     separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
     align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
+    cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
+    simplify_tolerance_mm = (DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None
+                              else simplify_tolerance_mm)
     parts = []
     skipped = []
-    self_intersecting = []
     for row in (0, 1, 2):
         for col, ch in enumerate(DHIATENSOR[row]):
             try:
-                mesh, loop_simple = build_glyph(
+                mesh = build_glyph(
                     ch, points_per_mm, separation_mm=separation_mm, row=row,
                     align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
                     radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
-                    platen_radius_mm=PLATEN_RADIUS_MM)
+                    platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
+                    simplify_tolerance_mm=simplify_tolerance_mm)
             except Exception as e:
                 skipped.append((row, col, ch, str(e)))
                 continue
-            if not all(loop_simple):
-                # Detection only. Tried self-union (mesh.union(mesh,
-                # engine="manifold")) as an automatic repair here - it
-                # DOES cleanly resolve outer-boundary self-intersection
-                # (confirmed on 'H': volume 20.24->15.88mm3, the X-fold
-                # became a proper pinched valley) but on hole-boundary
-                # self-intersection (e.g. 'o'/'O', where loop_simple's
-                # SECOND entry - the hole - is the one that's False) it
-                # instead caps the hole with a spurious flat membrane - a
-                # different, worse defect than the original pinch. Not
-                # safe to apply blanket across all failures, so reverted
-                # to report-only for both cases rather than special-case
-                # outer-vs-hole (which loop_simple's index-per-contour
-                # already distinguishes, if this is revisited later).
-                self_intersecting.append((row, col, ch))
             parts.append(place_on_cylinder(mesh, row, col, separation_mm))
     print(f"TextRing: placed {len(parts)}, skipped {len(skipped)}: {skipped}")
-    if self_intersecting:
-        print(f"TextRing: {len(self_intersecting)} characters have a self-intersecting "
-              f"draft offset (detection only, not repaired): {self_intersecting}")
 
     collisions = _check_inter_character_collisions(parts)
     if collisions:
@@ -268,8 +272,11 @@ def _check_inter_character_collisions(parts):
     return names
 
 
-def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None):
-    text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs)
+def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+             simplify_tolerance_mm=None):
+    text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+                                      cone_segments=cone_segments,
+                                      simplify_tolerance_mm=simplify_tolerance_mm)
     return trimesh.util.concatenate([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
 
 
@@ -502,9 +509,12 @@ def Subtractive(render_core_groove=None):
     return sp.union_all(parts)
 
 
-def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None):
+def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+                 cone_segments=None, simplify_tolerance_mm=None):
     _require_configured()
-    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs)
+    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+                                     cone_segments=cone_segments,
+                                     simplify_tolerance_mm=simplify_tolerance_mm)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}")
     subtractive = Subtractive(render_core_groove)
@@ -633,8 +643,11 @@ def ResinSupport():
     return sp.union_all(parts)
 
 
-def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None):
-    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs)
+def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+               cone_segments=None, simplify_tolerance_mm=None):
+    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
+                                    cone_segments=cone_segments,
+                                    simplify_tolerance_mm=simplify_tolerance_mm)
     support = ResinSupport()
     print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
           f"watertight={support.is_watertight}")

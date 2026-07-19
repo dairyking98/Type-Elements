@@ -1,27 +1,35 @@
-# v4: mesh-vertex-remap type element pipeline
+# v4: Minkowski-draft type element pipeline
 
 Builds struck-character type elements (starting with Blickensderfer) as
-watertight solids using direct per-vertex mesh manipulation instead of
-OpenSCAD's `minkowski(cone)` draft step or v3's build123d/BREP experiments.
-No boolean/CSG call happens anywhere in the glyph pipeline itself; the only
-boolean in the whole system is the single `Additive - Subtractive` element
-assembly at the very end (via `manifold3d`).
+watertight solids. The draft taper (the cone-shaped widening from a
+character's print face down to its embedded root) is built via a REAL
+Minkowski sum (`manifold3d.Manifold.minkowski_sum`) between the flat glyph
+shape and a cone - not OpenSCAD's `minkowski(cone)` (too slow at the scale
+this needs, which is why v4 exists), and not a hand-rolled per-vertex
+outline offset (v4's first approach, abandoned - see below). The only
+*other* boolean in the system is the single `Additive - Subtractive`
+element assembly at the very end.
 
-The core technique - triangulate the flat glyph outline once, then reshape
-that fixed-topology mesh with plain coordinate math (a parabolic Z-warp for
-the platen scallop, a per-vertex outward push for the draft taper) - is
-adapted from a friend's 2023 "TypeCylinder" tool (Python + trimesh), not
-invented here. v4 re-parameterizes that technique against the real
-Blickensderfer geometry from `v2/blickensderfer.scad`/`v2/lib/*.scad`
-instead of TypeCylinder's original arbitrary pixel constants, and fixes
-several defects found in the original along the way (see "Fixed defects"
-below).
+v4 started from a per-vertex mesh-manipulation technique adapted from a
+friend's 2023 "TypeCylinder" tool (Python + trimesh) - triangulate the flat
+glyph outline once, then reshape that fixed-topology mesh with plain
+coordinate math instead of any boolean call. That approach had no topology
+awareness: a fixed-distance offset can't detect when a glyph's local
+geometry (a narrow gap, a tight concave corner) is too small to support
+that distance, and just folds through itself instead of erroring. A later
+session tried patching this with a gated self-union repair, which fixed
+most single-island glyphs but both left some (`e`'s hole-boundary fold) and
+*broke* others (`i`'s dot got welded into its stem, losing real volume) -
+band-aiding a fundamentally topology-blind technique one glyph at a time.
+The per-vertex approach and its patches are gone from the code now (see git
+history / `SESSION_LOG.md` if you want the full blow-by-blow); a real
+Minkowski sum can't produce a self-intersecting result on ANY input
+topology, so there's no per-glyph failure case left to chase. The real cost
+is generation time (a boolean CSG call vs. plain coordinate math) - see
+"Performance" below.
 
-See `SESSION_LOG.md` for the chronological development history and,
-importantly, the current status/resume point for ongoing work (as of the
-last session: an attempt to replace the draft mechanism below with a
-lofted `shapely.buffer()`-based taper, on branch `v4-real-offset`, fixed
-most letters but hit a real unresolved limitation on `e` - not merged).
+See `SESSION_LOG.md` for the chronological development history and the
+current status/resume point for ongoing work.
 
 ## Setup
 
@@ -40,6 +48,7 @@ python3 generate.py config/blickensderfer.yaml --points-per-mm 20 --separation-m
 python3 generate.py config/blickensderfer.yaml --no-core-groove   # skip the slow twisted grooves
 python3 generate.py config/blickensderfer.yaml --resin-support    # add ResinPrint()'s support rods
 python3 generate.py config/blickensderfer.yaml --out /tmp/test.stl
+python3 generate.py config/blickensderfer.yaml --points-per-mm 8 --cone-segments 12   # faster iteration
 ```
 
 All real-machine numbers live in the config file, not in code - a second
@@ -48,6 +57,25 @@ code change. See `config/blickensderfer.yaml` for the full parameter set;
 every value there is commented with which `v2/blickensderfer.scad` (or
 `lib/core_shaft.scad` / `lib/resin_support.scad`) variable it corresponds
 to.
+
+### Performance
+
+The draft taper is a real Minkowski sum (`manifold3d`), not plain
+coordinate math, so generation time is real and tunable via two knobs
+(`build.cone_segments` / `--cone-segments` and `points_per_mm` /
+`--points-per-mm`, both also config-driven) - `manifold3d`'s own docs warn
+Minkowski cost scales with the *product* of the two operands' face counts.
+Measured for the full 84-character ring + assembly:
+
+| points_per_mm | cone_segments | full ring + assembly |
+|---|---|---|
+| 15 (config default) | 16 (config default) | ~60-70s |
+| 8 | 12 | ~30-35s |
+| 6 | 8 | ~16s |
+
+Quality difference between the fast and default settings is minor
+(confirmed visually on `e`/`m`, the hardest glyphs). Use the fast settings
+while iterating, the config defaults for a final export.
 
 ## Layout
 
@@ -66,7 +94,7 @@ output/
 
 ## The glyph pipeline (`lib/glyph_poc.py`)
 
-For one character:
+For one character (`build_glyph`):
 
 1. **`get_glyph_contours_and_advance`**: walk FreeType's TrueType outline
    (on/off-curve tagged points) into flat polylines, sampling curved spans
@@ -78,29 +106,55 @@ For one character:
    by something", which breaks on genuinely nested glyphs like DejaVu's
    `0` with its slash mark nested inside its own counter) and triangulate
    each island (with its holes) via `triangle`. Flat, z=0.
-3. **`make_front`**: parabolic Z-warp, `z = (y-radius_y_offset)^2 * platen_radius + separation` -
-   the platen-conforming scallop, no boolean.
-4. **`make_back`**: push each *outline* vertex outward along the bisector
-   implied by its neighbors, by a fixed distance - the draft taper. Per
-   outline loop independently (so disjoint islands, e.g. `ü`'s umlaut
-   dots, never interfere with each other).
-5. **`join_front_back`**: stitch front cap + back cap + side walls between
-   matching front/back vertices along each outline loop.
+3. **Build a thin prism** (`trimesh.creation.extrude_triangulation`) just
+   `tip_h` (~0.01mm) tall, sitting at the tip end (`z` in
+   `[separation_mm-tip_h, separation_mm]`) - the undrafted, undilated glyph
+   shape. Its **top cap is then warped** with the platen parabola,
+   `z = (y-radius_y_offset)^2 * platen_radius + separation_mm`, *before*
+   anything else touches it - see "Why warp before the Minkowski sum, not
+   after" below.
+4. **Minkowski-sum that prism with a draft cone**
+   (`manifold3d.Manifold.minkowski_sum`) - apex (`radius=0`) registered
+   exactly at the world origin so it lines up with the tip, wide base
+   (`radius=expansion_width_mm`) below it at `z=-cone_height`. The sum's
+   cross-section at the tip is therefore the prism's own (curved, per step
+   3) top surface unchanged; at the root (`z=0`) it's that same surface
+   dilated/offset outward by `expansion_width_mm` - the draft taper, with
+   no self-intersection possible on any input topology (holes, disjoint
+   islands, arbitrarily narrow gaps - a real Minkowski sum can't fold).
+5. **`Manifold.simplify(simplify_tolerance_mm)`**: `manifold3d`'s raw
+   `minkowski_sum` output is drastically over-triangulated on flat regions
+   (a single straight wall came out as ~24 near-coplanar micro-triangles
+   with normals wobbling by a fraction of a degree from floating-point
+   noise - visible as faceting on straight strokes). Collapses that
+   cleanly (e.g. `H`: 1156->42 vertices) without visibly affecting real
+   curvature - the tolerance is far below any meaningful glyph feature
+   size.
 6. **`alignment_x_offset`**: horizontal placement within the glyph's own
-   advance box (see "Alignment" below).
+   advance box (see "Alignment" below) - applied to the contours before
+   step 2, not listed in pipeline order above.
 
-`build_glyph` runs all of this for one character; `blickensderfer.TextRing`
-calls it 84 times (3 rows x 28 columns) and places each result on the
-cylinder via `place_on_cylinder`.
+`blickensderfer.TextRing` calls `build_glyph` 84 times (3 rows x 28
+columns) and places each result on the cylinder via `place_on_cylinder`.
 
-### Why per-vertex offset instead of a real Minkowski sum / BREP op
+### Why warp the platen curve before the Minkowski sum, not after
 
-Cheap (no boolean/CSG kernel call - the whole 84-character ring + assembly
-takes ~3-6s including the twisted grooves), at the cost of no topology
-awareness: a fixed-distance offset can't detect when a glyph's local
-geometry (a narrow gap, a tight concave corner) is too small to support
-that distance, and just folds through itself instead of erroring. See
-"Known limitations".
+An earlier version of this pipeline built the prism fully flat, did the
+Minkowski sum, and only *then* nudged the swept result's top ring into the
+platen parabola. That's wrong: the cone's geometry - and therefore the
+realized draft angle - is only valid for a flat tip. Nudging just the
+final top ring after the sweep leaves the walls built as if the tip were
+still flat, so wherever the platen bulge is large (far from
+`radius_y_offset` - e.g. the bottom of `M`/`A`, vs. `L`/`I`'s mostly-
+vertical runs which stay close to it) the wall no longer tapers at the
+specified angle over the actual (now longer) distance to the tip - visible
+as inconsistent facets on those specific edges. This also matches how the
+real v2 SCAD file avoids the problem: `PlatenCutout()` is subtracted from
+the base extrusion *before* the `minkowski()` call there too, never
+patched onto the result after. Warping the prism's top cap first means the
+cone (unmodified, exactly as specified) sweeps a surface that's already
+the correct curved shape, so the draft angle is preserved everywhere by
+construction.
 
 ### Draft direction (character protrusion)
 
@@ -193,41 +247,20 @@ All offsets default to `0.0` (no-op) until set in the config.
   raised. Same limitation the original TypeCylinder tool had (it raised
   `ValueError` on cubic curves instead of silently mis-parsing them, which
   is arguably safer - worth matching eventually).
-- **The draft offset can self-intersect on narrow glyph features -
-  detected, deliberately not auto-repaired.** `back_loops_are_simple()` in
-  `glyph_poc.py` detects it (`shapely` `Polygon.is_simple`) and
-  `TextRing()` in `lib/blickensderfer.py` reports every affected
-  character by (row, col, char) at generate time. At the real production
-  `separation_mm=2.0` this is **not rare** - 71 of 84 characters in the
-  DHIATENSOR layout currently fail this check (confirmed by running
-  `generate.py`), visible as a self-crossing fold near the root on glyphs
-  like `H`/`h` (gap between the two vertical strokes) and `e` (the mouth
-  opening). Accepted as-is: the resulting solids are still
-  watertight/manifold, just not simple.
-
-  **Tried and reverted:** self-unioning the mesh with itself
-  (`mesh.union(mesh, engine="manifold")`) - manifold3d's boolean output is
-  guaranteed a valid 2-manifold regardless of how tangled the input was,
-  and this DOES cleanly resolve outer-boundary self-intersection
-  (confirmed on `H`: volume 20.24->15.88mm3, the X-fold became a proper
-  pinched valley). But on hole-boundary self-intersection - `o`/`O`, where
-  `loop_simple`'s hole entry is the one that's `False` - the same
-  self-union instead caps the hole with a spurious flat membrane, a
-  different and worse defect than the original pinch. Not safe to apply
-  uniformly (`loop_simple` already distinguishes outer-vs-hole per
-  contour index, if a loop-type-aware version of this is worth revisiting
-  later). Reverted to detection-only for both cases.
-
-  While chasing this down, also found and fixed a real, separate bug in
-  `place_on_cylinder()`: reconstructing a mesh via
-  `trimesh.Trimesh(vertices=..., faces=...)` with the default
-  `process=True` was silently re-running vertex merging and corrupting
-  already-valid geometry post-placement (reproduced with an identity
-  transform alone: 2195->1507 vertices, `watertight` True->False, nothing
-  to do with the rotation/translation itself). Fixed with `process=False`
-  since placement is a pure coordinate move - no topology change, no
-  reprocessing needed. This fix is real and stays regardless of the
-  self-union revert above.
+- **Self-intersecting drafts - RESOLVED.** The old per-vertex outline
+  offset could fold through itself on narrow glyph features (71/84
+  characters failed a `shapely` simplicity check at production settings -
+  see git history for the detection/gated-repair machinery this used to
+  need). A real Minkowski sum cannot produce a self-intersecting result on
+  any input topology, so there is nothing left to detect or repair here;
+  `TextRing()` no longer reports on this at all.
+- **`place_on_cylinder()` needs `process=False`.** Reconstructing a mesh
+  via `trimesh.Trimesh(vertices=..., faces=...)` with the default
+  `process=True` silently re-runs vertex merging and corrupts already-valid
+  geometry post-placement (reproduced with an identity transform alone:
+  2195->1507 vertices, `watertight` True->False, nothing to do with the
+  rotation/translation itself). Placement is a pure coordinate move - no
+  topology change, no reprocessing needed.
 - **Inter-character collisions are detected, not repaired.**
   `_check_inter_character_collisions()` in `lib/blickensderfer.py` uses
   `trimesh.collision.CollisionManager` across all 84 placed parts (this is
@@ -235,18 +268,26 @@ All offsets default to `0.0` (no-op) until set in the config.
   against each other - unlike an earlier, meaningless attempt earlier in
   this project's history that called it on a single mesh expecting
   self-intersection detection, which it never provided). At
-  `separation_mm=2.0`, 57 adjacent-character pairs currently collide.
-  Accepted as-is; there's no simple automatic geometric fix for two
-  overlapping solids short of redoing their placement/size.
+  `separation_mm=2.0`, 61 adjacent-character pairs currently collide -
+  confirmed real via a direct boolean intersection check (not just the
+  collision manager's flag), and confirmed to sit right at the embedded
+  root end (radius ~15.6mm, vs. the root anchor at 15.5mm), not near the
+  visible outer surface - which is why it isn't visible just looking at
+  the assembled ring from outside. Accepted as-is; there's no simple
+  automatic geometric fix for two overlapping solids short of redoing
+  their placement/size (or reducing `separation_mm`, which shrinks how far
+  each root reaches - confirmed to eliminate collisions entirely at
+  `separation_mm=1.0`, at the cost of less embedding-depth margin into the
+  main body).
 - **`FullElement`/`ResinPrint` run a detect + best-effort auto-repair
   pass** (`scad_primitives.check_and_repair()`) using trimesh's own
   `fill_holes`/`fix_winding`/`fix_inversion`/`fix_normals` on the final
   assembled solid, re-checking and reporting whether it actually helped.
   This targets combinatorial defects only (holes, inconsistent
-  winding/normals) - it has no effect on self-intersecting/overlapping
-  geometry (confirmed: it never even runs on the two issues above, since
-  `watertight`/`winding_consistent`/`is_volume` all already report `True`
-  for self-intersecting-but-otherwise-valid meshes).
+  winding/normals) - it has no effect on overlapping geometry like the
+  inter-character collisions above (confirmed: it never even runs there,
+  since `watertight`/`winding_consistent`/`is_volume` all already report
+  `True` for two overlapping-but-otherwise-valid solids).
 - **`LogoText` centers on the ink bounding box, not the advance box** -
   unlike `TextRing` (which now does real advance-box centering, see
   "Alignment" above). Fine for a decorative logo, not attempted to match
