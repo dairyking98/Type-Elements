@@ -539,6 +539,16 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     # not just watertightness/volume, which don't catch a reversed draft.)
     tip_h = min(0.01, separation_mm * 0.01)
     cone_h = separation_mm - tip_h
+    # Preview path (minkowski_enabled=False) doesn't need the thin sliver at
+    # all - that's only a construction detail for feeding the Minkowski sum
+    # (see above), and returning it AS the preview shape makes for a
+    # razor-thin, hard-to-see sliver (~tip_h+block_margin, well under
+    # 0.3mm) instead of something actually comparable in size to a real
+    # drafted character. Use the full separation_mm as the extrusion depth
+    # instead - same bottom-at-z=0 registration as the drafted root, still
+    # skips the expensive Minkowski sweep entirely.
+    block_h = tip_h if minkowski_enabled else separation_mm
+    block_z0 = separation_mm - tip_h if minkowski_enabled else 0.0
 
     # Platen scallop applied as a REAL boolean cylinder subtraction, BEFORE
     # the Minkowski sum - not a per-vertex parabola-warp approximation (the
@@ -571,8 +581,8 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     block_margin = bulge_max * 1.1 + 0.005
 
     prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces,
-                                                     tip_h + block_margin)
-    prism.apply_translation([0, 0, separation_mm - tip_h])
+                                                     block_h + block_margin)
+    prism.apply_translation([0, 0, block_z0])
 
     x_min, x_max = flat.vertices[:, 0].min(), flat.vertices[:, 0].max()
     cyl_length = (x_max - x_min) + 2.0
