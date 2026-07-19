@@ -7,6 +7,15 @@ Render/Quick Preview here just needs to overwrite that same fixed path).
 f3d is never launched automatically - use the "Launch f3d" button (or
 run it yourself) whenever you actually want to look.
 
+Workflow: Quick Preview (fast, undrafted) until it looks right, Render
+(full quality, slow) to confirm, then Save to keep it. Preview/Render/
+Type Test all overwrite the SAME fixed scratch path
+(output.directory/output.stl_name) - it's a temp file for the current
+TUI session, not a keeper. Save copies that temp STL to
+output/saved/<timestamp>.stl plus a <timestamp>.json sidecar recording
+the full config and what produced it (preview/render/type_test, resin
+support on/off, timestamp) - only Save actually keeps anything.
+
 Usage:
     python3 tune.py config/blickensderfer.yaml
 
@@ -59,15 +68,17 @@ import asyncio
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime
 
 import yaml
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import (Button, Footer, Header, Input, Select, Static, Switch,
-                              RichLog, TabbedContent, TabPane)
+                              RichLog, TabbedContent, TabPane, TextArea)
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -271,19 +282,21 @@ class TuneApp(App):
     .field-row Switch { width: auto; height: 1; border: none; padding: 0; }
     .field-help { color: $text-muted; height: 1; }
     #buttons { height: 8; dock: bottom; padding: 0 1; }
-    #btn-render { height: 5; width: 1fr; text-style: bold; }
-    #secondary-buttons { height: 3; }
-    #secondary-buttons Button { width: 1fr; }
+    #primary-buttons { height: 5; }
+    #primary-buttons Button { width: 1fr; height: 5; text-style: bold; }
+    #btn-f3d { height: 3; margin-top: 0; }
     #status { height: 1; color: $text-muted; padding: 0 1; }
     .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: 1; }
     #btn-type-test { height: 3; margin-top: 1; }
+    #type-test-text { height: 8; margin-bottom: 1; }
     """
     BINDINGS = [
         ("q", "quit", "Quit"),
-        ("b", "render", "Render"),
         ("p", "preview", "Quick Preview"),
+        ("b", "render", "Render"),
+        ("s", "save", "Save"),
         ("f", "launch_f3d", "Launch f3d"),
         ("r", "reload", "Reload from file"),
     ]
@@ -292,6 +305,7 @@ class TuneApp(App):
         super().__init__()
         self.config_path = os.path.abspath(config_path)
         self.inputs = {}
+        self._last_build_info = None
         self._load_current()
 
     def _load_current(self):
@@ -383,15 +397,14 @@ class TuneApp(App):
                 with TabPane("Type Test", id="tab-type-test"):
                     with VerticalScroll():
                         yield Static(
-                            "Flat, fixed-pitch (CPI) test line - matches v2's TypeTest()\n"
+                            "Flat, fixed-pitch (CPI) test block - matches v2's TypeTest()\n"
                             "spacing convention. Uses the Font tab's path/size. NOT part of\n"
-                            "the real element - overwrites the same output STL as Render/\n"
-                            "Quick Preview, so the same f3d --watch window shows it.",
+                            "the real element - overwrites the same scratch output STL as\n"
+                            "Render/Quick Preview, so the same f3d --watch window shows it.\n"
+                            "Multiple lines are supported (stacked vertically).",
                             classes="picker-help")
-                        with Vertical(classes="field-row"):
-                            with Horizontal():
-                                yield Static("Test text", classes="field-label")
-                                yield Input(value=DEFAULT_TYPE_TEST_TEXT, id="type-test-text")
+                        yield Static("Test text", classes="field-label")
+                        yield TextArea(DEFAULT_TYPE_TEST_TEXT, id="type-test-text")
                         with Vertical(classes="field-row"):
                             with Horizontal():
                                 yield Static("CPI", classes="field-label")
@@ -400,10 +413,11 @@ class TuneApp(App):
                         yield Button("Render Test Line", id="btn-type-test", variant="primary")
 
             with Vertical(id="buttons"):
-                yield Button("RENDER [b]", id="btn-render", variant="primary")
-                with Horizontal(id="secondary-buttons"):
-                    yield Button("Quick Preview [p]", id="btn-preview", variant="success")
-                    yield Button("Launch f3d [f]", id="btn-f3d")
+                with Horizontal(id="primary-buttons"):
+                    yield Button("PREVIEW [p]", id="btn-preview", variant="success")
+                    yield Button("RENDER [b]", id="btn-render", variant="primary")
+                    yield Button("SAVE [s]", id="btn-save", variant="warning")
+                yield Button("Launch f3d [f]", id="btn-f3d")
         with Vertical(id="log-pane"):
             yield RichLog(id="log", wrap=True, markup=True, min_width=1)
         yield Footer()
@@ -502,10 +516,16 @@ class TuneApp(App):
             cmd += ["--no-minkowski", "--no-core-groove"]
         else:
             cmd += ["--minkowski"]
-        await self._stream_subprocess(cmd)
+        returncode = await self._stream_subprocess(cmd)
+        if returncode == 0:
+            self._last_build_info = {
+                "kind": "preview" if fast else "render",
+                "resin_support": values["resin_support"],
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+            }
 
     async def action_render_type_test(self):
-        text = self.query_one("#type-test-text", Input).value
+        text = self.query_one("#type-test-text", TextArea).text
         cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
         try:
             cpi = float(cpi_raw)
@@ -522,7 +542,41 @@ class TuneApp(App):
         cmd = [sys.executable, os.path.join(REPO_ROOT, "type_test.py"), text,
                "--cpi", str(cpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
                "--out", out_path]
-        await self._stream_subprocess(cmd)
+        returncode = await self._stream_subprocess(cmd)
+        if returncode == 0:
+            self._last_build_info = {
+                "kind": "type_test",
+                "text": text,
+                "cpi": cpi,
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+            }
+
+    def action_save(self):
+        out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
+        if not os.path.exists(out_path):
+            self.log_line("[yellow]nothing to save yet - Preview or Render first[/yellow]")
+            return
+        save_dir = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], "saved")
+        os.makedirs(save_dir, exist_ok=True)
+        base = f"blickensderfer_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        stl_path = os.path.join(save_dir, f"{base}.stl")
+        meta_path = os.path.join(save_dir, f"{base}.json")
+        n = 2
+        while os.path.exists(stl_path):
+            stl_path = os.path.join(save_dir, f"{base}_{n}.stl")
+            meta_path = os.path.join(save_dir, f"{base}_{n}.json")
+            n += 1
+        shutil.copy2(out_path, stl_path)
+        metadata = {
+            "saved_at": datetime.now().isoformat(timespec="seconds"),
+            "source_config": os.path.relpath(self.config_path, REPO_ROOT),
+            "last_build": self._last_build_info,
+            "config": self.cfg,
+        }
+        with open(meta_path, "w") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        self.log_line(f"[green]saved[/green] {os.path.relpath(stl_path, REPO_ROOT)} "
+                       f"(+ {os.path.basename(meta_path)})")
 
     async def _stream_subprocess(self, cmd):
         t0 = time.time()
@@ -537,12 +591,15 @@ class TuneApp(App):
             self.log_line(f"[green]done in {dt:.1f}s[/green] - f3d (if running with --watch) should refresh")
         else:
             self.log_line(f"[red]exited {proc.returncode} after {dt:.1f}s[/red]")
+        return proc.returncode
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-render":
             self.action_render()
         elif event.button.id == "btn-preview":
             self.action_preview()
+        elif event.button.id == "btn-save":
+            self.action_save()
         elif event.button.id == "btn-f3d":
             self.action_launch_f3d()
         elif event.button.id == "btn-type-test":
