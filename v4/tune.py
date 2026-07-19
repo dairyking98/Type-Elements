@@ -86,10 +86,12 @@ Tabs (in display order):
     Not part of the real element - a small 6-pocket calibration test
     print for finding element.core_id_offset. Select "Shaft Gauge" on
     the Build tab to actually build it via Preview/Render.
-  Build            - ONE dropdown: Element Only / Element Resin Print
-    (build.resin_support, kept in sync with this dropdown) / Shaft Gauge
-    (build.target - this dropdown's own tri-state, see the Gauge tab).
-    Resin tab's own fields only matter when Resin Print is selected.
+  Build            - a dropdown, Element / Shaft Gauge (build.target -
+    see the Gauge tab for what Shaft Gauge builds), plus an independent
+    "Resin supports" checkbox (build.resin_support) that only matters
+    for Element (FullElement() vs ResinPrint()) - Shaft Gauge always
+    includes its own resin supports regardless. Resin tab's own fields
+    only matter when Resin supports is checked.
   Layout           - a dropdown of named Blickensderfer keyboard layouts
     (ported from v2/lib/layouts/blick_layouts.scad), a read-only 3-row
     preview of whichever one's selected, and a "Modify glyphs" switch
@@ -711,19 +713,24 @@ class TuneApp(App):
                 with Vertical(classes="picker-row"):
                     yield Static("Build target", classes="field-label")
                     target_now = self.cfg.get("build", {}).get("target", "element")
-                    if target_now not in ("element", "resin", "gauge"):
+                    if target_now not in ("element", "gauge"):
                         target_now = "element"
                     build_select = Select(
-                        [("Element Only", "element"), ("Element Resin Print", "resin"),
-                         ("Shaft Gauge", "gauge")],
+                        [("Element", "element"), ("Shaft Gauge", "gauge")],
                         value=target_now, id="build-select", allow_blank=False)
                     yield build_select
+                with Horizontal(classes="picker-row"):
+                    yield Static("Resin supports", classes="field-label")
+                    resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
+                    sw = Switch(value=resin_now, id="build-resin-support")
+                    yield sw
                 yield Static(
-                    "Element Only = FullElement(). Element Resin Print = ResinPrint(),\n"
-                    "adds ResinSupport()'s rods/breakaway ring - see the Resin tab for\n"
-                    "its own settings, which only matter in this mode. Shaft Gauge =\n"
-                    "GaugeTestSet() (see the Gauge tab) - a calibration test print, not\n"
-                    "part of the real element at all.",
+                    "Element = FullElement(), or ResinPrint() (adds ResinSupport()'s\n"
+                    "rods/breakaway ring) if Resin supports is on - see the Resin tab\n"
+                    "for its own settings, which only matter when this is on. Shaft\n"
+                    "Gauge = GaugeTestSet() (see the Gauge tab) - a calibration test\n"
+                    "print, not part of the real element; always has its own resin\n"
+                    "supports built in regardless of this checkbox.",
                     classes="picker-help")
 
     def _compose_type_test_tab(self):
@@ -803,13 +810,12 @@ class TuneApp(App):
                 except ValueError:
                     self.log_line(f"[red]bad value for {key!r}: {raw!r} (expected {typ.__name__})[/red]")
                     return None
-        # build target dropdown -> target (tune.py's own tri-state) +
-        # resin_support (generate.py's own default, kept in sync - true
-        # only when target is "resin"; irrelevant when target is "gauge",
-        # since _run_build passes --gauge explicitly in that case anyway)
-        target = self.query_one("#build-select", Select).value
-        values["target"] = target
-        values["resin_support"] = (target == "resin")
+        # build target dropdown (element/gauge) + its own independent
+        # "Resin supports" checkbox - resin_support only actually matters
+        # when target is "element" (GaugeTestSet() always builds its own
+        # supports regardless, see _run_build)
+        values["target"] = self.query_one("#build-select", Select).value
+        values["resin_support"] = self.query_one("#build-resin-support", Switch).value
         # Type Test's own cpi/lpi - bespoke widgets, not in FIELDS, but
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
@@ -872,9 +878,15 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
-        if target_now not in ("element", "resin", "gauge"):
+        if target_now not in ("element", "gauge"):
+            # "resin" was a valid target value before the Build tab's
+            # dropdown was split into target + a separate Resin supports
+            # checkbox - a running copy saved before that change could
+            # still have it on disk; map it back to plain "element" (the
+            # checkbox itself carries whether resin support is on now)
             target_now = "element"
         self.query_one("#build-select", Select).value = target_now
+        self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
@@ -970,11 +982,11 @@ class TuneApp(App):
             # Minkowski draft sweep is not a config field the user tunes -
             # it's entirely determined by which button was pressed, forced
             # explicitly either way so the config's build.minkowski_enabled
-            # default is never consulted here. Build target (Element Only
-            # vs. Resin Print) is NOT forced here though - both buttons
-            # defer to whatever build.resin_support was just saved from the
-            # Build tab's dropdown, so Quick Preview still shows resin
-            # supports when that's selected.
+            # default is never consulted here. Resin supports is NOT
+            # forced here though - both buttons defer to whatever
+            # build.resin_support was just saved from the Build tab's own
+            # checkbox, so Quick Preview still shows resin supports when
+            # that's checked.
             if fast:
                 cmd += ["--no-minkowski", "--no-core-groove"]
             else:
