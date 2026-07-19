@@ -527,6 +527,18 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     contours_mm = [c * scale for c in contours_font_units]
     x_shift = alignment_x_offset(char, advance_mm, **(align_kwargs or {}))
     contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
+    # A struck type element carries a MIRROR-IMAGE of the desired printed
+    # glyph (same reason a rubber stamp or hot-metal slug is cut reversed -
+    # striking is a reflection through the contact plane, same as v2's
+    # TwoDText: `mirror([1,0,0])` wrapped around the whole aligned/shifted
+    # glyph, lib/glyph_pipeline.scad ~line 292). v4 has no OpenSCAD-style
+    # mirror() primitive, so it's done directly on the contour points here -
+    # negate x on the ALREADY-shifted contours (mirror wraps translate in
+    # v2, i.e. this must come after x_shift, not before, to match). This
+    # only belongs on the real struck-character path (build_glyph) - NOT
+    # build_flat_text (LogoText's engraved label and Type Test's preview
+    # are both read directly, never struck, so they must stay un-mirrored).
+    contours_mm = [c * np.array([-1.0, 1.0]) for c in contours_mm]
 
     if radius_y_offset_mm is None:
         radius_y_offset_mm = CUTOUT_ROW[row] - BASELINE_ROW[row]
