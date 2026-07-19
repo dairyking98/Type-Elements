@@ -131,13 +131,13 @@ build:
   minkowski_enabled: true
   draft_angle_deg: 55.0
 
-# Same shape as config/blickensderfer.yaml's resin: section - see its
-# comment. Postal's original v2 file had rod_raft=false/
+# Every value here matches config/blickensderfer.yaml's resin: section
+# exactly (see its comment) - the two machines' resin supports are damn
+# near identical by design, so there's no reason for the actual VALUES to
+# diverge either. Postal's original v2 file had rod_raft=false/
 # cut_groove_inner_x=-14.9 (a continuous raft plate) hardcoded as its
 # only behavior; that's now available as raft: true below instead of a
-# silent per-machine default, and this file defaults to false (matching
-# Blickensderfer) so the two machines' resin supports are actually
-# identical out of the box, not just structurally similar.
+# silent per-machine default.
 resin:
   resin_fn: 20
   rod_od: 1.0
@@ -150,8 +150,8 @@ resin:
   groove_od: 0.8
   groove_thickness: 0.3
   raft: false
-  bottom_support_fractions: [0.0, 0.25, 0.5, 0.75, 1.0]   # Postal default (Blickensderfer uses [0.2])
-  bottom_support_inner_angle_offset: 0.0                   # Postal default (Blickensderfer uses 0.5)
+  bottom_support_fractions: [0.0, 0.25, 0.5, 0.75, 1.0]
+  bottom_support_inner_angle_offset: 0.0
 
 output:
   directory: "output"
