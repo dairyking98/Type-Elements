@@ -698,6 +698,75 @@ font's missing glyph).
 placeholders to the real `Alma Mono.otf`/`FreeMono-Bold.otf` files, since
 the limitation blocking them is now fixed.
 
+## 11. Machine picker on startup + Postal's QWERTY-only layout
+
+User's explicit request: a machine-picker screen shown on startup
+(closing out part 9/resuming-item-6's deferred "master GUI"), plus a
+"Change Machine" button on the tuner form's status row that returns to
+it, and Postal's Layout tab restricted to a single "QWERTY" preset (its
+one real physical layout) instead of the empty dropdown from part 9.
+
+**Considered a full Textual `Screen`-stack rewrite** (separate
+`MachineSelectScreen`/`TunerScreen` classes, `push_screen`/
+`switch_screen`) and rejected it as far more invasive than needed - nearly
+every one of `TuneApp`'s ~40 methods reference `self.query_one(...)`,
+and moving compose() to a Screen subclass raises real ambiguity about
+whether `self.query_one` on the App still resolves against the active
+screen's content (untested assumption, not worth risking on a 1200-line
+file). Used Textual's `App.recompose()` instead (confirmed available in
+the installed 8.2.8 - removes all mounted children and re-runs
+`compose()`): `compose()` now branches on `self.machine is None` (picker)
+vs. not (the existing tuner form, extracted unchanged into
+`_compose_tuner_ui()`), and switching states is just setting
+`self.machine`/calling `_load_machine()` then `await self.recompose()`.
+Zero changes needed to any of the ~40 existing action/query methods -
+they all still just call `self.query_one(...)`, now finding whichever
+widgets the current `compose()` branch actually built.
+
+**`_load_machine(config_path)`**: the master/running config bootstrap +
+per-machine `SECTIONS`/`FIELDS`/`LAYOUT_PRESETS` setup that used to be
+inline in `__init__` (part 9) is now its own method, callable both from
+`__init__` (backward-compat direct CLI launch, `python3 tune.py
+config/x.yaml` - still supported, skips the picker) and from the new
+`_select_machine(machine_key)` (the picker's button handler). `MACHINES`
+(new module dict, `{"blickensderfer": (label, config_path), "postal":
+(...)}`) is the picker's source of truth and the only place a future
+third machine needs to be registered.
+
+**"Change Machine" button**: saves the current form first (reused
+`_save_before_exit()` - same courtesy as quitting, so in-progress edits
+aren't silently lost on a machine switch), then `self.machine = None;
+await self.recompose()` - which is exactly what shows the picker again.
+`_switch_master_config`'s existing cross-machine guard (part 9) is now
+pointed at this button in its log message instead of "relaunch tune.py",
+since there's now a proper in-app path for that.
+
+**Postal's QWERTY preset**: `LAYOUT_PRESETS_POSTAL = {"QWERTY": [...]}`
+(the same 3 rows already computed for `config/postal.yaml` from v2's
+`Keyboard_Layout_Array`/`Element_Layout_Array_Map` in part 8 - reused
+verbatim, not recomputed) replaces part 9's empty `{}` for Postal in
+`LAYOUT_PRESETS_BY_MACHINE`. `_compose_layout_tab`'s help text made
+properly machine-aware (checks `self.machine` directly now, not just
+"are there any presets") since the old "no presets" branch no longer
+applies but the Blickensderfer-specific "Ported from
+v2/lib/layouts/blick_layouts.scad" text would have been wrong for
+Postal's one preset too.
+
+**Verified via headless `App.run_test()` + `pilot.click()`** (clicking
+real buttons, not just calling methods directly): picker shows both
+machines on a no-arg launch; clicking Postal recomposes into a
+Postal-scoped form with the Layout tab's dropdown correctly
+auto-selecting "QWERTY" (matches `config/postal.yaml`'s rows exactly, via
+the existing `_current_layout_preset()` match-detection); clicking
+"Change Machine" returns to the picker; picking Blickensderfer afterward
+correctly rebuilds with its own full field set; direct CLI launch still
+skips the picker entirely; a save round-trip works correctly on
+freshly-recomposed widgets (confirming `self.inputs` isn't holding stale
+references from a previous machine's form). Also confirmed visually via
+screenshot (converted SVG->PNG with `convert`) - centered picker layout,
+correct status text ("machine: Postal | master: config/postal.yaml"), all
+three status-row buttons fit on one row.
+
 ## Resuming later
 
 1. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
@@ -718,7 +787,3 @@ the limitation blocking them is now fixed.
 5. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
    direction, "may both be set at 360") - 720 was floated for `platen_fn`
    if the scallop needs to be smoother; not tested.
-6. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
-   tune from one launcher, without needing to relaunch `tune.py` with a
-   different config path - `tune.py` itself now fully supports Postal
-   (part 9), this would just be a convenience launcher wrapping it.

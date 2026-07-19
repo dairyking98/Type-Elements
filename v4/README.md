@@ -105,17 +105,24 @@ CFF/cubic-curve OTFs, which used to silently mis-render (see "TrueType-
 only outlines - RESOLVED" in "Known limitations" below) - now handled
 correctly and verified end-to-end.
 
-`tune.py config/postal.yaml` works - it builds a Postal-scoped Element tab
-(27 fields vs. Blickensderfer's 32, since Postal has no drive-pin
-countersink) and an empty Layout preset dropdown (v2/postal.scad has only
-one physical layout, no preset-switching menu like Blickensderfer's -
-rows are still hand-editable via Modify glyphs). `TuneApp.SECTIONS`/
-`.FIELDS`/`.LAYOUT_PRESETS` are instance attributes, fixed once at startup
-from the launch config's `machine:` key - hot-swapping to a config for a
-DIFFERENT machine mid-session (via the Browse button) is refused with a
-log message rather than crashing, since the Element tab's widgets are
-only ever built once (`compose()` runs once). Relaunch `tune.py` directly
-against the other machine's config instead.
+`python3 tune.py` (no args) starts at a machine picker - pick
+Blickensderfer or Postal and it loads that machine's default config
+(`MACHINES` in `tune.py`) into a Postal-scoped Element tab (27 fields vs.
+Blickensderfer's 32, since Postal has no drive-pin countersink) and its
+own Layout tab (a single "QWERTY" preset - v2/postal.scad has only one
+physical layout, no preset-switching menu like Blickensderfer's 6 - still
+hand-editable via Modify glyphs if you need something else). The tuner
+form's status row gains a "Change Machine" button once a machine is
+picked, which saves the current form and returns to the picker (uses
+Textual's `recompose()` to fully rebuild the form - `TuneApp.SECTIONS`/
+`.FIELDS`/`.LAYOUT_PRESETS` are instance attributes reset by
+`_load_machine()` on every pick, not fixed for the process lifetime). The
+old direct-launch usage (`python3 tune.py config/postal.yaml`) still
+works and skips the picker. The Browse button (separate from Change
+Machine) only switches between different configs of the SAME machine -
+picking a config for a different machine there is refused with a log
+message pointing at Change Machine instead, since Browse repopulates the
+existing widgets in place rather than recomposing.
 
 ### Performance
 
@@ -147,7 +154,8 @@ before generating anything meant to be printed.
 ## Interactive tuner (`tune.py`)
 
 ```
-python3 tune.py config/blickensderfer.yaml
+python3 tune.py                              # machine picker first
+python3 tune.py config/blickensderfer.yaml   # skip the picker, load directly
 ```
 
 A `textual` TUI for iterating on the config without hand-editing YAML or

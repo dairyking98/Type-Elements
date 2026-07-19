@@ -23,10 +23,22 @@ last_build go in a comment header instead, so they don't pollute the
 config namespace) - Browse (see below) to it directly to reuse those
 exact settings later. Only Save actually keeps anything.
 
+Machine picker: shown on startup (unless a config path was given on the
+command line - see Usage) and via the "Change Machine" button (top of
+the tuner form, next to Browse/Reset to Defaults). Picking a machine
+loads its default config (MACHINES) and rebuilds the whole form -
+Postal's Element tab has fewer fields than Blickensderfer's (no
+drive-pin countersink) and its own Layout presets, so this is a full
+recompose, not just repopulating values. Browse (below) only switches
+between different configs of the SAME machine - switching machines is
+Change Machine's job, not Browse's (Browse refuses and points you at
+Change Machine if you pick a config for a different machine).
+
 Config file: three tiers, master/running/saved.
-  - MASTER is whatever path you pass on the command line - tune.py
-    NEVER writes to it. Browse (top of the screen, next to "master:")
-    switches to a different master entirely, live.
+  - MASTER is whatever config the machine picker (or the command line)
+    pointed at - tune.py NEVER writes to it. Browse (top of the screen,
+    next to "master:") switches to a different master of the SAME
+    machine, live.
   - RUNNING is a per-master scratch copy (<master-stem>.running.yaml,
     same directory, gitignored) that every edit/save actually goes to.
     Bootstrapped as a copy of master the first time it's needed;
@@ -42,7 +54,8 @@ Config file: three tiers, master/running/saved.
     named/timestamped snapshot, independent of both master and running.
 
 Usage:
-    python3 tune.py config/blickensderfer.yaml
+    python3 tune.py                        # machine picker first (see MACHINES)
+    python3 tune.py config/blickensderfer.yaml   # skip the picker, load directly
 
 Edits are NOT round-tripped through a YAML parser/dumper - the config
 file has extensive prose comments documenting where every real-machine
@@ -146,6 +159,14 @@ REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 # f3d --command-script file: just `set_camera top`, the exact console
 # command the "7" key runs - see action_render_type_test's use of it
 F3D_TOP_VIEW_SCRIPT = os.path.join(REPO_ROOT, "f3d_top_view_cmds.txt")
+
+# Machines the picker screen (shown on startup, or via the "Change
+# Machine" button - see _compose_machine_picker/_select_machine) offers,
+# each mapped to its own master config. Order here is the order shown.
+MACHINES = {
+    "blickensderfer": ("Blickensderfer", os.path.join(REPO_ROOT, "config", "blickensderfer.yaml")),
+    "postal": ("Postal", os.path.join(REPO_ROOT, "config", "postal.yaml")),
+}
 
 FONT_FILE_FILTERS = Filters(
     ("Font files", lambda p: p.suffix.lower() in (".ttf", ".otf", ".ttc")),
@@ -353,14 +374,24 @@ SECTION_INTROS = {
         "picker-help"),
 }
 
-# Postal has no named layout presets yet (v2/postal.scad has only ONE
-# physical layout, no preset-switching menu like Blickensderfer's - see
-# LAYOUT_PRESETS above) - its Layout tab always shows "(custom - not a
-# known preset)"; the 3 rows are still fully hand-editable via Modify
-# glyphs, just with nothing to pick from the dropdown.
+# Postal has exactly ONE named layout preset - v2/postal.scad has only
+# one physical layout, no preset-switching menu like Blickensderfer's (see
+# LAYOUT_PRESETS above) - so "QWERTY" is both the only option and the
+# default (matches config/postal.yaml's own layout.rows exactly: v2's
+# Physical_Layout = Keyboard_Layout_Array[row][Element_Layout_Array_Map[col]],
+# postal.scad:271-274 - same values, computed once in config/postal.yaml's
+# comment rather than re-derived here).
+LAYOUT_PRESETS_POSTAL = {
+    "QWERTY": [
+        "byhnujmik,ol.pqazwsxedcrfvtg",
+        "BYHNUJMIK&OL?PQAZWSXEDCRFVTG",
+        "!6_+7;=8:§9'-%\"(£2)ä3@ö4/ü5$",
+    ],
+}
+
 LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
-    "postal": {},
+    "postal": LAYOUT_PRESETS_POSTAL,
 }
 
 
@@ -458,6 +489,11 @@ class TuneApp(App):
     #status-row { height: 1; padding: 0 1; }
     #status-row .browse-btn { margin-left: 0; }
     #btn-reset-defaults { width: 1fr; height: 1; border: none; margin-left: 1; }
+    #btn-change-machine { width: 1fr; height: 1; border: none; margin-left: 1; }
+    #machine-picker { width: 100%; height: 100%; align: center middle; }
+    .picker-title { text-style: bold; content-align: center middle; width: auto; margin-bottom: 1; }
+    .picker-subtitle { color: $text-muted; content-align: center middle; width: auto; margin-bottom: 1; }
+    .machine-picker-btn { width: 30; height: 3; margin-bottom: 1; text-style: bold; }
     .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: 1; }
@@ -487,23 +523,8 @@ class TuneApp(App):
         ("r", "reload", "Reload from file"),
     ]
 
-    def __init__(self, config_path):
+    def __init__(self, config_path=None):
         super().__init__()
-        # Master/running split: the config path given on the command line
-        # is the MASTER - tune.py never writes to it. All edits go to a
-        # "running" copy next to it (<stem>.running.yaml), bootstrapped
-        # as a copy of master the first time it's needed and left alone
-        # after that (further tune.py sessions against the same master
-        # pick up wherever the running copy left off - "once changed is
-        # always changed"). self.config_path is always the running copy;
-        # every existing _save_to_yaml/_load_current/etc. already only
-        # ever touches self.config_path, so nothing downstream needed to
-        # change for this split - only __init__, the config-switch/
-        # reset-defaults actions, and the status bar are new.
-        self.master_config_path = os.path.abspath(config_path)
-        self.config_path = self._running_config_path(self.master_config_path)
-        self._ensure_running_config()
-        self._migrate_running_config()  # no log_line here - RichLog isn't mounted yet
         self.inputs = {}
         self._last_build_info = None
         self._f3d_proc = None
@@ -514,13 +535,31 @@ class TuneApp(App):
         # (SIGHUP/SIGTERM, registered in on_mount - see there for why
         # plain signal.signal() isn't used)
         atexit.register(self._kill_f3d)
+        # self.machine is None until a machine is picked - compose()
+        # shows the machine-picker screen in that state (see
+        # _compose_machine_picker), the full tuner form otherwise. Passing
+        # a config_path (the old CLI usage, `python3 tune.py config/x.yaml`)
+        # skips the picker and loads straight into that config's machine,
+        # for backward compat / power users who already know what they want.
+        self.machine = None
+        if config_path is not None:
+            self._load_machine(config_path)
+
+    def _load_machine(self, config_path):
+        """Bootstraps all machine/config-dependent state (master/running
+        config split, self.cfg, and the per-machine SECTIONS/FIELDS/
+        LAYOUT_PRESETS - see SECTIONS_BY_MACHINE's comment) from a given
+        master config path. Called once at startup if a config_path was
+        given on the command line, or from the machine picker
+        (_select_machine) otherwise - either way, compose()/recompose()
+        must run AFTER this, since the tuner form's shape (Element tab's
+        field set, Layout tab's presets) depends on self.machine."""
+        self.master_config_path = os.path.abspath(config_path)
+        self.config_path = self._running_config_path(self.master_config_path)
+        self._ensure_running_config()
+        self._migrate_running_config()  # no log_line here - RichLog isn't mounted yet
+        self.inputs = {}
         self._load_current()
-        # SECTIONS/FIELDS/LAYOUT_PRESETS are per-machine (see
-        # SECTIONS_BY_MACHINE's comment) - fixed once here, at startup,
-        # from the LAUNCH config's `machine:` key. Not re-derived on
-        # config switch/reload/reset: compose() only runs once, so the
-        # Element tab's widget set can't change shape mid-session anyway -
-        # see _switch_master_config's cross-machine guard.
         self.machine = self.cfg.get("machine", "blickensderfer")
         self.SECTIONS = SECTIONS_BY_MACHINE.get(self.machine, SECTIONS_BY_MACHINE["blickensderfer"])
         self.FIELDS = [field for fields in self.SECTIONS.values() for field in fields]
@@ -606,10 +645,11 @@ class TuneApp(App):
 
     def _status_text(self):
         # kept short - #status is squeezed into a 1-row-tall Horizontal
-        # alongside the Browse/Reset to Defaults buttons, no wrapping;
-        # the full explanation lives in the module docstring instead
+        # alongside the Browse/Reset to Defaults/Change Machine buttons,
+        # no wrapping; the full explanation lives in the module docstring
+        machine_label = MACHINES.get(self.machine, (self.machine,))[0]
         master_rel = os.path.relpath(self.master_config_path, REPO_ROOT)
-        return f"master: {master_rel}"
+        return f"machine: {machine_label}  |  master: {master_rel}"
 
     def _kill_f3d(self):
         if self._f3d_proc is not None and self._f3d_proc.poll() is None:
@@ -737,12 +777,18 @@ class TuneApp(App):
                     select = Select(options, value=preset_now if preset_now else Select.NULL,
                                     id="layout-select", allow_blank=True, prompt=prompt)
                     yield select
-                if options:
+                if self.machine == "blickensderfer":
                     yield Static(
                         "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
                         "physical placement_map - only glyph content per row changes.\n"
                         "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
                         "(v2 auto-switches fonts per layout; v4 does not).",
+                        classes="picker-help")
+                elif options:
+                    yield Static(
+                        "Postal has only one physical layout (v2/postal.scad has no\n"
+                        "preset-switching menu) - QWERTY is it. Use Modify glyphs below\n"
+                        "to hand-edit the 3 rows if you need something else.",
                         classes="picker-help")
                 else:
                     yield Static(
@@ -829,11 +875,31 @@ class TuneApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
+        if self.machine is None:
+            yield from self._compose_machine_picker()
+        else:
+            yield from self._compose_tuner_ui()
+        yield Footer()
+
+    def _compose_machine_picker(self):
+        """Shown on startup (unless a config was given on the command
+        line) and whenever "Change Machine" is pressed - self.machine is
+        None in both cases. One button per MACHINES entry; picking one
+        loads that machine's config and recomposes into the tuner form
+        (see _select_machine)."""
+        with Vertical(id="machine-picker"):
+            yield Static("Type Elements Tuner", classes="picker-title")
+            yield Static("Choose a machine to work on:", classes="picker-subtitle")
+            for key, (label, _path) in MACHINES.items():
+                yield Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
+
+    def _compose_tuner_ui(self):
         with Vertical(id="form"):
             yield Static(self._status_text(), id="status")
             with Horizontal(id="status-row"):
                 yield Button("Browse", id="browse-config", classes="browse-btn")
                 yield Button("Reset to Defaults", id="btn-reset-defaults", variant="error")
+                yield Button("Change Machine", id="btn-change-machine")
             with TabbedContent():
                 yield from self._compose_section_tab("Font & Alignment")
                 yield from self._compose_type_test_tab()
@@ -861,7 +927,6 @@ class TuneApp(App):
                     yield Switch(value=True, id="f3d-preview-checkbox")
         with Vertical(id="log-pane"):
             yield RichLog(id="log", wrap=True, markup=True, min_width=1)
-        yield Footer()
 
     def log_line(self, text):
         self.query_one("#log", RichLog).write(text)
@@ -993,22 +1058,21 @@ class TuneApp(App):
 
     def _switch_master_config(self, new_master_path):
         new_master_path = os.path.abspath(new_master_path)
-        # self.SECTIONS/self.FIELDS/self.LAYOUT_PRESETS are fixed once at
-        # startup (see __init__) and compose() only builds the tabs' widgets
-        # ONCE - a config for a DIFFERENT machine (e.g. switching from
-        # Blickensderfer to Postal mid-session) has a different Element
-        # field set entirely (get_nested() would KeyError against fields
-        # Postal's config doesn't have) and would need the Element tab's
-        # widgets rebuilt, not just repopulated. Refuse the switch instead
-        # of crashing - relaunch tune.py directly against that machine's
-        # config.
+        # self.SECTIONS/self.FIELDS/self.LAYOUT_PRESETS (and every widget
+        # compose() already built for the CURRENT machine) depend on
+        # self.machine - a config for a DIFFERENT machine (e.g. switching
+        # from Blickensderfer to Postal via Browse) has a different
+        # Element field set entirely (get_nested() would KeyError against
+        # fields Postal's config doesn't have) and needs a full recompose
+        # (see _select_machine), not just repopulating these widgets.
+        # Refuse the switch instead of crashing - use Change Machine
+        # instead, which does the recompose properly.
         with open(new_master_path) as f:
             new_machine = (yaml.safe_load(f) or {}).get("machine", "blickensderfer")
         if new_machine != self.machine:
             self.log_line(
                 f"[red]can't switch to a {new_machine!r} config while tuning {self.machine!r} - "
-                f"relaunch tune.py directly against it instead: python3 tune.py "
-                f"{os.path.relpath(new_master_path, REPO_ROOT)}[/red]")
+                f"use the \"Change Machine\" button instead[/red]")
             return
         self.master_config_path = new_master_path
         self.config_path = self._running_config_path(self.master_config_path)
@@ -1020,6 +1084,26 @@ class TuneApp(App):
         self.log_line(f"[cyan]switched to {os.path.relpath(self.master_config_path, REPO_ROOT)}[/cyan]")
         if migrated:
             self.log_line(f"[cyan]backfilled missing section(s) from master: {', '.join(migrated)}[/cyan]")
+
+    async def _select_machine(self, machine_key):
+        """Machine-picker button handler - loads the picked machine's
+        default config and recomposes into the tuner form. Fresh
+        self.inputs/self.SECTIONS/etc from _load_machine means the
+        recompose below builds a form correctly shaped for the NEW
+        machine, not a stale one repopulated with wrong fields."""
+        _, config_path = MACHINES[machine_key]
+        self._load_machine(config_path)
+        await self.recompose()
+        self.log_line(f"[cyan]tuning {self.machine}[/cyan]")
+
+    async def _change_machine(self):
+        """"Change Machine" button - saves the current form first (same
+        courtesy as quitting - see _save_before_exit), then goes back to
+        the machine picker. self.machine=None + recompose() is exactly
+        what shows the picker (see compose())."""
+        self._save_before_exit()
+        self.machine = None
+        await self.recompose()
 
     async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
         """Called after a successful Preview/Render/Render Text. If f3d
@@ -1258,28 +1342,35 @@ class TuneApp(App):
                 self.query_one(f"#layout-custom-row-{i}", Input).value = display_rows[i]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "btn-render":
+        button_id = event.button.id or ""
+        if button_id.startswith("pick-machine-"):
+            self.run_worker(self._select_machine(button_id.removeprefix("pick-machine-")), exclusive=True)
+        elif button_id == "btn-change-machine":
+            self.run_worker(self._change_machine(), exclusive=True)
+        elif button_id == "btn-render":
             self.action_render()
-        elif event.button.id == "btn-preview":
+        elif button_id == "btn-preview":
             self.action_preview()
-        elif event.button.id == "btn-save":
+        elif button_id == "btn-save":
             self.run_worker(self.action_save(), exclusive=True)
-        elif event.button.id == "btn-render-test-text":
+        elif button_id == "btn-render-test-text":
             self.run_worker(self.action_render_type_test(), exclusive=True)
-        elif event.button.id == "btn-reset-defaults":
+        elif button_id == "btn-reset-defaults":
             self.action_reset_defaults()
-        elif event.button.id == "browse-config":
+        elif button_id == "browse-config":
             # checked before the generic "browse-" prefix below - this
             # one isn't a font field, it switches the whole app's config
             self.run_worker(self._browse_config())
-        elif event.button.id and event.button.id.startswith("browse-"):
+        elif button_id.startswith("browse-"):
             # not exclusive - browsing for a font shouldn't cancel (or be
             # blocked by) an in-progress build worker
-            self.run_worker(self._browse_font(event.button.id.removeprefix("browse-")))
+            self.run_worker(self._browse_font(button_id.removeprefix("browse-")))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"usage: {sys.argv[0]} config/blickensderfer.yaml")
-        sys.exit(1)
-    TuneApp(sys.argv[1]).run()
+    # No args: starts at the machine picker (see MACHINES/
+    # _compose_machine_picker). A config path skips the picker and loads
+    # straight into that config's machine - the old direct-launch usage,
+    # kept for power users; the picker's "Change Machine" button is still
+    # available afterward either way.
+    TuneApp(sys.argv[1] if len(sys.argv) > 1 else None).run()
