@@ -93,7 +93,7 @@ alignment:
   center_offset_mm: 0.0
   left_offset_mm: 0.0
   modified_left_chars: "!,.;:)"
-  modified_left_offset_mm: 0.0
+  modified_left_offset_mm: -2.0
   modified_right_chars: "("
   modified_right_offset_mm: 0.0
 
@@ -152,3 +152,13 @@ resin:
 output:
   directory: "output"
   stl_name: "blickensderfer_full_element.stl"
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/blickensderfer.scad) - a flat, CPI/LPI-spaced scratch preview for
+# instant font/legibility checks. Saved here just like every other
+# tunable value, so it persists across TUI restarts.
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    The quick brown fox jumps over the lazy dog 1234567890

@@ -42,9 +42,11 @@ Tabs (in display order):
     alignment_x_offset() convention the real element uses), for instant
     text/legibility checks. Overwrites the same output STL path as
     Render/Quick Preview (so the same f3d --watch window shows it) -
-    it's a scratch preview, not saved anywhere else (see Save).
-    Triggered by the "RENDER TEST TEXT" button, which - unlike this
-    tab's other widgets - lives in the always-visible button panel
+    that output STL is a scratch preview, not saved anywhere else (see
+    Save) - but the text/CPI/LPI inputs themselves ARE persisted to
+    config's type_test.* section like every other field, so they
+    survive a TUI restart. Triggered by the "RENDER TEST TEXT" button,
+    which - unlike this tab's other widgets - lives in the always-visible button panel
     (below the tabs), not inside this TabPane, so it stays clickable
     from the Font & Alignment tab (or any tab) without switching here
     first. Triggers the same auto-open/raise f3d behavior as Preview/
@@ -143,8 +145,6 @@ LAYOUT_PRESETS = {
         "(%*+-/'\"^1234567890`´!;?=@§)",
     ],
 }
-
-DEFAULT_TYPE_TEST_TEXT = "The quick brown fox jumps over the lazy dog 1234567890"  # v2's own default
 
 # Each section becomes one tab (except Layout/Build/Type Test, which have
 # bespoke widgets - see compose()). Field tuples: (yaml key - must be
@@ -284,6 +284,27 @@ def patch_yaml_rows(text, rows):
     item_indent = indent + "  "
     new_block = "".join(f"{item_indent}- {json.dumps(r, ensure_ascii=False)}\n" for r in rows)
     return text[:m.start()] + f"{indent}rows:\n{new_block}" + text[m.end():]
+
+
+def patch_yaml_text_block(text, key, value):
+    """type_test.text is a literal block scalar (`key: |-` followed by
+    indented lines), not a single-line scalar or a list - can't use
+    patch_yaml_value (one-token regex) or patch_yaml_rows (list-item
+    regex). Matches the `key: |...` line plus every immediately-
+    following more-indented line (blank lines included - YAML block
+    scalars allow those with no indent required) and replaces the whole
+    block, always re-emitting as `|-` (strip trailing newline) regardless
+    of the original block style, preserving the existing indent."""
+    pattern = re.compile(
+        rf'^(\s*){re.escape(key)}:[ \t]*\|[-+]?[ \t]*\n((?:\1  .*\n|[ \t]*\n)*)', re.MULTILINE)
+    m = pattern.search(text)
+    if not m:
+        raise ValueError(f"{key!r} block scalar not found in config text")
+    indent = m.group(1)
+    item_indent = indent + "  "
+    lines = value.split("\n")
+    new_block = "".join(f"{item_indent}{line}\n" if line else "\n" for line in lines)
+    return text[:m.start()] + f"{indent}{key}: |-\n{new_block}" + text[m.end():]
 
 
 class TuneApp(App):
@@ -455,16 +476,16 @@ class TuneApp(App):
                     "Multiple lines are supported (stacked vertically).",
                     classes="picker-help")
                 yield Static("Test text", classes="field-label")
-                yield TextArea(DEFAULT_TYPE_TEST_TEXT, id="type-test-text")
+                yield TextArea(self.cfg["type_test"]["text"], id="type-test-text")
                 with Vertical(classes="field-row"):
                     with Horizontal():
                         yield Static("CPI", classes="field-label")
-                        yield Input(value="10", id="type-test-cpi")
+                        yield Input(value=str(self.cfg["type_test"]["cpi"]), id="type-test-cpi")
                     yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
                 with Vertical(classes="field-row"):
                     with Horizontal():
                         yield Static("LPI", classes="field-label")
-                        yield Input(value="6", id="type-test-lpi")
+                        yield Input(value=str(self.cfg["type_test"]["lpi"]), id="type-test-lpi")
                     yield Static("Lines per inch - vertical spacing for multi-line text.", classes="field-help")
 
     def compose(self) -> ComposeResult:
@@ -519,6 +540,18 @@ class TuneApp(App):
                     return None
         # build target dropdown -> resin_support
         values["resin_support"] = self.query_one("#build-select", Select).value
+        # Type Test's own cpi/lpi - bespoke widgets, not in FIELDS, but
+        # persisted the same as everything else (text is handled
+        # separately in _save_to_yaml - it's a multi-line block scalar,
+        # patch_yaml_value's one-token regex doesn't apply)
+        cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
+        lpi_raw = self.query_one("#type-test-lpi", Input).value.strip()
+        try:
+            values["cpi"] = float(cpi_raw)
+            values["lpi"] = float(lpi_raw)
+        except ValueError:
+            self.log_line(f"[red]bad Type Test CPI/LPI value: {cpi_raw!r}/{lpi_raw!r} (expected numbers)[/red]")
+            return None
         return values
 
     def _save_to_yaml(self, values):
@@ -529,6 +562,8 @@ class TuneApp(App):
         layout_select = self.query_one("#layout-select", Select)
         if layout_select.value is not Select.BLANK:
             text = patch_yaml_rows(text, LAYOUT_PRESETS[layout_select.value])
+        type_test_text = self.query_one("#type-test-text", TextArea).text
+        text = patch_yaml_text_block(text, "text", type_test_text)
         with open(self.config_path, "w") as f:
             f.write(text)
         self._load_current()
@@ -551,6 +586,9 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.BLANK
         self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
+        self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
+        self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
+        self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
         self.log_line("[cyan]reloaded values from disk[/cyan]")
 
     async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
@@ -614,6 +652,14 @@ class TuneApp(App):
             await self._ensure_f3d_after_build(out_path)
 
     async def action_render_type_test(self):
+        # save the whole form first, same as Preview/Render - this is
+        # the only place Type Test's own text/cpi/lpi actually get
+        # persisted to disk, so they survive a TUI restart
+        values = self._collect_values()
+        if values is None:
+            return
+        self._save_to_yaml(values)
+
         text = self.query_one("#type-test-text", TextArea).text
         cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
         try:
