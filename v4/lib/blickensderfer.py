@@ -255,7 +255,17 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
         print(f"TextRing: {len(collisions)} inter-character collisions detected "
               f"(detection only, not repaired): {sorted(collisions)}")
 
-    return trimesh.util.concatenate(parts), parts
+    # Real union, not trimesh.util.concatenate: characters routinely overlap
+    # each other (the collisions just reported above) and every character's
+    # root overlaps the main Cylinder() by design (that's the whole point of
+    # "embedded"). concatenate() just merges vertex/face arrays with no
+    # boolean resolution at all - both surfaces stay fully intact and
+    # superimposed wherever they overlap, so no new edge forms where they
+    # actually intersect (confirmed: concatenating text_ring+Cylinder+
+    # ClipCylinder measured 1148mm3 MORE volume than a real union of the
+    # same parts - the double-counted overlap). sp.union_all() uses
+    # manifold3d's real boolean union instead.
+    return sp.union_all(parts), parts
 
 
 def _check_inter_character_collisions(parts):
@@ -277,7 +287,7 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                       cone_segments=cone_segments,
                                       simplify_tolerance_mm=simplify_tolerance_mm)
-    return trimesh.util.concatenate([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
+    return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
 
 
 # ------------------------------------------------------------- Subtractive
