@@ -185,6 +185,7 @@ F3D_TOP_VIEW_SCRIPT = os.path.join(REPO_ROOT, "f3d_top_view_cmds.txt")
 MACHINES = {
     "blickensderfer": ("Blickensderfer", os.path.join(REPO_ROOT, "config", "blickensderfer.yaml")),
     "postal": ("Postal", os.path.join(REPO_ROOT, "config", "postal.yaml")),
+    "mignon": ("Mignon", os.path.join(REPO_ROOT, "config", "mignon.yaml")),
 }
 
 FONT_FILE_FILTERS = Filters(
@@ -275,53 +276,6 @@ SECTIONS_COMMON = {
         ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
          "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
     ],
-    "Logo": [
-        ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved LogoText."),
-        ("text", ["logo", "text"], str, "Logo text", "The engraved text itself."),
-        ("text_size_mm", ["logo", "text_size_mm"], float, "Logo text size (mm)", ""),
-        ("text_spacing", ["logo", "text_spacing"], float, "Logo char spacing (deg)", "Angular spacing between logo characters."),
-        ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)", ""),
-        ("text_offset_deg", ["logo", "text_offset_deg"], float, "Logo text offset (deg)", ""),
-        ("radial_offset_mm", ["logo", "radial_offset_mm"], float, "Logo radius offset (mm)", "Placement radius = Logo_Radius + this."),
-    ],
-    "Quality": [
-        ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
-        ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
-        ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
-        ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
-        ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
-        ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Inner shaft/core bore only."),
-        ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowSpace, SpeedHoles, chamfers...)."),
-        ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
-        ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
-        ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
-    ],
-    "Resin": [
-        ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
-        ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
-        ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
-        ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
-        ("inset", ["resin", "inset"], float, "Inset (mm)", ""),
-        ("min_rod_height", ["resin", "min_rod_height"], float, "Min rod height (mm)", ""),
-        ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
-        ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
-        ("groove_od", ["resin", "groove_od"], float, "Groove OD (mm)", ""),
-        ("groove_thickness", ["resin", "groove_thickness"], float, "Groove thickness (mm)", ""),
-        ("raft", ["resin", "raft"], bool, "Continuous raft",
-         "Off: each rod grows its own small raft. On: one continuous raft "
-         "plate shared by every rod, reaching the element's center axis."),
-        ("bottom_support_inner_angle_offset", ["resin", "bottom_support_inner_angle_offset"], float,
-         "Bottom support angle offset (deg)", ""),
-    ],
-    "Gauge": [
-        # keys must be the literal YAML key names (patch_yaml_value matches
-        # by bare key, not the full path) - confirmed no collision with any
-        # other field in the file
-        ("offset_start", ["gauge", "offset_start"], float, "Offset start (mm)",
-         "First pocket's core_id_offset value - usually 0."),
-        ("offset_int", ["gauge", "offset_int"], float, "Offset increment (mm)",
-         "Added per pocket - pocket n tests offset_start + n*offset_int."),
-    ],
     "Calibration": [
         ("test_char", ["calibration", "test_char"], str, "Test character",
          "Struck at every physical position - keep it simple/legible."),
@@ -338,6 +292,118 @@ SECTIONS_COMMON = {
          "Added per column - column n tests start + n*interval."),
     ],
 }
+
+# Logo/Quality/Resin/Gauge are shared between Blickensderfer/Postal (same
+# config schema) but NOT Mignon - its logo placement, facet-count knobs,
+# and resin-support mechanism are all structurally different (see
+# lib/mignon.py's module docstring), and it has no Shaft Gauge Test at
+# all (v2/mignon.scad:30 - "Shaft Gauge Test... omitted"). Named
+# *_BLICKPOSTAL rather than folded into SECTIONS_COMMON for that reason -
+# SECTIONS_BY_MACHINE below assembles each machine's own combination.
+LOGO_FIELDS_BLICKPOSTAL = [
+    ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved LogoText."),
+    ("text", ["logo", "text"], str, "Logo text", "The engraved text itself."),
+    ("text_size_mm", ["logo", "text_size_mm"], float, "Logo text size (mm)", ""),
+    ("text_spacing", ["logo", "text_spacing"], float, "Logo char spacing (deg)", "Angular spacing between logo characters."),
+    ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)", ""),
+    ("text_offset_deg", ["logo", "text_offset_deg"], float, "Logo text offset (deg)", ""),
+    ("radial_offset_mm", ["logo", "radial_offset_mm"], float, "Logo radius offset (mm)", "Placement radius = Logo_Radius + this."),
+]
+
+QUALITY_FIELDS_BLICKPOSTAL = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
+    ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
+    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
+    ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Inner shaft/core bore only."),
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowSpace, SpeedHoles, chamfers...)."),
+    ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
+    ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+]
+
+RESIN_FIELDS_BLICKPOSTAL = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
+    ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
+    ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
+    ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
+    ("inset", ["resin", "inset"], float, "Inset (mm)", ""),
+    ("min_rod_height", ["resin", "min_rod_height"], float, "Min rod height (mm)", ""),
+    ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
+    ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
+    ("groove_od", ["resin", "groove_od"], float, "Groove OD (mm)", ""),
+    ("groove_thickness", ["resin", "groove_thickness"], float, "Groove thickness (mm)", ""),
+    ("raft", ["resin", "raft"], bool, "Continuous raft",
+     "Off: each rod grows its own small raft. On: one continuous raft "
+     "plate shared by every rod, reaching the element's center axis."),
+    ("bottom_support_inner_angle_offset", ["resin", "bottom_support_inner_angle_offset"], float,
+     "Bottom support angle offset (deg)", ""),
+]
+
+GAUGE_FIELDS = [
+    # keys must be the literal YAML key names (patch_yaml_value matches
+    # by bare key, not the full path) - confirmed no collision with any
+    # other field in the file
+    ("offset_start", ["gauge", "offset_start"], float, "Offset start (mm)",
+     "First pocket's core_id_offset value - usually 0."),
+    ("offset_int", ["gauge", "offset_int"], float, "Offset increment (mm)",
+     "Added per pocket - pocket n tests offset_start + n*offset_int."),
+]
+
+# Mignon-specific tabs - see lib/mignon.py's module docstring for why
+# these can't share Blickensderfer/Postal's field lists.
+LOGO_FIELDS_MIGNON = [
+    ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved ElementLabel."),
+    ("text", ["logo", "text"], str, "Logo text", "The engraved text itself."),
+    ("text_size_mm", ["logo", "text_size_mm"], float, "Logo text size (mm)", ""),
+    ("text_spacing", ["logo", "text_spacing"], float, "Logo char spacing (deg)", "Angular spacing between logo characters."),
+    ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)", ""),
+    ("height_offset_mm", ["logo", "height_offset_mm"], float, "Logo height offset (mm)",
+     "Local nudge off the chamfer surface the label sits on - NOT the "
+     "same concept as Blickensderfer/Postal's radial offset (Mignon's "
+     "label sits on an angled chamfer surface, not the flat top face)."),
+]
+
+QUALITY_FIELDS_MIGNON = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "CenterShaft only."),
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
+    ("resin_fn", ["quality", "resin_fn"], int, "Resin fn", ""),
+    ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+]
+
+RESIN_FIELDS_MIGNON = [
+    ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
+    ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
+    ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
+    ("inset", ["resin", "inset"], float, "Inset (mm)", ""),
+    ("min_rod_height", ["resin", "min_rod_height"], float, "Min rod height (mm)", ""),
+    ("support_height", ["resin", "support_height"], float, "Support height (mm)",
+     "Raft ring's Z offset below the element, and the outer ring of rods' base height."),
+    ("support_thickness", ["resin", "support_thickness"], float, "Support thickness (mm)", "Raft ring thickness."),
+]
+
+ELEMENT_FIELDS_MIGNON = [
+    ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
+    ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", ""),
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final char diameter (mm)", "Char_Protrusion = (this - element_diameter)/2."),
+    ("element_height", ["element", "element_height"], float, "Element height (mm)", ""),
+    ("cylinder_top_height_offset", ["element", "cylinder_top_height_offset"], float, "Top height offset (mm)", ""),
+    ("cylinder_top_chamfer", ["element", "cylinder_top_chamfer"], float, "Top chamfer size (mm)", ""),
+    ("cylinder_top_diameter", ["element", "cylinder_top_diameter"], float, "Top diameter (mm)", ""),
+    ("cylinder_top_shaft_diameter", ["element", "cylinder_top_shaft_diameter"], float, "Top shaft diameter (mm)", ""),
+    ("cylinder_bottom_shaft_diameter", ["element", "cylinder_bottom_shaft_diameter"], float, "Bottom shaft diameter (mm)", ""),
+    ("pin_height", ["element", "pin_height"], float, "Alignment pin height (mm)", ""),
+    ("pin_width", ["element", "pin_width"], float, "Alignment pin width (mm)", ""),
+    ("pin_depth", ["element", "pin_depth"], float, "Alignment pin depth (mm)", ""),
+    ("pin_through", ["element", "pin_through"], bool, "Pin all the way through", ""),
+    ("cylinder_shape", ["element", "cylinder_shape"], int, "Body shape", "0=Polygonal (12-gon), 1=Cylindrical."),
+]
 
 ELEMENT_FIELDS_BLICKENSDERFER = [
     ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
@@ -390,8 +456,19 @@ ELEMENT_FIELDS_POSTAL = [
 ]
 
 SECTIONS_BY_MACHINE = {
-    "blickensderfer": {**SECTIONS_COMMON, "Element": ELEMENT_FIELDS_BLICKENSDERFER},
-    "postal": {**SECTIONS_COMMON, "Element": ELEMENT_FIELDS_POSTAL},
+    "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+                       "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
+                       "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_BLICKENSDERFER},
+    "postal": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+               "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
+               "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_POSTAL},
+    # no "Gauge" key - Mignon has no Shaft Gauge Test (see
+    # ELEMENT_FIELDS_MIGNON's neighboring comment) - compose()/
+    # _compose_build_tab() check for its absence and skip the tab/dropdown
+    # option accordingly, rather than every machine being forced to have one.
+    "mignon": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_MIGNON,
+               "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
+               "Element": ELEMENT_FIELDS_MIGNON},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -934,30 +1011,36 @@ class TuneApp(App):
                         yield inp
 
     def _compose_build_tab(self):
+        has_gauge = "Gauge" in self.SECTIONS
+        valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ())
         with TabPane("Build", id="tab-build"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
                     yield Static("Build target", classes="field-label")
                     target_now = self.cfg.get("build", {}).get("target", "element")
-                    if target_now not in ("element", "gauge", "calibration"):
+                    if target_now not in valid_targets:
                         target_now = "element"
-                    build_select = Select(
-                        [("Element", "element"), ("Shaft Gauge", "gauge"),
-                         ("Calibration Element", "calibration")],
-                        value=target_now, id="build-select", allow_blank=False)
+                    options = [("Element", "element")]
+                    if has_gauge:
+                        options.append(("Shaft Gauge", "gauge"))
+                    options.append(("Calibration Element", "calibration"))
+                    build_select = Select(options, value=target_now, id="build-select", allow_blank=False)
                     yield build_select
                 with Horizontal(classes="picker-row"):
                     yield Static("Resin supports", classes="field-label")
                     resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
                     sw = Switch(value=resin_now, id="build-resin-support")
                     yield sw
+                gauge_help = (
+                    " Shaft\nGauge = GaugeTestSet() (see the Gauge tab) - a calibration test\n"
+                    "print, not part of the real element; always has its own resin\n"
+                    "supports built in regardless of this checkbox."
+                ) if has_gauge else ""
                 yield Static(
                     "Element = FullElement(), or ResinPrint() (adds ResinSupport()'s\n"
                     "rods/breakaway ring) if Resin supports is on - see the Resin tab\n"
-                    "for its own settings, which only matter when this is on. Shaft\n"
-                    "Gauge = GaugeTestSet() (see the Gauge tab) - a calibration test\n"
-                    "print, not part of the real element; always has its own resin\n"
-                    "supports built in regardless of this checkbox. Calibration\n"
+                    "for its own settings, which only matter when this is on."
+                    f"{gauge_help} Calibration\n"
                     "Element = a real element with the SAME test character struck at\n"
                     "every position, sweeping baseline or platen cutout per column\n"
                     "(see the Calibration tab) - for empirically finding\n"
@@ -1018,7 +1101,8 @@ class TuneApp(App):
                 yield from self._compose_section_tab("Font & Alignment")
                 yield from self._compose_type_test_tab()
                 yield from self._compose_section_tab("Resin")
-                yield from self._compose_section_tab("Gauge")
+                if "Gauge" in self.SECTIONS:
+                    yield from self._compose_section_tab("Gauge")
                 yield from self._compose_section_tab("Calibration")
                 yield from self._compose_build_tab()
                 yield from self._compose_layout_tab()
@@ -1145,12 +1229,14 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
-        if target_now not in ("element", "gauge", "calibration"):
+        valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ())
+        if target_now not in valid_targets:
             # "resin" was a valid target value before the Build tab's
             # dropdown was split into target + a separate Resin supports
             # checkbox - a running copy saved before that change could
             # still have it on disk; map it back to plain "element" (the
-            # checkbox itself carries whether resin support is on now)
+            # checkbox itself carries whether resin support is on now).
+            # Also catches "gauge" for a machine with no Gauge tab.
             target_now = "element"
         self.query_one("#build-select", Select).value = target_now
         self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])

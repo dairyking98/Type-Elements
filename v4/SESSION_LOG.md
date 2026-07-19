@@ -1217,3 +1217,131 @@ reference" - `0.0` only ever swept upward from the reference (0 to
 `+interval*27`); `-0.7` (interval unchanged at `0.05`) now spans -0.7mm
 to +0.65mm across the 28 columns, testing both directions. Changed in
 both config files and both machines' `configure()` fallback defaults.
+
+## 19. Mignon ported (first non-"cylinder machine")
+
+User: "lets proceed with the roadmap. the next elements. slightly
+different in that theres no gauge for them but there is calibration."
+Dispatched an Explore agent for the same function-by-function comparison
+methodology used for Postal (part 8) - the result was a much bigger
+divergence than expected: unlike Postal (one drive-pin-trio difference),
+**Mignon shares almost nothing structural with `cylinder_machine.py`** -
+only the glyph placement pipeline (`TextRing`) and the Calibration
+mechanism are genuinely reusable as-is. Confirmed directly from
+`v2/mignon.scad`: no `Core`/`ClipCylinder`/`WireBite`/`SpeedHoles`/
+`core_shaft.scad` family at all (plain `rotate_extrude()` shaft bore), a
+12-sided polygon body instead of round, a stepped-boss+chamfer top
+instead of a wire clip, a plain cut-through alignment keyway instead of a
+countersunk drive pin, top+bottom Minkowski cleanup instead of top-only,
+and fully bespoke resin-support placement (raft ring + rods at two radii,
+none of `CutGroove`/`SpeedHoleSupport`/`DrivePinSupport`/
+`BottomSupports`). Also: 7 physical rows/12 columns, not 3/28 - and no
+Shaft Gauge Test at all (confirmed via `v2/mignon.scad:30`'s own comment,
+also true for Bennett/Helios Klimax per their own files).
+
+**Two shared, backward-compatible `cylinder_machine.py` changes** (both
+regression-verified byte-identical against Blickensderfer/Postal):
+1. `TextRing`/`CalibrationTextRing`'s hardcoded `for row in (0,1,2):` ->
+   `range(len(DHIATENSOR))` - Mignon's 7-row `Baseline_Regular`/`Cutout`
+   arrays needed this; reduces to the identical 3-row loop for the
+   existing machines' configs.
+2. `place_on_cylinder()` gained optional `placement_protrusion`/
+   `angle_half_step` params (`None` = the exact prior hardcoded
+   `Char_Protrusion`/`0.5` behavior) - v2's own documented optional-
+   override mechanism (`lib/glyph_pipeline.scad`'s
+   `Letter_Placement_Protrusion`/`Angle_Half_Step`, already designed for
+   exactly this - Bennett/Mignon/Helios override both to 0). Verified
+   `build_glyph()` itself needs NO Mignon-specific changes -
+   `Letter_Extrude_Offset`/`Letter_Extrude_Depth` (v2's manual per-vertex
+   depth tuning) have no v4 equivalent, since v4's real-Minkowski-sum
+   architecture already auto-computes margin per-glyph.
+
+**`lib/mignon.py`** (~380 lines, new file) reimplements the rest locally:
+`PolygonCylinder`/`ElementChamfer`/`ElementLabel`/`MinkCleanup`/
+`CenterShaft`/`HollowBody`/`AlignmentPin`/`ResinSupport`, plus its own
+`Additive`/`FullElement`/`ResinPrint`/`CalibrationAdditive`/
+`CalibrationElement` (can't reuse `cylinder_machine.CalibrationElement` -
+it unconditionally builds `Cylinder()+ClipCylinder()`, which would crash
+outright on Mignon's missing `Body_Fn`/`Clip_OD` globals). `ElementLabel`
+reuses the same "flat, non-drafted" simplification `LogoText()` already
+established for Blickensderfer/Postal's logo (v2's real version gets a
+small sphere-minkowski rounding, cosmetic only, not the big draft-cone
+struck characters get) - explicitly flagged as a known simplification,
+not silently. `ResinPrint()` faithfully ports a genuine v2 quirk that
+looked surprising at first: it FLIPS the whole element upside-down before
+adding supports (`translate([0,0,Element_Height]) rotate([0,180,0])`,
+`v2/mignon.scad:438-439`) - the label/chamfer end ends up facing the
+build plate, the shaft/mechanical end faces away from supports.
+
+`config/mignon.yaml`: real font found locally (`Iosevka Etoile.ttf` -
+already genuine TrueType, no cubic-curve concern). Physical layout
+(German 4 / `Layouts[5]`, 7 rows x 12 columns) computed programmatically
+from `v2/lib/layouts/mignon_layouts.scad`'s `DEUTSCH4` array through
+`Char_Legend`'s remap, same as Postal's `layout.rows` derivation - not
+hand-transcribed. `resin.support_height`/`support_thickness` and several
+`element:` keys are Mignon-only, not shared with Blickensderfer/Postal's
+schema.
+
+**`generate.py`**: the `HollowSpace()` character-root-containment check
+was Blickensderfer/Postal-specific (Mignon has no `HollowSpace()` at all -
+its hollow-out, `HollowBody()`, is a structurally different taper with no
+equivalent diagnostic question) - changed to `if hasattr(bd,
+"HollowSpace")` instead of assuming every machine has one.
+
+**`tune.py`**: `SECTIONS_COMMON` trimmed to only the two genuinely-
+universal tabs (Font & Alignment, Calibration) - Logo/Quality/Resin
+split into `*_BLICKPOSTAL` and `*_MIGNON` variants (Mignon's schemas
+diverge in all three, not just Element), and Gauge became fully optional
+(`GAUGE_FIELDS`, only in `SECTIONS_BY_MACHINE["blickensderfer"/"postal"]`
+- `compose()`'s Gauge tab and `_compose_build_tab()`'s "Shaft Gauge"
+dropdown option both check `"Gauge" in self.SECTIONS` now instead of
+assuming presence). Added `"mignon"` to `MACHINES`.
+
+**One real bug found and fixed via direct visual verification** (not
+just numeric watertight checks - rendered actual screenshots at multiple
+angles, since a plausible-but-wrong character/column arrangement can
+still be watertight): `v2/mignon.scad:120`'s `Latitude_Int=-360/
+len(Layout[0])` is NEGATIVE - missed on the first implementation pass
+(copied Blickensderfer/Postal's positive `360/columns` formula
+literally). Caught by rendering the built element from multiple angles
+and cross-checking against a rigorous, non-visual confirmation: exported
+a single isolated glyph ('F') and inspected it from the exact "print
+face" viewing direction, confirming `build_glyph()`'s existing struck-
+character mirror (verified correct for Blickensderfer earlier this
+session, and 100% shared/unchanged code - not something Mignon-specific
+config could affect) was working exactly as intended the whole time; the
+actually-wrong thing was column wrap direction, fixed by hardcoding the
+sign flip in `mignon.py`'s own `configure()` (a real, sourced,
+machine-specific value, not a `cylinder_machine.py` change).
+
+**Verified thoroughly**: all 84 positions (7x12) build successfully with
+`--no-minkowski` (fast path, ~0.7s) AND `--minkowski` (real full-quality
+draft, ~53s) - fully watertight/winding-consistent/`is_volume` in both,
+plus the resin-support/flip path and the Calibration path (including
+`--calibration-vary-baseline` forcing BOTH sweep variables on
+simultaneously). Visually confirmed via multiple `f3d` renders (isolated
+single-glyph, plain element, full `ResinPrint` with supports) - real
+12-sided body, correctly placed/legible-when-struck characters, working
+resin support raft+rods. `tune.py` regression-verified for both existing
+machines (identical field counts to before: 78/73 total fields including
+Calibration's 5, matching the pre-restructuring 73/68 + 5 exactly) and
+newly verified for Mignon (50 fields, no Gauge tab mounted, correct
+Element/Resin values, save round-trip) via headless `App.run_test()`
+against scratch config copies throughout - never the user's real files.
+
+## Resuming later
+
+1. **Bennett, then Helios** - the next two machines per the original
+   roadmap order. Given how much Mignon diverged from `cylinder_machine.py`
+   despite being nominally similar on paper, do NOT assume either reuses
+   more than TextRing/Calibration without direct v2 source comparison
+   first (Bennett's header comments suggest it may share more with
+   Blickensderfer/Postal's family than Mignon did - verify, don't assume).
+2. Mignon's `TypeTest()` (v2/mignon.scad:449-466) was not ported -
+   tune.py's Type Test tab still works for Mignon (it's a generic flat
+   CPI/LPI preview, not machine-specific), but the real fixed-pitch
+   TypeTest() module itself (JoinRows/AlignedText-based) has no v4
+   equivalent for any machine yet, not just Mignon - pre-existing gap.
+3. Everything in part 14's original "Resuming later" list (separation_mm,
+   inter-character collisions, performance, alignment offsets,
+   platen_fn/body_fn) is still open.

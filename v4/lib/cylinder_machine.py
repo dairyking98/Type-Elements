@@ -99,7 +99,8 @@ def ClipCylinder(Offset):
     return sp.translate(c, [0, 0, Element_Height - z])
 
 
-def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None):
+def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
+                       placement_protrusion=None, angle_half_step=None):
     """LetterPlacement() equivalent - see conversation for the full
     derivation from rotate([90,0,90])+translate((R+protrusion),0,0)+
     translate(0,0,textBaseline)+rotate([0,0,angle]).
@@ -116,15 +117,35 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None):
     per-column swept baseline value, when calibrating that variable
     (v2's charBaseline, vs. the row's own fixed Baseline[row] every other
     caller uses). None (every other caller) preserves the exact prior
-    behavior."""
+    behavior.
+
+    placement_protrusion: v2's Letter_Placement_Protrusion - Blickensderfer/
+    Postal add the FULL Char_Protrusion at the placement stage too (their
+    raw material genuinely stands proud of the plain element surface
+    before any cutout trims it) - None defaults to Char_Protrusion,
+    preserving that. Mignon/Bennett/Helios's placement radius is the raw
+    Element_Diameter/2 instead (embed depth controlled by the glyph's own
+    geometry, not a placement-stage protrusion) - they pass 0. Does NOT
+    affect the platen cutout's own radius formula (still always the full
+    Char_Protrusion, baked into build_glyph via radius_y_offset_mm,
+    unrelated to this override - verified algebraically in v2, see
+    PlatenCutout's comment in lib/glyph_pipeline.scad).
+
+    angle_half_step: v2's Angle_Half_Step - the constant added to the
+    physical column before multiplying by Latitude_Int. None defaults to
+    0.5 (Blickensderfer/Postal/Bennett center each column between
+    latitude band edges this way); Mignon has no half-column offset, so
+    it passes 0."""
     baseline_mm = BASELINE_ROW[row] if baseline_mm is None else baseline_mm
+    placement_protrusion = Char_Protrusion if placement_protrusion is None else placement_protrusion
+    angle_half_step = 0.5 if angle_half_step is None else angle_half_step
     v = mesh.vertices
     x_local, y_local, z_local = v[:, 0], v[:, 1], v[:, 2]
-    radial = (Element_Diameter / 2.0 + Char_Protrusion - separation_mm) + z_local
+    radial = (Element_Diameter / 2.0 + placement_protrusion - separation_mm) + z_local
     axial = BASELINE_Z_OFFSET + baseline_mm + y_local
     lateral = x_local
     placement_col = PLACEMENT_MAP[col]
-    angle = np.radians((0.5 + placement_col) * LATITUDE_INT)
+    angle = np.radians((angle_half_step + placement_col) * LATITUDE_INT)
     ca, sa = np.cos(angle), np.sin(angle)
     world_x = radial * ca - lateral * sa
     world_y = radial * sa + lateral * ca
@@ -141,7 +162,7 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None):
 
 def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
-             draft_angle_deg=None):
+             draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
     """Per-character self-intersection ('the draft offset folds through
     itself on narrow features like H's inter-stroke gap or m's diagonal
     junctions') used to be a real, unsolved problem here - build_glyph now
@@ -163,10 +184,14 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     draft_angle_deg = DEFAULT_DRAFT_ANGLE_DEG if draft_angle_deg is None else draft_angle_deg
     parts = []
     skipped = []
-    total = sum(len(DHIATENSOR[r]) for r in (0, 1, 2))
+    # Row-count-agnostic (not hardcoded to 3) - Blickensderfer/Postal have
+    # 3 rows, Mignon has 7 (v2/mignon.scad's Baseline_Regular/Cutout are
+    # both 7-entry arrays) - DHIATENSOR/BASELINE_ROW/CUTOUT_ROW's own
+    # length is authoritative, whatever it is.
+    total = sum(len(row) for row in DHIATENSOR)
     n = 0
     t_start = time.perf_counter()
-    for row in (0, 1, 2):
+    for row in range(len(DHIATENSOR)):
         for col, ch in enumerate(DHIATENSOR[row]):
             n += 1
             # flush=True: generate.py's stdout is piped (not a TTY) when
@@ -190,7 +215,9 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                 print(f" SKIPPED ({e})", flush=True)
                 continue
             print(f" {time.perf_counter() - t0:.2f}s", flush=True)
-            parts.append(place_on_cylinder(mesh, row, col, separation_mm))
+            parts.append(place_on_cylinder(mesh, row, col, separation_mm,
+                                            placement_protrusion=placement_protrusion,
+                                            angle_half_step=angle_half_step))
     print(f"TextRing: all characters built in {time.perf_counter() - t_start:.1f}s", flush=True)
     print(f"TextRing: placed {len(parts)}, skipped {len(skipped)}: {skipped}", flush=True)
 
@@ -228,12 +255,14 @@ def _check_inter_character_collisions(parts):
 
 def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
-             draft_angle_deg=None):
+             draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
     text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                       cone_segments=cone_segments,
                                       simplify_tolerance_mm=simplify_tolerance_mm,
                                       platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
-                                      draft_angle_deg=draft_angle_deg)
+                                      draft_angle_deg=draft_angle_deg,
+                                      placement_protrusion=placement_protrusion,
+                                      angle_half_step=angle_half_step)
     return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
 
 
@@ -260,7 +289,8 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
                          reference_baseline_row=None, reference_cutout_row=None,
                          points_per_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
-                         minkowski_enabled=None, draft_angle_deg=None):
+                         minkowski_enabled=None, draft_angle_deg=None,
+                         placement_protrusion=None, angle_half_step=None):
     _require_configured()
     test_char = Calibration_Test_Char if test_char is None else test_char
     vary_baseline = Calibration_Vary_Baseline if vary_baseline is None else vary_baseline
@@ -298,12 +328,13 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
           f"cutout_row={list(reference_cutout_row)}", flush=True)
 
     n_cols = len(PLACEMENT_MAP)
-    total = 3 * n_cols
+    n_rows = len(reference_baseline_row)  # row-count-agnostic - see TextRing's matching note
+    total = n_rows * n_cols
     parts = []
     mapping_lines = []
     n = 0
     t_start = time.perf_counter()
-    for row in (0, 1, 2):
+    for row in range(n_rows):
         for col in range(n_cols):
             n += 1
             t0 = time.perf_counter()
@@ -319,7 +350,9 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
                 platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                 simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
                 minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
-            parts.append(place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=baseline_mm))
+            parts.append(place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=baseline_mm,
+                                            placement_protrusion=placement_protrusion,
+                                            angle_half_step=angle_half_step))
 
             # angle_deg computed from the REAL physical placement (matching
             # place_on_cylinder's own angle formula) rather than v2's raw
