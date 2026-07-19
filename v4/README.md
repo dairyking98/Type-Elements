@@ -434,7 +434,7 @@ positions), while exactly one of `calibration.variable` (`"baseline"` or
 
 Build via `generate.py --calibrate` (plus `--calibration-char`/
 `--calibration-variable`/`--calibration-start`/`--calibration-interval`
-overrides) or tune.py's Build tab ("Calibration"). Prints one line per
+overrides) or tune.py's Build tab ("Calibration Element"). Prints one line per
 physical position - keyboard key, real placement angle, and the exact
 cutout/baseline value used there (computed from the actual physical
 placement angle via `PLACEMENT_MAP`, not v2's raw content-order `col` -

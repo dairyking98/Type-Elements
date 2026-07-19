@@ -111,13 +111,24 @@ def main():
     if args.calibrate:
         # a real element (Additive-Subtractive, same hollow-out as a
         # normal build), just with CalibrationTextRing() swapped in for
-        # TextRing() - see cylinder_machine.CalibrationElement
+        # TextRing() - see cylinder_machine.CalibrationElement. Same
+        # build-quality kwargs as the normal build_fn call below - this
+        # DOES go through build_glyph/TextRing's real draft/placement
+        # pipeline (unlike --gauge), so --minkowski/--no-minkowski etc.
+        # need to actually reach it, not just be parsed and dropped.
         full, mapping_lines = bd.CalibrationElement(
             test_char=args.calibration_char,
             variable=args.calibration_variable,
             start=args.calibration_start,
             interval=args.calibration_interval,
+            points_per_mm=args.points_per_mm,
+            separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
+            cone_segments=args.cone_segments,
+            simplify_tolerance_mm=args.simplify_tolerance_mm,
+            platen_fn=args.platen_fn,
+            minkowski_enabled=args.minkowski_enabled,
+            draft_angle_deg=args.draft_angle_deg,
         )
         print(f"CalibrationElement: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "

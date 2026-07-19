@@ -111,10 +111,10 @@ Tabs (in display order):
     strikes the same test_char while variable ("baseline" or "cutout")
     gets a per-column swept offset (start + interval*col) instead of its
     row's normal value, for empirically finding layout.baseline_row/
-    cutout_row. Select "Calibration" on the Build tab to actually build
-    it via Preview/Render.
+    cutout_row. Select "Calibration Element" on the Build tab to actually
+    build it via Preview/Render.
   Build            - a dropdown, Element / Shaft Gauge / Calibration
-    (build.target - see the Gauge/Calibration tabs for what those build),
+    Element (build.target - see the Gauge/Calibration tabs for what those build),
     plus an independent "Resin supports" checkbox (build.resin_support)
     that only matters for Element (FullElement() vs ResinPrint()) - Shaft
     Gauge always includes its own resin supports regardless, Calibration
@@ -408,8 +408,8 @@ SECTION_INTROS = {
         "the Render log (or the .txt file Save writes alongside the STL)\n"
         "- then edit that row's entry directly in layout.baseline_row/\n"
         "cutout_row (not exposed here - list-valued, edit the YAML).\n"
-        "Select \"Calibration\" on the Build tab, then Preview/Render as\n"
-        "usual to build this instead.",
+        "Select \"Calibration Element\" on the Build tab, then Preview/\n"
+        "Render as usual to build this instead.",
         "picker-help"),
 }
 
@@ -879,7 +879,7 @@ class TuneApp(App):
                         target_now = "element"
                     build_select = Select(
                         [("Element", "element"), ("Shaft Gauge", "gauge"),
-                         ("Calibration", "calibration")],
+                         ("Calibration Element", "calibration")],
                         value=target_now, id="build-select", allow_blank=False)
                     yield build_select
                 with Horizontal(classes="picker-row"):
@@ -893,11 +893,11 @@ class TuneApp(App):
                     "for its own settings, which only matter when this is on. Shaft\n"
                     "Gauge = GaugeTestSet() (see the Gauge tab) - a calibration test\n"
                     "print, not part of the real element; always has its own resin\n"
-                    "supports built in regardless of this checkbox. Calibration = a\n"
-                    "real element with the SAME test character struck at every\n"
-                    "position, sweeping baseline or platen cutout per column (see the\n"
-                    "Calibration tab) - for empirically finding layout.baseline_row/\n"
-                    "cutout_row.",
+                    "supports built in regardless of this checkbox. Calibration\n"
+                    "Element = a real element with the SAME test character struck at\n"
+                    "every position, sweeping baseline or platen cutout per column\n"
+                    "(see the Calibration tab) - for empirically finding\n"
+                    "layout.baseline_row/cutout_row.",
                     classes="picker-help")
 
     def _compose_type_test_tab(self):
