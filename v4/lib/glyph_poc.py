@@ -148,20 +148,41 @@ def quadratic_bezier(p0, p1, p2, n):
     return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t ** 2 * p2
 
 
+def cubic_bezier(p0, p1, p2, p3, n):
+    t = np.linspace(0, 1, n + 1)[1:]  # exclude t=0 (p0 already added by caller)
+    t = t[:, None]
+    return ((1 - t) ** 3 * p0 + 3 * (1 - t) ** 2 * t * p1
+             + 3 * (1 - t) * t ** 2 * p2 + t ** 3 * p3)
+
+
 def contour_to_points(points, tags, points_per_mm, scale):
-    """Walk one FreeType contour (on/off-curve tagged points, TrueType
-    quadratic-only) into a flat polyline, sampling curved spans at
-    points_per_mm (post-scale) density - this is the single knob that
-    drives both glyph-curve smoothness and taper-wall smoothness (see
-    module docstring on the fn=8 discussion)."""
+    """Walk one FreeType contour (on/off-curve tagged points) into a flat
+    polyline, sampling curved spans at points_per_mm (post-scale) density -
+    this is the single knob that drives both glyph-curve smoothness and
+    taper-wall smoothness (see module docstring on the fn=8 discussion).
+
+    Handles both TrueType-flavored (glyf table, quadratic) and CFF-flavored
+    (PostScript/OTF-native, cubic) outlines - FreeType normalizes both into
+    the same FT_Outline point/tag arrays, distinguished by the tag's low 2
+    bits (FT_CURVE_TAG: 1=on-curve, 0=quadratic off-curve, 2=cubic
+    off-curve). A cubic off-curve point is always followed by exactly one
+    more cubic off-curve point, then an on-curve endpoint (unlike
+    quadratic's single-or-implied-midpoint-pair convention below) - CFF's
+    format guarantees this pairing, so no fallback is needed. Confirmed
+    against a real CFF font (Alma Mono.otf) after this font was found to
+    silently mis-render: every off-curve point there was misread as a lone
+    quadratic control, producing a plausible-looking but geometrically
+    wrong curve with no error raised."""
     n = len(points)
     on = [bool(t & 1) for t in tags]
+    is_cubic = [(t & 0x3) == 2 for t in tags]
 
     # rotate so we start on an on-curve point
     if not on[0]:
         start = next(i for i in range(n) if on[i])
         points = points[start:] + points[:start]
         on = on[start:] + on[:start]
+        is_cubic = is_cubic[start:] + is_cubic[:start]
 
     out = [np.array(points[0], dtype=float)]
     i = 1
@@ -176,6 +197,19 @@ def contour_to_points(points, tags, points_per_mm, scale):
                 out.append(cur + (p - cur) * (k / npts))
             cur = p
             i += 1
+        elif is_cubic[idx]:
+            ctrl2_idx = (i + 1) % n
+            end_idx = (i + 2) % n
+            ctrl2 = np.array(points[ctrl2_idx], dtype=float)
+            end = np.array(points[end_idx], dtype=float)
+            ctrl_len_mm = (np.linalg.norm((p - cur) * scale) +
+                           np.linalg.norm((ctrl2 - p) * scale) +
+                           np.linalg.norm((end - ctrl2) * scale))
+            npts = max(2, int(np.ceil(ctrl_len_mm * points_per_mm)))
+            curve_pts = cubic_bezier(cur, p, ctrl2, end, npts)
+            out.extend(list(curve_pts))
+            cur = end
+            i += 3
         else:
             nxt_idx = (i + 1) % n
             nxt = np.array(points[nxt_idx], dtype=float)

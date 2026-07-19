@@ -97,15 +97,13 @@ all, it only edits YAML and shells out to `generate.py` as a subprocess.
 An `_active_machine` guard raises if a script ever tries to configure two
 machines in the same process (not a real risk today, cheap insurance).
 
-`config/postal.yaml`'s font paths are currently placeholders (reusing
-Blickensderfer's font files) - v2's real Postal font is a system font
-family name ("Alma Mono" / "FreeMono:style=Bold"), not a `.ttf` file path.
-The user's local font library does have real `Alma Mono.otf`/
-`FreeMono-Bold.otf` files, but both were confirmed (via FreeType outline
-point tags) to use CFF/cubic curves, not TrueType/quadratic - the exact
-silent-failure case in "Known limitations" below. Do not wire them in
-without either finding genuine TrueType versions or extending the glyph
-pipeline to support cubic outlines.
+`config/postal.yaml`'s font paths point to the real fonts (`Alma
+Mono.otf`, `FreeMono-Bold.otf`) - v2's real Postal font is a system font
+family name ("Alma Mono" / "FreeMono:style=Bold"), not a file path, so
+these are the actual matching files rather than a name lookup. Both are
+CFF/cubic-curve OTFs, which used to silently mis-render (see "TrueType-
+only outlines - RESOLVED" in "Known limitations" below) - now handled
+correctly and verified end-to-end.
 
 `tune.py config/postal.yaml` works - it builds a Postal-scoped Element tab
 (27 fields vs. Blickensderfer's 32, since Postal has no drive-pin
@@ -429,13 +427,23 @@ All offsets default to `0.0` (no-op) until set in the config.
 
 ## Known limitations
 
-- **TrueType only.** CFF/OpenType (cubic-curve) fonts mis-parse silently -
-  confirmed on `FreeMono-Bold.otf` vs. the real `.ttf` (see
-  `LOGO_FONT_PATH`'s comment in `lib/blickensderfer.py`): the `.otf`
-  produced watertight-but-winding-inconsistent geometry with no error
-  raised. Same limitation the original TypeCylinder tool had (it raised
-  `ValueError` on cubic curves instead of silently mis-parsing them, which
-  is arguably safer - worth matching eventually).
+- **TrueType-only outlines - RESOLVED.** CFF/OpenType (cubic-curve) fonts
+  used to mis-parse silently - `contour_to_points` (`lib/glyph_poc.py`)
+  only checked FreeType's on/off-curve bit, so a cubic off-curve point got
+  misread as a lone quadratic control point, producing plausible-looking
+  but geometrically wrong curves with no error raised (confirmed on
+  `FreeMono-Bold.otf`: watertight-but-winding-inconsistent geometry).
+  Fixed by checking the tag's low 2 bits (`FT_CURVE_TAG`: 0=quadratic,
+  2=cubic) and evaluating a real cubic Bézier (`cubic_bezier()`) for cubic
+  spans instead. Verified against real CFF fonts (`Alma Mono.otf`,
+  `FreeMono-Bold.otf`) end-to-end through `generate.py config/postal.yaml`
+  - fully watertight/winding-consistent/`is_volume`, 0 skipped characters
+  - and confirmed byte-identical output on the quadratic (TrueType) path
+  for Blickensderfer before/after. Note this is only about which curve
+  format is INSIDE the file - `.otf` itself doesn't imply cubic (some OTF
+  files are TrueType-flavored internally) and `.ttf` doesn't guarantee
+  quadratic either; the code now handles either correctly regardless of
+  file extension.
 - **Self-intersecting drafts - RESOLVED.** The old per-vertex outline
   offset could fold through itself on narrow glyph features (71/84
   characters failed a `shapely` simplicity check at production settings -

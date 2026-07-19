@@ -17,18 +17,19 @@
 machine: postal
 
 font:
-  # PLACEHOLDER - v2's real value is the font family name "Alma Mono"
-  # (Font_Size=2.4), not a file path v4's font.path expects. Reusing
-  # Blickensderfer's real font file here until an actual Alma Mono (or
-  # chosen replacement) .ttf file is sourced - swap this before using
-  # any Postal output for real print/legibility decisions.
-  path: "/home/lchau/fonts/Custom & Modified/Royal Vogue v3 (Otto Koponen and Roman R.).ttf"
+  # v2's real value is the font family name "Alma Mono" (Font_Size=2.4),
+  # not a file path - this is that font's real file. Was a placeholder
+  # (a substitute TrueType font) until glyph_poc.py gained CFF/cubic-curve
+  # outline support - this file's outlines are CFF-flavored (confirmed via
+  # FreeType tag inspection), which used to silently mis-render.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Alma Mono.otf"
   size_mm: 2.4
 
 logo:
-  # PLACEHOLDER - v2's real value is "FreeMono:style=Bold" (a system font
-  # name, not a file path) - see font.path's note above.
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  # v2's real value is "FreeMono:style=Bold" (a system font name, not a
+  # file path) - this is that font's real file, also CFF-flavored - see
+  # font.path's note above.
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/FreeMono-Bold.otf"
   text: "Leonard Chau 2026"
   text_size_mm: 3.0
   text_spacing: 10.0

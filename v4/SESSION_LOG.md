@@ -644,45 +644,81 @@ refusing (confirmed `app.machine` stays `"postal"` and
 `app.master_config_path` stays on `postal.yaml` after attempting to
 switch to `blickensderfer.yaml`).
 
-**Investigated but deliberately left alone**: sourcing real Postal font
-files. The user's local font library DOES have real `Alma Mono.otf` and
-`FreeMono-Bold.otf` files (found via `find`) - but checking their
-outlines directly via FreeType's point tags (`tag & 0x2` set = cubic
-off-curve control point) confirmed both use CFF/cubic curves, not
-TrueType/quadratic - exactly the silent-failure case already documented
-in README's "Known limitations" (`FreeMono-Bold.otf` is literally named
-there as the confirmed example). Did not wire them in; that would
-silently reproduce the exact documented bug. A genuine TrueType Alma Mono
-substitute wasn't found in the local library (`FreeMono Mod - Glyph
-Added (Leonard Chau).ttf` is confirmed real TrueType/quadratic and could
-stand in for the FreeMono side, but choosing a font substitute is a
-content/aesthetic call for the user to make, not something to guess at).
+**Investigated the Postal font placeholders**: the user's local font
+library DOES have real `Alma Mono.otf` and `FreeMono-Bold.otf` files
+(found via `find`) - but checking their outlines directly via FreeType's
+point tags confirmed both use CFF/cubic curves, not TrueType/quadratic -
+exactly the silent-failure case documented in README's "Known
+limitations" (`FreeMono-Bold.otf` was literally named there as the
+confirmed example). Flagged this to the user rather than silently wiring
+in known-broken fonts or guessing a substitute.
+
+## 10. Cubic-curve (CFF/OpenType) outline support
+
+User asked directly: "wait so my thing is not otf support?" - clarified
+that OTF is just a container (can hold either TrueType/quadratic `glyf`
+outlines, which already worked, or CFF/cubic outlines, which didn't) and
+that the real gap was cubic Bezier support in `contour_to_points`
+(`lib/glyph_poc.py`), not anything about the `.otf` extension itself.
+User asked for the real fix rather than a font substitute.
+
+**Root cause**: `contour_to_points` only checked FreeType's on-curve bit
+(`tag & 1`) - every off-curve point was treated as a lone quadratic
+control point via the TrueType "implied midpoint" convention. A CFF
+outline's off-curve points come in PAIRS (two consecutive cubic control
+points before the next on-curve point) - misreading them as quadratic
+produced a plausible-looking but geometrically wrong curve, with no error
+raised (the exact bug already documented, now actually understood at the
+curve-math level instead of just observed as an OTF/TTF divide).
+
+**Fix**: added `cubic_bezier()` (mirrors the existing `quadratic_bezier()`)
+and a second per-point classification, `is_cubic = (tag & 0x3) == 2`
+(FreeType's `FT_CURVE_TAG` macro - 0=quadratic off-curve, 1=on-curve,
+2=cubic off-curve), checked before falling through to the existing
+quadratic path. Cubic spans consume 3 points (this control + the
+guaranteed-paired second control + the on-curve endpoint) instead of 1-2.
+
+**Verified in layers**: (1) raw contour extraction against real
+`Alma Mono.otf` - every character's contours are valid simple polygons
+with sane, character-distinct ink dimensions (e.g. 'e' 1.5x1.53mm, 'M'
+1.5x2.1mm, '.' 0.43x0.38mm at 3mm font size - not a degenerate
+all-identical artifact); (2) full `build_glyph()` through the real
+Minkowski pipeline on both the CFF font and a TrueType font side by side -
+both watertight/winding-consistent/`is_volume`, different (correct)
+per-character bounds; (3) `generate.py config/blickensderfer.running.yaml`
+re-run to confirm the TrueType/quadratic path is completely unaffected -
+byte-identical vert/face/volume numbers to before this change; (4) the
+full `generate.py config/postal.yaml` pipeline (element and `--gauge`,
+both fonts - `Alma Mono.otf` for the element, `FreeMono-Bold.otf` for
+`LogoText`/`GaugeText`) end-to-end, watertight/winding-consistent/
+`is_volume`, 0 characters skipped (previously 1, on the placeholder
+font's missing glyph).
+
+`config/postal.yaml`'s font paths were then switched from the TrueType
+placeholders to the real `Alma Mono.otf`/`FreeMono-Bold.otf` files, since
+the limitation blocking them is now fixed.
 
 ## Resuming later
 
-1. **Source real Postal font files** (currently placeholders reusing
-   Blickensderfer's fonts) - see part 9's font-format investigation above;
-   needs either a genuine TrueType Alma Mono substitute or cubic-curve
-   support added to the glyph pipeline.
-2. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
+1. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
    stood" above) - `logo.radial_offset_mm` is back (part 6), but
    `separation_mm` is still the reverted `2.0`, still 61 collisions.
-3. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
+2. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
    automatic fix short of redoing placement/size, or accepting the
    `separation_mm=1.0` tradeoff (verified to eliminate them, at the cost
    of embedding-depth margin).
-4. **Performance** - if ~60-70s at full quality becomes annoying,
+3. **Performance** - if ~60-70s at full quality becomes annoying,
    `points_per_mm`/`quality.minkowski_fn` are the main levers, or
    `build.minkowski_enabled: false` for a ~3s undrafted preview - all
    wired through config + CLI (`--no-minkowski`).
-5. Alignment offsets - the mechanism is built and now in real use (see
+4. Alignment offsets - the mechanism is built and now in real use (see
    the running config's `modified_left_offset_mm`/
    `modified_right_offset_mm`), but the base `center_offset_mm`/
    `left_offset_mm` knobs are still untouched at their 0.0 defaults.
-6. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
+5. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
    direction, "may both be set at 360") - 720 was floated for `platen_fn`
    if the scallop needs to be smoother; not tested.
-7. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
+6. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
    tune from one launcher, without needing to relaunch `tune.py` with a
    different config path - `tune.py` itself now fully supports Postal
    (part 9), this would just be a convenience launcher wrapping it.
