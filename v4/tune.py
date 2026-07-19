@@ -74,10 +74,12 @@ to tune interactively. Edit those directly in the YAML.
 """
 
 import asyncio
+import atexit
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -319,7 +321,40 @@ class TuneApp(App):
         self._last_build_info = None
         self._f3d_proc = None
         self._warned_no_wmctrl = False
+        # kill any f3d we launched when this app exits, whether that's a
+        # normal 'q' quit (atexit fires once python3 tune.py's process
+        # shuts down normally) or the terminal itself getting closed
+        # (SIGHUP/SIGTERM, registered in on_mount - see there for why
+        # plain signal.signal() isn't used)
+        atexit.register(self._kill_f3d)
         self._load_current()
+
+    def _kill_f3d(self):
+        if self._f3d_proc is not None and self._f3d_proc.poll() is None:
+            self._f3d_proc.terminate()
+
+    async def on_mount(self) -> None:
+        # plain signal.signal() handlers can sit unfired for a long time
+        # while asyncio's event loop is blocked in epoll_wait - the
+        # loop's own add_signal_handler uses its self-pipe wakeup so the
+        # handler actually runs promptly (confirmed via a real SIGTERM
+        # test: the signal.signal() version left the f3d child alive).
+        # Must be called from a running loop, hence on_mount not __init__.
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGTERM, getattr(signal, "SIGHUP", None)):
+            if sig is None:
+                continue
+            try:
+                loop.add_signal_handler(sig, self._handle_term_signal)
+            except (NotImplementedError, RuntimeError):
+                pass  # e.g. unsupported on this platform
+
+    def _handle_term_signal(self):
+        # add_signal_handler fully replaces the OS default disposition -
+        # without also exiting here, the signal would just be silently
+        # swallowed and tune.py would keep running instead of quitting
+        self._kill_f3d()
+        self.exit()
 
     def _load_current(self):
         with open(self.config_path) as f:
@@ -597,10 +632,11 @@ class TuneApp(App):
                 "lpi": lpi,
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
-            # camera view 7 (Top View) - matches the flat text's natural
-            # viewing angle; only applies on a fresh f3d launch, see
-            # _ensure_f3d_after_build
-            await self._ensure_f3d_after_build(out_path, camera_flags=["--camera-direction=0,0,-1"])
+            # camera view 7 (Top View), orthographic - matches the flat
+            # text's natural viewing angle with no perspective distortion;
+            # only applies on a fresh f3d launch, see _ensure_f3d_after_build
+            await self._ensure_f3d_after_build(
+                out_path, camera_flags=["--camera-direction=0,0,-1", "--camera-orthographic"])
 
     def action_save(self):
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
