@@ -4,19 +4,13 @@
 # at least once and want to see it.
 #
 # Usage:
-#   ./start.sh [config/blickensderfer.yaml]
+#   ./start.sh                              # machine picker (choose Blickensderfer/Postal/...)
+#   ./start.sh config/blickensderfer.yaml   # skip the picker, load directly
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-
-CONFIG="${1:-config/blickensderfer.yaml}"
-
-if [ ! -f "$CONFIG" ]; then
-    echo "config file not found: $CONFIG" >&2
-    exit 1
-fi
 
 if [ ! -d .venv ]; then
     echo ".venv not found - run the Setup steps in README.md first" >&2
@@ -25,4 +19,13 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
-python3 tune.py "$CONFIG"
+if [ $# -eq 0 ]; then
+    python3 tune.py
+else
+    CONFIG="$1"
+    if [ ! -f "$CONFIG" ]; then
+        echo "config file not found: $CONFIG" >&2
+        exit 1
+    fi
+    python3 tune.py "$CONFIG"
+fi
