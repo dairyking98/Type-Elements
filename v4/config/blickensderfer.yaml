@@ -83,12 +83,12 @@ layout:
   rows:
     - "zxkg.pwfudhiatensorlcmy,bvqj"
     - "ZXKG.PWFUDHIATENSORLCMY&BVQJ"
-    - "-^_(./'\"!1234567890;?%¢$)@#:"
+    - "-^_(./'\"!1234567890;?*¢$)@#:"
   # tune.py's Layout tab "Modify glyphs" checkbox - when true, the
   # preset dropdown is just a starting template and the tab's own
   # hand-edited copy of the 3 rows is what actually gets written to
   # `rows` above (not whatever preset happens to be selected)
-  modify_glyphs: false
+  modify_glyphs: true
 
 # horizontal alignment - see glyph_poc.alignment_x_offset(). Not from
 # v2/blickensderfer.scad (Text_Align_Modified_Chars="" there, i.e. no
@@ -156,7 +156,7 @@ resin:
 
 output:
   directory: "output"
-  stl_name: "blickensderfer_full_element.stl"
+  stl_name: "blickensderfer_running.stl"
 
 # tune.py's Type Test tab (v4-specific, not part of the real element or
 # v2/blickensderfer.scad) - a flat, CPI/LPI-spaced scratch preview for
@@ -170,4 +170,3 @@ type_test:
     wait! uh... no,
     (parentheses)
     excitement!
-

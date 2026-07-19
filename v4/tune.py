@@ -17,9 +17,25 @@ Type Test all overwrite the SAME fixed scratch path
 TUI session, not a keeper. Save opens a textual_fspicker.FileSave dialog
 pre-filled with a suggested output/saved/<timestamp>.stl name (override
 the name/location freely, or just accept it) and copies that temp STL
-there plus a same-named .json sidecar recording the full config and
-what produced it (preview/render/type_test, resin support on/off,
-timestamp) - only Save actually keeps anything.
+there plus a same-named .yaml sidecar - not just metadata, a full
+config snapshot at the top level (saved_at/master_config/running_config/
+last_build go in a comment header instead, so they don't pollute the
+config namespace) - Browse (see below) to it directly to reuse those
+exact settings later. Only Save actually keeps anything.
+
+Config file: three tiers, master/running/saved.
+  - MASTER is whatever path you pass on the command line - tune.py
+    NEVER writes to it. Browse (top of the screen, next to "master:")
+    switches to a different master entirely, live.
+  - RUNNING is a per-master scratch copy (<master-stem>.running.yaml,
+    same directory, gitignored) that every edit/save actually goes to.
+    Bootstrapped as a copy of master the first time it's needed;
+    "once changed, always changed" - it persists across tune.py
+    restarts against the same master, picking up wherever you left off.
+    Reset to Defaults (also top of screen) overwrites the running copy
+    with a fresh copy of master, discarding all accumulated edits.
+  - SAVED is whatever Save produces (see above) - a deliberate,
+    named/timestamped snapshot, independent of both master and running.
 
 Usage:
     python3 tune.py config/blickensderfer.yaml
@@ -123,6 +139,10 @@ FONT_FILE_FILTERS = Filters(
     ("All files", lambda _: True),
 )
 STL_FILE_FILTERS = Filters(("STL files", lambda p: p.suffix.lower() == ".stl"))
+YAML_FILE_FILTERS = Filters(
+    ("YAML files", lambda p: p.suffix.lower() in (".yaml", ".yml")),
+    ("All files", lambda _: True),
+)
 # font.path (Font & Alignment tab) and logo.font_path (Logo tab) are the
 # only two font-picking fields - both get a "Browse" button, see
 # _compose_section_tab and on_button_pressed's "browse-" id handling
@@ -356,6 +376,9 @@ class TuneApp(App):
     #f3d-row .field-label { width: auto; margin-right: 1; }
     #f3d-row Switch { width: auto; height: 1; border: none; padding: 0; }
     #status { height: 1; color: $text-muted; padding: 0 1; }
+    #status-row { height: 1; padding: 0 1; }
+    #status-row .browse-btn { margin-left: 0; }
+    #btn-reset-defaults { width: 1fr; height: 1; border: none; margin-left: 1; }
     .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: 1; }
@@ -387,7 +410,20 @@ class TuneApp(App):
 
     def __init__(self, config_path):
         super().__init__()
-        self.config_path = os.path.abspath(config_path)
+        # Master/running split: the config path given on the command line
+        # is the MASTER - tune.py never writes to it. All edits go to a
+        # "running" copy next to it (<stem>.running.yaml), bootstrapped
+        # as a copy of master the first time it's needed and left alone
+        # after that (further tune.py sessions against the same master
+        # pick up wherever the running copy left off - "once changed is
+        # always changed"). self.config_path is always the running copy;
+        # every existing _save_to_yaml/_load_current/etc. already only
+        # ever touches self.config_path, so nothing downstream needed to
+        # change for this split - only __init__, the config-switch/
+        # reset-defaults actions, and the status bar are new.
+        self.master_config_path = os.path.abspath(config_path)
+        self.config_path = self._running_config_path(self.master_config_path)
+        self._ensure_running_config()
         self.inputs = {}
         self._last_build_info = None
         self._f3d_proc = None
@@ -399,6 +435,23 @@ class TuneApp(App):
         # plain signal.signal() isn't used)
         atexit.register(self._kill_f3d)
         self._load_current()
+
+    @staticmethod
+    def _running_config_path(master_path):
+        d = os.path.dirname(master_path)
+        stem, ext = os.path.splitext(os.path.basename(master_path))
+        return os.path.join(d, f"{stem}.running{ext}")
+
+    def _ensure_running_config(self):
+        if not os.path.exists(self.config_path):
+            shutil.copy2(self.master_config_path, self.config_path)
+
+    def _status_text(self):
+        # kept short - #status is squeezed into a 1-row-tall Horizontal
+        # alongside the Browse/Reset to Defaults buttons, no wrapping;
+        # the full explanation lives in the module docstring instead
+        master_rel = os.path.relpath(self.master_config_path, REPO_ROOT)
+        return f"master: {master_rel}"
 
     def _kill_f3d(self):
         if self._f3d_proc is not None and self._f3d_proc.poll() is None:
@@ -509,7 +562,7 @@ class TuneApp(App):
                     yield Static("Keyboard layout", classes="field-label")
                     preset_now = self._current_layout_preset()
                     options = [(name, name) for name in LAYOUT_PRESETS]
-                    select = Select(options, value=preset_now if preset_now else Select.BLANK,
+                    select = Select(options, value=preset_now if preset_now else Select.NULL,
                                     id="layout-select", allow_blank=True, prompt="(custom - not a known preset)")
                     yield select
                 yield Static(
@@ -590,7 +643,10 @@ class TuneApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="form"):
-            yield Static(f"config: {os.path.relpath(self.config_path, REPO_ROOT)}", id="status")
+            yield Static(self._status_text(), id="status")
+            with Horizontal(id="status-row"):
+                yield Button("Browse", id="browse-config", classes="browse-btn")
+                yield Button("Reset to Defaults", id="btn-reset-defaults", variant="error")
             with TabbedContent():
                 yield from self._compose_section_tab("Font & Alignment")
                 yield from self._compose_type_test_tab()
@@ -670,7 +726,7 @@ class TuneApp(App):
             text = patch_yaml_rows(text, custom_rows)
         else:
             layout_select = self.query_one("#layout-select", Select)
-            if layout_select.value is not Select.BLANK:
+            if layout_select.value is not Select.NULL:
                 text = patch_yaml_rows(text, LAYOUT_PRESETS[layout_select.value])
         type_test_text = self.query_one("#type-test-text", TextArea).text
         text = patch_yaml_text_block(text, "text", type_test_text)
@@ -684,8 +740,13 @@ class TuneApp(App):
     def action_preview(self):
         self.run_worker(self._run_build(fast=True), exclusive=True)
 
-    def action_reload(self):
-        self._load_current()
+    def _refresh_widgets_from_cfg(self):
+        """(Re)populate every widget from self.cfg. Shared by Reload
+        (re-read the running config), Reset to Defaults (overwrite
+        running with master, then re-read), and switching to a
+        different master config entirely - all three are "throw away
+        whatever's in the widgets and repopulate from whatever
+        self.cfg now is"."""
         for key, path, typ, label, help_text in FIELDS:
             current = get_nested(self.cfg, path)
             widget = self.inputs[key]
@@ -694,7 +755,7 @@ class TuneApp(App):
             else:
                 widget.value = str(current)
         preset_now = self._current_layout_preset()
-        self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.BLANK
+        self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
@@ -708,7 +769,35 @@ class TuneApp(App):
         current_rows = self.cfg["layout"]["rows"]
         for i in range(3):
             self.query_one(f"#layout-custom-row-{i}", Input).value = current_rows[i]
+
+    def action_reload(self):
+        self._load_current()
+        self._refresh_widgets_from_cfg()
         self.log_line("[cyan]reloaded values from disk[/cyan]")
+
+    def action_reset_defaults(self):
+        shutil.copy2(self.master_config_path, self.config_path)
+        self._load_current()
+        self._refresh_widgets_from_cfg()
+        self.log_line("[yellow]reset to master defaults - all customizations to the running "
+                       "copy discarded (master itself was never touched)[/yellow]")
+
+    async def _browse_config(self):
+        start_dir = os.path.dirname(self.master_config_path)
+        result = await self.push_screen_wait(
+            FileOpen(start_dir, title="Choose config YAML", filters=YAML_FILE_FILTERS))
+        if result is None:
+            return
+        self._switch_master_config(str(result))
+
+    def _switch_master_config(self, new_master_path):
+        self.master_config_path = os.path.abspath(new_master_path)
+        self.config_path = self._running_config_path(self.master_config_path)
+        self._ensure_running_config()
+        self._load_current()
+        self._refresh_widgets_from_cfg()
+        self.query_one("#status", Static).update(self._status_text())
+        self.log_line(f"[cyan]switched to {os.path.relpath(self.master_config_path, REPO_ROOT)}[/cyan]")
 
     async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
         """Called after a successful Preview/Render/Render Text. If f3d
@@ -859,17 +948,28 @@ class TuneApp(App):
         stl_path = str(result)
         if not stl_path.lower().endswith(".stl"):
             stl_path += ".stl"
-        meta_path = stl_path[:-4] + ".json"
+        meta_path = stl_path[:-4] + ".yaml"
         os.makedirs(os.path.dirname(stl_path), exist_ok=True)
         shutil.copy2(out_path, stl_path)
-        metadata = {
-            "saved_at": datetime.now().isoformat(timespec="seconds"),
-            "source_config": os.path.relpath(self.config_path, REPO_ROOT),
-            "last_build": self._last_build_info,
-            "config": self.cfg,
-        }
+        # YAML, not JSON, and self.cfg dumped directly at the TOP LEVEL
+        # (not nested under a "config" key) - the whole point is this
+        # file is itself a valid, loadable config: Browse to it (the
+        # config Browse button above, or font-picker filters - it's
+        # filtered to .yaml/.yml) and it just works as a new master.
+        # The save context goes in a comment header instead, since a
+        # real key would pollute the config namespace and comments are
+        # invisible to yaml.safe_load anyway.
+        header = (
+            f"# Saved by tune.py's Save button at {datetime.now().isoformat(timespec='seconds')}\n"
+            f"# master_config: {os.path.relpath(self.master_config_path, REPO_ROOT)}\n"
+            f"# running_config: {os.path.relpath(self.config_path, REPO_ROOT)}\n"
+            f"# last_build: {self._last_build_info}\n"
+            "# This is a full config snapshot, not just metadata - Browse to\n"
+            "# it directly to use it as a master config.\n"
+        )
         with open(meta_path, "w") as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
+            f.write(header)
+            yaml.dump(self.cfg, f, sort_keys=False, allow_unicode=True)
         self.log_line(f"[green]saved[/green] {stl_path} (+ {os.path.basename(meta_path)})")
 
     async def _browse_font(self, key):
@@ -930,6 +1030,12 @@ class TuneApp(App):
             self.run_worker(self.action_save(), exclusive=True)
         elif event.button.id == "btn-render-test-text":
             self.run_worker(self.action_render_type_test(), exclusive=True)
+        elif event.button.id == "btn-reset-defaults":
+            self.action_reset_defaults()
+        elif event.button.id == "browse-config":
+            # checked before the generic "browse-" prefix below - this
+            # one isn't a font field, it switches the whole app's config
+            self.run_worker(self._browse_config())
         elif event.button.id and event.button.id.startswith("browse-"):
             # not exclusive - browsing for a font shouldn't cancel (or be
             # blocked by) an in-progress build worker

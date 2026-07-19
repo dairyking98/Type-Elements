@@ -15,7 +15,7 @@ scallop, no placement-on-cylinder) - just flat extruded outlines, for
 speed.
 
 Usage:
-    python3 type_test.py "line one\nline two" --cpi 10 --lpi 6 --font-path /path/to/font.ttf --font-size-mm 3.7 --out output/blickensderfer_full_element.stl
+    python3 type_test.py "line one\nline two" --cpi 10 --lpi 6 --font-path /path/to/font.ttf --font-size-mm 3.7 --out output/blickensderfer_running.stl
 """
 
 import argparse

@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 output/
+# tune.py's per-master "running copy" - a scratch working config,
+# bootstrapped from and never affecting its master (see TuneApp.__init__)
+config/*.running.yaml
+config/*.running.yml
