@@ -10,17 +10,17 @@ font:
   size_mm: 3.7
 
 logo:
-  font_path: "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf"
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
   text: "Leonard Chau 2025"
   text_size_mm: 2.5
-  text_spacing: 8.0
+  text_spacing: 6.0
   position_offset_deg: 180.0
   text_offset_deg: 180.0
   # placement radius = Logo_Radius + this. Real v2 value is 1.5 - at that
   # value, this exact layout's angular spacing coincidentally puts the
   # logo text within ~0.4mm of a DHIATENSOR column (see SESSION_LOG.md) -
   # not an issue at this text/spacing, but re-check if either changes.
-  radial_offset_mm: 1.5
+  radial_offset_mm: 0.5
 
 element:
   element_diameter: 34.0
@@ -89,7 +89,7 @@ layout:
 # v2/blickensderfer.scad (Text_Align_Modified_Chars="" there, i.e. no
 # override active) - this is the from-scratch scheme built for v4.
 alignment:
-  mode: center             # "center" or "left"
+  mode: "center"             # "center" or "left"
   center_offset_mm: 0.0
   left_offset_mm: 0.0
   modified_left_chars: "!,.;:)"

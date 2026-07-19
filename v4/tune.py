@@ -18,14 +18,38 @@ Edits are NOT round-tripped through a YAML parser/dumper - the config
 file has extensive prose comments documenting where every real-machine
 value comes from, and a naive yaml.safe_load()+yaml.dump() would silently
 strip all of them. Instead, each field is patched in place via a regex
-matching just its value token on its own line, leaving everything else
-(comments, formatting, unrelated keys) untouched.
+matching just its value token on its own line (or, for layout.rows, the
+whole 3-item block), leaving everything else (comments, formatting,
+unrelated keys) untouched.
 
-Fields are grouped into tabs matching the config file's own sections.
-List/array-valued config entries (baseline_row, cutout_row, placement_map,
-the DHIATENSOR layout rows, bottom_support_fractions) are NOT exposed
-here - they don't fit a single-value text field safely, and are rare to
-tune interactively. Edit those directly in the YAML.
+Tabs:
+  Font & Alignment - font.* + alignment.* (combined, both are "how
+    characters are placed/rendered" concerns)
+  Logo             - logo.*
+  Element          - element.* - flagged ADVANCED: real machine geometry,
+    not something you'd normally tune
+  Quality          - quality.* facet counts + build.points_per_mm/
+    separation_mm/minkowski_enabled/render_core_groove/
+    simplify_tolerance_mm (moved here from Build - these are all mesh
+    generation quality/speed knobs, not "what to build")
+  Layout           - layout.latitude_columns + a dropdown of named
+    Blickensderfer keyboard layouts (ported from v2/lib/layouts/
+    blick_layouts.scad) that rewrites layout.rows
+  Build            - stripped down to ONE dropdown: Element Only vs.
+    Element + Resin Print (build.resin_support). Resin tab's own fields
+    only matter when Resin Print is selected.
+  Resin            - resin.* (unchanged, its own tab as before)
+  Type Test        - NOT part of the real element. A flat, CPI-spaced
+    test line (matches v2's TypeTest() fixed-pitch convention) using the
+    Font tab's path/size, for instant text/legibility checks. Overwrites
+    the same output STL path as Render/Quick Preview (so the same f3d
+    --watch window shows it) - it's a scratch preview, not saved anywhere
+    else.
+
+List/array-valued config entries other than layout.rows (baseline_row,
+cutout_row, placement_map, bottom_support_fractions) are still NOT
+exposed - they don't fit a single-value text field safely and are rare
+to tune interactively. Edit those directly in the YAML.
 """
 
 import asyncio
@@ -39,17 +63,70 @@ import time
 import yaml
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.widgets import Button, Footer, Header, Input, Static, Switch, RichLog, TabbedContent, TabPane
+from textual.widgets import (Button, Footer, Header, Input, Select, Static, Switch,
+                              RichLog, TabbedContent, TabPane)
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# Each section becomes one tab. Field tuples: (yaml key - must be unique
-# across the whole file, section path for reading the current value, type,
-# label, help text). type is float/int/bool/str.
+# Named Blickensderfer keyboard layouts, ported verbatim from
+# v2/lib/layouts/blick_layouts.scad's DHIATENSOR/QWERTY/SCANDI/
+# HEBREW_ENGL/CHARIENSTU_DE/CHARIENSTU_DE_MOD arrays. All share the same
+# 3-row structure and the same physical placement_map/latitude_columns -
+# only the glyph content per row differs, so switching presets only ever
+# rewrites layout.rows. HEBREW_ENGL needs a Hebrew-capable font
+# (font.path) to actually render correctly - v2 auto-switches Font_Hebrew
+# when this layout is selected, v4 does not (no per-layout font-switching
+# wired up), so you'll need to set font.path yourself too.
+LAYOUT_PRESETS = {
+    "DHIATENSOR": [
+        "zxkg.pwfudhiatensorlcmy,bvqj",
+        "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+        "-^_(./'\"!1234567890;?%¢$)@#:",
+    ],
+    "QWERTY": [
+        "qwertasdfgzxcvbnm,hjkl.yuiop",
+        "QWERTASDFGZXCVBNM?HJKL.YUIOP",
+        "\"#$%_/-¢@;23456789:!^1.&'(0)",
+    ],
+    "SCANDI": [
+        "zxkg.pwfudhiatensorlcmy,bvqj",
+        "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+        "-Å_(ä/'\"!1234567890;?åö$)ÄÖ:",
+    ],
+    "HEBREW_ENGL": [
+        "זךכגװפףץצדהעאתןנםשרלסמיטבוקח",
+        "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
+        "-^_(./'\"!1234567890;?%¢$)@#:",
+    ],
+    "CHARIENSTU_DE": [
+        "xqzv.pflocharienstugmdb,wkjy",
+        "XQZV&PFLOCHARIENSTUGMDB:WKJU",
+        "(%¨+-/'\"ö1234567890äü!;?=ß§)",
+    ],
+    "CHARIENSTU_DE_MOD": [
+        "xqzv.pflocharienstugmdb,wkjy",
+        "XQZV&PFLOCHARIENSTUGMDB:WKJU",
+        "(%*+-/'\"^1234567890`´!;?=@§)",
+    ],
+}
+
+DEFAULT_TYPE_TEST_TEXT = "The quick brown fox jumps over the lazy dog 1234567890"  # v2's own default
+
+# Each section becomes one tab (except Layout/Build/Type Test, which have
+# bespoke widgets - see compose()). Field tuples: (yaml key - must be
+# unique across the whole file, section path for reading the current
+# value, type, label, help text). type is float/int/bool/str.
 SECTIONS = {
-    "Font": [
+    "Font & Alignment": [
         ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters."),
         ("size_mm", ["font", "size_mm"], float, "Font size (mm)", "Em-square size, matches OpenSCAD text(size=)."),
+        ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left".'),
+        ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),
+        ("left_offset_mm", ["alignment", "left_offset_mm"], float, "Left offset (mm)", ""),
+        ("modified_left_chars", ["alignment", "modified_left_chars"], str, "Modified-left chars", "Chars getting an extra left shift."),
+        ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
+        ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
+        ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
     ],
     "Logo": [
         ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved LogoText."),
@@ -99,33 +176,18 @@ SECTIONS = {
         ("drive_pin_width_offset", ["element", "drive_pin_width_offset"], float, "Drive pin width offset (mm)", ""),
     ],
     "Quality": [
+        ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+        ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
+        ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft sweep",
+         "Off = fast full-depth undrafted preview (~3s vs ~30-70s)."),
+        ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
+        ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
         ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
         ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Inner shaft/core bore only."),
         ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowSpace, SpeedHoles, chamfers...)."),
         ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
         ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
         ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
-    ],
-    "Layout": [
-        ("latitude_columns", ["layout", "latitude_columns"], int, "Latitude columns", "Columns around the ring (DHIATENSOR row length)."),
-    ],
-    "Alignment": [
-        ("mode", ["alignment", "mode"], str, "Mode", '"center" or "left".'),
-        ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),
-        ("left_offset_mm", ["alignment", "left_offset_mm"], float, "Left offset (mm)", ""),
-        ("modified_left_chars", ["alignment", "modified_left_chars"], str, "Modified-left chars", "Chars getting an extra left shift."),
-        ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
-        ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
-        ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
-    ],
-    "Build": [
-        ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
-        ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
-        ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
-        ("resin_support", ["build", "resin_support"], bool, "Resin supports", "ResinPrint() support rods/breakaway ring."),
-        ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
-        ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft sweep",
-         "Off = fast full-depth undrafted preview (~3s vs ~30-70s)."),
     ],
     "Resin": [
         ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
@@ -162,7 +224,10 @@ def patch_yaml_value(text, key, value):
         if "." not in val_str and "e" not in val_str.lower():
             val_str += ".0"
     elif isinstance(value, str):
-        val_str = json.dumps(value)  # always quoted, handles embedded quotes/specials
+        val_str = json.dumps(value, ensure_ascii=False)  # always quoted, handles embedded
+        # quotes/specials; ensure_ascii=False keeps literal UTF-8 (matches
+        # the file's existing style, e.g. "¢"/"Å"/"ä") instead of escaping
+        # to \uXXXX - both are valid YAML, but literal matches everywhere else
     else:
         val_str = str(value)
     # value token is either a double-quoted string (handles embedded
@@ -173,6 +238,21 @@ def patch_yaml_value(text, key, value):
     if n == 0:
         raise ValueError(f"key {key!r} not found in config text - was it renamed/removed?")
     return new_text
+
+
+def patch_yaml_rows(text, rows):
+    """layout.rows is a 3-item YAML block list, not a single-line scalar -
+    patch_yaml_value's one-token regex doesn't apply. Matches the `rows:`
+    line plus every immediately-following more-indented `- "..."` line
+    and replaces the whole block, preserving the existing indent style."""
+    pattern = re.compile(r'^(\s*)rows:[ \t]*\n((?:\1  - .*\n?)+)', re.MULTILINE)
+    m = pattern.search(text)
+    if not m:
+        raise ValueError("layout.rows block not found in config text")
+    indent = m.group(1)
+    item_indent = indent + "  "
+    new_block = "".join(f"{item_indent}- {json.dumps(r, ensure_ascii=False)}\n" for r in rows)
+    return text[:m.start()] + f"{indent}rows:\n{new_block}" + text[m.end():]
 
 
 class TuneApp(App):
@@ -194,6 +274,10 @@ class TuneApp(App):
     #secondary-buttons { height: 3; }
     #secondary-buttons Button { width: 1fr; }
     #status { height: 1; color: $text-muted; padding: 0 1; }
+    .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
+    .picker-row { height: 3; }
+    .picker-help { color: $text-muted; height: 1; }
+    #btn-type-test { height: 3; margin-top: 1; }
     """
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -213,14 +297,25 @@ class TuneApp(App):
         with open(self.config_path) as f:
             self.cfg = yaml.safe_load(f)
 
+    def _current_layout_preset(self):
+        current_rows = self.cfg.get("layout", {}).get("rows")
+        for name, rows in LAYOUT_PRESETS.items():
+            if rows == current_rows:
+                return name
+        return None  # custom/unrecognized - leave as-is unless explicitly changed
+
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="form"):
             yield Static(f"config: {os.path.relpath(self.config_path, REPO_ROOT)}", id="status")
             with TabbedContent():
                 for section, fields in SECTIONS.items():
-                    with TabPane(section, id=f"tab-{section.lower()}"):
+                    with TabPane(section, id=f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"):
                         with VerticalScroll():
+                            if section == "Element":
+                                yield Static(
+                                    "ADVANCED - real machine dimensions.\nGenerally shouldn't need to change these.",
+                                    classes="advanced-warning")
                             for key, path, typ, label, help_text in fields:
                                 current = get_nested(self.cfg, path)
                                 with Vertical(classes="field-row"):
@@ -236,6 +331,73 @@ class TuneApp(App):
                                             yield inp
                                     if help_text:
                                         yield Static(help_text, classes="field-help")
+
+                # Layout tab: latitude_columns field + a named-layout picker
+                with TabPane("Layout", id="tab-layout"):
+                    with VerticalScroll():
+                        key, path, typ, label, help_text = ("latitude_columns", ["layout", "latitude_columns"],
+                                                              int, "Latitude columns",
+                                                              "Columns around the ring (DHIATENSOR row length).")
+                        current = get_nested(self.cfg, path)
+                        with Vertical(classes="field-row"):
+                            with Horizontal():
+                                yield Static(label, classes="field-label")
+                                inp = Input(value=str(current), id=f"field-{key}")
+                                self.inputs[key] = inp
+                                yield inp
+                            yield Static(help_text, classes="field-help")
+
+                        with Vertical(classes="picker-row"):
+                            yield Static("Keyboard layout", classes="field-label")
+                            preset_now = self._current_layout_preset()
+                            options = [(name, name) for name in LAYOUT_PRESETS]
+                            select = Select(options, value=preset_now if preset_now else Select.BLANK,
+                                            id="layout-select", allow_blank=True, prompt="(custom - not a known preset)")
+                            yield select
+                        yield Static(
+                            "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
+                            "physical placement_map - only glyph content per row changes.\n"
+                            "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
+                            "(v2 auto-switches fonts per layout; v4 does not).",
+                            classes="picker-help")
+
+                # Build tab: one dropdown only
+                with TabPane("Build", id="tab-build"):
+                    with VerticalScroll():
+                        with Vertical(classes="picker-row"):
+                            yield Static("Build target", classes="field-label")
+                            resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
+                            build_select = Select(
+                                [("Element Only", False), ("Element Resin Print", True)],
+                                value=resin_now, id="build-select", allow_blank=False)
+                            yield build_select
+                        yield Static(
+                            "Element Only = FullElement() (build.resin_support: false).\n"
+                            "Element Resin Print = ResinPrint(), adds ResinSupport()'s rods/\n"
+                            "breakaway ring (build.resin_support: true) - see the Resin tab\n"
+                            "for its own settings, which only matter in this mode.",
+                            classes="picker-help")
+
+                # Type Test tab: not part of the real element at all
+                with TabPane("Type Test", id="tab-type-test"):
+                    with VerticalScroll():
+                        yield Static(
+                            "Flat, fixed-pitch (CPI) test line - matches v2's TypeTest()\n"
+                            "spacing convention. Uses the Font tab's path/size. NOT part of\n"
+                            "the real element - overwrites the same output STL as Render/\n"
+                            "Quick Preview, so the same f3d --watch window shows it.",
+                            classes="picker-help")
+                        with Vertical(classes="field-row"):
+                            with Horizontal():
+                                yield Static("Test text", classes="field-label")
+                                yield Input(value=DEFAULT_TYPE_TEST_TEXT, id="type-test-text")
+                        with Vertical(classes="field-row"):
+                            with Horizontal():
+                                yield Static("CPI", classes="field-label")
+                                yield Input(value="10", id="type-test-cpi")
+                            yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
+                        yield Button("Render Test Line", id="btn-type-test", variant="primary")
+
             with Vertical(id="buttons"):
                 yield Button("RENDER [b]", id="btn-render", variant="primary")
                 with Horizontal(id="secondary-buttons"):
@@ -263,6 +425,15 @@ class TuneApp(App):
                 except ValueError:
                     self.log_line(f"[red]bad value for {key!r}: {raw!r} (expected {typ.__name__})[/red]")
                     return None
+        # latitude_columns (Layout tab's own plain field, not in FIELDS/SECTIONS)
+        raw = self.inputs["latitude_columns"].value.strip()
+        try:
+            values["latitude_columns"] = int(raw)
+        except ValueError:
+            self.log_line(f"[red]bad value for 'latitude_columns': {raw!r} (expected int)[/red]")
+            return None
+        # build target dropdown -> resin_support
+        values["resin_support"] = self.query_one("#build-select", Select).value
         return values
 
     def _save_to_yaml(self, values):
@@ -270,6 +441,9 @@ class TuneApp(App):
             text = f.read()
         for key, value in values.items():
             text = patch_yaml_value(text, key, value)
+        layout_select = self.query_one("#layout-select", Select)
+        if layout_select.value is not Select.BLANK:
+            text = patch_yaml_rows(text, LAYOUT_PRESETS[layout_select.value])
         with open(self.config_path, "w") as f:
             f.write(text)
         self._load_current()
@@ -289,6 +463,10 @@ class TuneApp(App):
                 widget.value = bool(current)
             else:
                 widget.value = str(current)
+        self.inputs["latitude_columns"].value = str(self.cfg["layout"]["latitude_columns"])
+        preset_now = self._current_layout_preset()
+        self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.BLANK
+        self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
         self.log_line("[cyan]reloaded values from disk[/cyan]")
 
     def action_launch_f3d(self):
@@ -314,6 +492,29 @@ class TuneApp(App):
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
         if fast:
             cmd += ["--no-minkowski", "--no-core-groove", "--no-resin-support"]
+        await self._stream_subprocess(cmd)
+
+    async def action_render_type_test(self):
+        text = self.query_one("#type-test-text", Input).value
+        cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
+        try:
+            cpi = float(cpi_raw)
+        except ValueError:
+            self.log_line(f"[red]bad CPI value: {cpi_raw!r}[/red]")
+            return
+        if not text.strip():
+            self.log_line("[red]test text is empty[/red]")
+            return
+        font_path = self.inputs["path"].value
+        font_size_mm = self.inputs["size_mm"].value
+        out_path = os.path.join(self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
+        self.log_line(f"[bold]--- Type Test (overwrites {out_path}) ---[/bold]")
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "type_test.py"), text,
+               "--cpi", str(cpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
+               "--out", out_path]
+        await self._stream_subprocess(cmd)
+
+    async def _stream_subprocess(self, cmd):
         t0 = time.time()
         proc = await asyncio.create_subprocess_exec(
             *cmd, cwd=REPO_ROOT,
@@ -325,7 +526,7 @@ class TuneApp(App):
         if proc.returncode == 0:
             self.log_line(f"[green]done in {dt:.1f}s[/green] - f3d (if running with --watch) should refresh")
         else:
-            self.log_line(f"[red]generate.py exited {proc.returncode} after {dt:.1f}s[/red]")
+            self.log_line(f"[red]exited {proc.returncode} after {dt:.1f}s[/red]")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-render":
@@ -334,6 +535,8 @@ class TuneApp(App):
             self.action_preview()
         elif event.button.id == "btn-f3d":
             self.action_launch_f3d()
+        elif event.button.id == "btn-type-test":
+            self.run_worker(self.action_render_type_test(), exclusive=True)
 
 
 if __name__ == "__main__":
