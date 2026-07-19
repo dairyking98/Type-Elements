@@ -8,3 +8,4 @@ scipy
 pyyaml
 manifold3d
 textual
+textual-fspicker

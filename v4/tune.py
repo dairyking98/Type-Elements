@@ -14,10 +14,12 @@ Workflow: Quick Preview (fast, undrafted) until it looks right, Render
 (full quality, slow) to confirm, then Save to keep it. Preview/Render/
 Type Test all overwrite the SAME fixed scratch path
 (output.directory/output.stl_name) - it's a temp file for the current
-TUI session, not a keeper. Save copies that temp STL to
-output/saved/<timestamp>.stl plus a <timestamp>.json sidecar recording
-the full config and what produced it (preview/render/type_test, resin
-support on/off, timestamp) - only Save actually keeps anything.
+TUI session, not a keeper. Save opens a textual_fspicker.FileSave dialog
+pre-filled with a suggested output/saved/<timestamp>.stl name (override
+the name/location freely, or just accept it) and copies that temp STL
+there plus a same-named .json sidecar recording the full config and
+what produced it (preview/render/type_test, resin support on/off,
+timestamp) - only Save actually keeps anything.
 
 Usage:
     python3 tune.py config/blickensderfer.yaml
@@ -33,7 +35,9 @@ unrelated keys) untouched.
 Tabs (in display order):
   Font & Alignment - font.* + alignment.* (combined, both are "how
     characters are placed/rendered" concerns). alignment.mode is a
-    dropdown ("center"/"left"), not free text.
+    dropdown ("center"/"left"), not free text. font.path has a "Browse"
+    button (textual_fspicker.FileOpen, filtered to .ttf/.otf/.ttc)
+    opening at the current path's directory.
   Type Test        - NOT part of the real element. A flat, CPI/LPI-spaced
     test block (matches v2's TypeTest() fixed-pitch convention; LPI is
     the vertical equivalent for multi-line text, default 6) using the
@@ -71,7 +75,8 @@ Tabs (in display order):
     here - Render always forces it on and Quick Preview always forces
     it off (see _run_build), so a config-file toggle would just be
     dead weight/a second source of truth.
-  Logo             - logo.*
+  Logo             - logo.* (font_path also has the same "Browse" button
+    as font.path above)
   Element          - element.* - flagged ADVANCED: real machine geometry,
     not something you'd normally tune. Last tab on purpose.
 
@@ -98,11 +103,22 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import (Button, Footer, Header, Input, Select, Static, Switch,
                               RichLog, TabbedContent, TabPane, TextArea)
+from textual_fspicker import FileOpen, FileSave, Filters
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 # f3d --command-script file: just `set_camera top`, the exact console
 # command the "7" key runs - see action_render_type_test's use of it
 F3D_TOP_VIEW_SCRIPT = os.path.join(REPO_ROOT, "f3d_top_view_cmds.txt")
+
+FONT_FILE_FILTERS = Filters(
+    ("Font files", lambda p: p.suffix.lower() in (".ttf", ".otf", ".ttc")),
+    ("All files", lambda _: True),
+)
+STL_FILE_FILTERS = Filters(("STL files", lambda p: p.suffix.lower() == ".stl"))
+# font.path (Font & Alignment tab) and logo.font_path (Logo tab) are the
+# only two font-picking fields - both get a "Browse" button, see
+# _compose_section_tab and on_button_pressed's "browse-" id handling
+FONT_PATH_FIELD_KEYS = ("path", "font_path")
 
 # Named Blickensderfer keyboard layouts, ported verbatim from
 # v2/lib/layouts/blick_layouts.scad's DHIATENSOR/QWERTY/SCANDI/
@@ -322,6 +338,7 @@ class TuneApp(App):
     .field-row Switch { width: auto; height: 1; border: none; padding: 0; }
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
+    .browse-btn { width: 10; height: 1; min-width: 10; border: none; margin-left: 1; }
     .field-help { color: $text-muted; height: 1; }
     #buttons { height: 11; dock: bottom; padding: 0 1; }
     #btn-render-test-text { height: 3; width: 1fr; text-style: bold; margin-bottom: 1; }
@@ -425,6 +442,8 @@ class TuneApp(App):
                                 inp = Input(value=str(current), id=f"field-{key}")
                                 self.inputs[key] = inp
                                 yield inp
+                                if key in FONT_PATH_FIELD_KEYS:
+                                    yield Button("Browse", id=f"browse-{key}", classes="browse-btn")
                         if help_text:
                             yield Static(help_text, classes="field-help")
 
@@ -716,21 +735,32 @@ class TuneApp(App):
             await self._ensure_f3d_after_build(
                 out_path, camera_flags=[f"--command-script={F3D_TOP_VIEW_SCRIPT}", "--camera-orthographic"])
 
-    def action_save(self):
+    async def action_save(self):
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
         if not os.path.exists(out_path):
             self.log_line("[yellow]nothing to save yet - Preview or Render first[/yellow]")
             return
         save_dir = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], "saved")
         os.makedirs(save_dir, exist_ok=True)
+        # suggest a collision-free timestamped name, same as before, but
+        # it's now just the file picker's starting point - the picker
+        # lets you navigate elsewhere or rename before confirming
         base = f"blickensderfer_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        stl_path = os.path.join(save_dir, f"{base}.stl")
-        meta_path = os.path.join(save_dir, f"{base}.json")
+        suggested = f"{base}.stl"
         n = 2
-        while os.path.exists(stl_path):
-            stl_path = os.path.join(save_dir, f"{base}_{n}.stl")
-            meta_path = os.path.join(save_dir, f"{base}_{n}.json")
+        while os.path.exists(os.path.join(save_dir, suggested)):
+            suggested = f"{base}_{n}.stl"
             n += 1
+        result = await self.push_screen_wait(
+            FileSave(save_dir, title="Save STL as", default_file=suggested, filters=STL_FILE_FILTERS))
+        if result is None:
+            self.log_line("[yellow]save cancelled[/yellow]")
+            return
+        stl_path = str(result)
+        if not stl_path.lower().endswith(".stl"):
+            stl_path += ".stl"
+        meta_path = stl_path[:-4] + ".json"
+        os.makedirs(os.path.dirname(stl_path), exist_ok=True)
         shutil.copy2(out_path, stl_path)
         metadata = {
             "saved_at": datetime.now().isoformat(timespec="seconds"),
@@ -740,8 +770,16 @@ class TuneApp(App):
         }
         with open(meta_path, "w") as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
-        self.log_line(f"[green]saved[/green] {os.path.relpath(stl_path, REPO_ROOT)} "
-                       f"(+ {os.path.basename(meta_path)})")
+        self.log_line(f"[green]saved[/green] {stl_path} (+ {os.path.basename(meta_path)})")
+
+    async def _browse_font(self, key):
+        current = self.inputs[key].value
+        start_dir = os.path.dirname(current) if current and os.path.isdir(os.path.dirname(current)) \
+            else os.path.expanduser("~")
+        result = await self.push_screen_wait(
+            FileOpen(start_dir, title="Choose font", filters=FONT_FILE_FILTERS))
+        if result is not None:
+            self.inputs[key].value = str(result)
 
     async def _stream_subprocess(self, cmd):
         t0 = time.time()
@@ -764,9 +802,13 @@ class TuneApp(App):
         elif event.button.id == "btn-preview":
             self.action_preview()
         elif event.button.id == "btn-save":
-            self.action_save()
+            self.run_worker(self.action_save(), exclusive=True)
         elif event.button.id == "btn-render-test-text":
             self.run_worker(self.action_render_type_test(), exclusive=True)
+        elif event.button.id and event.button.id.startswith("browse-"):
+            # not exclusive - browsing for a font shouldn't cancel (or be
+            # blocked by) an in-progress build worker
+            self.run_worker(self._browse_font(event.button.id.removeprefix("browse-")))
 
 
 if __name__ == "__main__":
