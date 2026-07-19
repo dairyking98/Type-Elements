@@ -218,6 +218,8 @@ SECTIONS = {
         ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
         ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
         ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
+        ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
+         "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
     ],
     "Logo": [
         ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved LogoText."),

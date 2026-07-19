@@ -140,6 +140,11 @@ build:
   # forces false via --minkowski/--no-minkowski), so it's not exposed as
   # a tunable field there.
   minkowski_enabled: true
+  # Real machine draft angle (half-angle of the Minkowski draft cone
+  # build_glyph sweeps each character with, see glyph_poc.build_glyph's
+  # docstring/DRAFT_HALF_ANGLE_RAD note) - real value 55deg. Was a fixed
+  # glyph_poc.py constant with no config override until now.
+  draft_angle_deg: 55.0
 
 # lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
 # print supports - Blickensderfer/Postal only, not Hammond/IBM). Values

@@ -25,6 +25,7 @@ from glyph_poc import (
     DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
     DEFAULT_MINKOWSKI_ENABLED as GLYPH_DEFAULT_MINKOWSKI_ENABLED,
+    DEFAULT_DRAFT_ANGLE_DEG as GLYPH_DEFAULT_DRAFT_ANGLE_DEG,
 )
 import scad_primitives as sp
 
@@ -161,6 +162,10 @@ def configure(config_path):
     # Off = skip build_glyph's Minkowski sweep entirely (fast, undrafted
     # preview - see glyph_poc.DEFAULT_MINKOWSKI_ENABLED docstring).
     g["DEFAULT_MINKOWSKI_ENABLED"] = b.get("minkowski_enabled", GLYPH_DEFAULT_MINKOWSKI_ENABLED)
+    # Minkowski draft cone's half-angle source (see glyph_poc's module
+    # docstring/build_glyph's draft_angle_deg) - real machine value 55deg,
+    # previously a fixed glyph_poc.py constant with no config override.
+    g["DEFAULT_DRAFT_ANGLE_DEG"] = b.get("draft_angle_deg", GLYPH_DEFAULT_DRAFT_ANGLE_DEG)
 
     r = cfg["resin"]
     g["Resin_Fn"] = r["resin_fn"]
@@ -249,7 +254,8 @@ def place_on_cylinder(mesh, row, col, separation_mm):
 
 
 def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
-             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
+             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+             draft_angle_deg=None):
     """Per-character self-intersection ('the draft offset folds through
     itself on narrow features like H's inter-stroke gap or m's diagonal
     junctions') used to be a real, unsolved problem here - build_glyph now
@@ -268,6 +274,7 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     platen_fn = Platen_Fn if platen_fn is None else platen_fn
     minkowski_enabled = (DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None
                           else minkowski_enabled)
+    draft_angle_deg = DEFAULT_DRAFT_ANGLE_DEG if draft_angle_deg is None else draft_angle_deg
     parts = []
     skipped = []
     total = sum(len(DHIATENSOR[r]) for r in (0, 1, 2))
@@ -291,7 +298,7 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                     radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
                     platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                     simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
-                    minkowski_enabled=minkowski_enabled)
+                    minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
             except Exception as e:
                 skipped.append((row, col, ch, str(e)))
                 print(f" SKIPPED ({e})", flush=True)
@@ -334,11 +341,13 @@ def _check_inter_character_collisions(parts):
 
 
 def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
-             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
+             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+             draft_angle_deg=None):
     text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                       cone_segments=cone_segments,
                                       simplify_tolerance_mm=simplify_tolerance_mm,
-                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
+                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                      draft_angle_deg=draft_angle_deg)
     return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
 
 
@@ -582,12 +591,14 @@ def Subtractive(render_core_groove=None):
 
 
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
-                 cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
+                 cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+                 draft_angle_deg=None):
     _require_configured()
     additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
-                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
+                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                     draft_angle_deg=draft_angle_deg)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
     subtractive = Subtractive(render_core_groove)
@@ -717,11 +728,13 @@ def ResinSupport():
 
 
 def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
-               cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
+               cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+               draft_angle_deg=None):
     full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
                                     simplify_tolerance_mm=simplify_tolerance_mm,
-                                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
+                                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                    draft_angle_deg=draft_angle_deg)
     support = ResinSupport()
     print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
           f"watertight={support.is_watertight}", flush=True)

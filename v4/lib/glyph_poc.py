@@ -134,6 +134,13 @@ DEFAULT_PLATEN_FN = 360
 # taper. For fast layout/placement iteration, not a final export.
 DEFAULT_MINKOWSKI_ENABLED = True
 
+# Real machine draft angle (half-angle of the Minkowski draft cone, see
+# module docstring's BASE_EXPANSION_WIDTH note) - was a fixed module
+# constant (MINK_DRAFT_ANGLE) with no way for a caller to override it per
+# machine/config; now build_glyph() accepts it explicitly, defaulting to
+# that same constant for standalone/diagnostic use.
+DEFAULT_DRAFT_ANGLE_DEG = MINK_DRAFT_ANGLE
+
 
 def quadratic_bezier(p0, p1, p2, n):
     t = np.linspace(0, 1, n + 1)[1:]  # exclude t=0 (p0 already added by caller)
@@ -444,7 +451,8 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
                  cone_segments=DEFAULT_CONE_SEGMENTS,
                  simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM,
                  platen_fn=DEFAULT_PLATEN_FN,
-                 minkowski_enabled=DEFAULT_MINKOWSKI_ENABLED):
+                 minkowski_enabled=DEFAULT_MINKOWSKI_ENABLED,
+                 draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG):
     """Builds one struck-character solid via a REAL Minkowski sum
     (manifold3d's Manifold.minkowski_sum), replacing the per-vertex
     outline-offset approximation this function used before (fixed-distance
@@ -517,7 +525,7 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     should pass its own config-derived values explicitly instead of
     relying on these being coincidentally the same numbers."""
     if expansion_width_mm is None:
-        expansion_width_mm = separation_mm * np.tan(DRAFT_HALF_ANGLE_RAD)
+        expansion_width_mm = separation_mm * np.tan(np.radians(draft_angle_deg / 2.0))
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = freetype.Face(fp)

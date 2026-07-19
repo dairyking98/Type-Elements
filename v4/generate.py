@@ -36,6 +36,10 @@ def main():
     parser.add_argument("--platen-fn", type=int, default=None,
                          help="override quality.platen_fn from the config - circular "
                               "segments for the real platen cutout cylinder")
+    parser.add_argument("--draft-angle-deg", type=float, default=None,
+                         help="override build.draft_angle_deg from the config - half-angle "
+                              "of the Minkowski draft cone each character is swept with "
+                              "(real machine value 55deg)")
     parser.add_argument("--minkowski", dest="minkowski_enabled", action="store_true", default=None,
                          help="force the Minkowski draft sweep on, regardless of the config")
     parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false",
@@ -89,6 +93,7 @@ def main():
         simplify_tolerance_mm=args.simplify_tolerance_mm,
         platen_fn=args.platen_fn,
         minkowski_enabled=args.minkowski_enabled,
+        draft_angle_deg=args.draft_angle_deg,
     )
 
     label = "ResinPrint" if resin_support else "FullElement"
