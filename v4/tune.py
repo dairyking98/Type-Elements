@@ -29,9 +29,12 @@ Tabs:
   Element          - element.* - flagged ADVANCED: real machine geometry,
     not something you'd normally tune
   Quality          - quality.* facet counts + build.points_per_mm/
-    separation_mm/minkowski_enabled/render_core_groove/
-    simplify_tolerance_mm (moved here from Build - these are all mesh
-    generation quality/speed knobs, not "what to build")
+    separation_mm/render_core_groove/simplify_tolerance_mm (moved here
+    from Build - these are all mesh generation quality/speed knobs, not
+    "what to build"). The Minkowski draft sweep itself is NOT exposed
+    here - Render always forces it on and Quick Preview always forces
+    it off (see _run_build), so a config-file toggle would just be
+    dead weight/a second source of truth.
   Layout           - layout.latitude_columns + a dropdown of named
     Blickensderfer keyboard layouts (ported from v2/lib/layouts/
     blick_layouts.scad) that rewrites layout.rows
@@ -178,8 +181,6 @@ SECTIONS = {
     "Quality": [
         ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
         ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
-        ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft sweep",
-         "Off = fast full-depth undrafted preview (~3s vs ~30-70s)."),
         ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
         ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
         ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
@@ -490,8 +491,14 @@ class TuneApp(App):
         label = "Quick Preview" if fast else "Render"
         self.log_line(f"[bold]--- {label} ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
+        # Minkowski draft sweep is not a config field the user tunes - it's
+        # entirely determined by which button was pressed, forced explicitly
+        # either way so the config's build.minkowski_enabled default is
+        # never consulted here.
         if fast:
             cmd += ["--no-minkowski", "--no-core-groove", "--no-resin-support"]
+        else:
+            cmd += ["--minkowski"]
         await self._stream_subprocess(cmd)
 
     async def action_render_type_test(self):

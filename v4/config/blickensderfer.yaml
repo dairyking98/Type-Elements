@@ -108,8 +108,9 @@ build:
   # ~16-24s for the full 84-char ring at ppm=6-8/minkowski_fn=8-12, ~66s
   # at this file's ppm=15/minkowski_fn=16. Lower --points-per-mm/
   # --cone-segments via the CLI for faster iteration; quality difference
-  # is minor even at the fast end (confirmed visually on 'e'/'m'). Or set
-  # minkowski_enabled: false below for the fastest possible preview.
+  # is minor even at the fast end (confirmed visually on 'e'/'m'). Or use
+  # tune.py's Quick Preview button, which always forces
+  # minkowski_enabled off (see below) for the fastest possible preview.
   #
   # manifold3d's raw minkowski_sum output is also drastically over-
   # triangulated on flat regions (a single straight wall facet came out as
@@ -121,9 +122,11 @@ build:
   simplify_tolerance_mm: 0.005
   # false = skip the Minkowski draft sweep entirely (by far the most
   # expensive step) and return each character as an undrafted block:
-  # correct platen curve and glyph footprint/placement, no taper. For fast
-  # layout/placement iteration, not a final export - re-enable before
-  # generating anything meant to be printed.
+  # correct platen curve and glyph footprint/placement, no taper. This is
+  # only a default for direct `python3 generate.py` CLI use - tune.py
+  # always overrides it explicitly (Render forces true, Quick Preview
+  # forces false via --minkowski/--no-minkowski), so it's not exposed as
+  # a tunable field there.
   minkowski_enabled: true
 
 # lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
