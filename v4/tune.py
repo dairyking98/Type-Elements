@@ -2,8 +2,9 @@
 """
 Interactive terminal GUI for tuning config/blickensderfer.yaml and
 triggering rebuilds. The "f3d preview" checkbox (on by default) controls
-an f3d --watch window: after a successful Preview or Render, if f3d
-isn't already running (or the one we launched has exited), it's opened
+an f3d --watch window: after a successful Preview, Render, or Type
+Test's Render Text, if f3d isn't already running (or the one we
+launched has exited), it's opened
 fresh on the output STL; if it's already running, we just wait a beat
 for its own file watcher to reload the updated model and then try to
 raise the window to the front (best-effort - needs wmctrl on PATH; a
@@ -40,8 +41,9 @@ Tabs (in display order):
     Font tab's path/size, for instant text/legibility checks. Overwrites
     the same output STL path as Render/Quick Preview (so the same f3d
     --watch window shows it) - it's a scratch preview, not saved
-    anywhere else (see Save). Does NOT auto-open/raise f3d itself (only
-    Preview/Render do) - the same open window still picks it up though.
+    anywhere else (see Save). Its "Render Text" button triggers the same
+    auto-open/raise f3d behavior as Preview/Render (see the "f3d
+    preview" checkbox, below).
   Build            - stripped down to ONE dropdown: Element Only vs.
     Element + Resin Print (build.resin_support). Resin tab's own fields
     only matter when Resin Print is selected.
@@ -418,7 +420,7 @@ class TuneApp(App):
                         yield Static("LPI", classes="field-label")
                         yield Input(value="6", id="type-test-lpi")
                     yield Static("Lines per inch - vertical spacing for multi-line text.", classes="field-help")
-                yield Button("Render Test Line", id="btn-type-test", variant="primary")
+                yield Button("Render Text", id="btn-type-test", variant="primary")
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -575,7 +577,7 @@ class TuneApp(App):
             return
         font_path = self.inputs["path"].value
         font_size_mm = self.inputs["size_mm"].value
-        out_path = os.path.join(self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
+        out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
         self.log_line(f"[bold]--- Type Test (overwrites {out_path}) ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "type_test.py"), text,
                "--cpi", str(cpi), "--lpi", str(lpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
@@ -589,6 +591,7 @@ class TuneApp(App):
                 "lpi": lpi,
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
+            await self._ensure_f3d_after_build(out_path)
 
     def action_save(self):
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
