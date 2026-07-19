@@ -490,8 +490,18 @@ def LogoText(points_per_mm=20.0):
     flat on the XY plane (extruded along Z, not wrapped radially like
     TextRing characters) near the top face. halign=center in the real
     file centers on the advance box (see docs/text-centering.md); this
-    port centers on the ink bbox instead - a simplification, fine for a
-    decorative logo, not attempted to match exactly."""
+    port centers on the ink bbox HORIZONTALLY instead - a simplification,
+    fine for a decorative logo, not attempted to match exactly.
+
+    Vertically, characters are aligned by BASELINE (y=0, FreeType's own
+    pen-origin convention - get_glyph_contours applies no baseline shift),
+    not by ink-bbox center. Centering each character on its own ink bbox
+    independently (the original approach) put every character at a
+    different height depending on its own ascender/descender/x-height -
+    e.g. 'L' (cap-height, no descender) and 'e' (x-height only) would
+    each get centered on a different Y, breaking a common baseline across
+    the ring. Baseline alignment is the standard convention for setting
+    multi-character text for exactly this reason."""
     n_chars = len(Logo_Text)
     parts = []
     for n, ch in enumerate(Logo_Text):
@@ -499,8 +509,8 @@ def LogoText(points_per_mm=20.0):
             continue
         mesh = build_flat_text(ch, points_per_mm, 0.4, font_size_mm=Logo_Text_Size,
                                 font_path=LOGO_FONT_PATH)
-        center_xy = (mesh.bounds[0][:2] + mesh.bounds[1][:2]) / 2.0
-        mesh.apply_translation([-center_xy[0], -center_xy[1], 0])
+        center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
+        mesh.apply_translation([-center_x, 0, 0])
 
         angle_n = Logo_Position_Offset - 90 + Logo_Text_Spacing * n - (n_chars - 1) * Logo_Text_Spacing / 2
         placed = sp.scad_transform(mesh, ("rotate", [0, 0, Logo_Text_Offset]))

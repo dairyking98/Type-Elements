@@ -339,10 +339,15 @@ All offsets default to `0.0` (no-op) until set in the config.
   inter-character collisions above (confirmed: it never even runs there,
   since `watertight`/`winding_consistent`/`is_volume` all already report
   `True` for two overlapping-but-otherwise-valid solids).
-- **`LogoText` centers on the ink bounding box, not the advance box** -
-  unlike `TextRing` (which now does real advance-box centering, see
-  "Alignment" above). Fine for a decorative logo, not attempted to match
-  `v2`'s exact `halign=center` behavior there.
+- **`LogoText` centers horizontally on the ink bounding box, not the
+  advance box** - unlike `TextRing` (which now does real advance-box
+  centering, see "Alignment" above). Fine for a decorative logo, not
+  attempted to match `v2`'s exact `halign=center` behavior there.
+  Vertically, characters ARE aligned by baseline (`y=0`, FreeType's own
+  pen-origin convention) rather than each character's own ink-bbox
+  center - centering each character independently on its own ink bbox
+  put 'L' (cap-height, no descender) and 'e' (x-height only) at different
+  heights, breaking a common baseline across the ring.
 - **`Drive_Pin_Style=1`** (the older drive pin variant) raises
   `NotImplementedError` - only the current/default style is ported.
 - **`BottomSlopedSpace`'s `bottomX()`** is ported from the real
