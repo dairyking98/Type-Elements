@@ -386,7 +386,7 @@ def join_front_back(mesh_front, mesh_back, front_outline):
     return trimesh.Trimesh(vertices=v_all, faces=np.array(faces))
 
 
-def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=None):
+def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=None, align_kwargs=None):
     """Plain flat linear_extrude(depth) of one character - no platen
     scallop, no draft taper. Used for LogoText() (an engraved surface
     label, not a struck type character): reuses the same
@@ -394,13 +394,25 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     radius_y_offset=0, expansion_width=0, which reduces make_front's
     scallop to a flat lift by `depth` and make_back's offset to a no-op -
     i.e. the general pipeline degenerates to a plain flat extrusion
-    without needing separate code."""
+    without needing separate code.
+
+    align_kwargs, if given, is passed to alignment_x_offset() exactly as
+    build_glyph() does for the real element - same advance-box
+    center/left mode plus modified_left/right_chars nudges - so callers
+    like type_test.py can match the real pipeline's horizontal alignment
+    convention. None (the default) applies no shift at all, i.e. the
+    glyph sits at its raw FreeType pen origin - LogoText() relies on
+    this to do its own separate ink-bbox centering for baseline
+    alignment across a radial run of characters."""
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = freetype.Face(fp)
     scale = fs / face.units_per_EM
-    contours_font_units = get_glyph_contours(char, points_per_mm, scale, font_path=fp)
+    contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
     contours_mm = [c * scale for c in contours_font_units]
+    if align_kwargs is not None:
+        x_shift = alignment_x_offset(char, advance_mm, **align_kwargs)
+        contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
     flat = classify_and_triangulate(contours_mm)
     front = make_front(flat, 0.0, 0.0, depth)
     back, front_outline = make_back(front, 0.0)

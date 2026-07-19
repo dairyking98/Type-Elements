@@ -2,14 +2,13 @@
 """
 Interactive terminal GUI for tuning config/blickensderfer.yaml and
 triggering rebuilds. The "f3d preview" checkbox (on by default) controls
-an f3d --watch window: after a successful Preview, Render, or Type
-Test's Render Text, if f3d isn't already running (or the one we
-launched has exited), it's opened
-fresh on the output STL; if it's already running, we just wait a beat
-for its own file watcher to reload the updated model and then try to
-raise the window to the front (best-effort - needs wmctrl on PATH; a
-one-time log message says so if it's missing). Uncheck the box to stop
-all of that and drive f3d yourself.
+an f3d --watch window: after a successful Preview, Render, or Render
+Test Text, if f3d isn't already running (or the one we launched has
+exited), it's opened fresh on the output STL; if it's already running,
+we just wait a beat for its own file watcher to reload the updated
+model and then try to raise the window to the front (best-effort -
+needs wmctrl on PATH; a one-time log message says so if it's missing).
+Uncheck the box to stop all of that and drive f3d yourself.
 
 Workflow: Quick Preview (fast, undrafted) until it looks right, Render
 (full quality, slow) to confirm, then Save to keep it. Preview/Render/
@@ -38,14 +37,21 @@ Tabs (in display order):
   Type Test        - NOT part of the real element. A flat, CPI/LPI-spaced
     test block (matches v2's TypeTest() fixed-pitch convention; LPI is
     the vertical equivalent for multi-line text, default 6) using the
-    Font tab's path/size, for instant text/legibility checks. Overwrites
-    the same output STL path as Render/Quick Preview (so the same f3d
-    --watch window shows it) - it's a scratch preview, not saved
-    anywhere else (see Save). Its "Render Text" button triggers the same
-    auto-open/raise f3d behavior as Preview/Render (see the "f3d
-    preview" checkbox, below), and additionally starts f3d in camera
-    view 7 (Top View) - only takes effect on a fresh launch, since f3d
-    has no CLI way to change an already-running instance's camera.
+    Font & Alignment tab's live values (path/size, align mode, all the
+    center/left/modified_left/modified_right offsets - same
+    alignment_x_offset() convention the real element uses), for instant
+    text/legibility checks. Overwrites the same output STL path as
+    Render/Quick Preview (so the same f3d --watch window shows it) -
+    it's a scratch preview, not saved anywhere else (see Save).
+    Triggered by the "RENDER TEST TEXT" button, which - unlike this
+    tab's other widgets - lives in the always-visible button panel
+    (below the tabs), not inside this TabPane, so it stays clickable
+    from the Font & Alignment tab (or any tab) without switching here
+    first. Triggers the same auto-open/raise f3d behavior as Preview/
+    Render (see the "f3d preview" checkbox, below), and additionally
+    starts f3d in camera view 7 (Top View) - only takes effect on a
+    fresh launch, since f3d has no CLI way to change an already-running
+    instance's camera.
   Build            - stripped down to ONE dropdown: Element Only vs.
     Element + Resin Print (build.resin_support). Resin tab's own fields
     only matter when Resin Print is selected.
@@ -296,7 +302,8 @@ class TuneApp(App):
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .field-help { color: $text-muted; height: 1; }
-    #buttons { height: 7; dock: bottom; padding: 0 1; }
+    #buttons { height: 11; dock: bottom; padding: 0 1; }
+    #btn-render-test-text { height: 3; width: 1fr; text-style: bold; margin-bottom: 1; }
     #primary-buttons { height: 5; }
     #primary-buttons Button { width: 1fr; height: 5; text-style: bold; }
     #f3d-row { height: 1; margin-top: 1; }
@@ -306,7 +313,6 @@ class TuneApp(App):
     .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: 1; }
-    #btn-type-test { height: 3; margin-top: 1; }
     #type-test-text { height: 8; }
     """
     BINDINGS = [
@@ -460,7 +466,6 @@ class TuneApp(App):
                         yield Static("LPI", classes="field-label")
                         yield Input(value="6", id="type-test-lpi")
                     yield Static("Lines per inch - vertical spacing for multi-line text.", classes="field-help")
-                yield Button("Render Text", id="btn-type-test", variant="primary")
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -477,6 +482,12 @@ class TuneApp(App):
                 yield from self._compose_section_tab("Element")
 
             with Vertical(id="buttons"):
+                # short, wide, and OUTSIDE the TabbedContent (unlike the
+                # old per-tab "Render Text" button it replaces) so it
+                # stays visible/clickable no matter which tab is active -
+                # in particular while tuning Font & Alignment, without
+                # needing to flip to the Type Test tab just to re-render
+                yield Button("RENDER TEST TEXT", id="btn-render-test-text", variant="primary")
                 with Horizontal(id="primary-buttons"):
                     yield Button("PREVIEW [p]", id="btn-preview", variant="success")
                     yield Button("RENDER [b]", id="btn-render", variant="primary")
@@ -625,6 +636,18 @@ class TuneApp(App):
         self.log_line(f"[bold]--- Type Test (overwrites {out_path}) ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "type_test.py"), text,
                "--cpi", str(cpi), "--lpi", str(lpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
+               # same horizontal-alignment convention as the real element
+               # (advance-box center/left + modified_left/right nudges) -
+               # read live off the Font & Alignment tab's own widgets
+               "--align-mode", self.inputs["mode"].value,
+               "--center-offset-mm", self.inputs["center_offset_mm"].value,
+               "--left-offset-mm", self.inputs["left_offset_mm"].value,
+               # "=" form, not space-separated, in case the chars field
+               # starts with "-" (would otherwise look like another flag)
+               "--modified-left-chars=" + self.inputs["modified_left_chars"].value,
+               "--modified-left-offset-mm", self.inputs["modified_left_offset_mm"].value,
+               "--modified-right-chars=" + self.inputs["modified_right_chars"].value,
+               "--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value,
                "--out", out_path]
         returncode = await self._stream_subprocess(cmd)
         if returncode == 0:
@@ -696,7 +719,7 @@ class TuneApp(App):
             self.action_preview()
         elif event.button.id == "btn-save":
             self.action_save()
-        elif event.button.id == "btn-type-test":
+        elif event.button.id == "btn-render-test-text":
             self.run_worker(self.action_render_type_test(), exclusive=True)
 
 
