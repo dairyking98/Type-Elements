@@ -144,12 +144,15 @@ Tabs (in display order):
   Logo             - logo.* (font_path also has the same "Browse" button
     as font.path above)
   Element          - element.* - flagged ADVANCED: real machine geometry,
-    not something you'd normally tune. Last tab on purpose.
+    not something you'd normally tune - plus layout.baseline_row/
+    cutout_row's 6 per-row fields at the bottom (bespoke, see
+    BASELINE_CUTOUT_KEYS/patch_yaml_list_item - these are the values the
+    Calibration tab is for finding). Last tab on purpose.
 
-List/array-valued config entries other than layout.rows (baseline_row,
-cutout_row, placement_map, bottom_support_fractions) are still NOT
-exposed - they don't fit a single-value text field safely and are rare
-to tune interactively. Edit those directly in the YAML.
+List/array-valued config entries other than layout.rows and
+baseline_row/cutout_row (placement_map, bottom_support_fractions) are
+still NOT exposed - they don't fit a single-value text field safely and
+are rare to tune interactively. Edit those directly in the YAML.
 """
 
 import asyncio
@@ -411,10 +414,10 @@ SECTION_INTROS = {
         "instead of its row's normal value. Print it, test-fit each\n"
         "position on the real machine, and read off which column's value\n"
         "looks/fits best from the Render log (or the .txt file Save\n"
-        "writes alongside the STL) - then edit that row's entry directly\n"
-        "in layout.baseline_row/cutout_row (not exposed here - list-\n"
-        "valued, edit the YAML). Select \"Calibration Element\" on the\n"
-        "Build tab, then Preview/Render as usual to build this instead.",
+        "writes alongside the STL) - then enter it in that row's\n"
+        "baseline/cutout field on the Element tab. Select \"Calibration\n"
+        "Element\" on the Build tab, then Preview/Render as usual to\n"
+        "build this instead.",
         "picker-help"),
 }
 
@@ -437,6 +440,12 @@ LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
     "postal": LAYOUT_PRESETS_POSTAL,
 }
+
+# layout.baseline_row/cutout_row per-row fields (Element tab - see
+# TuneApp._compose_baseline_cutout_fields). Bespoke, not in
+# self.FIELDS/SECTIONS - these are list ELEMENTS (patch_yaml_list_item),
+# not standalone scalar YAML keys patch_yaml_value can patch.
+BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(3)]
 
 
 def get_nested(d, path):
@@ -467,6 +476,28 @@ def patch_yaml_value(text, key, value):
     if n == 0:
         raise ValueError(f"key {key!r} not found in config text - was it renamed/removed?")
     return new_text
+
+
+def patch_yaml_list_item(text, key, index, value):
+    """Patches ONE element of an inline flow-style YAML list (key: [a, b,
+    c], e.g. layout.baseline_row/cutout_row - a per-row array, but
+    numeric and inline, not a block list like layout.rows) - neither
+    patch_yaml_value's one-token regex nor patch_yaml_rows' block-list
+    regex applies. Only float values needed so far (baseline_row/
+    cutout_row), so that's all this formats - extend if a bool/str list
+    item is ever exposed the same way."""
+    pattern = re.compile(rf'^(\s*{re.escape(key)}:\s*\[)([^\]]*)(\])', re.MULTILINE)
+    m = pattern.search(text)
+    if not m:
+        raise ValueError(f"key {key!r} not found in config text - was it renamed/removed?")
+    items = [x.strip() for x in m.group(2).split(",")]
+    if index >= len(items):
+        raise ValueError(f"{key!r} has only {len(items)} items, index {index} out of range")
+    val_str = f"{value:.6f}".rstrip("0").rstrip(".")
+    if "." not in val_str and "e" not in val_str.lower():
+        val_str += ".0"
+    items[index] = val_str
+    return text[:m.start()] + m.group(1) + ", ".join(items) + m.group(3) + text[m.end():]
 
 
 def patch_yaml_rows(text, rows):
@@ -784,6 +815,37 @@ class TuneApp(App):
                                     yield Button("Browse", id=f"browse-{key}", classes="browse-btn")
                         if help_text:
                             yield Static(help_text, classes="field-help")
+                if section == "Element":
+                    yield from self._compose_baseline_cutout_fields()
+
+    # layout.baseline_row/cutout_row - per-row (lowercase/uppercase/figs)
+    # inline numeric arrays, calibrated via the Calibration tab (see
+    # cylinder_machine.CalibrationTextRing) and previously only editable
+    # by hand in the YAML (list-valued, doesn't fit the generic FIELDS
+    # mechanism's one-scalar-per-key assumption). Bespoke like Layout's
+    # custom rows / Type Test's fields, using patch_yaml_list_item to
+    # patch a single element of the inline list rather than the whole
+    # thing. self.inputs keys are "baseline_row_{i}"/"cutout_row_{i}",
+    # not in self.FIELDS - _collect_values/_save_to_yaml/
+    # _refresh_widgets_from_cfg handle them explicitly, same pattern as
+    # the Layout/Type Test tabs' own bespoke widgets.
+    ROW_LABELS = ["lowercase", "uppercase", "figs"]
+
+    def _compose_baseline_cutout_fields(self):
+        yield Static(
+            "Per-row baseline/platen-cutout (mm below the clip end) - see\n"
+            "the Calibration tab for empirically finding these.",
+            classes="picker-help")
+        for arr_key, label in (("baseline_row", "Baseline"), ("cutout_row", "Cutout")):
+            values = self.cfg["layout"][arr_key]
+            for i, row_label in enumerate(self.ROW_LABELS):
+                key = f"{arr_key}_{i}"
+                with Vertical(classes="field-row"):
+                    with Horizontal():
+                        yield Static(f"{label} row {i} ({row_label})", classes="field-label")
+                        inp = Input(value=str(values[i]), id=f"field-{key}")
+                        self.inputs[key] = inp
+                        yield inp
 
     def _display_rows_for_preset(self):
         """The 3 rows to show as the read-only "original" reference,
@@ -1014,13 +1076,29 @@ class TuneApp(App):
         except ValueError:
             self.log_line(f"[red]bad Type Test CPI/LPI value: {cpi_raw!r}/{lpi_raw!r} (expected numbers)[/red]")
             return None
+        # layout.baseline_row/cutout_row per-row fields (Element tab) -
+        # bespoke like everything above, since they're list elements, not
+        # standalone scalar YAML keys - see BASELINE_CUTOUT_KEYS/
+        # patch_yaml_list_item.
+        for key in BASELINE_CUTOUT_KEYS:
+            raw = self.inputs[key].value.strip()
+            try:
+                values[key] = float(raw)
+            except ValueError:
+                self.log_line(f"[red]bad value for {key!r}: {raw!r} (expected a number)[/red]")
+                return None
         return values
 
     def _save_to_yaml(self, values):
         with open(self.config_path) as f:
             text = f.read()
         for key, value in values.items():
+            if key in BASELINE_CUTOUT_KEYS:
+                continue
             text = patch_yaml_value(text, key, value)
+        for key in BASELINE_CUTOUT_KEYS:
+            arr_key, index_str = key.rsplit("_", 1)
+            text = patch_yaml_list_item(text, arr_key, int(index_str), values[key])
         modify_glyphs = self.query_one("#layout-modify-glyphs", Switch).value
         text = patch_yaml_value(text, "modify_glyphs", modify_glyphs)
         if modify_glyphs:
@@ -1085,6 +1163,10 @@ class TuneApp(App):
         current_rows = self.cfg["layout"]["rows"]
         for i in range(3):
             self.query_one(f"#layout-custom-row-{i}", Input).value = current_rows[i]
+        for arr_key in ("baseline_row", "cutout_row"):
+            arr = self.cfg["layout"][arr_key]
+            for i in range(3):
+                self.inputs[f"{arr_key}_{i}"].value = str(arr[i])
 
     def action_reload(self):
         self._load_current()

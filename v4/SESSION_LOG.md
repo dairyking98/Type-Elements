@@ -1115,3 +1115,48 @@ both-off: cutout stays pinned to its row's fixed value across every
 column). tune.py's two `Switch` widgets verified via headless test
 against a scratch config (not the user's real files) - correct initial
 values, save round-trip.
+
+## 17. `layout.baseline_row`/`cutout_row` exposed on the Element tab
+
+User asked why calibration's cutout/baseline values print negative -
+explained the coordinate convention (these arrays are "distance below the
+clip end," not absolute Z - `place_on_cylinder`'s
+`BASELINE_Z_OFFSET (=Element_Height) + baseline_mm` is what converts them
+into an absolute position; the console/`.txt` output deliberately mirrors
+the raw config value so it can be pasted straight back in). Immediate
+follow-up: "missing the values to place baselines and cutouts in the
+Element tab" - the whole point of Calibration is finding a number to dial
+in, and there was no dial to turn without hand-editing the YAML.
+
+`layout.baseline_row`/`cutout_row` are 3-element inline numeric arrays
+(one per row) - list-valued, so they never fit the generic FIELDS
+mechanism's one-scalar-per-key assumption (same reason `layout.rows`
+needed its own bespoke block-list patcher back in the original tune.py
+build-out). Added a matching bespoke mechanism for INLINE (not block)
+lists: `patch_yaml_list_item(text, key, index, value)` - regex-matches
+`key: [...]`, splits on commas, replaces just the one element, rejoins -
+leaves everything else in the file untouched, same "surgical patch, not a
+round-tripped YAML dump" philosophy the other patchers already use.
+
+6 new bespoke `Input` fields (`baseline_row_0/1/2`, `cutout_row_0/1/2`,
+labeled "Baseline row 0 (lowercase)" etc.) appended to the bottom of the
+Element tab specifically (`_compose_section_tab` calls
+`_compose_baseline_cutout_fields()` when `section == "Element"`) - not
+folded into `SECTIONS_COMMON["Element"]` since they need
+`patch_yaml_list_item` instead of `patch_yaml_value`, same reasoning
+`BASELINE_CUTOUT_KEYS` (a module-level set of their 6 `self.inputs` keys)
+exists for: `_collect_values`/`_save_to_yaml` both check membership to
+route them to the list-item patcher instead of the generic scalar one,
+and `_refresh_widgets_from_cfg` repopulates them explicitly (same pattern
+Layout's custom rows and Type Test's fields already use for their own
+bespoke widgets).
+
+Verified: `patch_yaml_list_item` unit-tested directly against a
+representative YAML snippet (patches only the targeted index, leaves
+surrounding keys/formatting untouched); full headless round-trip against
+a scratch config (initial values populate correctly, edit+save persists
+correctly, a genuinely invalid value is rejected with an error log and
+`None` return, matching every other field's error-handling convention);
+visually confirmed via screenshot (renders cleanly at the bottom of the
+scrollable Element tab, correct labels/values); `generate.py`'s normal
+build path re-confirmed unaffected (byte-identical `ResinPrint` output).

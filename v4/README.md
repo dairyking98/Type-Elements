@@ -452,8 +452,11 @@ copies that sidecar alongside the saved STL too (like the existing
 `.yaml` metadata sidecar), when the last build was a Calibration build.
 
 Test-fit each position on the real machine, read off which column's value
-looks/fits best, and hand-edit that row's entry in `layout.baseline_row`/
-`cutout_row` (list-valued, not a tune.py field - edit the YAML directly).
+looks/fits best, and enter it directly in that row's baseline/cutout field
+on tune.py's Element tab (`layout.baseline_row`/`cutout_row` - list-valued,
+so not part of the generic FIELDS mechanism, but exposed as 6 bespoke
+per-row fields, `patch_yaml_list_item` patching just that one element of
+the inline YAML list).
 
 ### HollowSpace margin is razor-thin by design at the current settings
 
