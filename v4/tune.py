@@ -43,7 +43,9 @@ Tabs (in display order):
     --watch window shows it) - it's a scratch preview, not saved
     anywhere else (see Save). Its "Render Text" button triggers the same
     auto-open/raise f3d behavior as Preview/Render (see the "f3d
-    preview" checkbox, below).
+    preview" checkbox, below), and additionally starts f3d in camera
+    view 7 (Top View) - only takes effect on a fresh launch, since f3d
+    has no CLI way to change an already-running instance's camera.
   Build            - stripped down to ONE dropdown: Element Only vs.
     Element + Resin Print (build.resin_support). Resin tab's own fields
     only matter when Resin Print is selected.
@@ -502,20 +504,24 @@ class TuneApp(App):
         self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
         self.log_line("[cyan]reloaded values from disk[/cyan]")
 
-    async def _ensure_f3d_after_build(self, out_path):
-        """Called after a successful Preview/Render. If f3d isn't running
-        (or the process we launched has since exited), launch it fresh -
-        it'll show the just-written STL immediately. If it's already
-        running, its own --watch reloads the model automatically; we just
-        try to raise the window, after a short pause so the reload has
-        actually happened first (raising it to show the STALE model would
-        defeat the point)."""
+    async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
+        """Called after a successful Preview/Render/Render Text. If f3d
+        isn't running (or the process we launched has since exited),
+        launch it fresh - it'll show the just-written STL immediately.
+        camera_flags (only meaningful on a fresh launch - f3d has no way
+        to change an already-running instance's camera from the CLI) let
+        the caller pick a starting view, e.g. top-down for flat text.
+        If f3d is already running, its own --watch reloads the model
+        automatically (keeping whatever camera the user's since set); we
+        just try to raise the window, after a short pause so the reload
+        has actually happened first (raising it to show the STALE model
+        would defeat the point)."""
         if not self.query_one("#f3d-preview-checkbox", Switch).value:
             return
         if self._f3d_proc is None or self._f3d_proc.poll() is not None:
             try:
                 self._f3d_proc = subprocess.Popen(
-                    ["f3d", "--watch", out_path, "-g", "-x"],
+                    ["f3d", "--watch", out_path, "-g", "-x", *camera_flags],
                     cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 self.log_line(f"[cyan]launched f3d --watch on {out_path}[/cyan]")
             except FileNotFoundError:
@@ -591,7 +597,10 @@ class TuneApp(App):
                 "lpi": lpi,
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
-            await self._ensure_f3d_after_build(out_path)
+            # camera view 7 (Top View) - matches the flat text's natural
+            # viewing angle; only applies on a fresh f3d launch, see
+            # _ensure_f3d_after_build
+            await self._ensure_f3d_after_build(out_path, camera_flags=["--camera-direction=0,0,-1"])
 
     def action_save(self):
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
