@@ -3,7 +3,9 @@
 Interactive terminal GUI for tuning config/blickensderfer.yaml and
 triggering rebuilds, meant to run alongside an f3d --watch window (f3d
 auto-reloads whenever the STL file it's watching changes on disk, so a
-Preview/Full Build here just needs to overwrite that same fixed path).
+Render/Quick Preview here just needs to overwrite that same fixed path).
+f3d is never launched automatically - use the "Launch f3d" button (or
+run it yourself) whenever you actually want to look.
 
 Usage:
     python3 tune.py config/blickensderfer.yaml
@@ -187,14 +189,16 @@ class TuneApp(App):
     .field-row Input { width: 1fr; height: 1; border: none; padding: 0 1; background: $panel; }
     .field-row Switch { width: auto; height: 1; border: none; padding: 0; }
     .field-help { color: $text-muted; height: 1; }
-    #buttons { height: 3; dock: bottom; }
-    #buttons Button { width: 1fr; }
+    #buttons { height: 8; dock: bottom; padding: 0 1; }
+    #btn-render { height: 5; width: 1fr; text-style: bold; }
+    #secondary-buttons { height: 3; }
+    #secondary-buttons Button { width: 1fr; }
     #status { height: 1; color: $text-muted; padding: 0 1; }
     """
     BINDINGS = [
         ("q", "quit", "Quit"),
+        ("b", "render", "Render"),
         ("p", "preview", "Quick Preview"),
-        ("b", "full_build", "Full Build"),
         ("f", "launch_f3d", "Launch f3d"),
         ("r", "reload", "Reload from file"),
     ]
@@ -232,10 +236,11 @@ class TuneApp(App):
                                             yield inp
                                     if help_text:
                                         yield Static(help_text, classes="field-help")
-            with Horizontal(id="buttons"):
-                yield Button("Quick Preview [p]", id="btn-preview", variant="success")
-                yield Button("Full Build [b]", id="btn-full", variant="primary")
-                yield Button("Launch f3d [f]", id="btn-f3d")
+            with Vertical(id="buttons"):
+                yield Button("RENDER [b]", id="btn-render", variant="primary")
+                with Horizontal(id="secondary-buttons"):
+                    yield Button("Quick Preview [p]", id="btn-preview", variant="success")
+                    yield Button("Launch f3d [f]", id="btn-f3d")
         with Vertical(id="log-pane"):
             yield RichLog(id="log", wrap=True, markup=True, min_width=1)
         yield Footer()
@@ -269,11 +274,11 @@ class TuneApp(App):
             f.write(text)
         self._load_current()
 
+    def action_render(self):
+        self.run_worker(self._run_build(fast=False), exclusive=True)
+
     def action_preview(self):
         self.run_worker(self._run_build(fast=True), exclusive=True)
-
-    def action_full_build(self):
-        self.run_worker(self._run_build(fast=False), exclusive=True)
 
     def action_reload(self):
         self._load_current()
@@ -290,7 +295,7 @@ class TuneApp(App):
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"],
                                  self.cfg["output"]["stl_name"])
         if not os.path.exists(out_path):
-            self.log_line(f"[yellow]{out_path} doesn't exist yet - run a Preview/Full Build first[/yellow]")
+            self.log_line(f"[yellow]{out_path} doesn't exist yet - Render/Quick Preview first[/yellow]")
             return
         try:
             subprocess.Popen(["f3d", "--watch", out_path, "-g", "-x"],
@@ -304,7 +309,7 @@ class TuneApp(App):
         if values is None:
             return
         self._save_to_yaml(values)
-        label = "Quick Preview" if fast else "Full Build"
+        label = "Quick Preview" if fast else "Render"
         self.log_line(f"[bold]--- {label} ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
         if fast:
@@ -323,10 +328,10 @@ class TuneApp(App):
             self.log_line(f"[red]generate.py exited {proc.returncode} after {dt:.1f}s[/red]")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "btn-preview":
+        if event.button.id == "btn-render":
+            self.action_render()
+        elif event.button.id == "btn-preview":
             self.action_preview()
-        elif event.button.id == "btn-full":
-            self.action_full_build()
         elif event.button.id == "btn-f3d":
             self.action_launch_f3d()
 
