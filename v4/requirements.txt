@@ -6,3 +6,5 @@ freetype-py
 numpy
 scipy
 pyyaml
+manifold3d
+textual
