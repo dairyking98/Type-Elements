@@ -91,6 +91,13 @@ def main():
                          help="override calibration.start from the config")
     parser.add_argument("--calibration-interval", type=float, default=None,
                          help="override calibration.interval from the config")
+    parser.add_argument("--calibration-reference-config", default=None,
+                         help="load layout.baseline_row/cutout_row from THIS config as the "
+                              "calibration sweep's fixed reference/anchor, instead of the "
+                              "config being built (which may have already-edited, in-progress "
+                              "values) - pass the MASTER config here so repeated calibration "
+                              "passes always sweep around the same fixed point, not a moving "
+                              "target that shifts every time you dial in a value")
     parser.add_argument("--out", default=None,
                          help="override output.directory/output.stl_name from the config "
                               "(full path to the .stl to write)")
@@ -126,12 +133,20 @@ def main():
         # DOES go through build_glyph/TextRing's real draft/placement
         # pipeline (unlike --gauge), so --minkowski/--no-minkowski etc.
         # need to actually reach it, not just be parsed and dropped.
+        reference_baseline_row = reference_cutout_row = None
+        if args.calibration_reference_config:
+            with open(args.calibration_reference_config) as f:
+                ref_cfg = yaml.safe_load(f)
+            reference_baseline_row = ref_cfg["layout"]["baseline_row"]
+            reference_cutout_row = ref_cfg["layout"]["cutout_row"]
         full, mapping_lines = bd.CalibrationElement(
             test_char=args.calibration_char,
             vary_baseline=args.calibration_vary_baseline,
             vary_cutout=args.calibration_vary_cutout,
             start=args.calibration_start,
             interval=args.calibration_interval,
+            reference_baseline_row=reference_baseline_row,
+            reference_cutout_row=reference_cutout_row,
             points_per_mm=args.points_per_mm,
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,

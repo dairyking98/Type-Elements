@@ -257,6 +257,7 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
 # output (or generate.py --calibrate's .txt sidecar).
 
 def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                         reference_baseline_row=None, reference_cutout_row=None,
                          points_per_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
@@ -266,6 +267,20 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
     vary_cutout = Calibration_Vary_Cutout if vary_cutout is None else vary_cutout
     start = Calibration_Start if start is None else start
     interval = Calibration_Interval if interval is None else interval
+    # The row this sweep is centered on - NOT necessarily the currently
+    # CONFIGURED BASELINE_ROW/CUTOUT_ROW (which reflect whatever config
+    # this process was configure()'d with - the live-edited RUNNING
+    # config, when called from generate.py via tune.py). Defaulting to
+    # those globals here preserves that behavior for direct/CLI callers
+    # that don't pass an override; generate.py's --calibration-reference-
+    # config loads a SEPARATE file (tune.py passes the MASTER config) and
+    # passes its arrays in explicitly instead, so repeated calibration
+    # passes always sweep around the same fixed anchor - editing the
+    # running config's own baseline_row/cutout_row (e.g. dialing in a
+    # value found from a previous test) does NOT move the target for the
+    # next one.
+    reference_baseline_row = BASELINE_ROW if reference_baseline_row is None else reference_baseline_row
+    reference_cutout_row = CUTOUT_ROW if reference_cutout_row is None else reference_cutout_row
     points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
     separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
     align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
@@ -276,6 +291,11 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
     minkowski_enabled = (DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None
                           else minkowski_enabled)
     draft_angle_deg = DEFAULT_DRAFT_ANGLE_DEG if draft_angle_deg is None else draft_angle_deg
+
+    print(f"CalibrationTextRing: test_char={test_char!r} vary_baseline={vary_baseline} "
+          f"vary_cutout={vary_cutout} start={start}mm interval={interval}mm - "
+          f"reference baseline_row={list(reference_baseline_row)} "
+          f"cutout_row={list(reference_cutout_row)}", flush=True)
 
     n_cols = len(PLACEMENT_MAP)
     total = 3 * n_cols
@@ -290,8 +310,8 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
             # matches v2's per-column testSweepArray(start, interval, 28) -
             # same offset applied to every row at this column
             offset = start + interval * col
-            baseline_mm = BASELINE_ROW[row] + (offset if vary_baseline else 0.0)
-            cutout_mm = CUTOUT_ROW[row] + (offset if vary_cutout else 0.0)
+            baseline_mm = reference_baseline_row[row] + (offset if vary_baseline else 0.0)
+            cutout_mm = reference_cutout_row[row] + (offset if vary_cutout else 0.0)
             mesh = build_glyph(
                 test_char, points_per_mm, separation_mm=separation_mm, row=row,
                 align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
@@ -322,11 +342,13 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                         reference_baseline_row=None, reference_cutout_row=None,
                          points_per_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     text_ring, mapping_lines = CalibrationTextRing(
-        test_char, vary_baseline, vary_cutout, start, interval, points_per_mm, separation_mm,
+        test_char, vary_baseline, vary_cutout, start, interval,
+        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -334,6 +356,7 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                        reference_baseline_row=None, reference_cutout_row=None,
                         points_per_mm=None, separation_mm=None, render_core_groove=None,
                         align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
                         platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
@@ -342,7 +365,8 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
     CalibrationTextRing() in place of TextRing() for the additive ring."""
     _require_configured()
     additive, mapping_lines = CalibrationAdditive(
-        test_char, vary_baseline, vary_cutout, start, interval, points_per_mm, separation_mm,
+        test_char, vary_baseline, vary_cutout, start, interval,
+        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)

@@ -1160,3 +1160,60 @@ correctly, a genuinely invalid value is rejected with an error log and
 visually confirmed via screenshot (renders cleanly at the bottom of the
 scrollable Element tab, correct labels/values); `generate.py`'s normal
 build path re-confirmed unaffected (byte-identical `ResinPrint` output).
+
+## 18. Fixed Calibration's reference sourcing (was a real moving-target bug) + sweep defaults
+
+User: "what is the reference baseline/cutout, is it sourced from the
+running config, or default/master config - we would want to use a fixed
+value, probably master because if we change config and use that as
+reference, we could be chasing a value that is always changing after we
+updated our config." Checked: `CalibrationTextRing` used the module
+globals `BASELINE_ROW`/`CUTOUT_ROW`, set by `configure()` from whatever
+config the process was given - for a real tune.py Preview/Render, that's
+`self.config_path`, the RUNNING copy. Combined with part 17's new Element
+tab fields (which write to that same running copy), this was a genuine
+bug the user caught before it bit anyone: dial in a value from one
+calibration pass, hit Preview again, and the sweep would silently
+re-center on your just-saved edit instead of staying anchored - each
+pass chasing the previous one's result instead of converging on a fixed
+target.
+
+**Fix**: `CalibrationTextRing`/`Additive`/`Element` gained
+`reference_baseline_row`/`reference_cutout_row` parameters, defaulting to
+the `BASELINE_ROW`/`CUTOUT_ROW` globals when not given (preserves exact
+prior behavior for direct/CLI callers with no override). New
+`generate.py --calibration-reference-config PATH` flag loads
+`layout.baseline_row`/`cutout_row` from a SEPARATE file and passes them
+in explicitly; `tune.py`'s `_run_build` always passes
+`self.master_config_path` here for calibration builds. Also added a
+summary print at the start of every `CalibrationTextRing` run
+(`test_char=... vary_baseline=... vary_cutout=... start=...mm
+interval=...mm - reference baseline_row=[...] cutout_row=[...]`) so which
+reference is actually in effect is never ambiguous from the log - this
+was as much the user's real question ("what is the reference... sourced
+from") as it was a bug report, so making it visible closes the loop
+properly instead of just fixing the code silently.
+
+**Verified the fix is real, not just plausible**: built a scratch
+"running" config with `baseline_row[0]` hand-edited to `-4.5` (simulating
+an already-dialed-in value) against the real unmodified master
+(`baseline_row[0]=-4`) - confirmed via direct CLI that
+`--calibration-reference-config <master>` reports `reference
+baseline_row=[-4, ...]` and produces `baseline=-4.7mm` at column 0
+(`-4 + start(-0.7)`), NOT `-5.2mm` (what `-4.5 + -0.7` would give);
+confirmed the opposite (no reference flag) correctly falls back to
+whatever config was passed, for backward compat. Then reproduced the
+exact real-world scenario end-to-end through `tune.py`'s actual
+`_run_build` worker (real subprocess, scratch config, not the user's
+real files): set `baseline_row_0` to `-4.5` via the Element tab widget,
+ran Preview (which saves the running copy first, confirmed via `grep` -
+the running file really did get `-4.5`), and the resulting `.txt` mapping
+still showed `baseline=-4.0000mm` at column 0 (master's original,
+untouched value) - the moving-target bug is gone.
+
+**Sweep default changed**: user also asked for `calibration.start`'s
+default to be `-0.7` (was `0.0`) "so we tet above and below the set
+reference" - `0.0` only ever swept upward from the reference (0 to
+`+interval*27`); `-0.7` (interval unchanged at `0.05`) now spans -0.7mm
+to +0.65mm across the 28 columns, testing both directions. Changed in
+both config files and both machines' `configure()` fallback defaults.

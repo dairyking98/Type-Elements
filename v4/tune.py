@@ -332,7 +332,8 @@ SECTIONS_COMMON = {
          "Sweep the platen cutout per column. Usually only one of these "
          "two is on at a time."),
         ("start", ["calibration", "start"], float, "Sweep start (mm)",
-         "Offset added at column 0."),
+         "Offset added at column 0. Default -0.7 tests both below and "
+         "above the reference value, not just above it."),
         ("interval", ["calibration", "interval"], float, "Sweep interval (mm)",
          "Added per column - column n tests start + n*interval."),
     ],
@@ -411,13 +412,15 @@ SECTION_INTROS = {
         "A real element, but every physical position strikes the SAME\n"
         "test character, and Vary baselines/Vary cutouts (usually only\n"
         "one checked at a time) get a different swept value per column\n"
-        "instead of its row's normal value. Print it, test-fit each\n"
-        "position on the real machine, and read off which column's value\n"
-        "looks/fits best from the Render log (or the .txt file Save\n"
-        "writes alongside the STL) - then enter it in that row's\n"
-        "baseline/cutout field on the Element tab. Select \"Calibration\n"
-        "Element\" on the Build tab, then Preview/Render as usual to\n"
-        "build this instead.",
+        "instead of its row's normal value. The sweep is centered on the\n"
+        "MASTER config's baseline/cutout row, not this running copy's -\n"
+        "so it stays a fixed target even after you've already dialed in\n"
+        "a value here. Print it, test-fit each position on the real\n"
+        "machine, and read off which column's value looks/fits best from\n"
+        "the Render log (or the .txt file Save writes alongside the STL)\n"
+        "- then enter it in that row's baseline/cutout field on the\n"
+        "Element tab. Select \"Calibration Element\" on the Build tab,\n"
+        "then Preview/Render as usual to build this instead.",
         "picker-help"),
 }
 
@@ -1287,8 +1290,13 @@ class TuneApp(App):
             # CalibrationElement() DOES go through build_glyph/TextRing
             # (same real draft/placement machinery, just a different
             # character grid) - Minkowski forced the same way as a normal
-            # element build, below
-            cmd += ["--calibrate"]
+            # element build, below. --calibration-reference-config points
+            # at the MASTER (not self.config_path, the running copy) so
+            # the sweep always anchors on a fixed value - editing/saving
+            # a baseline_row/cutout_row value found from a PREVIOUS
+            # calibration pass (Element tab) must not move the target for
+            # the next one, or you'd be chasing a moving reference.
+            cmd += ["--calibrate", "--calibration-reference-config", self.master_config_path]
             if fast:
                 cmd += ["--no-minkowski", "--no-core-groove"]
             else:

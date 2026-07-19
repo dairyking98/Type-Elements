@@ -432,14 +432,32 @@ booleans, matching v2's own separate `Cutout_Test`/`Baseline_Test` flags
 - usually only one is on at a time, but both CAN be on together, moving
 by the same shared offset) get a per-column swept offset
 (`calibration.start + calibration.interval * col`, matching
-`testSweepArray`) instead of its row's normal fixed value.
+`testSweepArray`) instead of its row's normal fixed value. Default
+`start: -0.7` (`interval: 0.05` unchanged) sweeps from -0.7mm to +0.65mm
+across the 28 columns - both below AND above the reference, not just
+above it.
+
+**The reference (the row's own normal value being swept around) is
+fixed, not read from whatever config is being built.** `generate.py
+--calibrate`'s reference defaults to the config being built (same as
+before, for direct CLI use), but `--calibration-reference-config PATH`
+loads `layout.baseline_row`/`cutout_row` from a SEPARATE file instead -
+tune.py always passes the MASTER config here, never the running copy.
+This matters because the Element tab's baseline/cutout fields (see
+below) write to the RUNNING copy: without a fixed reference, dialing in
+a value from one calibration pass would shift where the NEXT pass
+centers its sweep - chasing an already-moving target instead of
+converging on the master's stable original value. `CalibrationTextRing`
+always prints which reference arrays it's actually using, so this is
+never ambiguous from the log.
 
 Build via `generate.py --calibrate` (plus `--calibration-char`/
 `--calibration-vary-baseline`/`--calibration-no-vary-baseline`/
 `--calibration-vary-cutout`/`--calibration-no-vary-cutout`/
-`--calibration-start`/`--calibration-interval` overrides) or tune.py's
-Build tab ("Calibration Element") + its Calibration tab's two checkboxes.
-Prints one line per
+`--calibration-start`/`--calibration-interval`/
+`--calibration-reference-config` overrides) or tune.py's Build tab
+("Calibration Element") + its Calibration tab's two checkboxes. Prints
+one line per
 physical position - keyboard key, real placement angle, and the exact
 cutout/baseline value used there (computed from the actual physical
 placement angle via `PLACEMENT_MAP`, not v2's raw content-order `col` -

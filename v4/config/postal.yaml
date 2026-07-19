@@ -167,7 +167,7 @@ calibration:
   test_char: "X"
   vary_baseline: false
   vary_cutout: true
-  start: 0.0
+  start: -0.7
   interval: 0.05
 
 # tune.py's Type Test tab (v4-specific, not part of the real element or

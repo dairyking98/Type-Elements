@@ -185,7 +185,7 @@ def configure(config_path):
     g["Calibration_Test_Char"] = calibration.get("test_char", "X")
     g["Calibration_Vary_Baseline"] = calibration.get("vary_baseline", False)
     g["Calibration_Vary_Cutout"] = calibration.get("vary_cutout", True)
-    g["Calibration_Start"] = calibration.get("start", 0.0)
+    g["Calibration_Start"] = calibration.get("start", -0.7)
     g["Calibration_Interval"] = calibration.get("interval", 0.05)
 
     g["Bottom_Slope"] = g["Core_Bottom_Offset"] / (
