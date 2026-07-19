@@ -354,7 +354,19 @@ class TuneApp(App):
     #type-test-text { height: 8; }
     """
     BINDINGS = [
+        # "q" alone doesn't fire while any Input/TextArea has focus - a
+        # focused text widget consumes plain letter keys as literal
+        # typed characters instead of letting them reach app-level
+        # bindings (confirmed: pressing "q" while typing just appends a
+        # "q" to the field, quit never happens - this is what "quitting
+        # with q, Type Test doesn't save" turned out to actually be:
+        # not a save bug, this key silently never fired). ctrl+q is a
+        # control combination, not a printable character, so text
+        # widgets never intercept it - always works. Kept "q" too since
+        # it's still fine (and documented in the footer) whenever
+        # nothing has focus, e.g. right after clicking a button.
         ("q", "quit", "Quit"),
+        ("ctrl+q", "quit", "Quit"),
         ("p", "preview", "Quick Preview"),
         ("b", "render", "Render"),
         ("s", "save", "Save"),
@@ -380,6 +392,20 @@ class TuneApp(App):
         if self._f3d_proc is not None and self._f3d_proc.poll() is None:
             self._f3d_proc.terminate()
 
+    def _save_before_exit(self):
+        # Every build action (Preview/Render/Render Test Text) already
+        # saves the whole form unconditionally before running - but just
+        # typing into a field and quitting without ever clicking one of
+        # those saved nothing, which reads as "it's not saving" (reported
+        # specifically for Type Test's text/CPI/LPI, easy to edit and
+        # quit without an intervening render). Quitting now saves too,
+        # consistent with everything else. Skips saving (not quitting)
+        # on a bad value - _collect_values() already logs why - since
+        # trapping the user in the app over a typo would be worse.
+        values = self._collect_values()
+        if values is not None:
+            self._save_to_yaml(values)
+
     async def on_mount(self) -> None:
         # plain signal.signal() handlers can sit unfired for a long time
         # while asyncio's event loop is blocked in epoll_wait - the
@@ -400,7 +426,12 @@ class TuneApp(App):
         # add_signal_handler fully replaces the OS default disposition -
         # without also exiting here, the signal would just be silently
         # swallowed and tune.py would keep running instead of quitting
+        self._save_before_exit()
         self._kill_f3d()
+        self.exit()
+
+    async def action_quit(self) -> None:
+        self._save_before_exit()
         self.exit()
 
     def _load_current(self):
