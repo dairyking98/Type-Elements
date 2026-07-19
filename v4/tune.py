@@ -64,10 +64,18 @@ Tabs (in display order):
   Resin            - resin.* (Resin_Rod_Raft is not exposed - Blickensderfer
     always uses the default true, no reason to flip it interactively)
   Layout           - a dropdown of named Blickensderfer keyboard layouts
-    (ported from v2/lib/layouts/blick_layouts.scad) that rewrites
-    layout.rows. layout.latitude_columns is not exposed - it must stay
-    in sync with placement_map/the physical layout, not something to
-    change casually; edit it directly in the YAML if you really mean to.
+    (ported from v2/lib/layouts/blick_layouts.scad), a read-only 3-row
+    preview of whichever one's selected, and a "Modify glyphs" switch
+    that unlocks a hand-editable copy of those 3 rows (seeded from the
+    preview when unlocked), each capped at len(placement_map) chars -
+    more would index out of PLACEMENT_MAP and crash TextRing; fewer just
+    leaves some physical positions unstruck. Saving writes the preset's
+    rows to layout.rows when the switch is off (as before), or the
+    edited copy when it's on - both the switch state and the edited
+    rows persist to config like everything else. layout.latitude_columns
+    is not exposed - it must stay in sync with placement_map/the
+    physical layout, not something to change casually; edit it directly
+    in the YAML if you really mean to.
   Quality          - quality.* facet counts + build.points_per_mm/
     separation_mm/render_core_groove/simplify_tolerance_mm (moved here
     from Build - these are all mesh generation quality/speed knobs, not
@@ -351,6 +359,10 @@ class TuneApp(App):
     .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: 1; }
+    .row-preview { height: 1; background: $panel; padding: 0 1; margin-bottom: 1; color: $text-muted; }
+    #layout-custom-rows { height: auto; }
+    .custom-row-input { height: 1; margin-bottom: 1; border: none; padding: 0 1;
+        background: $panel; border-left: thick $warning; }
     #type-test-text { height: 8; }
     """
     BINDINGS = [
@@ -478,10 +490,19 @@ class TuneApp(App):
                         if help_text:
                             yield Static(help_text, classes="field-help")
 
+    def _display_rows_for_preset(self):
+        """The 3 rows to show as the read-only "original" reference -
+        the selected preset's rows if one's selected, else whatever
+        layout.rows currently is (the "custom - not a known preset"
+        case)."""
+        preset_now = self._current_layout_preset()
+        return LAYOUT_PRESETS[preset_now] if preset_now else self.cfg["layout"]["rows"]
+
     def _compose_layout_tab(self):
         # named-layout picker only - latitude_columns must stay in sync
         # with placement_map/the physical layout, so it's not exposed
         # here (edit it directly in the YAML if you really mean to)
+        char_cap = len(self.cfg["layout"]["placement_map"])
         with TabPane("Layout", id="tab-layout"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
@@ -497,6 +518,34 @@ class TuneApp(App):
                     "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
                     "(v2 auto-switches fonts per layout; v4 does not).",
                     classes="picker-help")
+
+                yield Static("Rows (read-only preview of the preset above):", classes="field-label")
+                display_rows = self._display_rows_for_preset()
+                for i in range(3):
+                    static = Static(display_rows[i], id=f"layout-original-row-{i}", classes="row-preview")
+                    yield static
+
+                with Horizontal(classes="picker-row"):
+                    yield Static("Modify glyphs", classes="field-label")
+                    modify_now = bool(self.cfg["layout"]["modify_glyphs"])
+                    sw = Switch(value=modify_now, id="layout-modify-glyphs")
+                    yield sw
+                yield Static(
+                    f"Unlocks a hand-editable copy of the 3 rows below, capped at\n"
+                    f"{char_cap} characters each (placement_map's length - more than that\n"
+                    "would crash TextRing). Fewer than that just leaves some physical\n"
+                    "positions unstruck. While on, this edited copy - not the preset\n"
+                    "dropdown above - is what gets saved to layout.rows.",
+                    classes="picker-help")
+
+                custom_rows_container = Vertical(id="layout-custom-rows")
+                custom_rows_container.display = modify_now
+                with custom_rows_container:
+                    current_rows = self.cfg["layout"]["rows"]
+                    for i in range(3):
+                        inp = Input(value=current_rows[i], id=f"layout-custom-row-{i}",
+                                    max_length=char_cap, classes="custom-row-input")
+                        yield inp
 
     def _compose_build_tab(self):
         with TabPane("Build", id="tab-build"):
@@ -609,9 +658,20 @@ class TuneApp(App):
             text = f.read()
         for key, value in values.items():
             text = patch_yaml_value(text, key, value)
-        layout_select = self.query_one("#layout-select", Select)
-        if layout_select.value is not Select.BLANK:
-            text = patch_yaml_rows(text, LAYOUT_PRESETS[layout_select.value])
+        modify_glyphs = self.query_one("#layout-modify-glyphs", Switch).value
+        text = patch_yaml_value(text, "modify_glyphs", modify_glyphs)
+        if modify_glyphs:
+            # the hand-edited copy is authoritative over the preset
+            # dropdown while unlocked - "fix" (defensively re-clamp) each
+            # row to the placement_map cap in case anything bypassed the
+            # Input's own max_length (e.g. a paste)
+            char_cap = len(self.cfg["layout"]["placement_map"])
+            custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:char_cap] for i in range(3)]
+            text = patch_yaml_rows(text, custom_rows)
+        else:
+            layout_select = self.query_one("#layout-select", Select)
+            if layout_select.value is not Select.BLANK:
+                text = patch_yaml_rows(text, LAYOUT_PRESETS[layout_select.value])
         type_test_text = self.query_one("#type-test-text", TextArea).text
         text = patch_yaml_text_block(text, "text", type_test_text)
         with open(self.config_path, "w") as f:
@@ -639,6 +699,15 @@ class TuneApp(App):
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
+        display_rows = self._display_rows_for_preset()
+        for i in range(3):
+            self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
+        modify_glyphs = bool(self.cfg["layout"]["modify_glyphs"])
+        self.query_one("#layout-modify-glyphs", Switch).value = modify_glyphs
+        self.query_one("#layout-custom-rows").display = modify_glyphs
+        current_rows = self.cfg["layout"]["rows"]
+        for i in range(3):
+            self.query_one(f"#layout-custom-row-{i}", Input).value = current_rows[i]
         self.log_line("[cyan]reloaded values from disk[/cyan]")
 
     async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
@@ -826,6 +895,31 @@ class TuneApp(App):
         else:
             self.log_line(f"[red]exited {proc.returncode} after {dt:.1f}s[/red]")
         return proc.returncode
+
+    def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id != "layout-select":
+            return
+        # keep the read-only "original" preview in sync with whichever
+        # preset is now selected - deliberately does NOT touch the
+        # editable custom rows (would silently blow away in-progress
+        # hand edits), even while Modify glyphs is on
+        display_rows = self._display_rows_for_preset()
+        for i in range(3):
+            self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        if event.switch.id != "layout-modify-glyphs":
+            return
+        container = self.query_one("#layout-custom-rows")
+        container.display = event.value
+        if event.value:
+            # freshly unlocked - seed the editable copy from the current
+            # read-only preview (whatever preset's selected, or the
+            # existing custom rows if already "custom"), so it starts as
+            # an exact copy to hand-edit from, per the request
+            display_rows = self._display_rows_for_preset()
+            for i in range(3):
+                self.query_one(f"#layout-custom-row-{i}", Input).value = display_rows[i]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-render":
