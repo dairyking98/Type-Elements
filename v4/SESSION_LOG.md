@@ -517,29 +517,113 @@ refactor convention (see memory: build new files, don't edit originals
 in place), the plan is `cylinder_machine.py` + `postal.py` as new files
 alongside `blickensderfer.py`, not edits to it. Not started.
 
+## 8. Shared-module split + Postal port, implemented
+
+Validated the part-7 design via a Plan agent before writing code (see
+that agent's report for the full reasoning) - core verdict: the
+globals-sync dispatch mechanism is sound (a function's `__globals__` is a
+live reference to its defining module's dict, not a snapshot, so
+`cylinder_machine.__dict__.update(...)` really does reproduce OpenSCAD's
+"last include wins"), with two refinements: filter the sync to
+uppercase-leading keys only (`k[:1].isupper()`, avoiding leaking stray
+imports like `np`/`trimesh` into `cylinder_machine`'s namespace - plus one
+explicit exception, the lowercase epsilon constant `z`, found the hard
+way when `ClipCylinder()` immediately `NameError`'d on first test run),
+and an `_active_machine` guard against a future script configuring two
+machines in one process (not a real risk today - `generate.py`/
+`export_glyphs.py` each configure exactly once and exit; `tune.py` never
+imports these modules, only shells out to `generate.py`). The validation
+pass also caught a second real code-level divergence the original
+research had missed: `BottomSlopedSpace()`'s floor-Z literal is `0` in
+Blickensderfer, `-z` in Postal (both files' own comment: "to help with z
+fighting") - added as a third machine-set global,
+`Bottom_Sloped_Space_Floor_Z`.
+
+**Extraction**: moved everything structurally shared (`Cylinder`,
+`ClipCylinder`, `TextRing`, `Additive`, `Core`, `SpeedHoles`,
+`BottomSlopedSpace`, `TopMinkCleanup`, `WireBite`, `SecondaryCore`,
+`CoreGrooves`, `CoreChamfer(Shape)`, `CoreEllipses`, `LogoText`,
+`Subtractive`, `FullElement`, the whole resin-support helper family,
+`ResinPrint`, the whole Gauge family) into new `lib/cylinder_machine.py`.
+`lib/blickensderfer.py` now holds only `configure()` and its own
+`HollowSpace`/`DrivePin`/`ResinSupport` (the countersink versions),
+re-exporting `FullElement`/`ResinPrint`/`GaugeTestSet` from
+`cylinder_machine` so `generate.py`'s existing `bd.FullElement(...)` etc.
+calls needed zero changes.
+
+**Regression-verified the extraction didn't change Blickensderfer's
+output at all**: ran `generate.py config/blickensderfer.running.yaml
+--no-minkowski --no-core-groove` before the refactor (via `git stash`) and
+after - byte-identical vertex/face counts, volume, and watertight/
+winding/is_volume flags in both the plain-element and `--gauge` build
+paths.
+
+**Postal port**: `lib/postal.py` ports v2/postal.scad's `HollowSpace()`
+(plain revolve, no countersink at all), `DrivePin()` (a single centered
+box, no sink cylinder unioned on - v2's `DrivePin(Offset)` takes an
+unused `Offset` param, dropped in the port since nothing calls it with
+one), and `ResinSupport()` (no per-style ternary, plain-pin half-extents).
+`config/postal.yaml` populated from `v2/postal.scad`'s own values -
+`layout.rows` computed programmatically from v2's
+`Keyboard_Layout_Array`/`Element_Layout_Array_Map` (`Physical_Layout`,
+postal.scad:271-274) rather than hand-transcribed, to avoid a 28-character
+transcription error. Two known placeholders flagged in the config's own
+comments: font paths (v2's real Postal fonts, "Alma Mono"/"FreeMono:
+style=Bold", are system font family names, not `.ttf` file paths v4
+needs - reusing Blickensderfer's font files until real replacements are
+sourced) and `quality.body_fn` (v2's Postal uses DIFFERENT Fn values for
+`Cylinder()` vs `ClipCylinder()` - `Cyl_Fn`/`Surface_Fn` respectively -
+but v4's shared `Body_Fn` knob only has one value; set to Postal's
+`Cyl_Fn`, making `Cylinder()` exact and `ClipCylinder()` harmlessly
+over-faceted).
+
+Added a `machine:` config key (`generate.py`/`export_glyphs.py` peek it
+before import, default `"blickensderfer"` for zero-touch backward compat
+with existing configs) and dispatch via `importlib.import_module`.
+
+**Verified end-to-end**: `generate.py config/postal.yaml` (plain element,
+`--gauge`, and via `export_glyphs.py`) all produce watertight/
+winding-consistent/`is_volume` output with no code errors (one character,
+'%', skipped for a missing glyph in the placeholder font - expected, not
+a bug). Also directly verified the `_active_machine` guard fires
+(`RuntimeError`) when a test script configures Blickensderfer then Postal
+in the same process.
+
+**Explicitly out of scope for this pass, flagged as follow-up**:
+`tune.py` support for Postal - its `SECTIONS` table is hardcoded to
+Blickensderfer's exact field set (e.g. the "Element" tab's
+`drive_pin_countersink_depth`/`drive_pin_style`/etc, none of which exist
+in Postal's schema) and would `KeyError` immediately if pointed at
+`config/postal.yaml`. Needs a per-machine `SECTIONS` variant chosen from
+the config's `machine:` key - orthogonal UI work, not started. Sourcing
+real Postal font files is also a prerequisite content task, not a code
+problem.
+
 ## Resuming later
 
-1. **Shared-module split (`cylinder_machine.py`) + Postal port** - design
-   above is sketched but unvalidated; next step is either a Plan-agent
-   validation pass or proceeding straight to implementation.
-2. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
+1. **`tune.py` support for Postal** - per-machine `SECTIONS`/`FIELDS`
+   table needed; see part 8 above.
+2. **Source real Postal font files** (currently placeholders reusing
+   Blickensderfer's fonts - see `config/postal.yaml`'s comments).
+3. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
    stood" above) - `logo.radial_offset_mm` is back (part 6), but
    `separation_mm` is still the reverted `2.0`, still 61 collisions.
-3. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
+4. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
    automatic fix short of redoing placement/size, or accepting the
    `separation_mm=1.0` tradeoff (verified to eliminate them, at the cost
    of embedding-depth margin).
-4. **Performance** - if ~60-70s at full quality becomes annoying,
+5. **Performance** - if ~60-70s at full quality becomes annoying,
    `points_per_mm`/`quality.minkowski_fn` are the main levers, or
    `build.minkowski_enabled: false` for a ~3s undrafted preview - all
    wired through config + CLI (`--no-minkowski`).
-5. Alignment offsets - the mechanism is built and now in real use (see
+6. Alignment offsets - the mechanism is built and now in real use (see
    the running config's `modified_left_offset_mm`/
    `modified_right_offset_mm`), but the base `center_offset_mm`/
    `left_offset_mm` knobs are still untouched at their 0.0 defaults.
-6. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
+7. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
    direction, "may both be set at 360") - 720 was floated for `platen_fn`
    if the scallop needs to be smoother; not tested.
-7. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
-   tune - explicitly deferred by the user until Postal actually exists as
-   a second machine (item 1 above).
+8. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
+   tune - now that Postal exists (part 8 above), this is unblocked; still
+   waiting on `tune.py`'s own per-machine `SECTIONS` support (item 1
+   above) first.

@@ -1,0 +1,155 @@
+# Postal type element - all real parameters ported 1:1 from
+# v2/postal.scad (see that file for authoritative source/comments).
+# Postal is a strict simplification of Blickensderfer (same physical
+# cylinder form, same shared lib/core_shaft.scad + lib/resin_rod.scad +
+# lib/resin_support.scad + lib/glyph_pipeline.scad includes) - the only
+# genuine CODE-level divergence is the "drive pin trio"
+# (HollowSpace/DrivePin/ResinSupport, see lib/postal.py): no drive-pin
+# countersink at all, vs. Blickensderfer's countersink + 2 selectable
+# styles. Everything else differs only in the parameter VALUES below.
+# Derived values (Shaft_Diameter, Clip_OD, Bottom_Slope/Bottom_Z_Offset,
+# Core_Top_Z/Core_Bottom_Z/Core_Taper_Top_Z, Baseline_Z_Offset, Logo_Radius)
+# are computed in code from these, not duplicated here.
+
+# generate.py/export_glyphs.py dispatch on this key to import
+# blickensderfer.py vs postal.py - see lib/cylinder_machine.py's docstring
+# for the shared-module mechanism this feeds into.
+machine: postal
+
+font:
+  # PLACEHOLDER - v2's real value is the font family name "Alma Mono"
+  # (Font_Size=2.4), not a file path v4's font.path expects. Reusing
+  # Blickensderfer's real font file here until an actual Alma Mono (or
+  # chosen replacement) .ttf file is sourced - swap this before using
+  # any Postal output for real print/legibility decisions.
+  path: "/home/lchau/fonts/Custom & Modified/Royal Vogue v3 (Otto Koponen and Roman R.).ttf"
+  size_mm: 2.4
+
+logo:
+  # PLACEHOLDER - v2's real value is "FreeMono:style=Bold" (a system font
+  # name, not a file path) - see font.path's note above.
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  text: "Leonard Chau 2026"
+  text_size_mm: 3.0
+  text_spacing: 10.0
+  position_offset_deg: 180.0
+  text_offset_deg: 180.0
+  # real v2 value (postal.scad:203: translate([0, Logo_Radius+1.5, ...]))
+  radial_offset_mm: 1.5
+
+element:
+  element_diameter: 32.8
+  platen_diameter: 31.9
+  min_final_character_diameter: 34.1
+  element_height: 17.4
+  wall_min_thickness: 1.5
+  wall_chamfer: 0.5
+  roof_offset: 0.5
+  speed_hole_id: 5.2
+  speed_hole_qty: 8
+  speed_hole_radial: 10.3
+  core_id_in: 0.125
+  core_groove_qty: 16
+  core_groove_d: 0.6
+  core_chamfer: 0.5
+  core_bottom_offset: 1.0
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 7.0
+  clip_height: 3.0
+  clip_wire_od: 0.554
+  clip_opening: 1.0
+  clip_bite: 0.7
+  drive_pin_widthmm: 2.5
+  drive_pin_length: 3.6
+  drive_pin_radial: 11.5
+  # Postal has no drive-pin countersink at all (see lib/postal.py's
+  # HollowSpace/DrivePin/ResinSupport) - no
+  # drive_pin_countersink_depth/drive_pin_support_radial_offset/
+  # drive_pin_support_height/drive_pin_style keys needed here.
+  core_id_offset: 0.20                 # print-tolerance addition to shaft minor diameter
+  # NOTE: no drive_pin_width_offset key - Postal reuses core_id_offset
+  # directly as its drive-pin tolerance addition (postal.scad:217:
+  # Drive_Pin_Width=Drive_Pin_Widthmm+Core_ID_Offset), see lib/postal.py's
+  # configure() comment.
+
+# quality/facet counts
+quality:
+  surface_fn: 120
+  cyl_fn: 360
+  # body_fn: v2's Cylinder()/ClipCylinder() use DIFFERENT Fn values in
+  # Postal (Cyl_Fn/Surface_Fn respectively), unlike Blickensderfer where
+  # both match - v4's shared Body_Fn knob only has one value; set to
+  # Postal's Cyl_Fn so the main body cylinder is exact (ClipCylinder ends
+  # up slightly over-faceted, harmless - see lib/postal.py's comment).
+  body_fn: 360
+  groove_fn: 20
+  platen_fn: 360
+  minkowski_fn: 12                     # v2's Mink_Fn default for Postal (Blickensderfer's is also tunable independently)
+
+layout:
+  # v2's Baseline/Cutout/Latitude_Int (postal.scad:73-76), and
+  # Physical_Layout = Keyboard_Layout_Array remapped through
+  # Element_Layout_Array_Map at CHARACTER-SELECTION time (not placement,
+  # unlike Blickensderfer) - baked in below so rows are already in
+  # physical column order, matching what v2's own Physical_Layout array
+  # produces. No placement_map override needed (Postal has none - the lib
+  # defaults to identity).
+  baseline_row: [-3.6, -10.0, -15.7]
+  cutout_row: [-2.65, -9.1, -14.5]
+  latitude_columns: 28
+  placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                   14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+  # Physical_Layout = Keyboard_Layout_Array[row][Element_Layout_Array_Map[col]]
+  # (postal.scad:67,68,271-274), computed once and baked in here (see
+  # placement_map's comment above - no runtime remap needed, unlike
+  # Blickensderfer's DHIATENSOR + a real placement_map).
+  rows:
+    - "byhnujmik,ol.pqazwsxedcrfvtg"
+    - "BYHNUJMIK&OL?PQAZWSXEDCRFVTG"
+    - "!6_+7;=8:§9'-%\"(£2)ä3@ö4/ü5$"
+  modify_glyphs: false
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+build:
+  points_per_mm: 15.0
+  separation_mm: 2.0
+  render_core_groove: true
+  resin_support: true
+  target: "element"
+  simplify_tolerance_mm: 0.005
+  minkowski_enabled: true
+  draft_angle_deg: 55.0
+
+resin:
+  resin_fn: 20
+  rod_od: 1.0
+  tip_od: 0.6
+  tip_l: 1.0
+  inset: 0.3
+  min_rod_height: 2.0
+  raft_od: 4.0
+  raft_thickness: 2.0
+  groove_od: 0.8
+  groove_thickness: 0.3
+  rod_raft: false                        # Postal default (Blickensderfer sets true)
+  cut_groove_inner_x: -14.9              # -Element_Diameter/2 + Wall_Min_Thickness = -32.8/2+1.5
+  bottom_support_fractions: [0.0, 0.25, 0.5, 0.75, 1.0]   # Postal default (Blickensderfer uses [0.2])
+  bottom_support_inner_angle_offset: 0.0                   # Postal default (Blickensderfer uses 0.5)
+
+output:
+  directory: "output"
+  stl_name: "postal_running.stl"
+
+gauge:
+  offset_start: 0.2
+  offset_int: 0.02

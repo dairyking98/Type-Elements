@@ -12,13 +12,23 @@ Usage:
 """
 
 import argparse
+import importlib
 import os
 import sys
 
+import yaml
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
-import blickensderfer as bd  # noqa: E402
 from glyph_poc import build_glyph  # noqa: E402
+
+
+def _load_machine(config_path):
+    """See generate.py's copy of this helper - peeks the config's
+    `machine:` key and imports the matching module."""
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    return importlib.import_module(cfg.get("machine", "blickensderfer"))
 
 
 def safe_name(ch):
@@ -37,6 +47,7 @@ def main():
     parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false", default=None)
     args = parser.parse_args()
 
+    bd = _load_machine(args.config)
     bd.configure(args.config)
     points_per_mm = args.points_per_mm or bd.DEFAULT_POINTS_PER_MM
     separation_mm = args.separation_mm or bd.DEFAULT_SEPARATION_MM

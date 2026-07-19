@@ -5,6 +5,12 @@
 # Baseline_Z_Offset, Logo_Radius) are computed in code from these, not
 # duplicated here.
 
+# generate.py/export_glyphs.py dispatch on this key to import
+# blickensderfer.py vs postal.py - see lib/cylinder_machine.py's docstring
+# for the shared-module mechanism this feeds into. Defaults to this value
+# when absent, so older configs need no changes.
+machine: blickensderfer
+
 font:
   path: "/home/lchau/fonts/Custom & Modified/Royal Vogue v3 (Otto Koponen and Roman R.).ttf"
   size_mm: 3.7

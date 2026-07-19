@@ -10,12 +10,23 @@ config/blickensderfer.yaml for the full parameter set and comments.
 """
 
 import argparse
+import importlib
 import os
 import sys
 
+import yaml
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
-import blickensderfer as bd  # noqa: E402
+
+def _load_machine(config_path):
+    """Peeks the config's `machine:` key (blickensderfer/postal/...) and
+    imports the matching module - see lib/cylinder_machine.py's docstring
+    for how the two machine modules share code. Defaults to
+    "blickensderfer" when absent, so pre-Postal configs need no changes."""
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    return importlib.import_module(cfg.get("machine", "blickensderfer"))
 
 
 def main():
@@ -61,6 +72,7 @@ def main():
                               "(full path to the .stl to write)")
     args = parser.parse_args()
 
+    bd = _load_machine(args.config)
     bd.configure(args.config)
 
     render_core_groove = False if args.no_core_groove else None  # None = use config default
