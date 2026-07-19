@@ -6,9 +6,16 @@ character's print face down to its embedded root) is built via a REAL
 Minkowski sum (`manifold3d.Manifold.minkowski_sum`) between the flat glyph
 shape and a cone - not OpenSCAD's `minkowski(cone)` (too slow at the scale
 this needs, which is why v4 exists), and not a hand-rolled per-vertex
-outline offset (v4's first approach, abandoned - see below). The only
-*other* boolean in the system is the single `Additive - Subtractive`
-element assembly at the very end.
+outline offset (v4's first approach, abandoned - see below). Every part of
+the assembly (characters onto the cylinder, the platen cutout, the final
+`Additive - Subtractive`) is a real `manifold3d` boolean now too -
+`sp.union_all()`/`Manifold.batch_boolean()`, not `trimesh.util.concatenate`
+(an earlier bug: `TextRing()`/`Additive()` used plain concatenation, which
+just merges vertex/face arrays with no boolean resolution at all, so
+wherever a character's embedded root overlapped the main cylinder or two
+characters overlapped each other, both surfaces stayed fully intact and
+superimposed - no new edge formed at the actual intersection, confirmed via
+a 1148mm3 double-counted-overlap volume discrepancy - see `SESSION_LOG.md`).
 
 v4 started from a per-vertex mesh-manipulation technique adapted from a
 friend's 2023 "TypeCylinder" tool (Python + trimesh) - triangulate the flat
@@ -62,12 +69,12 @@ to.
 
 The draft taper is a real Minkowski sum (`manifold3d`), not plain
 coordinate math, so generation time is real and tunable via two knobs
-(`build.cone_segments` / `--cone-segments` and `points_per_mm` /
-`--points-per-mm`, both also config-driven) - `manifold3d`'s own docs warn
+(`quality.minkowski_fn` / `--cone-segments` and `build.points_per_mm` /
+`--points-per-mm`, both config-driven) - `manifold3d`'s own docs warn
 Minkowski cost scales with the *product* of the two operands' face counts.
 Measured for the full 84-character ring + assembly:
 
-| points_per_mm | cone_segments | full ring + assembly |
+| points_per_mm | minkowski_fn | full ring + assembly |
 |---|---|---|
 | 15 (config default) | 16 (config default) | ~60-70s |
 | 8 | 12 | ~30-35s |
@@ -76,6 +83,14 @@ Measured for the full 84-character ring + assembly:
 Quality difference between the fast and default settings is minor
 (confirmed visually on `e`/`m`, the hardest glyphs). Use the fast settings
 while iterating, the config defaults for a final export.
+
+For the fastest possible iteration (placement/layout only, no draft),
+set `build.minkowski_enabled: false` or pass `--no-minkowski` - this skips
+the Minkowski sweep entirely (by far the most expensive step) and returns
+each character as an undrafted block: correct platen curve and glyph
+footprint/placement, no taper. Measured: the full ring + assembly in
+~3s instead of ~30-70s. Not a substitute for a real export - re-enable
+before generating anything meant to be printed.
 
 ## Layout
 
@@ -106,23 +121,26 @@ For one character (`build_glyph`):
    by something", which breaks on genuinely nested glyphs like DejaVu's
    `0` with its slash mark nested inside its own counter) and triangulate
    each island (with its holes) via `triangle`. Flat, z=0.
-3. **Build a thin prism** (`trimesh.creation.extrude_triangulation`) just
-   `tip_h` (~0.01mm) tall, sitting at the tip end (`z` in
-   `[separation_mm-tip_h, separation_mm]`) - the undrafted, undilated glyph
-   shape. Its **top cap is then warped** with the platen parabola,
-   `z = (y-radius_y_offset)^2 * platen_radius + separation_mm`, *before*
-   anything else touches it - see "Why warp before the Minkowski sum, not
-   after" below.
-4. **Minkowski-sum that prism with a draft cone**
+3. **Build a block** (`trimesh.creation.extrude_triangulation`) sitting at
+   the tip end, tall enough to contain the real platen cut for this
+   specific glyph's own Y-extent (computed from the exact circle-sag
+   formula, not a fixed guess - see "Real platen cutout" below) - the
+   undrafted, undilated glyph shape, plus margin.
+4. **Carve the platen scallop with a REAL cylinder subtraction**
+   (`manifold3d` boolean, not a per-vertex approximation) - see "Real
+   platen cutout" below.
+5. **Minkowski-sum the scalloped block with a draft cone**
    (`manifold3d.Manifold.minkowski_sum`) - apex (`radius=0`) registered
    exactly at the world origin so it lines up with the tip, wide base
    (`radius=expansion_width_mm`) below it at `z=-cone_height`. The sum's
-   cross-section at the tip is therefore the prism's own (curved, per step
-   3) top surface unchanged; at the root (`z=0`) it's that same surface
+   cross-section at the tip is therefore the block's own (curved, per step
+   4) top surface unchanged; at the root (`z=0`) it's that same surface
    dilated/offset outward by `expansion_width_mm` - the draft taper, with
    no self-intersection possible on any input topology (holes, disjoint
    islands, arbitrarily narrow gaps - a real Minkowski sum can't fold).
-5. **`Manifold.simplify(simplify_tolerance_mm)`**: `manifold3d`'s raw
+   Skippable via `build.minkowski_enabled: false` (or `--no-minkowski`)
+   for a fast, undrafted preview - see "Performance" above.
+6. **`Manifold.simplify(simplify_tolerance_mm)`**: `manifold3d`'s raw
    `minkowski_sum` output is drastically over-triangulated on flat regions
    (a single straight wall came out as ~24 near-coplanar micro-triangles
    with normals wobbling by a fraction of a degree from floating-point
@@ -130,31 +148,46 @@ For one character (`build_glyph`):
    cleanly (e.g. `H`: 1156->42 vertices) without visibly affecting real
    curvature - the tolerance is far below any meaningful glyph feature
    size.
-6. **`alignment_x_offset`**: horizontal placement within the glyph's own
+7. **`alignment_x_offset`**: horizontal placement within the glyph's own
    advance box (see "Alignment" below) - applied to the contours before
    step 2, not listed in pipeline order above.
 
 `blickensderfer.TextRing` calls `build_glyph` 84 times (3 rows x 28
 columns) and places each result on the cylinder via `place_on_cylinder`.
 
-### Why warp the platen curve before the Minkowski sum, not after
+### Real platen cutout
 
-An earlier version of this pipeline built the prism fully flat, did the
-Minkowski sum, and only *then* nudged the swept result's top ring into the
-platen parabola. That's wrong: the cone's geometry - and therefore the
-realized draft angle - is only valid for a flat tip. Nudging just the
-final top ring after the sweep leaves the walls built as if the tip were
-still flat, so wherever the platen bulge is large (far from
+The platen scallop is a REAL boolean cylinder subtraction (matching the
+real machine and v2's `PlatenCutout()`), not a per-vertex parabola
+approximation (an earlier version of this pipeline used the small-angle
+approximation of the same circle, `z = (y-radius_y_offset)^2 *
+platen_radius + separation_mm`, applied to whatever vertices happened to
+survive triangulation). `platen_radius_mm` is still that same
+approximation coefficient (`1/(2*Rp)`) - inverted internally to recover
+the real platen radius `Rp`, rather than adding a redundant parameter -
+used to build an actual cylinder (axis along X, tangent to the tip plane
+at `y=radius_y_offset`, `platen_fn` segments), boolean-subtracted from the
+block *before* the Minkowski sum.
+
+Before, not after, matters: an earlier version subtracted nothing and
+instead nudged only the *swept result's* top ring into the parabola after
+the Minkowski sum. That's wrong - the cone's geometry, and therefore the
+realized draft angle, is only valid for whatever shape it's actually
+summed with. Nudging just the final ring left the walls built as if the
+tip were still flat, so wherever the platen bulge is large (far from
 `radius_y_offset` - e.g. the bottom of `M`/`A`, vs. `L`/`I`'s mostly-
-vertical runs which stay close to it) the wall no longer tapers at the
+vertical runs which stay close to it) the wall no longer tapered at the
 specified angle over the actual (now longer) distance to the tip - visible
-as inconsistent facets on those specific edges. This also matches how the
-real v2 SCAD file avoids the problem: `PlatenCutout()` is subtracted from
-the base extrusion *before* the `minkowski()` call there too, never
-patched onto the result after. Warping the prism's top cap first means the
-cone (unmodified, exactly as specified) sweeps a surface that's already
-the correct curved shape, so the draft angle is preserved everywhere by
-construction.
+as inconsistent facets on those specific edges. Carving the scallop in
+first means the cone (unmodified, exactly as specified) sweeps a surface
+that's already the correct curved shape, so the draft angle is preserved
+everywhere by construction.
+
+The cylinder's axis position/radius depend only on `radius_y_offset` and
+`Rp` - both per-row constants, identical for every character in a row -
+so the underlying curve is the exact same real cylinder machine-wide per
+row, not independently approximated per glyph; only where it intersects
+each glyph's own silhouette differs, which is correct.
 
 ### Draft direction (character protrusion)
 
@@ -187,6 +220,24 @@ bore - see `scad_primitives.revolve_polygon`), `WireBite`, `DrivePin`,
 
 Not ported (out of scope so far): `Drive_Pin_Style=1` (old drive pin
 variant).
+
+### Facet-count knobs (`quality:` in the config)
+
+Five separate `_fn` values, kept independent rather than sharing one
+catch-all, per user direction - each covers a distinct surface family:
+
+- `body_fn` - the main visible/cosmetic element body (`Cylinder`,
+  `ClipCylinder`) only.
+- `cyl_fn` - the inner shaft/core bore (`Core()`) only. Kept separate from
+  `body_fn` even though both currently default to the same value (360).
+- `surface_fn` - everything else structural: `HollowSpace`, `SpeedHoles`,
+  chamfers, resin details.
+- `platen_fn` - the real platen cutout cylinder (see "Real platen cutout"
+  above) - independent of the other four since it's a per-glyph boolean,
+  not a body-level revolve.
+- `minkowski_fn` - the draft cone kernel (see "Performance" above) - by
+  far the most cost-sensitive of the five, since `manifold3d`'s Minkowski
+  cost scales with the product of face counts against `points_per_mm`.
 
 ### Resin print supports (`ResinPrint`)
 

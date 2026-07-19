@@ -33,6 +33,15 @@ def main():
                          help="override build.simplify_tolerance_mm from the config - "
                               "collapses manifold3d's minkowski_sum over-triangulation "
                               "noise on flat regions")
+    parser.add_argument("--platen-fn", type=int, default=None,
+                         help="override quality.platen_fn from the config - circular "
+                              "segments for the real platen cutout cylinder")
+    parser.add_argument("--minkowski", dest="minkowski_enabled", action="store_true", default=None,
+                         help="force the Minkowski draft sweep on, regardless of the config")
+    parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false",
+                         help="skip the Minkowski draft sweep (fast, undrafted preview - "
+                              "correct platen curve/placement, no taper) regardless of "
+                              "the config")
     parser.add_argument("--no-core-groove", action="store_true",
                          help="skip CoreGrooves (slow) regardless of the config")
     parser.add_argument("--resin-support", dest="resin_support", action="store_true", default=None,
@@ -56,6 +65,8 @@ def main():
         render_core_groove=render_core_groove,
         cone_segments=args.cone_segments,
         simplify_tolerance_mm=args.simplify_tolerance_mm,
+        platen_fn=args.platen_fn,
+        minkowski_enabled=args.minkowski_enabled,
     )
 
     label = "ResinPrint" if resin_support else "FullElement"

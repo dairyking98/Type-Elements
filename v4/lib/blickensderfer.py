@@ -20,6 +20,8 @@ from glyph_poc import (
     build_glyph, build_flat_text,
     DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
     DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
+    DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
+    DEFAULT_MINKOWSKI_ENABLED as GLYPH_DEFAULT_MINKOWSKI_ENABLED,
 )
 import scad_primitives as sp
 
@@ -49,6 +51,12 @@ def configure(config_path):
     g["Logo_Text_Spacing"] = logo["text_spacing"]
     g["Logo_Position_Offset"] = logo["position_offset_deg"]
     g["Logo_Text_Offset"] = logo["text_offset_deg"]
+    # real v2 value - the logo ring's placement radius = Logo_Radius +
+    # this. Exposed as a tunable: at the real value, the logo's angular
+    # spacing can coincidentally land very close to a DHIATENSOR column
+    # (confirmed once, on this exact layout - see SESSION_LOG.md) since
+    # nothing forces separation between the two independent layouts.
+    g["Logo_Radial_Offset"] = logo.get("radial_offset_mm", 1.5)
 
     e = cfg["element"]
     g["z"] = 0.01
@@ -102,6 +110,17 @@ def configure(config_path):
     g["Surface_Fn"] = q["surface_fn"]
     g["Cyl_Fn"] = q["cyl_fn"]
     g["Groove_Fn"] = q["groove_fn"]
+    # Body_Fn: the main visible/cosmetic element body (Cylinder/
+    # ClipCylinder) - kept separate from Surface_Fn (everything else
+    # structural: HollowSpace, SpeedHoles, chamfers, resin details) and
+    # from Cyl_Fn (the inner shaft/core bore only) per user direction -
+    # not merged into either even though it may be set to the same value.
+    g["Body_Fn"] = q.get("body_fn", q["surface_fn"])
+    # Platen_Fn: circular segments for the real platen cutout cylinder in
+    # glyph_poc.build_glyph (see its docstring) - not in older configs, so
+    # defaults to glyph_poc's own default rather than requiring every
+    # config file to be updated.
+    g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
 
     layout = cfg["layout"]
     g["BASELINE_ROW"] = layout["baseline_row"]
@@ -130,11 +149,15 @@ def configure(config_path):
     g["DEFAULT_RENDER_CORE_GROOVE"] = b["render_core_groove"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
     # circular segments for build_glyph's Minkowski cone kernel - see
-    # glyph_poc.DEFAULT_CONE_SEGMENTS docstring. Not in older configs, so
-    # defaults to glyph_poc's own default rather than requiring every
-    # config file to be updated.
-    g["DEFAULT_CONE_SEGMENTS"] = b.get("cone_segments", GLYPH_DEFAULT_CONE_SEGMENTS)
+    # glyph_poc.DEFAULT_CONE_SEGMENTS docstring. Lives under quality.
+    # minkowski_fn now (grouped with the other facet-count knobs); still
+    # falls back to the older build.cone_segments key, then glyph_poc's
+    # own default, so existing configs don't need to be updated.
+    g["DEFAULT_CONE_SEGMENTS"] = q.get("minkowski_fn", b.get("cone_segments", GLYPH_DEFAULT_CONE_SEGMENTS))
     g["DEFAULT_SIMPLIFY_TOLERANCE_MM"] = b.get("simplify_tolerance_mm", GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM)
+    # Off = skip build_glyph's Minkowski sweep entirely (fast, undrafted
+    # preview - see glyph_poc.DEFAULT_MINKOWSKI_ENABLED docstring).
+    g["DEFAULT_MINKOWSKI_ENABLED"] = b.get("minkowski_enabled", GLYPH_DEFAULT_MINKOWSKI_ENABLED)
 
     r = cfg["resin"]
     g["Resin_Fn"] = r["resin_fn"]
@@ -175,11 +198,11 @@ def _require_configured():
 # ---------------------------------------------------------------- Additive
 
 def Cylinder():
-    return sp.cylinder_z(Element_Diameter, Element_Height, sections=Surface_Fn)
+    return sp.cylinder_z(Element_Diameter, Element_Height, sections=Body_Fn)
 
 
 def ClipCylinder(Offset):
-    c = sp.cylinder_z(Clip_OD + Offset, Clip_Height + z, sections=Surface_Fn)
+    c = sp.cylinder_z(Clip_OD + Offset, Clip_Height + z, sections=Body_Fn)
     return sp.translate(c, [0, 0, Element_Height - z])
 
 
@@ -217,7 +240,7 @@ def place_on_cylinder(mesh, row, col, separation_mm):
 
 
 def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
-             simplify_tolerance_mm=None):
+             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
     """Per-character self-intersection ('the draft offset folds through
     itself on narrow features like H's inter-stroke gap or m's diagonal
     junctions') used to be a real, unsolved problem here - build_glyph now
@@ -233,6 +256,9 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
     simplify_tolerance_mm = (DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None
                               else simplify_tolerance_mm)
+    platen_fn = Platen_Fn if platen_fn is None else platen_fn
+    minkowski_enabled = (DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None
+                          else minkowski_enabled)
     parts = []
     skipped = []
     for row in (0, 1, 2):
@@ -243,7 +269,8 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                     align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
                     radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
                     platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
-                    simplify_tolerance_mm=simplify_tolerance_mm)
+                    simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+                    minkowski_enabled=minkowski_enabled)
             except Exception as e:
                 skipped.append((row, col, ch, str(e)))
                 continue
@@ -283,10 +310,11 @@ def _check_inter_character_collisions(parts):
 
 
 def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
-             simplify_tolerance_mm=None):
+             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
     text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                       cone_segments=cone_segments,
-                                      simplify_tolerance_mm=simplify_tolerance_mm)
+                                      simplify_tolerance_mm=simplify_tolerance_mm,
+                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
     return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
 
 
@@ -476,7 +504,7 @@ def LogoText(points_per_mm=20.0):
 
         angle_n = Logo_Position_Offset - 90 + Logo_Text_Spacing * n - (n_chars - 1) * Logo_Text_Spacing / 2
         placed = sp.scad_transform(mesh, ("rotate", [0, 0, Logo_Text_Offset]))
-        placed = sp.translate(placed, [0, Logo_Radius + 1.5, Element_Height - 0.3])
+        placed = sp.translate(placed, [0, Logo_Radius + Logo_Radial_Offset, Element_Height - 0.3])
         placed = sp.rotate_z(placed, angle_n)
         parts.append(placed)
     return sp.union_all(parts)
@@ -520,11 +548,12 @@ def Subtractive(render_core_groove=None):
 
 
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
-                 cone_segments=None, simplify_tolerance_mm=None):
+                 cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
     _require_configured()
     additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
-                                     simplify_tolerance_mm=simplify_tolerance_mm)
+                                     simplify_tolerance_mm=simplify_tolerance_mm,
+                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}")
     subtractive = Subtractive(render_core_groove)
@@ -654,10 +683,11 @@ def ResinSupport():
 
 
 def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
-               cone_segments=None, simplify_tolerance_mm=None):
+               cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None):
     full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
-                                    simplify_tolerance_mm=simplify_tolerance_mm)
+                                    simplify_tolerance_mm=simplify_tolerance_mm,
+                                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
     support = ResinSupport()
     print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
           f"watertight={support.is_watertight}")

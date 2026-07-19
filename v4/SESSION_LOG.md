@@ -29,16 +29,18 @@ this file is the history and the "what's next."
   visible from outside), and the `HollowSpace` margin flag (flickers
   `True`/`False` run to run from floating-point noise at a razor-thin
   boundary - documented, not new).
-- **Reverted and NOT currently reapplied:** earlier in this session,
-  `separation_mm=1.0` was found to eliminate the inter-character
-  collisions entirely (at the cost of less embedding-depth margin), and a
-  `logo.radial_offset_mm` config knob was added to pull `LogoText` off a
-  near-miss with DHIATENSOR column 2. Both were undone by a full revert to
-  the last commit partway through this session (see "The detour" below)
-  and were not reintroduced during the Minkowski rewrite that followed -
-  the config right now still has `separation_mm=2.0` and no
-  `logo.radial_offset_mm` override. Worth deciding whether to reapply
-  these, since they were real, verified fixes for real, verified problems.
+- **`separation_mm=1.0` still NOT reapplied.** Earlier in this session it
+  was found to eliminate the inter-character collisions entirely (at the
+  cost of less embedding-depth margin) - undone by the full revert (see
+  "The detour" below) and never reintroduced. Config still has
+  `separation_mm=2.0`, still 61 collisions. `logo.radial_offset_mm` WAS
+  reapplied (see part 6 below), but at the real v2 value (1.5), not the
+  earlier session's tuned value for the now-reverted `separation_mm=2.0`
+  near-miss investigation - re-check if that near-miss matters again.
+- **Real platen cutout + facet-count/preview config expansion (part 6,
+  most recent work) landed on top of all of the above** - see that
+  section for the current state of `quality.*`/`logo.radial_offset_mm`/
+  `build.minkowski_enabled`.
 
 ## 1. Started from last session's resume point: the naive-offset baseline
 
@@ -209,17 +211,116 @@ fidelity while curvy letters looked fine only because their outline's own
 curve-driven vertex density happened to survive). Final order per
 character: warp prism top cap -> Minkowski sum -> simplify.
 
+## 5.5. Checkpoint, then a real assembly bug found by inspection
+
+Committed and pushed the Minkowski rewrite (README/SESSION_LOG rewritten
+to match). Then, from exporting every character to its own STL for visual
+inspection (`export_glyphs.py`, new this round - real per-row config
+values, not generic defaults, so what you see matches the actual
+element), user noticed no clean edge forms where a character meets the
+main cylinder in their viewer.
+
+Root cause: `TextRing()`/`Additive()` were the only two assembly functions
+in `lib/blickensderfer.py` using `trimesh.util.concatenate()` to combine
+parts - everything else (`Subtractive`, `SpeedHoles`, `DrivePin`,
+`ResinSupport`, ...) already used `sp.union_all()` (a real `manifold3d`
+boolean). `concatenate()` just merges vertex/face arrays with zero
+boolean resolution, so wherever a character's embedded root overlapped
+the main `Cylinder()` (by design - that's what "embedded" means) or two
+characters overlapped each other (61 confirmed pairs), both surfaces
+stayed fully intact and superimposed - no new edge formed at the actual
+intersection. Confirmed via volume: concatenating measured 1148mm3 MORE
+than a real union of the same parts (the double-counted overlap).
+
+Fixed both call sites to use `sp.union_all()`. Also switched
+`union_all()`'s own implementation from a sequential `trimesh.union()`
+fold to `manifold3d`'s native `Manifold.batch_boolean()` - ~30x faster on
+the real 86-part case (2.43s -> 0.08s, identical volume), since the fix
+now unions far more parts than `union_all`'s original ~12-part use cases.
+Committed and pushed separately from the Minkowski rewrite.
+
+## 6. Real platen cutout + facet-count/preview config expansion
+
+User: "the parabola should be a cylinder like blickensderfer" - confirmed
+the platen mechanism was still taking the flat glyph's top-face vertices
+and moving each one's Z by the small-angle-approximation formula (a
+vertex nudge, not a real swept surface), and asked for the real thing.
+Also asked for several new config knobs: `logo.radial_offset_mm` back
+(reverted in "the detour", never reapplied), a `minkowski_enabled`
+toggle for fast previews, and separate facet-count (`_fn`) knobs per
+surface family instead of the existing `surface_fn` catch-all - clarified
+in conversation: inner shaft (`cyl_fn`, unchanged) and outer cosmetic
+body should be SEPARATE knobs (not merged), both may be set to 360; the
+platen cutout needs its own `platen_fn` once it's a real cylinder.
+
+**Real platen cutout**: `platen_radius_mm` (the existing small-angle
+approximation coefficient, `1/(2*Rp)`) is inverted to recover the real
+platen radius `Rp` - no new parameter needed. Built as an actual
+`Manifold.cylinder()` (axis along X via `.rotate([0,90,0])`, tangent to
+the tip plane at `y=radius_y_offset`), boolean-subtracted
+(`Manifold.__sub__`) from the glyph block BEFORE the Minkowski sum - same
+ordering lesson as part 5, just with a real cylinder instead of a warp
+now. Verified the construction directly (cylinder bounds/tangent-point
+sampled and checked against the exact circle formula, then a synthetic
+carved-block test checked point-by-point against `z = sep + Rp -
+sqrt(Rp^2-(y-off)^2)`) before wiring it into `build_glyph` - a synthetic
+test with too-small margin caught a real design requirement along the
+way: the block must be tall enough, PER GLYPH, that the cylinder reaches
+every Y this specific glyph spans, or the corners farthest from
+`radius_y_offset` survive uncut (still flat) instead of following the
+real curve. Margin is now computed per-glyph from the exact bulge formula
+(`Rp - sqrt(Rp^2 - dy_max^2)`), not a fixed guess.
+
+Confirmed the real cylinder's own axis position/radius depend only on
+`radius_y_offset`/`Rp` - both per-ROW constants - so it's identical for
+every character in a row by construction, addressing a design question
+raised mid-session about keeping node/curve consistency across a row
+without needing to explicitly force it.
+
+Verified: `z_max` values match the old parabola approximation to within
+0.0006mm (expected - the parabola IS that circle's small-angle
+approximation), same watertight/`is_volume`/volume figures as before,
+visually clean on `H`/`M`/`A`/`e` (the platen-order failure cases from
+part 5). Per-character timing actually improved slightly (no more
+per-vertex Python loop).
+
+**`minkowski_enabled` toggle**: when `false`, `build_glyph` skips the
+Minkowski sweep entirely and returns the scalloped-but-undrafted block -
+correct platen curve and placement, no taper. Full ring + assembly in
+~3s vs. ~22-70s depending on quality settings - verified end-to-end via
+`generate.py --no-minkowski`.
+
+**Facet-count reorganization** (`quality:` in the config): added `body_fn`
+(main visible cylinder body - `Cylinder`/`ClipCylinder`, was incorrectly
+sharing `surface_fn` with unrelated detail surfaces), `platen_fn` (the
+new real cutout cylinder), and renamed the Minkowski cone's segment count
+from `build.cone_segments` to `quality.minkowski_fn` (grouped with the
+other four `_fn` knobs now) - old `build.cone_segments` key still works
+as a fallback for configs that haven't been updated. `cyl_fn` (inner
+shaft/core) and `surface_fn` (other structural detail) are unchanged.
+
+**`logo.radial_offset_mm` reapplied** at the real v2 value (1.5mm) - NOT
+the earlier session's tuned value (which was specific to the
+now-reverted `separation_mm=2.0` near-miss investigation in part 1). Real
+value confirmed via the config comment to still land within ~0.4mm of a
+DHIATENSOR column at this exact text/spacing - not currently an issue,
+worth re-checking if either changes.
+
 ## Resuming later
 
-1. **Reapply or re-decide on the reverted `separation_mm`/`logo.
-   radial_offset_mm` fixes** (see "Where things stand" above) - they were
-   real, verified fixes, just not part of the Minkowski rewrite's scope.
+1. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
+   stand" above) - `logo.radial_offset_mm` is back (part 6), but
+   `separation_mm` is still the reverted `2.0`, still 61 collisions.
 2. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
    automatic fix short of redoing placement/size, or accepting the
    `separation_mm=1.0` tradeoff (verified to eliminate them, at the cost
    of embedding-depth margin).
-3. **Performance** - if ~60-70s at full quality becomes annoying, the
-   `points_per_mm`/`cone_segments` knobs are the lever; both are already
-   wired through config + CLI.
+3. **Performance** - if ~60-70s at full quality becomes annoying,
+   `points_per_mm`/`quality.minkowski_fn` are the main levers, or
+   `build.minkowski_enabled: false` for a ~3s undrafted preview - all
+   wired through config + CLI (`--no-minkowski`).
 4. Alignment offsets (mechanism built, all values still at their 0.0
    no-op defaults) - untouched this session.
+5. `platen_fn`/`body_fn` are both set to 360 right now (per user
+   direction, "may both be set at 360") - 720 was floated for `platen_fn`
+   if the scallop needs to be smoother; not tested this session.

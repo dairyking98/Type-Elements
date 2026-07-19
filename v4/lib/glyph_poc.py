@@ -120,6 +120,20 @@ DEFAULT_CONE_SEGMENTS = 16
 # curvature (0.005mm is far below any meaningful glyph feature size).
 DEFAULT_SIMPLIFY_TOLERANCE_MM = 0.005
 
+# Circular segments for the REAL platen cutout cylinder (see build_glyph) -
+# unlike DEFAULT_CONE_SEGMENTS, this doesn't get multiplied against another
+# operand's face count in the same way (the block being cut is far smaller
+# than the cylinder's own circumference resolution matters for), so it can
+# reasonably run much higher than the Minkowski cone's segment count without
+# the same cost concern.
+DEFAULT_PLATEN_FN = 360
+
+# When False, skips the Minkowski sweep entirely (by far the most expensive
+# step - see build_glyph's cost note) and returns the scalloped-but-
+# undrafted block: correct platen curve and glyph footprint/placement, no
+# taper. For fast layout/placement iteration, not a final export.
+DEFAULT_MINKOWSKI_ENABLED = True
+
 
 def quadratic_bezier(p0, p1, p2, n):
     t = np.linspace(0, 1, n + 1)[1:]  # exclude t=0 (p0 already added by caller)
@@ -409,7 +423,9 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
                  align_kwargs=None, font_path=None, font_size_mm=None,
                  radius_y_offset_mm=None, platen_radius_mm=None,
                  cone_segments=DEFAULT_CONE_SEGMENTS,
-                 simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM):
+                 simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM,
+                 platen_fn=DEFAULT_PLATEN_FN,
+                 minkowski_enabled=DEFAULT_MINKOWSKI_ENABLED):
     """Builds one struck-character solid via a REAL Minkowski sum
     (manifold3d's Manifold.minkowski_sum), replacing the per-vertex
     outline-offset approximation this function used before (fixed-distance
@@ -430,17 +446,31 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     to detect or repair, and no per-glyph special-casing needed at all.
 
     Mechanism: build the flat (un-drafted) glyph as a simple prism (extrude
-    the 2D outline straight up by separation_mm - no offset yet), then
-    Minkowski-sum it with a cone (apex at the tip/z=separation_mm where its
-    radius is 0, base at the root/z=0 where its radius is
-    expansion_width_mm) - the sum's cross-section at any depth is exactly
-    the original outline dilated by the cone's radius there, i.e. the same
-    widen-toward-the-root taper as before, just computed by a real CSG
-    kernel instead of approximated per-vertex. The platen scallop is then
-    applied as a pure per-vertex Z-warp to the resulting top-face vertices
-    only (radius=0 there, so they're still exactly the flat, un-dilated
-    outline - same formula the old make_front used, just applied after the
-    boolean instead of before it).
+    the 2D outline up by more than separation_mm - see platen note below),
+    carve the platen scallop into its top with a REAL boolean cylinder
+    subtraction (matching the real machine / v2's PlatenCutout(), not a
+    per-vertex parabola approximation - see "Real platen cutout" below),
+    then Minkowski-sum the resulting (already-scalloped) solid with a draft
+    cone (apex at the tip where its radius is 0, base at the root/z=0 where
+    its radius is expansion_width_mm) - the sum's cross-section at any
+    depth is exactly the scalloped shape dilated by the cone's radius
+    there, i.e. the widen-toward-the-root taper, computed by a real CSG
+    kernel instead of approximated per-vertex.
+
+    Real platen cutout: platen_radius_mm is the small-angle-approximation
+    coefficient (1/(2*Rp), same as before) - inverted here to recover the
+    real platen radius Rp, then used to build an actual cylinder (axis
+    along X, tangent to the tip plane at y=radius_y_offset_mm, radius Rp,
+    platen_fn segments), boolean-subtracted from the prism BEFORE the
+    Minkowski sum. Doing this before (not after, as an earlier version of
+    this function did) matters: the cone's own geometry - and therefore
+    the realized draft angle - is only valid for whatever shape it's
+    actually summed with. Carving the scallop in first means the cone
+    sweeps the true curved shape throughout, so the draft angle is
+    preserved everywhere by construction, not just near the tangent point
+    (confirmed wrong before: warping only the swept result's top ring
+    left the walls built as if the tip were still flat, visibly wrong on
+    edges far from radius_y_offset_mm like 'M'/'A's bottoms).
 
     manifold3d's raw minkowski_sum output is also drastically over-
     triangulated on nominally FLAT regions - a single straight wall facet
@@ -510,37 +540,65 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     tip_h = min(0.01, separation_mm * 0.01)
     cone_h = separation_mm - tip_h
 
-    prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces, tip_h)
+    # Platen scallop applied as a REAL boolean cylinder subtraction, BEFORE
+    # the Minkowski sum - not a per-vertex parabola-warp approximation (the
+    # small-angle approximation of the same circle) applied to whatever
+    # vertices happened to survive triangulation/simplify. This is exactly
+    # how the real machine's cutter (and v2/lib/glyph_pipeline.scad's
+    # PlatenCutout()) works: an actual cylinder of the platen's real
+    # diameter, tangent to the tip plane at radius_y_offset_mm, carved out
+    # of the block. platen_radius_mm here is the SAME small-angle
+    # approximation coefficient as before (1/(2*Rp)) - inverted to recover
+    # the real platen radius Rp, rather than adding a redundant parameter.
+    #
+    # The cylinder's own axis position/radius depend only on
+    # radius_y_offset_mm and Rp - both per-ROW constants, identical for
+    # every character in a row - so the underlying curve is the exact same
+    # real cylinder machine-wide per row, not independently approximated
+    # per glyph; only the intersection with each glyph's own silhouette
+    # differs, which is correct.
+    platen_radius_real_mm = 1.0 / (2.0 * platen_radius_mm)
+
+    # Block must be tall enough that its ORIGINAL flat top sits above the
+    # cylinder's reach at every Y this glyph actually spans, or the corners
+    # farthest from radius_y_offset_mm survive uncut (still flat, not
+    # following the real curve) instead of being carved down to it -
+    # confirmed by testing with an under-sized margin. Sized per-glyph from
+    # its own Y-extent, not a fixed guess.
+    y_min, y_max = flat.vertices[:, 1].min(), flat.vertices[:, 1].max()
+    dy_max = max(abs(y_min - radius_y_offset_mm), abs(y_max - radius_y_offset_mm))
+    bulge_max = platen_radius_real_mm - np.sqrt(max(platen_radius_real_mm ** 2 - dy_max ** 2, 0.0))
+    block_margin = bulge_max * 1.1 + 0.005
+
+    prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces,
+                                                     tip_h + block_margin)
     prism.apply_translation([0, 0, separation_mm - tip_h])
 
-    # Platen Z-warp applied to the PRISM's top cap, BEFORE the Minkowski sum -
-    # not to the swept result's top ring afterward (an earlier version of
-    # this did that, and it's wrong: the cone's own geometry - and therefore
-    # the realized draft angle - is only valid for a FLAT tip. Nudging just
-    # the final top ring after the sweep leaves the walls built as if the
-    # tip were still flat, so wherever the platen bulge is large (far from
-    # radius_y_offset - e.g. the bottom of 'M'/'A', nowhere near it, vs. 'L'/
-    # 'I's mostly-vertical runs which stay close to it) the wall no longer
-    # tapers at the specified angle over the actual (now longer) distance to
-    # the tip - visible as inconsistent/wrong-looking facets specifically on
-    # those runs. Matches how the real v2 SCAD file does it too: PlatenCutout
-    # is subtracted from the base extrusion BEFORE the minkowski() call, not
-    # patched onto the result after.
-    #
-    # Warping the prism's top cap first means the cone (unmodified, exactly
-    # as specified) sweeps a surface that's already the true curved shape,
-    # so the draft angle is preserved everywhere by construction - not just
-    # near the tangent point.
-    pv = prism.vertices.copy()
-    top = np.isclose(pv[:, 2], separation_mm, atol=tip_h / 2)
-    y = pv[top, 1]
-    pv[top, 2] = (y - radius_y_offset_mm) ** 2 * platen_radius_mm + separation_mm
-    prism = trimesh.Trimesh(vertices=pv, faces=prism.faces, process=False)
+    x_min, x_max = flat.vertices[:, 0].min(), flat.vertices[:, 0].max()
+    cyl_length = (x_max - x_min) + 2.0
+    cyl_center_x = (x_min + x_max) / 2.0
+    platen_cyl = Manifold.cylinder(cyl_length, platen_radius_real_mm, platen_radius_real_mm,
+                                    circular_segments=platen_fn, center=True)
+    platen_cyl = platen_cyl.rotate([0, 90, 0])
+    platen_cyl = platen_cyl.translate([cyl_center_x, radius_y_offset_mm,
+                                        separation_mm + platen_radius_real_mm])
+
+    scalloped = _to_manifold(prism) - platen_cyl
+
+    if not minkowski_enabled:
+        # Fast preview path: skip the Minkowski sweep entirely (the
+        # expensive step - see the cost note above) and return the
+        # scalloped block as-is, undrafted (constant cross-section from
+        # root to tip). Correct platen curve and glyph footprint/placement,
+        # no taper - for quick layout iteration, not a final export.
+        if simplify_tolerance_mm > 0:
+            scalloped = scalloped.simplify(simplify_tolerance_mm)
+        return _from_manifold(scalloped)
 
     cone = Manifold.cylinder(cone_h, expansion_width_mm, 0.0, circular_segments=cone_segments)
     cone = cone.translate([0, 0, -cone_h])
 
-    drafted = _to_manifold(prism).minkowski_sum(cone)
+    drafted = scalloped.minkowski_sum(cone)
     if simplify_tolerance_mm > 0:
         drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
@@ -583,6 +641,12 @@ if __name__ == "__main__":
                               "over-triangulation/faceting noise manifold3d "
                               "produces on flat regions (e.g. straight strokes "
                               "like 'M's). 0 disables.")
+    parser.add_argument("--platen-fn", type=int, default=DEFAULT_PLATEN_FN,
+                         help="circular segments for the real platen cutout cylinder.")
+    parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false",
+                         default=DEFAULT_MINKOWSKI_ENABLED,
+                         help="skip the Minkowski draft sweep (fast, undrafted preview - "
+                              "correct platen curve/placement, no taper).")
     args = parser.parse_args()
 
     expansion_mm = args.separation_mm * np.tan(np.radians(args.draft_angle / 2.0))
@@ -597,10 +661,13 @@ if __name__ == "__main__":
     for ch in args.chars:
         mesh = build_glyph(ch, args.points_per_mm, expansion_mm, args.separation_mm,
                             cone_segments=args.cone_segments,
-                            simplify_tolerance_mm=args.simplify_tolerance_mm)
+                            simplify_tolerance_mm=args.simplify_tolerance_mm,
+                            platen_fn=args.platen_fn,
+                            minkowski_enabled=args.minkowski_enabled)
         report(mesh, f"char='{ch}' points_per_mm={args.points_per_mm} "
                      f"separation_mm={args.separation_mm} draft_angle={args.draft_angle} "
                      f"cone_segments={args.cone_segments} "
-                     f"simplify_tolerance_mm={args.simplify_tolerance_mm}")
+                     f"simplify_tolerance_mm={args.simplify_tolerance_mm} "
+                     f"platen_fn={args.platen_fn} minkowski_enabled={args.minkowski_enabled}")
         safe = ch if ch.isalnum() else f"u{ord(ch):04x}"
         mesh.export(f"out_{safe}_ppm{int(args.points_per_mm)}_sep{args.separation_mm:.2f}.stl")
