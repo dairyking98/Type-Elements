@@ -92,6 +92,9 @@ from textual.widgets import (Button, Footer, Header, Input, Select, Static, Swit
                               RichLog, TabbedContent, TabPane, TextArea)
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+# f3d --command-script file: just `set_camera top`, the exact console
+# command the "7" key runs - see action_render_type_test's use of it
+F3D_TOP_VIEW_SCRIPT = os.path.join(REPO_ROOT, "f3d_top_view_cmds.txt")
 
 # Named Blickensderfer keyboard layouts, ported verbatim from
 # v2/lib/layouts/blick_layouts.scad's DHIATENSOR/QWERTY/SCANDI/
@@ -633,10 +636,16 @@ class TuneApp(App):
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
             # camera view 7 (Top View), orthographic - matches the flat
-            # text's natural viewing angle with no perspective distortion;
-            # only applies on a fresh f3d launch, see _ensure_f3d_after_build
+            # text's natural viewing angle with no perspective distortion.
+            # Uses f3d's own `set_camera top` console command (the exact
+            # thing the "7" key runs - see F3D_TOP_VIEW_SCRIPT) rather
+            # than hand-derived --camera-direction/--camera-view-up
+            # vectors: an earlier attempt at the latter LOOKED like a
+            # correct top-down view offscreen but was actually rotated
+            # 90 degrees from what pressing 7 interactively gives. Only
+            # applies on a fresh f3d launch, see _ensure_f3d_after_build.
             await self._ensure_f3d_after_build(
-                out_path, camera_flags=["--camera-direction=0,0,-1", "--camera-orthographic"])
+                out_path, camera_flags=[f"--command-script={F3D_TOP_VIEW_SCRIPT}", "--camera-orthographic"])
 
     def action_save(self):
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
