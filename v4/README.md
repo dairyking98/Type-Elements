@@ -99,11 +99,25 @@ machines in the same process (not a real risk today, cheap insurance).
 
 `config/postal.yaml`'s font paths are currently placeholders (reusing
 Blickensderfer's font files) - v2's real Postal font is a system font
-family name ("Alma Mono" / "FreeMono:style=Bold"), not a `.ttf` file path;
-source real replacement font files before using Postal output for any
-real print/legibility decision. `tune.py` does not yet support Postal
-(its `SECTIONS` table is scoped to Blickensderfer's exact field set) -
-use `generate.py`/`export_glyphs.py` directly for now.
+family name ("Alma Mono" / "FreeMono:style=Bold"), not a `.ttf` file path.
+The user's local font library does have real `Alma Mono.otf`/
+`FreeMono-Bold.otf` files, but both were confirmed (via FreeType outline
+point tags) to use CFF/cubic curves, not TrueType/quadratic - the exact
+silent-failure case in "Known limitations" below. Do not wire them in
+without either finding genuine TrueType versions or extending the glyph
+pipeline to support cubic outlines.
+
+`tune.py config/postal.yaml` works - it builds a Postal-scoped Element tab
+(27 fields vs. Blickensderfer's 32, since Postal has no drive-pin
+countersink) and an empty Layout preset dropdown (v2/postal.scad has only
+one physical layout, no preset-switching menu like Blickensderfer's -
+rows are still hand-editable via Modify glyphs). `TuneApp.SECTIONS`/
+`.FIELDS`/`.LAYOUT_PRESETS` are instance attributes, fixed once at startup
+from the launch config's `machine:` key - hot-swapping to a config for a
+DIFFERENT machine mid-session (via the Browse button) is refused with a
+log message rather than crashing, since the Element tab's widgets are
+only ever built once (`compose()` runs once). Relaunch `tune.py` directly
+against the other machine's config instead.
 
 ### Performance
 

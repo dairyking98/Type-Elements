@@ -153,3 +153,14 @@ output:
 gauge:
   offset_start: 0.2
   offset_int: 0.02
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/postal.scad) - see config/blickensderfer.yaml's matching comment.
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    to do: stop.
+    wait! uh... no,
+    (parentheses)
+    excitement!

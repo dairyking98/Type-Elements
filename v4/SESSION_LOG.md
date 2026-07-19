@@ -599,31 +599,90 @@ the config's `machine:` key - orthogonal UI work, not started. Sourcing
 real Postal font files is also a prerequisite content task, not a code
 problem.
 
+## 9. `tune.py` support for Postal
+
+Closed out part 8's flagged follow-up. Split the module-level `SECTIONS`/
+`FIELDS`/`LAYOUT_PRESETS` into `SECTIONS_BY_MACHINE`/`LAYOUT_PRESETS_BY_MACHINE`
+(Postal's Element field list drops the 5 drive-pin-countersink keys that
+don't exist in its config, everything else shared) and made
+`TuneApp.SECTIONS`/`.FIELDS`/`.LAYOUT_PRESETS` instance attributes, fixed
+once at startup from the launch config's `machine:` key. All method-level
+references updated to `self.SECTIONS`/etc (a bulk regex pass, then fixed
+a `self.self.` double-prefix bug the regex introduced on the two lines it
+was defining, caught immediately via `grep`).
+
+Deliberately scoped to NOT support hot-swapping between machines within
+one running session - `compose()` only builds each tab's widgets once, so
+a config for a different machine has a structurally different Element tab
+(different KEYS, not just different values) that would need real widget
+teardown/rebuild, not just repopulation. Added a guard in
+`_switch_master_config` that peeks the target config's `machine:` key and
+refuses the switch (clear log message pointing at relaunching directly)
+if it doesn't match the machine tune.py was launched for.
+
+Fixed `config/postal.yaml` missing a `type_test:` section (tune.py's Type
+Test tab unconditionally reads `self.cfg["type_test"]["text"/"cpi"/"lpi"]`
+- crashed on first boot test with a real `KeyError`, not a hypothetical
+one). Also fixed a real hardcoded-machine-name bug found in the same
+pass: `action_save`'s suggested STL filename was always
+`f"blickensderfer_{timestamp}.stl"` regardless of which machine was
+actually being tuned - now `f"{self.machine}_{timestamp}.stl"`.
+
+Postal's Layout tab has an empty preset dropdown (v2/postal.scad has only
+one physical layout, no preset-switching menu like Blickensderfer's 6) -
+confirmed Textual's `Select` tolerates a genuinely empty options list
+fine (tested directly, no crash) with `allow_blank=True` and a
+machine-aware prompt string ("no named presets for this machine" instead
+of "custom - not a known preset").
+
+**Verified via headless `App.run_test()` boot tests** (not just visual
+screenshots) against both configs: correct per-machine field counts (73
+total/32 Element fields for Blickensderfer, 68/27 for Postal), correct
+initial values, a save round-trip on a Postal-only-relevant field
+(`drive_pin_radial`), and the cross-machine switch guard actually
+refusing (confirmed `app.machine` stays `"postal"` and
+`app.master_config_path` stays on `postal.yaml` after attempting to
+switch to `blickensderfer.yaml`).
+
+**Investigated but deliberately left alone**: sourcing real Postal font
+files. The user's local font library DOES have real `Alma Mono.otf` and
+`FreeMono-Bold.otf` files (found via `find`) - but checking their
+outlines directly via FreeType's point tags (`tag & 0x2` set = cubic
+off-curve control point) confirmed both use CFF/cubic curves, not
+TrueType/quadratic - exactly the silent-failure case already documented
+in README's "Known limitations" (`FreeMono-Bold.otf` is literally named
+there as the confirmed example). Did not wire them in; that would
+silently reproduce the exact documented bug. A genuine TrueType Alma Mono
+substitute wasn't found in the local library (`FreeMono Mod - Glyph
+Added (Leonard Chau).ttf` is confirmed real TrueType/quadratic and could
+stand in for the FreeMono side, but choosing a font substitute is a
+content/aesthetic call for the user to make, not something to guess at).
+
 ## Resuming later
 
-1. **`tune.py` support for Postal** - per-machine `SECTIONS`/`FIELDS`
-   table needed; see part 8 above.
-2. **Source real Postal font files** (currently placeholders reusing
-   Blickensderfer's fonts - see `config/postal.yaml`'s comments).
-3. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
+1. **Source real Postal font files** (currently placeholders reusing
+   Blickensderfer's fonts) - see part 9's font-format investigation above;
+   needs either a genuine TrueType Alma Mono substitute or cubic-curve
+   support added to the glyph pipeline.
+2. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
    stood" above) - `logo.radial_offset_mm` is back (part 6), but
    `separation_mm` is still the reverted `2.0`, still 61 collisions.
-4. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
+3. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
    automatic fix short of redoing placement/size, or accepting the
    `separation_mm=1.0` tradeoff (verified to eliminate them, at the cost
    of embedding-depth margin).
-5. **Performance** - if ~60-70s at full quality becomes annoying,
+4. **Performance** - if ~60-70s at full quality becomes annoying,
    `points_per_mm`/`quality.minkowski_fn` are the main levers, or
    `build.minkowski_enabled: false` for a ~3s undrafted preview - all
    wired through config + CLI (`--no-minkowski`).
-6. Alignment offsets - the mechanism is built and now in real use (see
+5. Alignment offsets - the mechanism is built and now in real use (see
    the running config's `modified_left_offset_mm`/
    `modified_right_offset_mm`), but the base `center_offset_mm`/
    `left_offset_mm` knobs are still untouched at their 0.0 defaults.
-7. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
+6. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
    direction, "may both be set at 360") - 720 was floated for `platen_fn`
    if the scallop needs to be smoother; not tested.
-8. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
-   tune - now that Postal exists (part 8 above), this is unblocked; still
-   waiting on `tune.py`'s own per-machine `SECTIONS` support (item 1
-   above) first.
+7. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
+   tune from one launcher, without needing to relaunch `tune.py` with a
+   different config path - `tune.py` itself now fully supports Postal
+   (part 9), this would just be a convenience launcher wrapping it.

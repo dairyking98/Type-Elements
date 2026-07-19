@@ -207,7 +207,21 @@ LAYOUT_PRESETS = {
 # bespoke widgets - see compose()). Field tuples: (yaml key - must be
 # unique across the whole file, section path for reading the current
 # value, type, label, help text). type is float/int/bool/str.
-SECTIONS = {
+#
+# Element is the one section that genuinely differs between machines -
+# Postal has no drive-pin countersink at all (see lib/postal.py), so its
+# element: config has no drive_pin_countersink_depth/
+# drive_pin_support_radial_offset/drive_pin_support_height/
+# drive_pin_style/drive_pin_width_offset keys; get_nested() would KeyError
+# against those for a Postal config. Every other section's schema is
+# identical between machines. SECTIONS_BY_MACHINE below is built from one
+# shared dict plus a per-machine Element field list - see
+# TuneApp.__init__'s self.SECTIONS/self.FIELDS (instance attributes,
+# fixed once at startup from the launch config's `machine:` key - tune.py
+# does not support hot-swapping to a config of a DIFFERENT machine mid-
+# session, since the Element tab's widget set would need to be rebuilt,
+# not just repopulated - see _switch_master_config's guard).
+SECTIONS_COMMON = {
     "Font & Alignment": [
         ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters."),
         ("size_mm", ["font", "size_mm"], float, "Font size (mm)", "Em-square size, matches OpenSCAD text(size=)."),
@@ -229,44 +243,6 @@ SECTIONS = {
         ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)", ""),
         ("text_offset_deg", ["logo", "text_offset_deg"], float, "Logo text offset (deg)", ""),
         ("radial_offset_mm", ["logo", "radial_offset_mm"], float, "Logo radius offset (mm)", "Placement radius = Logo_Radius + this."),
-    ],
-    "Element": [
-        ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
-        ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", "Real platen cylinder diameter."),
-        ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
-         "Min final char diameter (mm)", "Char_Protrusion = (this - element_diameter)/2."),
-        ("element_height", ["element", "element_height"], float, "Element height (mm)", ""),
-        ("wall_min_thickness", ["element", "wall_min_thickness"], float, "Wall min thickness (mm)", ""),
-        ("wall_chamfer", ["element", "wall_chamfer"], float, "Wall chamfer (mm)", ""),
-        ("roof_offset", ["element", "roof_offset"], float, "Roof offset (mm)", ""),
-        ("speed_hole_id", ["element", "speed_hole_id"], float, "Speed hole ID (mm)", ""),
-        ("speed_hole_qty", ["element", "speed_hole_qty"], int, "Speed hole qty", ""),
-        ("speed_hole_radial", ["element", "speed_hole_radial"], float, "Speed hole radial (mm)", ""),
-        ("core_id_in", ["element", "core_id_in"], float, "Core ID (in)", "Core_ID_Mm = this * 25.4."),
-        ("core_groove_qty", ["element", "core_groove_qty"], int, "Core groove qty", ""),
-        ("core_groove_d", ["element", "core_groove_d"], float, "Core groove depth (mm)", ""),
-        ("core_chamfer", ["element", "core_chamfer"], float, "Core chamfer (mm)", ""),
-        ("core_bottom_offset", ["element", "core_bottom_offset"], float, "Core bottom offset (mm)", ""),
-        ("core_contact_length", ["element", "core_contact_length"], float, "Core contact length (mm)", ""),
-        ("core_web_width", ["element", "core_web_width"], float, "Core web width (mm)", ""),
-        ("core_web_qty", ["element", "core_web_qty"], int, "Core web qty", ""),
-        ("core_web_length", ["element", "core_web_length"], float, "Core web length (mm)", ""),
-        ("clip_height", ["element", "clip_height"], float, "Clip height (mm)", ""),
-        ("clip_wire_od", ["element", "clip_wire_od"], float, "Clip wire OD (mm)", ""),
-        ("clip_opening", ["element", "clip_opening"], float, "Clip opening (mm)", ""),
-        ("clip_bite", ["element", "clip_bite"], float, "Clip bite (mm)", ""),
-        ("drive_pin_widthmm", ["element", "drive_pin_widthmm"], float, "Drive pin width (mm)", ""),
-        ("drive_pin_length", ["element", "drive_pin_length"], float, "Drive pin length (mm)", ""),
-        ("drive_pin_radial", ["element", "drive_pin_radial"], float, "Drive pin radial (mm)", ""),
-        ("drive_pin_countersink_depth", ["element", "drive_pin_countersink_depth"], float,
-         "Drive pin countersink depth (mm)", ""),
-        ("drive_pin_support_radial_offset", ["element", "drive_pin_support_radial_offset"], float,
-         "Drive pin support radial offset (mm)", ""),
-        ("drive_pin_support_height", ["element", "drive_pin_support_height"], float,
-         "Drive pin support height (mm)", ""),
-        ("drive_pin_style", ["element", "drive_pin_style"], int, "Drive pin style", "0=current, 1=old (not ported - will error)."),
-        ("core_id_offset", ["element", "core_id_offset"], float, "Core ID offset (mm)", "Print-tolerance addition."),
-        ("drive_pin_width_offset", ["element", "drive_pin_width_offset"], float, "Drive pin width offset (mm)", ""),
     ],
     "Quality": [
         ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
@@ -306,6 +282,61 @@ SECTIONS = {
     ],
 }
 
+ELEMENT_FIELDS_BLICKENSDERFER = [
+    ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
+    ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", "Real platen cylinder diameter."),
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final char diameter (mm)", "Char_Protrusion = (this - element_diameter)/2."),
+    ("element_height", ["element", "element_height"], float, "Element height (mm)", ""),
+    ("wall_min_thickness", ["element", "wall_min_thickness"], float, "Wall min thickness (mm)", ""),
+    ("wall_chamfer", ["element", "wall_chamfer"], float, "Wall chamfer (mm)", ""),
+    ("roof_offset", ["element", "roof_offset"], float, "Roof offset (mm)", ""),
+    ("speed_hole_id", ["element", "speed_hole_id"], float, "Speed hole ID (mm)", ""),
+    ("speed_hole_qty", ["element", "speed_hole_qty"], int, "Speed hole qty", ""),
+    ("speed_hole_radial", ["element", "speed_hole_radial"], float, "Speed hole radial (mm)", ""),
+    ("core_id_in", ["element", "core_id_in"], float, "Core ID (in)", "Core_ID_Mm = this * 25.4."),
+    ("core_groove_qty", ["element", "core_groove_qty"], int, "Core groove qty", ""),
+    ("core_groove_d", ["element", "core_groove_d"], float, "Core groove depth (mm)", ""),
+    ("core_chamfer", ["element", "core_chamfer"], float, "Core chamfer (mm)", ""),
+    ("core_bottom_offset", ["element", "core_bottom_offset"], float, "Core bottom offset (mm)", ""),
+    ("core_contact_length", ["element", "core_contact_length"], float, "Core contact length (mm)", ""),
+    ("core_web_width", ["element", "core_web_width"], float, "Core web width (mm)", ""),
+    ("core_web_qty", ["element", "core_web_qty"], int, "Core web qty", ""),
+    ("core_web_length", ["element", "core_web_length"], float, "Core web length (mm)", ""),
+    ("clip_height", ["element", "clip_height"], float, "Clip height (mm)", ""),
+    ("clip_wire_od", ["element", "clip_wire_od"], float, "Clip wire OD (mm)", ""),
+    ("clip_opening", ["element", "clip_opening"], float, "Clip opening (mm)", ""),
+    ("clip_bite", ["element", "clip_bite"], float, "Clip bite (mm)", ""),
+    ("drive_pin_widthmm", ["element", "drive_pin_widthmm"], float, "Drive pin width (mm)", ""),
+    ("drive_pin_length", ["element", "drive_pin_length"], float, "Drive pin length (mm)", ""),
+    ("drive_pin_radial", ["element", "drive_pin_radial"], float, "Drive pin radial (mm)", ""),
+    ("drive_pin_countersink_depth", ["element", "drive_pin_countersink_depth"], float,
+     "Drive pin countersink depth (mm)", ""),
+    ("drive_pin_support_radial_offset", ["element", "drive_pin_support_radial_offset"], float,
+     "Drive pin support radial offset (mm)", ""),
+    ("drive_pin_support_height", ["element", "drive_pin_support_height"], float,
+     "Drive pin support height (mm)", ""),
+    ("drive_pin_style", ["element", "drive_pin_style"], int, "Drive pin style", "0=current, 1=old (not ported - will error)."),
+    ("core_id_offset", ["element", "core_id_offset"], float, "Core ID offset (mm)", "Print-tolerance addition."),
+    ("drive_pin_width_offset", ["element", "drive_pin_width_offset"], float, "Drive pin width offset (mm)", ""),
+]
+
+# Postal has no drive-pin countersink at all (lib/postal.py's HollowSpace/
+# DrivePin/ResinSupport) - no drive_pin_countersink_depth/
+# drive_pin_support_radial_offset/drive_pin_support_height/drive_pin_style
+# keys in its config, and it reuses core_id_offset directly in place of a
+# dedicated drive_pin_width_offset (see lib/postal.py's configure()).
+ELEMENT_FIELDS_POSTAL = [
+    f for f in ELEMENT_FIELDS_BLICKENSDERFER
+    if f[0] not in ("drive_pin_countersink_depth", "drive_pin_support_radial_offset",
+                     "drive_pin_support_height", "drive_pin_style", "drive_pin_width_offset")
+]
+
+SECTIONS_BY_MACHINE = {
+    "blickensderfer": {**SECTIONS_COMMON, "Element": ELEMENT_FIELDS_BLICKENSDERFER},
+    "postal": {**SECTIONS_COMMON, "Element": ELEMENT_FIELDS_POSTAL},
+}
+
 # Static intro banner shown above a section tab's fields, keyed by section
 # name - (text, css class). Only sections that need one appear here.
 SECTION_INTROS = {
@@ -322,7 +353,15 @@ SECTION_INTROS = {
         "picker-help"),
 }
 
-FIELDS = [field for fields in SECTIONS.values() for field in fields]
+# Postal has no named layout presets yet (v2/postal.scad has only ONE
+# physical layout, no preset-switching menu like Blickensderfer's - see
+# LAYOUT_PRESETS above) - its Layout tab always shows "(custom - not a
+# known preset)"; the 3 rows are still fully hand-editable via Modify
+# glyphs, just with nothing to pick from the dropdown.
+LAYOUT_PRESETS_BY_MACHINE = {
+    "blickensderfer": LAYOUT_PRESETS,
+    "postal": {},
+}
 
 
 def get_nested(d, path):
@@ -476,6 +515,16 @@ class TuneApp(App):
         # plain signal.signal() isn't used)
         atexit.register(self._kill_f3d)
         self._load_current()
+        # SECTIONS/FIELDS/LAYOUT_PRESETS are per-machine (see
+        # SECTIONS_BY_MACHINE's comment) - fixed once here, at startup,
+        # from the LAUNCH config's `machine:` key. Not re-derived on
+        # config switch/reload/reset: compose() only runs once, so the
+        # Element tab's widget set can't change shape mid-session anyway -
+        # see _switch_master_config's cross-machine guard.
+        self.machine = self.cfg.get("machine", "blickensderfer")
+        self.SECTIONS = SECTIONS_BY_MACHINE.get(self.machine, SECTIONS_BY_MACHINE["blickensderfer"])
+        self.FIELDS = [field for fields in self.SECTIONS.values() for field in fields]
+        self.LAYOUT_PRESETS = LAYOUT_PRESETS_BY_MACHINE.get(self.machine, {})
 
     @staticmethod
     def _running_config_path(master_path):
@@ -614,13 +663,13 @@ class TuneApp(App):
 
     def _current_layout_preset(self):
         current_rows = self.cfg.get("layout", {}).get("rows")
-        for name, rows in LAYOUT_PRESETS.items():
+        for name, rows in self.LAYOUT_PRESETS.items():
             if rows == current_rows:
                 return name
         return None  # custom/unrecognized - leave as-is unless explicitly changed
 
     def _compose_section_tab(self, section):
-        fields = SECTIONS[section]
+        fields = self.SECTIONS[section]
         tab_id = f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"
         with TabPane(section, id=tab_id):
             with VerticalScroll():
@@ -662,16 +711,16 @@ class TuneApp(App):
         OLD preset's rows while the user is still just browsing the
         dropdown pre-save."""
         preset_now = self._current_layout_preset()
-        return LAYOUT_PRESETS[preset_now] if preset_now else self.cfg["layout"]["rows"]
+        return self.LAYOUT_PRESETS[preset_now] if preset_now else self.cfg["layout"]["rows"]
 
     def _rows_for_layout_select_value(self, value):
         """The 3 rows to preview for a given #layout-select VALUE
         (typically its live current value, mid-browse and not yet
         saved) - the preset's own rows, or self.cfg's current custom
         rows for Select.NULL/an unrecognized value."""
-        if value is Select.NULL or value not in LAYOUT_PRESETS:
+        if value is Select.NULL or value not in self.LAYOUT_PRESETS:
             return self.cfg["layout"]["rows"]
-        return LAYOUT_PRESETS[value]
+        return self.LAYOUT_PRESETS[value]
 
     def _compose_layout_tab(self):
         # named-layout picker only - latitude_columns must stay in sync
@@ -683,16 +732,23 @@ class TuneApp(App):
                 with Vertical(classes="picker-row"):
                     yield Static("Keyboard layout", classes="field-label")
                     preset_now = self._current_layout_preset()
-                    options = [(name, name) for name in LAYOUT_PRESETS]
+                    options = [(name, name) for name in self.LAYOUT_PRESETS]
+                    prompt = "(custom - not a known preset)" if options else "(no named presets for this machine)"
                     select = Select(options, value=preset_now if preset_now else Select.NULL,
-                                    id="layout-select", allow_blank=True, prompt="(custom - not a known preset)")
+                                    id="layout-select", allow_blank=True, prompt=prompt)
                     yield select
-                yield Static(
-                    "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
-                    "physical placement_map - only glyph content per row changes.\n"
-                    "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
-                    "(v2 auto-switches fonts per layout; v4 does not).",
-                    classes="picker-help")
+                if options:
+                    yield Static(
+                        "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
+                        "physical placement_map - only glyph content per row changes.\n"
+                        "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
+                        "(v2 auto-switches fonts per layout; v4 does not).",
+                        classes="picker-help")
+                else:
+                    yield Static(
+                        "No named layout presets for this machine yet - use Modify glyphs\n"
+                        "below to hand-edit the 3 rows directly.",
+                        classes="picker-help")
 
                 yield Static("Rows (read-only preview of the preset above):", classes="field-label")
                 display_rows = self._display_rows_for_preset()
@@ -812,7 +868,7 @@ class TuneApp(App):
 
     def _collect_values(self):
         values = {}
-        for key, path, typ, label, help_text in FIELDS:
+        for key, path, typ, label, help_text in self.FIELDS:
             widget = self.inputs[key]
             if typ is bool:
                 values[key] = widget.value
@@ -831,7 +887,7 @@ class TuneApp(App):
         # supports regardless, see _run_build)
         values["target"] = self.query_one("#build-select", Select).value
         values["resin_support"] = self.query_one("#build-resin-support", Switch).value
-        # Type Test's own cpi/lpi - bespoke widgets, not in FIELDS, but
+        # Type Test's own cpi/lpi - bespoke widgets, not in self.FIELDS, but
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
         # patch_yaml_value's one-token regex doesn't apply)
@@ -863,7 +919,7 @@ class TuneApp(App):
         else:
             layout_select = self.query_one("#layout-select", Select)
             if layout_select.value is not Select.NULL:
-                text = patch_yaml_rows(text, LAYOUT_PRESETS[layout_select.value])
+                text = patch_yaml_rows(text, self.LAYOUT_PRESETS[layout_select.value])
         type_test_text = self.query_one("#type-test-text", TextArea).text
         text = patch_yaml_text_block(text, "text", type_test_text)
         with open(self.config_path, "w") as f:
@@ -883,7 +939,7 @@ class TuneApp(App):
         different master config entirely - all three are "throw away
         whatever's in the widgets and repopulate from whatever
         self.cfg now is"."""
-        for key, path, typ, label, help_text in FIELDS:
+        for key, path, typ, label, help_text in self.FIELDS:
             current = get_nested(self.cfg, path)
             widget = self.inputs[key]
             if typ is bool:
@@ -936,7 +992,25 @@ class TuneApp(App):
         self._switch_master_config(str(result))
 
     def _switch_master_config(self, new_master_path):
-        self.master_config_path = os.path.abspath(new_master_path)
+        new_master_path = os.path.abspath(new_master_path)
+        # self.SECTIONS/self.FIELDS/self.LAYOUT_PRESETS are fixed once at
+        # startup (see __init__) and compose() only builds the tabs' widgets
+        # ONCE - a config for a DIFFERENT machine (e.g. switching from
+        # Blickensderfer to Postal mid-session) has a different Element
+        # field set entirely (get_nested() would KeyError against fields
+        # Postal's config doesn't have) and would need the Element tab's
+        # widgets rebuilt, not just repopulated. Refuse the switch instead
+        # of crashing - relaunch tune.py directly against that machine's
+        # config.
+        with open(new_master_path) as f:
+            new_machine = (yaml.safe_load(f) or {}).get("machine", "blickensderfer")
+        if new_machine != self.machine:
+            self.log_line(
+                f"[red]can't switch to a {new_machine!r} config while tuning {self.machine!r} - "
+                f"relaunch tune.py directly against it instead: python3 tune.py "
+                f"{os.path.relpath(new_master_path, REPO_ROOT)}[/red]")
+            return
+        self.master_config_path = new_master_path
         self.config_path = self._running_config_path(self.master_config_path)
         self._ensure_running_config()
         migrated = self._migrate_running_config()
@@ -1091,7 +1165,7 @@ class TuneApp(App):
         # suggest a collision-free timestamped name, same as before, but
         # it's now just the file picker's starting point - the picker
         # lets you navigate elsewhere or rename before confirming
-        base = f"blickensderfer_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        base = f"{self.machine}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         suggested = f"{base}.stl"
         n = 2
         while os.path.exists(os.path.join(save_dir, suggested)):
