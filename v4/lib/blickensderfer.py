@@ -12,6 +12,8 @@ in configure() from that file's base parameters, matching how
 v2/blickensderfer.scad itself derives them.
 """
 
+import time
+
 import numpy as np
 import trimesh
 import yaml
@@ -261,8 +263,20 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                           else minkowski_enabled)
     parts = []
     skipped = []
+    total = sum(len(DHIATENSOR[r]) for r in (0, 1, 2))
+    n = 0
+    t_start = time.perf_counter()
     for row in (0, 1, 2):
         for col, ch in enumerate(DHIATENSOR[row]):
+            n += 1
+            # flush=True: generate.py's stdout is piped (not a TTY) when
+            # run from tune.py's subprocess, which defaults to full block
+            # buffering - without an explicit flush every line here would
+            # sit in the buffer and only appear as one dump at exit,
+            # defeating the point of live per-character progress
+            print(f"TextRing: [{n}/{total}] building {ch!r} (row {row}, col {col})...",
+                  end="", flush=True)
+            t0 = time.perf_counter()
             try:
                 mesh = build_glyph(
                     ch, points_per_mm, separation_mm=separation_mm, row=row,
@@ -273,14 +287,17 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                     minkowski_enabled=minkowski_enabled)
             except Exception as e:
                 skipped.append((row, col, ch, str(e)))
+                print(f" SKIPPED ({e})", flush=True)
                 continue
+            print(f" {time.perf_counter() - t0:.2f}s", flush=True)
             parts.append(place_on_cylinder(mesh, row, col, separation_mm))
-    print(f"TextRing: placed {len(parts)}, skipped {len(skipped)}: {skipped}")
+    print(f"TextRing: all characters built in {time.perf_counter() - t_start:.1f}s", flush=True)
+    print(f"TextRing: placed {len(parts)}, skipped {len(skipped)}: {skipped}", flush=True)
 
     collisions = _check_inter_character_collisions(parts)
     if collisions:
         print(f"TextRing: {len(collisions)} inter-character collisions detected "
-              f"(detection only, not repaired): {sorted(collisions)}")
+              f"(detection only, not repaired): {sorted(collisions)}", flush=True)
 
     # Real union, not trimesh.util.concatenate: characters routinely overlap
     # each other (the collisions just reported above) and every character's
@@ -553,7 +570,7 @@ def Subtractive(render_core_groove=None):
     ]
     if render_core_groove:
         parts.append(CoreGrooves(0))
-    print("Subtractive: unioning", len(parts), "parts")
+    print("Subtractive: unioning", len(parts), "parts", flush=True)
     return sp.union_all(parts)
 
 
@@ -565,10 +582,10 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
-          f"watertight={additive.is_watertight}")
+          f"watertight={additive.is_watertight}", flush=True)
     subtractive = Subtractive(render_core_groove)
     print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
-          f"watertight={subtractive.is_watertight}")
+          f"watertight={subtractive.is_watertight}", flush=True)
     full = additive.difference(subtractive, engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="FullElement")
     return full, char_parts
@@ -700,7 +717,7 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
     support = ResinSupport()
     print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
-          f"watertight={support.is_watertight}")
+          f"watertight={support.is_watertight}", flush=True)
     combined = sp.union_all([full, support])
     combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
     return combined, char_parts

@@ -244,7 +244,7 @@ def check_and_repair(mesh, label="mesh"):
     import trimesh.repair as repair
 
     before = _validity(mesh)
-    print(f"{label}: pre-repair validity = {before}")
+    print(f"{label}: pre-repair validity = {before}", flush=True)
     if all(before.values()):
         return mesh, before, before, False
 
@@ -255,9 +255,9 @@ def check_and_repair(mesh, label="mesh"):
     repair.fix_normals(repaired)
 
     after = _validity(repaired)
-    print(f"{label}: post-repair validity = {after}")
+    print(f"{label}: post-repair validity = {after}", flush=True)
     improved = after != before
     if not all(after.values()):
         print(f"{label}: WARNING - repair did not fully resolve all issues, "
-              f"remaining: {[k for k, v in after.items() if not v]}")
+              f"remaining: {[k for k, v in after.items() if not v]}", flush=True)
     return repaired, before, after, improved

@@ -72,7 +72,7 @@ def main():
     label = "ResinPrint" if resin_support else "FullElement"
     print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "
           f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
-          f"is_volume={full.is_volume} volume={full.volume:.3f}mm3")
+          f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
 
     out_path = args.out
     if out_path is None:
@@ -80,11 +80,11 @@ def main():
         os.makedirs(out_dir, exist_ok=True)
         out_path = os.path.join(out_dir, bd.OUTPUT_STL_NAME)
     full.export(out_path)
-    print(f"wrote {out_path}")
+    print(f"wrote {out_path}", flush=True)
 
     hollow = bd.HollowSpace()
     any_hit = any(hollow.contains(part.vertices).any() for part in char_parts)
-    print(f"any character root vertex falls inside HollowSpace: {any_hit}")
+    print(f"any character root vertex falls inside HollowSpace: {any_hit}", flush=True)
 
 
 if __name__ == "__main__":
