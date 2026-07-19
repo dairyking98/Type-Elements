@@ -828,29 +828,34 @@ config, not the user's real master/running files, even for read-only-
 seeming checks - `TuneApp.__init__` itself performs a real migration
 side-effect on the running file as soon as it's constructed.
 
-## 13. Matched Blickensderfer's remaining resin values to Postal's
+## 13. Matched Blickensderfer's and Postal's remaining resin values
 
 Follow-up to part 12's `raft` unification - user asked to go further and
 match the actual remaining resin VALUES too, not just the raft toggle.
-`min_rod_height` (4.0 -> 2.0), `raft_od` (2.0 -> 4.0), `raft_thickness`
-(1.0 -> 2.0), `bottom_support_fractions` (`[0.2]` ->
-`[0, .25, .5, .75, 1]`), `bottom_support_inner_angle_offset` (0.5 -> 0.0)
-in `config/blickensderfer.yaml` all changed to Postal's values (the
-other direction - keeping Blickensderfer's original v2 numbers and
-changing Postal instead - wasn't specified; Postal's values were assumed
-as the target since that's literally what was asked). `config/
-postal.yaml`'s own values were untouched (already the target), just its
-comments simplified now that there's nothing left to contrast against
-Blickensderfer for. The two files' `resin:` sections are now byte-
-identical when parsed (`yaml.safe_load(...)['resin'] ==` the other's).
+First pass (wrong direction, corrected same turn): changed `config/
+blickensderfer.yaml`'s `min_rod_height`/`raft_od`/`raft_thickness`/
+`bottom_support_fractions`/`bottom_support_inner_angle_offset` to
+Postal's values, on the assumption "match A to B" meant "make A become
+B" without a stated target. User corrected immediately: "you made it
+match up to postal, i wanted blickensderfer to be the standard" -
+Blickensderfer's ORIGINAL v2 values are the standard both machines
+unify against, not Postal's. Reverted `config/blickensderfer.yaml` back
+to its original v2 numbers (`min_rod_height: 4.0`, `raft_od: 2.0`,
+`raft_thickness: 1.0`, `bottom_support_fractions: [0.2]`,
+`bottom_support_inner_angle_offset: 0.5`) and instead changed `config/
+postal.yaml`'s values to match THOSE. The two files' `resin:` sections
+are still byte-identical when parsed (`yaml.safe_load(...)['resin'] ==`
+the other's) - just anchored to the opposite machine's original numbers
+than the first pass.
 
-Regression-verified against `config/blickensderfer.yaml` directly (not
-the user's real running copy - see part 12's lesson, applied this time):
-fully watertight/winding-consistent/`is_volume`, `ResinSupport` vert/face
-counts now much closer to Postal's own (22790/45668 vs Postal's
-22774/45608 - the small remaining difference is expected, from the two
-machines' different `Element_Diameter`/`Wall_Min_Thickness`/etc, not a
-bug).
+Regression-verified both directions against the master config files
+directly (not the user's real running copies - see part 12's lesson,
+applied both times): fully watertight/winding-consistent/`is_volume` in
+both passes. Final state's `ResinSupport` counts: Blickensderfer
+13648/27196 (exactly its original pre-any-of-this-session's-changes
+number, confirming the revert is exact), Postal 13719/27322 (now close
+to Blickensderfer's, small remaining gap expected from the two machines'
+different `Element_Diameter`/`Wall_Min_Thickness`/etc, not a bug).
 
 ## Resuming later
 

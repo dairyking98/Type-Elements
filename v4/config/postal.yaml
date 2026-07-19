@@ -132,26 +132,27 @@ build:
   draft_angle_deg: 55.0
 
 # Every value here matches config/blickensderfer.yaml's resin: section
-# exactly (see its comment) - the two machines' resin supports are damn
-# near identical by design, so there's no reason for the actual VALUES to
-# diverge either. Postal's original v2 file had rod_raft=false/
-# cut_groove_inner_x=-14.9 (a continuous raft plate) hardcoded as its
-# only behavior; that's now available as raft: true below instead of a
-# silent per-machine default.
+# exactly (see its comment there - Blickensderfer's original v2 values
+# are the standard the two machines are unified against, not Postal's) -
+# the two machines' resin supports are damn near identical by design, so
+# there's no reason for the actual VALUES to diverge either. Postal's
+# original v2 file had rod_raft=false/cut_groove_inner_x=-14.9 (a
+# continuous raft plate) hardcoded as its only behavior; that's now
+# available as raft: true below instead of a silent per-machine default.
 resin:
   resin_fn: 20
   rod_od: 1.0
   tip_od: 0.6
   tip_l: 1.0
   inset: 0.3
-  min_rod_height: 2.0
-  raft_od: 4.0
-  raft_thickness: 2.0
+  min_rod_height: 4.0
+  raft_od: 2.0
+  raft_thickness: 1.0
   groove_od: 0.8
   groove_thickness: 0.3
   raft: false
-  bottom_support_fractions: [0.0, 0.25, 0.5, 0.75, 1.0]
-  bottom_support_inner_angle_offset: 0.0
+  bottom_support_fractions: [0.2]
+  bottom_support_inner_angle_offset: 0.5
 
 output:
   directory: "output"

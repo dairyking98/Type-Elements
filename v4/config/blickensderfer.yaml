@@ -153,13 +153,15 @@ build:
   draft_angle_deg: 55.0
 
 # lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
-# print supports - Blickensderfer/Postal only, not Hammond/IBM). Resin_Fn
-# is from v2's [Global Parameters]; every other value here is set to match
-# config/postal.yaml's exactly (not v2/blickensderfer.scad's own original
-# [Resin Printing] values) - the two machines' resin supports are damn
-# near identical by design (same shared lib/resin_support.scad-derived
-# code, see lib/cylinder_machine.py), so there's no reason for their
-# actual VALUES to diverge either, beyond `raft` (a real, deliberate
+# print supports - Blickensderfer/Postal only, not Hammond/IBM). Values
+# below are Blickensderfer's original v2/blickensderfer.scad [Resin
+# Printing] values (Resin_Fn is from [Global Parameters]) - this is the
+# STANDARD the two machines' resin supports are unified against;
+# config/postal.yaml's values are set to match these exactly (not its own
+# original v2/postal.scad numbers) - the two machines' resin supports are
+# damn near identical by design (same shared lib/resin_support.scad-
+# derived code, see lib/cylinder_machine.py), so there's no reason for
+# their actual VALUES to diverge either, beyond `raft` (a real, deliberate
 # per-build choice - see its own comment below).
 resin:
   resin_fn: 20
@@ -167,9 +169,9 @@ resin:
   tip_od: 0.6
   tip_l: 1.0
   inset: 0.3
-  min_rod_height: 2.0
-  raft_od: 4.0
-  raft_thickness: 2.0
+  min_rod_height: 4.0
+  raft_od: 2.0
+  raft_thickness: 1.0
   groove_od: 0.8
   groove_thickness: 0.3
   # false = each resin support rod grows its own small individual raft
@@ -182,8 +184,8 @@ resin:
   # instead of a silent per-machine default. See
   # cylinder_machine.resin_raft_config's docstring for the derivation.
   raft: false
-  bottom_support_fractions: [0.0, 0.25, 0.5, 0.75, 1.0]
-  bottom_support_inner_angle_offset: 0.0
+  bottom_support_fractions: [0.2]
+  bottom_support_inner_angle_offset: 0.5
 
 output:
   directory: "output"
