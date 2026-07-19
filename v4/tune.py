@@ -103,16 +103,17 @@ Tabs (in display order):
     Not part of the real element - a small 6-pocket calibration test
     print for finding element.core_id_offset. Select "Shaft Gauge" on
     the Build tab to actually build it via Preview/Render.
-  Calibration      - calibration.test_char/variable/start/interval, ported
-    from v2's Cutout_Test/Baseline_Test/Test_Layout mechanism (lib/
-    testing.scad + lib/glyph_pipeline.scad's TextRing/TextRingDebug - see
-    cylinder_machine.CalibrationTextRing's docstring for the full port
-    notes). Not part of the real element - every physical position
-    strikes the same test_char while variable ("baseline" or "cutout")
-    gets a per-column swept offset (start + interval*col) instead of its
-    row's normal value, for empirically finding layout.baseline_row/
-    cutout_row. Select "Calibration Element" on the Build tab to actually
-    build it via Preview/Render.
+  Calibration      - calibration.test_char/vary_baseline/vary_cutout/
+    start/interval, ported from v2's Cutout_Test/Baseline_Test/
+    Test_Layout mechanism (lib/testing.scad + lib/glyph_pipeline.scad's
+    TextRing/TextRingDebug - see cylinder_machine.CalibrationTextRing's
+    docstring for the full port notes). Not part of the real element -
+    every physical position strikes the same test_char while Vary
+    baselines/Vary cutouts (independent checkboxes - usually only one on
+    at a time) get a per-column swept offset (start + interval*col)
+    instead of its row's normal value, for empirically finding
+    layout.baseline_row/cutout_row. Select "Calibration Element" on the
+    Build tab to actually build it via Preview/Render.
   Build            - a dropdown, Element / Shaft Gauge / Calibration
     Element (build.target - see the Gauge/Calibration tabs for what those build),
     plus an independent "Resin supports" checkbox (build.resin_support)
@@ -321,8 +322,12 @@ SECTIONS_COMMON = {
     "Calibration": [
         ("test_char", ["calibration", "test_char"], str, "Test character",
          "Struck at every physical position - keep it simple/legible."),
-        ("variable", ["calibration", "variable"], str, "Variable",
-         '"baseline" or "cutout" - which one gets swept per column.'),
+        ("vary_baseline", ["calibration", "vary_baseline"], bool, "Vary baselines",
+         "Sweep the character baseline per column. Usually only one of "
+         "these two is on at a time."),
+        ("vary_cutout", ["calibration", "vary_cutout"], bool, "Vary cutouts",
+         "Sweep the platen cutout per column. Usually only one of these "
+         "two is on at a time."),
         ("start", ["calibration", "start"], float, "Sweep start (mm)",
          "Offset added at column 0."),
         ("interval", ["calibration", "interval"], float, "Sweep interval (mm)",
@@ -401,15 +406,15 @@ SECTION_INTROS = {
         "picker-help"),
     "Calibration": (
         "A real element, but every physical position strikes the SAME\n"
-        "test character, and ONE variable (baseline or platen cutout)\n"
-        "gets a different swept value per column instead of its row's\n"
-        "normal fixed value. Print it, test-fit each position on the real\n"
-        "machine, and read off which column's value looks/fits best from\n"
-        "the Render log (or the .txt file Save writes alongside the STL)\n"
-        "- then edit that row's entry directly in layout.baseline_row/\n"
-        "cutout_row (not exposed here - list-valued, edit the YAML).\n"
-        "Select \"Calibration Element\" on the Build tab, then Preview/\n"
-        "Render as usual to build this instead.",
+        "test character, and Vary baselines/Vary cutouts (usually only\n"
+        "one checked at a time) get a different swept value per column\n"
+        "instead of its row's normal value. Print it, test-fit each\n"
+        "position on the real machine, and read off which column's value\n"
+        "looks/fits best from the Render log (or the .txt file Save\n"
+        "writes alongside the STL) - then edit that row's entry directly\n"
+        "in layout.baseline_row/cutout_row (not exposed here - list-\n"
+        "valued, edit the YAML). Select \"Calibration Element\" on the\n"
+        "Build tab, then Preview/Render as usual to build this instead.",
         "picker-help"),
 }
 
@@ -768,12 +773,6 @@ class TuneApp(App):
                             elif key == "mode":
                                 val = str(current) if str(current) in ("center", "left") else "center"
                                 sel = Select([("center", "center"), ("left", "left")],
-                                             value=val, id=f"field-{key}", allow_blank=False)
-                                self.inputs[key] = sel
-                                yield sel
-                            elif key == "variable":
-                                val = str(current) if str(current) in ("baseline", "cutout") else "cutout"
-                                sel = Select([("baseline", "baseline"), ("cutout", "cutout")],
                                              value=val, id=f"field-{key}", allow_blank=False)
                                 self.inputs[key] = sel
                                 yield sel

@@ -1061,3 +1061,57 @@ confirmed the STL and mapping `.txt` both get written and
    pre-existing backlog: `separation_mm`, inter-character collisions,
    performance, alignment offsets, `platen_fn`/`body_fn`) is still
    open - unrelated to Calibration, not touched this pass.
+
+## 16. Two Calibration follow-up fixes from real usage
+
+**Bug: Calibration Element ignored `--minkowski`/`--no-minkowski`.**
+User: "right now, pressing preview renders it with minkowski." Root
+cause: `generate.py`'s `--calibrate` branch parsed
+`--minkowski`/`--no-minkowski` (and every other build-quality flag -
+`--points-per-mm`/`--separation-mm`/`--cone-segments`/
+`--simplify-tolerance-mm`/`--platen-fn`/`--draft-angle-deg`) but never
+actually passed any of them to `CalibrationElement()` - so tune.py's
+Preview button (which sends `--no-minkowski`) had zero effect; every
+calibration build silently used the config's default (minkowski on),
+the same ~36s path as Render regardless of which button was pressed.
+Fixed by threading all of them through, matching the normal
+`build_fn(...)` call exactly. Confirmed: `--no-minkowski` now takes
+~1.4s (was ~36s regardless of the flag before the fix) - verified both
+via direct CLI timing AND through `tune.py`'s actual `_run_build` worker
+path (a real subprocess call, not just unit-testing the arg parsing).
+Also renamed the Build tab's "Calibration" dropdown option to
+"Calibration Element" (all UI text/docstrings quoting the old label
+updated to match).
+
+**Redesign: `calibration.variable` (single baseline-or-cutout choice)
+replaced with two independent checkboxes.** User: "have checkboxes for
+vary baselines, and vary cutouts. usually youll only have 1 checked at a
+time." This is actually a MORE faithful port of v2 than the original
+single-choice design - v2's `Cutout_Test`/`Baseline_Test` really are two
+separate booleans (confirmed by re-reading part 14's own research), not
+a single enum; the original single-`variable` implementation was an
+unnecessary simplification. Replaced `calibration.variable: "cutout"`
+with `calibration.vary_baseline: false`/`vary_cutout: true` (same net
+default) in both config files, in `CalibrationTextRing`/`Additive`/
+`Element`'s signatures (`vary_baseline`/`vary_cutout` bools instead of a
+`variable` string), in both machines' `configure()`, and in
+`generate.py`'s CLI (`--calibration-vary-baseline`/
+`--calibration-no-vary-baseline` + the `-cutout` pair, mirroring the
+`--minkowski`/`--no-minkowski` tri-state pattern). tune.py's Calibration
+tab: the `variable` field's Select special-case removed entirely (two
+plain `bool` fields get `Switch` widgets automatically via the existing
+generic FIELDS mechanism - no special-casing needed, simpler than what
+it replaced). Both CAN be checked together (moves baseline and cutout by
+the same shared offset simultaneously) or both off (no sweep, every
+position identical) - not just the "usually 1" case, though that's still
+the expected normal usage the user described.
+
+Verified all four on/off combinations (default cutout-only, baseline-only
+override, both-on, both-off) via direct `generate.py --calibrate` runs -
+all watertight/winding-consistent/`is_volume`, `.txt` mapping output
+spot-checked to confirm baseline/cutout values actually move independently
+per combination (both-on: both columns' values change together;
+both-off: cutout stays pinned to its row's fixed value across every
+column). tune.py's two `Switch` widgets verified via headless test
+against a scratch config (not the user's real files) - correct initial
+values, save round-trip.

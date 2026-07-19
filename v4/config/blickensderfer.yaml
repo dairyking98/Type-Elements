@@ -216,15 +216,19 @@ gauge:
 
 # Calibration (v2's Cutout_Test/Baseline_Test/Test_Layout mechanism,
 # lib/testing.scad + lib/glyph_pipeline.scad's TextRing/TextRingDebug) -
-# every physical position strikes the SAME test_char, while ONE of
-# baseline/cutout gets a per-column swept offset (start + interval*col,
-# 28 columns) instead of its row's normal fixed value - the other stays
-# normal. Print it, test-fit each position on the real machine, and read
-# off which column's value looks/fits best from generate.py --calibrate's
-# console output (or its .txt sidecar) - then dial that value into the
-# real element.layout.baseline_row/cutout_row (config's layout: section).
+# every physical position strikes the SAME test_char, while vary_baseline/
+# vary_cutout (independent, like v2's own separate Cutout_Test/
+# Baseline_Test booleans - usually only one on at a time, but both CAN be
+# on together) get a per-column swept offset (start + interval*col, 28
+# columns) instead of its row's normal fixed value - whichever is off
+# stays normal. Print it, test-fit each position on the real machine, and
+# read off which column's value looks/fits best from generate.py
+# --calibrate's console output (or its .txt sidecar) - then dial that
+# value into the real element.layout.baseline_row/cutout_row (config's
+# layout: section).
 calibration:
   test_char: "X"
-  variable: "cutout"   # "baseline" or "cutout"
+  vary_baseline: false
+  vary_cutout: true
   start: 0.0
   interval: 0.05

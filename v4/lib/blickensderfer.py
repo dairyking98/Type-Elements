@@ -208,7 +208,8 @@ def configure(config_path):
     # work (variable/start/interval match v2's Cutout_Test_Start/Int).
     calibration = cfg.get("calibration", {})
     g["Calibration_Test_Char"] = calibration.get("test_char", "X")
-    g["Calibration_Variable"] = calibration.get("variable", "cutout")
+    g["Calibration_Vary_Baseline"] = calibration.get("vary_baseline", False)
+    g["Calibration_Vary_Cutout"] = calibration.get("vary_cutout", True)
     g["Calibration_Start"] = calibration.get("start", 0.0)
     g["Calibration_Interval"] = calibration.get("interval", 0.05)
 

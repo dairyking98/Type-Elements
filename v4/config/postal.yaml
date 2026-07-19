@@ -165,7 +165,8 @@ gauge:
 # Calibration - see config/blickensderfer.yaml's matching comment.
 calibration:
   test_char: "X"
-  variable: "cutout"   # "baseline" or "cutout"
+  vary_baseline: false
+  vary_cutout: true
   start: 0.0
   interval: 0.05
 

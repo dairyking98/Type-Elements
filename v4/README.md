@@ -427,14 +427,19 @@ this IS a real element (same `Subtractive()` hollow-out as a normal
 build) - only the additive text ring differs: every physical position
 strikes the SAME `calibration.test_char` (v2's `Test_Layout`, always on
 here - the whole point is a consistent reference shape to compare across
-positions), while exactly one of `calibration.variable` (`"baseline"` or
-`"cutout"`) gets a per-column swept offset
+positions), while `calibration.vary_baseline`/`vary_cutout` (independent
+booleans, matching v2's own separate `Cutout_Test`/`Baseline_Test` flags
+- usually only one is on at a time, but both CAN be on together, moving
+by the same shared offset) get a per-column swept offset
 (`calibration.start + calibration.interval * col`, matching
 `testSweepArray`) instead of its row's normal fixed value.
 
 Build via `generate.py --calibrate` (plus `--calibration-char`/
-`--calibration-variable`/`--calibration-start`/`--calibration-interval`
-overrides) or tune.py's Build tab ("Calibration Element"). Prints one line per
+`--calibration-vary-baseline`/`--calibration-no-vary-baseline`/
+`--calibration-vary-cutout`/`--calibration-no-vary-cutout`/
+`--calibration-start`/`--calibration-interval` overrides) or tune.py's
+Build tab ("Calibration Element") + its Calibration tab's two checkboxes.
+Prints one line per
 physical position - keyboard key, real placement angle, and the exact
 cutout/baseline value used there (computed from the actual physical
 placement angle via `PLACEMENT_MAP`, not v2's raw content-order `col` -

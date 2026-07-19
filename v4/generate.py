@@ -75,8 +75,18 @@ def main():
                               "in the config and cylinder_machine.CalibrationTextRing")
     parser.add_argument("--calibration-char", default=None,
                          help="override calibration.test_char from the config")
-    parser.add_argument("--calibration-variable", default=None, choices=["baseline", "cutout"],
-                         help="override calibration.variable from the config")
+    parser.add_argument("--calibration-vary-baseline", dest="calibration_vary_baseline",
+                         action="store_true", default=None,
+                         help="override calibration.vary_baseline from the config (force on)")
+    parser.add_argument("--calibration-no-vary-baseline", dest="calibration_vary_baseline",
+                         action="store_false",
+                         help="override calibration.vary_baseline from the config (force off)")
+    parser.add_argument("--calibration-vary-cutout", dest="calibration_vary_cutout",
+                         action="store_true", default=None,
+                         help="override calibration.vary_cutout from the config (force on)")
+    parser.add_argument("--calibration-no-vary-cutout", dest="calibration_vary_cutout",
+                         action="store_false",
+                         help="override calibration.vary_cutout from the config (force off)")
     parser.add_argument("--calibration-start", type=float, default=None,
                          help="override calibration.start from the config")
     parser.add_argument("--calibration-interval", type=float, default=None,
@@ -118,7 +128,8 @@ def main():
         # need to actually reach it, not just be parsed and dropped.
         full, mapping_lines = bd.CalibrationElement(
             test_char=args.calibration_char,
-            variable=args.calibration_variable,
+            vary_baseline=args.calibration_vary_baseline,
+            vary_cutout=args.calibration_vary_cutout,
             start=args.calibration_start,
             interval=args.calibration_interval,
             points_per_mm=args.points_per_mm,
