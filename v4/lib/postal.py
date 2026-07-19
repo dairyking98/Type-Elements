@@ -28,7 +28,7 @@ from glyph_poc import (
 )
 import scad_primitives as sp
 import cylinder_machine
-from cylinder_machine import FullElement, ResinPrint, GaugeTestSet  # re-exported for callers
+from cylinder_machine import FullElement, ResinPrint, GaugeTestSet, CalibrationElement  # re-exported for callers
 
 _configured = False
 
@@ -178,6 +178,14 @@ def configure(config_path):
     gauge = cfg.get("gauge", {})
     g["Gauge_Offset_Start"] = gauge.get("offset_start", 0.0)
     g["Gauge_Offset_Int"] = gauge.get("offset_int", 0.025)
+
+    # Calibration - see blickensderfer.configure()'s matching comment /
+    # cylinder_machine.CalibrationTextRing's docstring.
+    calibration = cfg.get("calibration", {})
+    g["Calibration_Test_Char"] = calibration.get("test_char", "X")
+    g["Calibration_Variable"] = calibration.get("variable", "cutout")
+    g["Calibration_Start"] = calibration.get("start", 0.0)
+    g["Calibration_Interval"] = calibration.get("interval", 0.05)
 
     g["Bottom_Slope"] = g["Core_Bottom_Offset"] / (
         (g["Shaft_Diameter"] / 2 + g["Wall_Min_Thickness"] + g["Wall_Chamfer"])

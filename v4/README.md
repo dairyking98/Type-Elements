@@ -416,6 +416,40 @@ same pattern `CoreEllipses()` already used, since trimesh has no
 hull-of-solids primitive. Build via `generate.py --gauge` or tune.py's
 Build tab ("Shaft Gauge").
 
+### Calibration (`CalibrationElement`)
+
+Ported from v2's `Cutout_Test`/`Baseline_Test`/`Test_Layout` mechanism
+(`lib/testing.scad`'s `testSweepArray` + `lib/glyph_pipeline.scad`'s
+`TextRing`/`TextRingDebug`, ~line 407-451) - a real, already-designed v2
+feature for empirically finding the right `layout.baseline_row`/
+`cutout_row` values, not invented for v4. Unlike the Shaft Gauge Test,
+this IS a real element (same `Subtractive()` hollow-out as a normal
+build) - only the additive text ring differs: every physical position
+strikes the SAME `calibration.test_char` (v2's `Test_Layout`, always on
+here - the whole point is a consistent reference shape to compare across
+positions), while exactly one of `calibration.variable` (`"baseline"` or
+`"cutout"`) gets a per-column swept offset
+(`calibration.start + calibration.interval * col`, matching
+`testSweepArray`) instead of its row's normal fixed value.
+
+Build via `generate.py --calibrate` (plus `--calibration-char`/
+`--calibration-variable`/`--calibration-start`/`--calibration-interval`
+overrides) or tune.py's Build tab ("Calibration"). Prints one line per
+physical position - keyboard key, real placement angle, and the exact
+cutout/baseline value used there (computed from the actual physical
+placement angle via `PLACEMENT_MAP`, not v2's raw content-order `col` -
+more directly useful for correlating against the printed part, and
+avoids relying on Blickensderfer's non-identity `placement_map` lining up
+with v2's o'clock-from-content-order convention, which only happens to
+hold for Postal's identity map). `--calibrate` also writes a `.txt`
+sidecar next to the STL with the same per-position lines; tune.py's Save
+copies that sidecar alongside the saved STL too (like the existing
+`.yaml` metadata sidecar), when the last build was a Calibration build.
+
+Test-fit each position on the real machine, read off which column's value
+looks/fits best, and hand-edit that row's entry in `layout.baseline_row`/
+`cutout_row` (list-valued, not a tune.py field - edit the YAML directly).
+
 ### HollowSpace margin is razor-thin by design at the current settings
 
 At `separation_mm=2.0`, the character root lands at

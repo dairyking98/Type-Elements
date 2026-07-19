@@ -162,6 +162,13 @@ gauge:
   offset_start: 0.2
   offset_int: 0.02
 
+# Calibration - see config/blickensderfer.yaml's matching comment.
+calibration:
+  test_char: "X"
+  variable: "cutout"   # "baseline" or "cutout"
+  start: 0.0
+  interval: 0.05
+
 # tune.py's Type Test tab (v4-specific, not part of the real element or
 # v2/postal.scad) - see config/blickensderfer.yaml's matching comment.
 type_test:

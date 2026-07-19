@@ -981,3 +981,83 @@ just parameter values, per part 8's methodology), port only the
 machine-specific pieces, add `config/<machine>.yaml`, regression-verify
 against the master configs directly (not the user's running copies - see
 part 12's lesson).
+
+## 15. Calibration feature implemented (per part 14's plan)
+
+User said "start plan" - implemented part 14's design as written, no
+deviations from the mechanism (v2's `Cutout_Test`/`Baseline_Test`/
+`Test_Layout` traced through `lib/testing.scad` + `lib/glyph_pipeline.
+scad`'s `TextRing`/`TextRingDebug`).
+
+**`lib/cylinder_machine.py`** (shared, per part 14's reasoning - free for
+Mignon/Bennett/Helios later): `place_on_cylinder()` gained an optional
+`baseline_mm=None` param (overrides `BASELINE_ROW[row]` when calibrating
+that variable; `None`, every other caller, preserves the exact prior
+behavior - zero risk to the real element path). New
+`CalibrationTextRing()`/`CalibrationAdditive()`/`CalibrationElement()`
+(mirroring `TextRing`/`Additive`/`FullElement`'s structure exactly) sweep
+`start + interval*col` onto either `Cutout_Row[row]` or `Baseline_Row[row]`
+per physical column, force `calibration.test_char` everywhere, and print
+one line per position - keyboard key, o'clock-equivalent, and the exact
+cutout/baseline values used.
+
+**One deliberate deviation from v2, explained in both the code comment
+and README**: the position label uses the REAL physical placement angle
+(`PLACEMENT_MAP[col]` * `LATITUDE_INT`, matching `place_on_cylinder`'s own
+angle formula) instead of v2's raw content-order `col`. Traced why: v2's
+`TextRingDebug` computes o'clock from the loop's raw `col` (content-order
+index into `Physical_Layout`), which only equals the true physical
+position for machines with an IDENTITY `Placement_Map` (Postal - "no
+Placement_Map override... the lib defaults Placement_Map to identity").
+Blickensderfer's real `placement_map` is NOT identity
+(`[13,12,11,...]`), so porting v2's formula literally would have
+mislabeled every position for Blickensderfer specifically - decided this
+was worth deviating on (with the reasoning documented) rather than
+faithfully reproducing what looks like a latent v2 quirk.
+
+**Config**: new `calibration:` section (`test_char: "X"`,
+`variable: "cutout"`, `start: 0.0`, `interval: 0.05`) added to both
+`config/blickensderfer.yaml` and `config/postal.yaml` identically (shared
+schema, matching `gauge:`/`resin:`).
+
+**`generate.py`**: `--calibrate` flag (+ `--calibration-char`/
+`-variable`/`-start`/`-interval` overrides), mirrors `--gauge`'s
+early-return structure. Writes the STL, then a `<stem>_mapping.txt`
+sidecar with the same per-position lines the console printed - the
+user's explicit ask ("when saving a test element, it also outputs a .txt
+of the keyboard mapping").
+
+**`tune.py`**: new shared "Calibration" tab (`test_char` input,
+`variable` dropdown - added as a second special-cased Select alongside
+the existing `mode` one, `start`/`interval` inputs), Build tab dropdown
+gained a third "Calibration" option, `_run_build` dispatches `--calibrate`
+(Minkowski forced the same way as a normal element build, since
+Calibration DOES go through the real draft/placement pipeline unlike
+Gauge). `action_save` now copies the `_mapping.txt` sidecar alongside the
+saved STL too, gated on `self._last_build_info.get("target") ==
+"calibration"` (reusing the existing `_last_build_info` tracking, same
+pattern as the `.yaml` metadata sidecar).
+
+**Verified thoroughly, at every layer**: direct `generate.py --calibrate`
+on both machines (Blickensderfer default cutout-sweep AND Postal with
+`--calibration-variable baseline`) - all 84 positions built, fully
+watertight/winding-consistent/`is_volume`, `.txt` sidecar content spot-
+checked (clean, correctly formatted, matches console output exactly).
+Headless `tune.py` tests against SCRATCH COPIES of the configs (not the
+user's real master/running files - part 12's lesson applied from the
+start this time): Calibration tab fields/values, Build dropdown's third
+option, a full save round-trip, AND the complete `_run_build` worker path
+(real subprocess `generate.py` invocation via the Preview button) -
+confirmed the STL and mapping `.txt` both get written and
+`_last_build_info["target"] == "calibration"` is set correctly for
+`action_save`'s new logic to key off.
+
+## Resuming later
+
+1. **Mignon, then Bennett, then Helios** - see part 14's extraction
+   playbook. Calibration (this part) is done, so all three get it for
+   free via `cylinder_machine.py`.
+2. Everything in part 14's own original "Resuming later" list (the
+   pre-existing backlog: `separation_mm`, inter-character collisions,
+   performance, alignment offsets, `platen_fn`/`body_fn`) is still
+   open - unrelated to Calibration, not touched this pass.

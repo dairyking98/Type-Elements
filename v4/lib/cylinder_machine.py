@@ -99,7 +99,7 @@ def ClipCylinder(Offset):
     return sp.translate(c, [0, 0, Element_Height - z])
 
 
-def place_on_cylinder(mesh, row, col, separation_mm):
+def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None):
     """LetterPlacement() equivalent - see conversation for the full
     derivation from rotate([90,0,90])+translate((R+protrusion),0,0)+
     translate(0,0,textBaseline)+rotate([0,0,angle]).
@@ -110,11 +110,18 @@ def place_on_cylinder(mesh, row, col, separation_mm):
     Element_Diameter/2+Char_Protrusion - a FIXED real-machine value, not
     separation_mm. The root (z_local=0) sits INWARD from that anchor by
     separation_mm - the base pushes toward the axis as it widens (like a
-    nail driven in with a wide head sitting proud), not flush-and-sideways."""
+    nail driven in with a wide head sitting proud), not flush-and-sideways.
+
+    baseline_mm: overrides BASELINE_ROW[row] - CalibrationTextRing's own
+    per-column swept baseline value, when calibrating that variable
+    (v2's charBaseline, vs. the row's own fixed Baseline[row] every other
+    caller uses). None (every other caller) preserves the exact prior
+    behavior."""
+    baseline_mm = BASELINE_ROW[row] if baseline_mm is None else baseline_mm
     v = mesh.vertices
     x_local, y_local, z_local = v[:, 0], v[:, 1], v[:, 2]
     radial = (Element_Diameter / 2.0 + Char_Protrusion - separation_mm) + z_local
-    axial = BASELINE_Z_OFFSET + BASELINE_ROW[row] + y_local
+    axial = BASELINE_Z_OFFSET + baseline_mm + y_local
     lateral = x_local
     placement_col = PLACEMENT_MAP[col]
     angle = np.radians((0.5 + placement_col) * LATITUDE_INT)
@@ -228,6 +235,122 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                                       platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                       draft_angle_deg=draft_angle_deg)
     return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
+
+
+# --------------------------------------------------------------- Calibration
+# Ports v2's Cutout_Test/Baseline_Test/Test_Layout mechanism (v2/lib/
+# testing.scad's testSweepArray + lib/glyph_pipeline.scad's TextRing/
+# TextRingDebug, ~line 407-451) - a real, already-designed v2 feature for
+# empirically finding the right Baseline/Cutout row values, not something
+# invented here. Every physical position renders the SAME test character
+# (v2's Test_Layout, always on for this - the whole point is a consistent
+# reference shape to compare across positions) while ONE of
+# baseline/cutout gets a per-column swept offset (start + interval*col,
+# matching testSweepArray) and the other stays at its row's normal fixed
+# value. Print it, physically test-fit each position on the real machine,
+# and read off which column's value looks/fits best from the console
+# output (or generate.py --calibrate's .txt sidecar).
+
+def CalibrationTextRing(test_char=None, variable=None, start=None, interval=None,
+                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
+                         minkowski_enabled=None, draft_angle_deg=None):
+    _require_configured()
+    test_char = Calibration_Test_Char if test_char is None else test_char
+    variable = Calibration_Variable if variable is None else variable
+    start = Calibration_Start if start is None else start
+    interval = Calibration_Interval if interval is None else interval
+    points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
+    align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
+    cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
+    simplify_tolerance_mm = (DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None
+                              else simplify_tolerance_mm)
+    platen_fn = Platen_Fn if platen_fn is None else platen_fn
+    minkowski_enabled = (DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None
+                          else minkowski_enabled)
+    draft_angle_deg = DEFAULT_DRAFT_ANGLE_DEG if draft_angle_deg is None else draft_angle_deg
+    if variable not in ("baseline", "cutout"):
+        raise ValueError(f"calibration.variable must be 'baseline' or 'cutout', got {variable!r}")
+
+    n_cols = len(PLACEMENT_MAP)
+    total = 3 * n_cols
+    parts = []
+    mapping_lines = []
+    n = 0
+    t_start = time.perf_counter()
+    for row in (0, 1, 2):
+        for col in range(n_cols):
+            n += 1
+            t0 = time.perf_counter()
+            # matches v2's per-column testSweepArray(start, interval, 28) -
+            # same offset applied to every row at this column
+            offset = start + interval * col
+            baseline_mm = BASELINE_ROW[row] + (offset if variable == "baseline" else 0.0)
+            cutout_mm = CUTOUT_ROW[row] + (offset if variable == "cutout" else 0.0)
+            mesh = build_glyph(
+                test_char, points_per_mm, separation_mm=separation_mm, row=row,
+                align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
+                radius_y_offset_mm=cutout_mm - baseline_mm,
+                platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
+                simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+                minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+            parts.append(place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=baseline_mm))
+
+            # angle_deg computed from the REAL physical placement (matching
+            # place_on_cylinder's own angle formula) rather than v2's raw
+            # content-order col - more directly useful for correlating
+            # against the printed part, and avoids relying on Blickensderfer's
+            # non-identity placement_map lining up with v2's o'clock formula
+            # (which assumes content order == physical order, true for
+            # Postal's identity placement_map but not Blickensderfer's).
+            placement_col = PLACEMENT_MAP[col]
+            angle_deg = (0.5 + placement_col) * LATITUDE_INT
+            keyboard_char = DHIATENSOR[row][col] if col < len(DHIATENSOR[row]) else "?"
+            line = (f"[{n}/{total}] row {row} col {col} (keyboard key {keyboard_char!r}, "
+                    f"{angle_deg:.1f}deg): {variable}={offset:+.4f}mm -> "
+                    f"cutout={cutout_mm:.4f}mm baseline={baseline_mm:.4f}mm "
+                    f"({time.perf_counter() - t0:.2f}s)")
+            mapping_lines.append(line)
+            print(line, flush=True)
+    print(f"CalibrationTextRing: all {total} positions built in "
+          f"{time.perf_counter() - t_start:.1f}s", flush=True)
+    return sp.union_all(parts), mapping_lines
+
+
+def CalibrationAdditive(test_char=None, variable=None, start=None, interval=None,
+                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
+                         minkowski_enabled=None, draft_angle_deg=None):
+    text_ring, mapping_lines = CalibrationTextRing(
+        test_char, variable, start, interval, points_per_mm, separation_mm,
+        align_kwargs=align_kwargs, cone_segments=cone_segments,
+        simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+    return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), mapping_lines
+
+
+def CalibrationElement(test_char=None, variable=None, start=None, interval=None,
+                        points_per_mm=None, separation_mm=None, render_core_groove=None,
+                        align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
+                        platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
+    """FullElement()'s calibration counterpart - same real body/hollow-out
+    (Subtractive() is unchanged, identical to a normal build), just with
+    CalibrationTextRing() in place of TextRing() for the additive ring."""
+    _require_configured()
+    additive, mapping_lines = CalibrationAdditive(
+        test_char, variable, start, interval, points_per_mm, separation_mm,
+        align_kwargs=align_kwargs, cone_segments=cone_segments,
+        simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+    print(f"CalibrationAdditive: verts={len(additive.vertices)} faces={len(additive.faces)} "
+          f"watertight={additive.is_watertight}", flush=True)
+    subtractive = Subtractive(render_core_groove)
+    print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
+          f"watertight={subtractive.is_watertight}", flush=True)
+    full = additive.difference(subtractive, engine="manifold")
+    full, _, _, _ = sp.check_and_repair(full, label="CalibrationElement")
+    return full, mapping_lines
 
 
 # ------------------------------------------------------------- Subtractive

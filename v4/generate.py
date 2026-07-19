@@ -67,6 +67,20 @@ def main():
                          help="build the Shaft Gauge Test set (a small calibration test "
                               "print for finding element.core_id_offset) instead of the "
                               "real element - see blickensderfer.GaugeTestSet")
+    parser.add_argument("--calibrate", action="store_true",
+                         help="build a Calibration element (sweeps baseline or platen "
+                              "cutout per physical column, same test character struck "
+                              "everywhere) instead of the real element, for empirically "
+                              "finding layout.baseline_row/cutout_row - see calibration.* "
+                              "in the config and cylinder_machine.CalibrationTextRing")
+    parser.add_argument("--calibration-char", default=None,
+                         help="override calibration.test_char from the config")
+    parser.add_argument("--calibration-variable", default=None, choices=["baseline", "cutout"],
+                         help="override calibration.variable from the config")
+    parser.add_argument("--calibration-start", type=float, default=None,
+                         help="override calibration.start from the config")
+    parser.add_argument("--calibration-interval", type=float, default=None,
+                         help="override calibration.interval from the config")
     parser.add_argument("--out", default=None,
                          help="override output.directory/output.stl_name from the config "
                               "(full path to the .stl to write)")
@@ -92,6 +106,31 @@ def main():
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
         full.export(out_path)
         print(f"wrote {out_path}", flush=True)
+        return
+
+    if args.calibrate:
+        # a real element (Additive-Subtractive, same hollow-out as a
+        # normal build), just with CalibrationTextRing() swapped in for
+        # TextRing() - see cylinder_machine.CalibrationElement
+        full, mapping_lines = bd.CalibrationElement(
+            test_char=args.calibration_char,
+            variable=args.calibration_variable,
+            start=args.calibration_start,
+            interval=args.calibration_interval,
+            render_core_groove=render_core_groove,
+        )
+        print(f"CalibrationElement: verts={len(full.vertices)} faces={len(full.faces)} "
+              f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
+              f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+        full.export(out_path)
+        print(f"wrote {out_path}", flush=True)
+        # .txt sidecar - the user's explicit ask: a durable keyboard-key/
+        # position -> tested-value mapping alongside the STL, not just a
+        # console scrollback you have to have caught live
+        mapping_path = os.path.splitext(out_path)[0] + "_mapping.txt"
+        with open(mapping_path, "w") as f:
+            f.write("\n".join(mapping_lines) + "\n")
+        print(f"wrote {mapping_path}", flush=True)
         return
 
     resin_support = args.resin_support if args.resin_support is not None else bd.DEFAULT_RESIN_SUPPORT

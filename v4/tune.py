@@ -103,12 +103,23 @@ Tabs (in display order):
     Not part of the real element - a small 6-pocket calibration test
     print for finding element.core_id_offset. Select "Shaft Gauge" on
     the Build tab to actually build it via Preview/Render.
-  Build            - a dropdown, Element / Shaft Gauge (build.target -
-    see the Gauge tab for what Shaft Gauge builds), plus an independent
-    "Resin supports" checkbox (build.resin_support) that only matters
-    for Element (FullElement() vs ResinPrint()) - Shaft Gauge always
-    includes its own resin supports regardless. Resin tab's own fields
-    only matter when Resin supports is checked.
+  Calibration      - calibration.test_char/variable/start/interval, ported
+    from v2's Cutout_Test/Baseline_Test/Test_Layout mechanism (lib/
+    testing.scad + lib/glyph_pipeline.scad's TextRing/TextRingDebug - see
+    cylinder_machine.CalibrationTextRing's docstring for the full port
+    notes). Not part of the real element - every physical position
+    strikes the same test_char while variable ("baseline" or "cutout")
+    gets a per-column swept offset (start + interval*col) instead of its
+    row's normal value, for empirically finding layout.baseline_row/
+    cutout_row. Select "Calibration" on the Build tab to actually build
+    it via Preview/Render.
+  Build            - a dropdown, Element / Shaft Gauge / Calibration
+    (build.target - see the Gauge/Calibration tabs for what those build),
+    plus an independent "Resin supports" checkbox (build.resin_support)
+    that only matters for Element (FullElement() vs ResinPrint()) - Shaft
+    Gauge always includes its own resin supports regardless, Calibration
+    never does. Resin tab's own fields only matter when Resin supports is
+    checked.
   Layout           - a dropdown of named Blickensderfer keyboard layouts
     (ported from v2/lib/layouts/blick_layouts.scad), a read-only 3-row
     preview of whichever one's selected, and a "Modify glyphs" switch
@@ -307,6 +318,16 @@ SECTIONS_COMMON = {
         ("offset_int", ["gauge", "offset_int"], float, "Offset increment (mm)",
          "Added per pocket - pocket n tests offset_start + n*offset_int."),
     ],
+    "Calibration": [
+        ("test_char", ["calibration", "test_char"], str, "Test character",
+         "Struck at every physical position - keep it simple/legible."),
+        ("variable", ["calibration", "variable"], str, "Variable",
+         '"baseline" or "cutout" - which one gets swept per column.'),
+        ("start", ["calibration", "start"], float, "Sweep start (mm)",
+         "Offset added at column 0."),
+        ("interval", ["calibration", "interval"], float, "Sweep interval (mm)",
+         "Added per column - column n tests start + n*interval."),
+    ],
 }
 
 ELEMENT_FIELDS_BLICKENSDERFER = [
@@ -377,6 +398,18 @@ SECTION_INTROS = {
         "pocket on the real machine's shaft, and set Element > Core ID\n"
         "offset to whichever number fits. Select \"Shaft Gauge\" on the\n"
         "Build tab, then Preview/Render as usual to build this instead.",
+        "picker-help"),
+    "Calibration": (
+        "A real element, but every physical position strikes the SAME\n"
+        "test character, and ONE variable (baseline or platen cutout)\n"
+        "gets a different swept value per column instead of its row's\n"
+        "normal fixed value. Print it, test-fit each position on the real\n"
+        "machine, and read off which column's value looks/fits best from\n"
+        "the Render log (or the .txt file Save writes alongside the STL)\n"
+        "- then edit that row's entry directly in layout.baseline_row/\n"
+        "cutout_row (not exposed here - list-valued, edit the YAML).\n"
+        "Select \"Calibration\" on the Build tab, then Preview/Render as\n"
+        "usual to build this instead.",
         "picker-help"),
 }
 
@@ -738,6 +771,12 @@ class TuneApp(App):
                                              value=val, id=f"field-{key}", allow_blank=False)
                                 self.inputs[key] = sel
                                 yield sel
+                            elif key == "variable":
+                                val = str(current) if str(current) in ("baseline", "cutout") else "cutout"
+                                sel = Select([("baseline", "baseline"), ("cutout", "cutout")],
+                                             value=val, id=f"field-{key}", allow_blank=False)
+                                self.inputs[key] = sel
+                                yield sel
                             else:
                                 inp = Input(value=str(current), id=f"field-{key}")
                                 self.inputs[key] = inp
@@ -836,10 +875,11 @@ class TuneApp(App):
                 with Vertical(classes="picker-row"):
                     yield Static("Build target", classes="field-label")
                     target_now = self.cfg.get("build", {}).get("target", "element")
-                    if target_now not in ("element", "gauge"):
+                    if target_now not in ("element", "gauge", "calibration"):
                         target_now = "element"
                     build_select = Select(
-                        [("Element", "element"), ("Shaft Gauge", "gauge")],
+                        [("Element", "element"), ("Shaft Gauge", "gauge"),
+                         ("Calibration", "calibration")],
                         value=target_now, id="build-select", allow_blank=False)
                     yield build_select
                 with Horizontal(classes="picker-row"):
@@ -853,7 +893,11 @@ class TuneApp(App):
                     "for its own settings, which only matter when this is on. Shaft\n"
                     "Gauge = GaugeTestSet() (see the Gauge tab) - a calibration test\n"
                     "print, not part of the real element; always has its own resin\n"
-                    "supports built in regardless of this checkbox.",
+                    "supports built in regardless of this checkbox. Calibration = a\n"
+                    "real element with the SAME test character struck at every\n"
+                    "position, sweeping baseline or platen cutout per column (see the\n"
+                    "Calibration tab) - for empirically finding layout.baseline_row/\n"
+                    "cutout_row.",
                     classes="picker-help")
 
     def _compose_type_test_tab(self):
@@ -911,6 +955,7 @@ class TuneApp(App):
                 yield from self._compose_type_test_tab()
                 yield from self._compose_section_tab("Resin")
                 yield from self._compose_section_tab("Gauge")
+                yield from self._compose_section_tab("Calibration")
                 yield from self._compose_build_tab()
                 yield from self._compose_layout_tab()
                 yield from self._compose_section_tab("Quality")
@@ -1020,7 +1065,7 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
-        if target_now not in ("element", "gauge"):
+        if target_now not in ("element", "gauge", "calibration"):
             # "resin" was a valid target value before the Build tab's
             # dropdown was split into target + a separate Resin supports
             # checkbox - a running copy saved before that change could
@@ -1157,6 +1202,16 @@ class TuneApp(App):
             cmd += ["--gauge"]
             if fast:
                 cmd += ["--no-core-groove"]
+        elif values["target"] == "calibration":
+            # CalibrationElement() DOES go through build_glyph/TextRing
+            # (same real draft/placement machinery, just a different
+            # character grid) - Minkowski forced the same way as a normal
+            # element build, below
+            cmd += ["--calibrate"]
+            if fast:
+                cmd += ["--no-minkowski", "--no-core-groove"]
+            else:
+                cmd += ["--minkowski"]
         else:
             # Minkowski draft sweep is not a config field the user tunes -
             # it's entirely determined by which button was pressed, forced
@@ -1291,7 +1346,19 @@ class TuneApp(App):
         with open(meta_path, "w") as f:
             f.write(header)
             yaml.dump(self.cfg, f, sort_keys=False, allow_unicode=True)
-        self.log_line(f"[green]saved[/green] {stl_path} (+ {os.path.basename(meta_path)})")
+        extra = [os.path.basename(meta_path)]
+        # Calibration builds also write a keyboard-key/position -> tested-
+        # value .txt sidecar next to the scratch STL (see generate.py's
+        # --calibrate) - copy it alongside the saved STL too, same as the
+        # .yaml metadata, rather than regenerating it (it's already
+        # exactly what the last build produced).
+        mapping_src = os.path.splitext(out_path)[0] + "_mapping.txt"
+        if self._last_build_info and self._last_build_info.get("target") == "calibration" \
+                and os.path.exists(mapping_src):
+            mapping_dst = stl_path[:-4] + "_mapping.txt"
+            shutil.copy2(mapping_src, mapping_dst)
+            extra.append(os.path.basename(mapping_dst))
+        self.log_line(f"[green]saved[/green] {stl_path} (+ {', '.join(extra)})")
 
     async def _browse_font(self, key):
         current = self.inputs[key].value
