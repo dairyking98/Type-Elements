@@ -31,12 +31,26 @@ matching just its value token on its own line (or, for layout.rows, the
 whole 3-item block), leaving everything else (comments, formatting,
 unrelated keys) untouched.
 
-Tabs:
+Tabs (in display order):
   Font & Alignment - font.* + alignment.* (combined, both are "how
-    characters are placed/rendered" concerns)
-  Logo             - logo.*
-  Element          - element.* - flagged ADVANCED: real machine geometry,
-    not something you'd normally tune
+    characters are placed/rendered" concerns). alignment.mode is a
+    dropdown ("center"/"left"), not free text.
+  Type Test        - NOT part of the real element. A flat, CPI-spaced
+    test block (matches v2's TypeTest() fixed-pitch convention, supports
+    multiple lines) using the Font tab's path/size, for instant
+    text/legibility checks. Overwrites the same output STL path as
+    Render/Quick Preview (so the same f3d --watch window shows it) -
+    it's a scratch preview, not saved anywhere else (see Save).
+  Build            - stripped down to ONE dropdown: Element Only vs.
+    Element + Resin Print (build.resin_support). Resin tab's own fields
+    only matter when Resin Print is selected.
+  Resin            - resin.* (Resin_Rod_Raft is not exposed - Blickensderfer
+    always uses the default true, no reason to flip it interactively)
+  Layout           - a dropdown of named Blickensderfer keyboard layouts
+    (ported from v2/lib/layouts/blick_layouts.scad) that rewrites
+    layout.rows. layout.latitude_columns is not exposed - it must stay
+    in sync with placement_map/the physical layout, not something to
+    change casually; edit it directly in the YAML if you really mean to.
   Quality          - quality.* facet counts + build.points_per_mm/
     separation_mm/render_core_groove/simplify_tolerance_mm (moved here
     from Build - these are all mesh generation quality/speed knobs, not
@@ -44,19 +58,9 @@ Tabs:
     here - Render always forces it on and Quick Preview always forces
     it off (see _run_build), so a config-file toggle would just be
     dead weight/a second source of truth.
-  Layout           - layout.latitude_columns + a dropdown of named
-    Blickensderfer keyboard layouts (ported from v2/lib/layouts/
-    blick_layouts.scad) that rewrites layout.rows
-  Build            - stripped down to ONE dropdown: Element Only vs.
-    Element + Resin Print (build.resin_support). Resin tab's own fields
-    only matter when Resin Print is selected.
-  Resin            - resin.* (unchanged, its own tab as before)
-  Type Test        - NOT part of the real element. A flat, CPI-spaced
-    test line (matches v2's TypeTest() fixed-pitch convention) using the
-    Font tab's path/size, for instant text/legibility checks. Overwrites
-    the same output STL path as Render/Quick Preview (so the same f3d
-    --watch window shows it) - it's a scratch preview, not saved anywhere
-    else.
+  Logo             - logo.*
+  Element          - element.* - flagged ADVANCED: real machine geometry,
+    not something you'd normally tune. Last tab on purpose.
 
 List/array-valued config entries other than layout.rows (baseline_row,
 cutout_row, placement_map, bottom_support_fractions) are still NOT
@@ -212,7 +216,6 @@ SECTIONS = {
         ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
         ("groove_od", ["resin", "groove_od"], float, "Groove OD (mm)", ""),
         ("groove_thickness", ["resin", "groove_thickness"], float, "Groove thickness (mm)", ""),
-        ("rod_raft", ["resin", "rod_raft"], bool, "Rod raft", "Resin_Rod_Raft."),
         ("cut_groove_inner_x", ["resin", "cut_groove_inner_x"], float, "Cut groove inner X (mm)", ""),
         ("bottom_support_inner_angle_offset", ["resin", "bottom_support_inner_angle_offset"], float,
          "Bottom support angle offset (deg)", ""),
@@ -280,6 +283,8 @@ class TuneApp(App):
     .field-label { width: 26; height: 1; content-align: left middle; }
     .field-row Input { width: 1fr; height: 1; border: none; padding: 0 1; background: $panel; }
     .field-row Switch { width: auto; height: 1; border: none; padding: 0; }
+    .field-row Select { width: 1fr; height: 1; border: none; }
+    .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .field-help { color: $text-muted; height: 1; }
     #buttons { height: 8; dock: bottom; padding: 0 1; }
     #primary-buttons { height: 5; }
@@ -319,98 +324,106 @@ class TuneApp(App):
                 return name
         return None  # custom/unrecognized - leave as-is unless explicitly changed
 
+    def _compose_section_tab(self, section):
+        fields = SECTIONS[section]
+        tab_id = f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"
+        with TabPane(section, id=tab_id):
+            with VerticalScroll():
+                if section == "Element":
+                    yield Static(
+                        "ADVANCED - real machine dimensions.\nGenerally shouldn't need to change these.",
+                        classes="advanced-warning")
+                for key, path, typ, label, help_text in fields:
+                    current = get_nested(self.cfg, path)
+                    with Vertical(classes="field-row"):
+                        with Horizontal():
+                            yield Static(label, classes="field-label")
+                            if typ is bool:
+                                sw = Switch(value=bool(current), id=f"field-{key}")
+                                self.inputs[key] = sw
+                                yield sw
+                            elif key == "mode":
+                                val = str(current) if str(current) in ("center", "left") else "center"
+                                sel = Select([("center", "center"), ("left", "left")],
+                                             value=val, id=f"field-{key}", allow_blank=False)
+                                self.inputs[key] = sel
+                                yield sel
+                            else:
+                                inp = Input(value=str(current), id=f"field-{key}")
+                                self.inputs[key] = inp
+                                yield inp
+                        if help_text:
+                            yield Static(help_text, classes="field-help")
+
+    def _compose_layout_tab(self):
+        # named-layout picker only - latitude_columns must stay in sync
+        # with placement_map/the physical layout, so it's not exposed
+        # here (edit it directly in the YAML if you really mean to)
+        with TabPane("Layout", id="tab-layout"):
+            with VerticalScroll():
+                with Vertical(classes="picker-row"):
+                    yield Static("Keyboard layout", classes="field-label")
+                    preset_now = self._current_layout_preset()
+                    options = [(name, name) for name in LAYOUT_PRESETS]
+                    select = Select(options, value=preset_now if preset_now else Select.BLANK,
+                                    id="layout-select", allow_blank=True, prompt="(custom - not a known preset)")
+                    yield select
+                yield Static(
+                    "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
+                    "physical placement_map - only glyph content per row changes.\n"
+                    "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
+                    "(v2 auto-switches fonts per layout; v4 does not).",
+                    classes="picker-help")
+
+    def _compose_build_tab(self):
+        with TabPane("Build", id="tab-build"):
+            with VerticalScroll():
+                with Vertical(classes="picker-row"):
+                    yield Static("Build target", classes="field-label")
+                    resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
+                    build_select = Select(
+                        [("Element Only", False), ("Element Resin Print", True)],
+                        value=resin_now, id="build-select", allow_blank=False)
+                    yield build_select
+                yield Static(
+                    "Element Only = FullElement() (build.resin_support: false).\n"
+                    "Element Resin Print = ResinPrint(), adds ResinSupport()'s rods/\n"
+                    "breakaway ring (build.resin_support: true) - see the Resin tab\n"
+                    "for its own settings, which only matter in this mode.",
+                    classes="picker-help")
+
+    def _compose_type_test_tab(self):
+        with TabPane("Type Test", id="tab-type-test"):
+            with VerticalScroll():
+                yield Static(
+                    "Flat, fixed-pitch (CPI) test block - matches v2's TypeTest()\n"
+                    "spacing convention. Uses the Font tab's path/size. NOT part of\n"
+                    "the real element - overwrites the same scratch output STL as\n"
+                    "Render/Quick Preview, so the same f3d --watch window shows it.\n"
+                    "Multiple lines are supported (stacked vertically).",
+                    classes="picker-help")
+                yield Static("Test text", classes="field-label")
+                yield TextArea(DEFAULT_TYPE_TEST_TEXT, id="type-test-text")
+                with Vertical(classes="field-row"):
+                    with Horizontal():
+                        yield Static("CPI", classes="field-label")
+                        yield Input(value="10", id="type-test-cpi")
+                    yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
+                yield Button("Render Test Line", id="btn-type-test", variant="primary")
+
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="form"):
             yield Static(f"config: {os.path.relpath(self.config_path, REPO_ROOT)}", id="status")
             with TabbedContent():
-                for section, fields in SECTIONS.items():
-                    with TabPane(section, id=f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"):
-                        with VerticalScroll():
-                            if section == "Element":
-                                yield Static(
-                                    "ADVANCED - real machine dimensions.\nGenerally shouldn't need to change these.",
-                                    classes="advanced-warning")
-                            for key, path, typ, label, help_text in fields:
-                                current = get_nested(self.cfg, path)
-                                with Vertical(classes="field-row"):
-                                    with Horizontal():
-                                        yield Static(label, classes="field-label")
-                                        if typ is bool:
-                                            sw = Switch(value=bool(current), id=f"field-{key}")
-                                            self.inputs[key] = sw
-                                            yield sw
-                                        else:
-                                            inp = Input(value=str(current), id=f"field-{key}")
-                                            self.inputs[key] = inp
-                                            yield inp
-                                    if help_text:
-                                        yield Static(help_text, classes="field-help")
-
-                # Layout tab: latitude_columns field + a named-layout picker
-                with TabPane("Layout", id="tab-layout"):
-                    with VerticalScroll():
-                        key, path, typ, label, help_text = ("latitude_columns", ["layout", "latitude_columns"],
-                                                              int, "Latitude columns",
-                                                              "Columns around the ring (DHIATENSOR row length).")
-                        current = get_nested(self.cfg, path)
-                        with Vertical(classes="field-row"):
-                            with Horizontal():
-                                yield Static(label, classes="field-label")
-                                inp = Input(value=str(current), id=f"field-{key}")
-                                self.inputs[key] = inp
-                                yield inp
-                            yield Static(help_text, classes="field-help")
-
-                        with Vertical(classes="picker-row"):
-                            yield Static("Keyboard layout", classes="field-label")
-                            preset_now = self._current_layout_preset()
-                            options = [(name, name) for name in LAYOUT_PRESETS]
-                            select = Select(options, value=preset_now if preset_now else Select.BLANK,
-                                            id="layout-select", allow_blank=True, prompt="(custom - not a known preset)")
-                            yield select
-                        yield Static(
-                            "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
-                            "physical placement_map - only glyph content per row changes.\n"
-                            "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
-                            "(v2 auto-switches fonts per layout; v4 does not).",
-                            classes="picker-help")
-
-                # Build tab: one dropdown only
-                with TabPane("Build", id="tab-build"):
-                    with VerticalScroll():
-                        with Vertical(classes="picker-row"):
-                            yield Static("Build target", classes="field-label")
-                            resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
-                            build_select = Select(
-                                [("Element Only", False), ("Element Resin Print", True)],
-                                value=resin_now, id="build-select", allow_blank=False)
-                            yield build_select
-                        yield Static(
-                            "Element Only = FullElement() (build.resin_support: false).\n"
-                            "Element Resin Print = ResinPrint(), adds ResinSupport()'s rods/\n"
-                            "breakaway ring (build.resin_support: true) - see the Resin tab\n"
-                            "for its own settings, which only matter in this mode.",
-                            classes="picker-help")
-
-                # Type Test tab: not part of the real element at all
-                with TabPane("Type Test", id="tab-type-test"):
-                    with VerticalScroll():
-                        yield Static(
-                            "Flat, fixed-pitch (CPI) test block - matches v2's TypeTest()\n"
-                            "spacing convention. Uses the Font tab's path/size. NOT part of\n"
-                            "the real element - overwrites the same scratch output STL as\n"
-                            "Render/Quick Preview, so the same f3d --watch window shows it.\n"
-                            "Multiple lines are supported (stacked vertically).",
-                            classes="picker-help")
-                        yield Static("Test text", classes="field-label")
-                        yield TextArea(DEFAULT_TYPE_TEST_TEXT, id="type-test-text")
-                        with Vertical(classes="field-row"):
-                            with Horizontal():
-                                yield Static("CPI", classes="field-label")
-                                yield Input(value="10", id="type-test-cpi")
-                            yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
-                        yield Button("Render Test Line", id="btn-type-test", variant="primary")
+                yield from self._compose_section_tab("Font & Alignment")
+                yield from self._compose_type_test_tab()
+                yield from self._compose_build_tab()
+                yield from self._compose_section_tab("Resin")
+                yield from self._compose_layout_tab()
+                yield from self._compose_section_tab("Quality")
+                yield from self._compose_section_tab("Logo")
+                yield from self._compose_section_tab("Element")
 
             with Vertical(id="buttons"):
                 with Horizontal(id="primary-buttons"):
@@ -440,13 +453,6 @@ class TuneApp(App):
                 except ValueError:
                     self.log_line(f"[red]bad value for {key!r}: {raw!r} (expected {typ.__name__})[/red]")
                     return None
-        # latitude_columns (Layout tab's own plain field, not in FIELDS/SECTIONS)
-        raw = self.inputs["latitude_columns"].value.strip()
-        try:
-            values["latitude_columns"] = int(raw)
-        except ValueError:
-            self.log_line(f"[red]bad value for 'latitude_columns': {raw!r} (expected int)[/red]")
-            return None
         # build target dropdown -> resin_support
         values["resin_support"] = self.query_one("#build-select", Select).value
         return values
@@ -478,7 +484,6 @@ class TuneApp(App):
                 widget.value = bool(current)
             else:
                 widget.value = str(current)
-        self.inputs["latitude_columns"].value = str(self.cfg["layout"]["latitude_columns"])
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.BLANK
         self.query_one("#build-select", Select).value = bool(self.cfg["build"]["resin_support"])
