@@ -4,16 +4,46 @@ Chronological record of this session's work, for resuming later. See
 `README.md` for the architecture/usage reference of the *current* state;
 this file is the history and the "what's next."
 
-## Where things stand right now
+## Where things stand right now (latest session, branch `v4-tui`)
 
-- **Active branch: `v2-refactor`.** The draft taper mechanism has been
-  completely rewritten this session: `build_glyph` in `lib/glyph_poc.py`
-  now builds it via a real Minkowski sum (`manifold3d.Manifold.
+- **`tune.py`, an interactive `textual` TUI, was built essentially from
+  scratch this session** and now covers the entire config: Font &
+  Alignment, Type Test, Resin, Gauge, Build, Layout, Quality, Logo,
+  Element tabs, a master/running/saved config-tier system, a real file
+  browser (`textual-fspicker`) for font paths and Save, and an f3d
+  auto-launch/raise integration for live preview. See README's
+  "Interactive tuner" section for the current-state reference; this log
+  section (part 7 below) has the blow-by-blow.
+- **Critical correctness fix: struck characters were never mirrored.** A
+  struck type element must carry a mirror image of the printed glyph
+  (same reason a stamp/slug is cut reversed) - v2's `TwoDText` does this
+  (`mirror([1,0,0])`), v4 never did until this session. Fixed in
+  `build_glyph()`; also resolved the previously-reported "x offset wrong
+  direction" bug as a side effect (same missing mirror). See README's
+  "Character mirroring" section.
+- **Shaft Gauge Test ported from v2** (`GaugeTestSet` and its whole
+  supporting cast) - a standalone calibration print for finding
+  `element.core_id_offset`, plus its own Gauge config section and tuner
+  tab. See README's "Shaft Gauge Test" section.
+- **Draft angle is now config-driven** (`build.draft_angle_deg`, default
+  55 - the real machine value) instead of a fixed `glyph_poc.py` constant.
+  Exposed on tune.py's Font & Alignment tab.
+- Everything from the previous session (the real-Minkowski-sum draft
+  rewrite, the real platen cutout, the facet-count/preview config
+  expansion) is unchanged and still the current mechanism - see "Where
+  things stood" below (renamed from "right now") and parts 1-6 for that
+  history.
+
+## Where things stood at the end of the previous session
+
+- **Branch at the time: `v2-refactor`.** The draft taper mechanism had
+  just been completely rewritten: `build_glyph` in `lib/glyph_poc.py`
+  builds it via a real Minkowski sum (`manifold3d.Manifold.
   minkowski_sum`), replacing the per-vertex outline-offset approach (and
-  its self-union patch, added and then removed again this same session -
+  its self-union patch, added and then removed again that same session -
   see below) entirely. That old code is gone, not kept behind a flag.
-- Every character that was broken at any point this session - `H`, `e`,
-  `m`, `^`, `M`, `A`, `i`, `o`, `0` - is now confirmed clean: watertight,
+- Every character that was broken at any point that session - `H`, `e`,
+  `m`, `^`, `M`, `A`, `i`, `o`, `0` - was confirmed clean: watertight,
   winding-consistent, `is_volume=True`, no self-intersection possible by
   construction, correct platen scallop on both curvy and straight-stroke
   letters.
@@ -29,7 +59,7 @@ this file is the history and the "what's next."
   visible from outside), and the `HollowSpace` margin flag (flickers
   `True`/`False` run to run from floating-point noise at a razor-thin
   boundary - documented, not new).
-- **`separation_mm=1.0` still NOT reapplied.** Earlier in this session it
+- **`separation_mm=1.0` still NOT reapplied.** Earlier in that session it
   was found to eliminate the inter-character collisions entirely (at the
   cost of less embedding-depth margin) - undone by the full revert (see
   "The detour" below) and never reintroduced. Config still has
@@ -306,21 +336,210 @@ value confirmed via the config comment to still land within ~0.4mm of a
 DHIATENSOR column at this exact text/spacing - not currently an issue,
 worth re-checking if either changes.
 
+## 7. Building `tune.py`, an interactive config TUI (new session, branch `v4-tui`)
+
+Started from a request to stop hand-editing YAML between test renders.
+Built `tune.py` (`textual`) incrementally, tab by tab, fixing real bugs
+found along the way:
+
+**Core structure.** A generic `SECTIONS`/`FIELDS` table drives most tabs
+(`(yaml_key, [path, into, cfg], type, label, help_text)` tuples), so most
+new config fields only need one table entry to get compose/collect/
+save/reload behavior for free - used for the later Gauge and draft-angle
+additions. A few tabs (Layout, Build, Type Test) are bespoke since they
+need dropdowns/switches/multi-line text rather than plain fields.
+
+**Config tiers.** Editing the master YAML directly risked losing the
+"known-good, matches v2" reference file to exploratory tuning. Built a
+three-tier scheme instead: master is read-only from the TUI's
+perspective; all edits/saves go to a gitignored `*.running.yaml` scratch
+copy, auto-created and auto-migrated (`_migrate_running_config` backfills
+missing top-level AND nested keys from master into a stale running copy
+without touching customizations) on load; an explicit Save writes the
+running copy out to wherever you choose via a real file browser
+(`textual-fspicker`'s `FileSave`/`FileOpen`, added after a plain
+`Input`-based path field proved error-prone for font paths especially).
+
+**Workflow buttons and f3d integration.** Iterated through several designs
+for "how do I see what I just changed": an initial manual "launch f3d"
+button, then auto-launch/raise on Render (`_ensure_f3d_after_build()` -
+starts f3d fresh if not running, or `wmctrl -a f3d` to raise an existing
+window), then a dedicated Top View camera for text preview specifically
+(`f3d_top_view_cmds.txt`'s `set_camera top`, via f3d's `--command-script`
+flag - found by `strings`-ing `libf3d.so` for camera-related command
+names after a hand-derived `--camera-direction=0,0,-1` guess came out
+rotated 90° wrong, confirmed by direct user testing) plus
+`--camera-orthographic`. f3d is killed on quit/terminal-close so it
+doesn't accumulate zombie windows across tuning sessions.
+
+**Type Test tab.** A flat, non-cylindrical CPI/LPI-spaced text preview
+(`type_test.py`) for instant font/legibility iteration, independent of
+the real element pipeline - persists its own text/CPI/LPI to
+`type_test:` in the config. Later given the same modified-left/right
+alignment handling as the real `TextRing`, so what you see here actually
+matches final placement.
+
+**Bug: quit didn't save.** Plain `q` never fires while any Input/TextArea
+has focus (Textual consumes it as literal typed text, not a binding) -
+easy to hit by accident after typing in a field and hitting `q` out of
+habit. Fixed by adding `ctrl+q` as a second, reliable binding (needed
+`loop.add_signal_handler`, not plain `signal.signal()` - the latter was
+found to leave signals unfired for seconds while the event loop is
+blocked) and having both quit paths save first (`_save_before_exit`).
+
+**Bug: `Select.BLANK` crashes on mount.** In the installed `textual`
+version, `Select.BLANK` is aliased to the plain boolean `False`, not the
+real "no selection" sentinel (`Select.NULL`) - using it as a value
+crashes `Select`'s own mount-time validation. All usages (Layout tab's
+preset dropdown) fixed to `Select.NULL`. Discovered while testing the
+Gauge tab, only surfaced once the real config's `layout.rows` first
+became genuinely "custom" (non-matching any preset).
+
+**Layout tab: preset editor with a live read-only preview + unlock.** A
+dropdown of presets (QWERTY, DHIATENSOR, ...), 3 read-only rows previewing
+whichever preset is currently selected, and a "Modify glyphs" switch that
+reveals 3 editable rows (seeded from whichever preset was showing when
+unlocked) whose hand-edited content is what actually gets saved to
+`layout.rows` - not the preset dropdown's value - whenever the switch is
+on (`layout.modify_glyphs: true` in the config, matching how the running
+config already looked from earlier hand-editing).
+
+**Bug: Layout tab's read-only preview stopped updating on dropdown
+change.** Root cause: the preview-row helper
+(`_display_rows_for_preset()`) derived "the current preset" from
+`self.cfg` (disk state, only refreshed on save/reload), not the
+dropdown's own live in-widget value - so browsing the dropdown without
+saving left the preview frozen on whatever was last saved. Fixed by
+adding a second helper, `_rows_for_layout_select_value(value)`, that
+takes the live value directly and is used by both `on_select_changed`
+(browsing) and `on_switch_changed` (seeding the editable rows on unlock)
+instead of the disk-state-based one - `_display_rows_for_preset()` itself
+is unchanged and still correct for its own remaining callers
+(`compose()`/`_refresh_widgets_from_cfg()`, where `self.cfg` and the
+dropdown are legitimately in sync). Verified via direct headless tests; a
+first test run gave a false negative from a `True -> True` no-op Switch
+reassignment (the real config already had `modify_glyphs: true`), which
+looked like the fix hadn't worked until re-tested with a genuine
+`False -> True` transition.
+
+**Build tab: iterated to a dropdown + independent checkbox.** First pass
+was a 3-option dropdown (Element Only / Element Resin Print / Shaft
+Gauge, `build.target` string) added alongside the new Gauge tab port
+(next item). Simplified per direct feedback to a 2-option dropdown
+(Element / Shaft Gauge) plus a separate "Resin supports" checkbox,
+independent of which target is selected - Element uses the checkbox to
+choose `FullElement()` vs `ResinPrint()`; Shaft Gauge always builds with
+its own resin supports built in regardless of the checkbox, since a gauge
+print can't stand on its own. `_refresh_widgets_from_cfg` maps any stale
+`target: "resin"` value (from the first-pass 3-option version) back to
+`"element"` for backward compatibility with configs saved during that
+window.
+
+**Gauge tab: ported v2's `[Shaft Gauge Test]` feature.** `GaugeTestSet`
+and its supporting module (`CylinderGauge`, `GaugeResinSupport`,
+`GaugeResinSupportsRaft`, `RevolverSolid`, `GaugeText`,
+`GaugeTestSubtractive`) added to `lib/blickensderfer.py`, ported closely
+from `blickensderfer.scad`. `RevolverSolid()` (hull of the 6 gauge-pocket
+cylinders) uses `trimesh.util.concatenate(...).convex_hull`, matching the
+existing `CoreEllipses()` pattern, since trimesh has no hull-of-solids
+primitive. Found and fixed a real porting bug: `GaugeText()`'s
+`sp.scad_transform` had rotate/translate in the wrong order relative to
+v2's source (`translate() rotate([0,90,0])`, translate outermost) -
+caught because the text mesh's own Z-center bounds came out at ~-2.57
+instead of the expected 11.325; fixed by reordering to
+`("translate", [...]), ("rotate", [0, 90, 0])`. New tuner tab added with
+`Gauge_Offset_Start`/`Gauge_Offset_Int` fields and an explanatory banner
+about the calibration workflow (print, test-fit each numbered pocket on
+the real machine, set `core_id_offset` to whichever fits).
+Tab order was also changed to Font & Alignment, Type Test, Resin,
+**Gauge**, Build, Layout, Quality, Logo, Element per direct request.
+
+**Progress output during Render.** `generate.py`'s stdout is piped (not a
+TTY) when run as a subprocess from `tune.py`'s Render button, so Python
+defaults to full block buffering - without explicit `flush=True`,
+progress wouldn't appear live in the TUI's log pane at all until the
+whole process finished. Added `flush=True` throughout the pipeline's
+prints, plus new per-character progress lines in `TextRing()`
+(`"TextRing: [n/total] building 'x' (row R, col C)... 0.42s"`) so a ~60s
+render shows visible incremental progress instead of a long silent pause.
+
+**Critical fix: struck characters were never mirrored.** User noticed
+printed characters were coming out backwards. Root cause: v2's
+`TwoDText` wraps every struck glyph in `mirror([1,0,0])` (a struck type
+element must carry a mirror image of the printed glyph, the same reason
+a rubber stamp or hot-metal slug is cut in reverse) - `build_glyph()`
+never did this. Fixed by negating X on the already-shifted contours,
+applied AFTER `x_shift` (matching v2's translate-then-mirror order):
+`contours_mm = [c * np.array([-1.0, 1.0]) for c in contours_mm]`. This
+also mathematically resolved the previously-reported "x offset applied in
+the wrong direction" bug as a side effect (verified:
+`printed_x = -(-(x_local + x_shift)) = x_local + x_shift`, matching Type
+Test's already-correct convention) - both bugs were the same missing
+mirror. Deliberately scoped to `build_glyph()` (struck characters) only -
+`build_flat_text()` (`LogoText`, Type Test) is untouched, since that text
+is read directly and must never be mirrored.
+
+**Draft angle made configurable.** `glyph_poc.py`'s `MINK_DRAFT_ANGLE`/
+`DRAFT_HALF_ANGLE_RAD` were fixed module constants with no override.
+Added `DEFAULT_DRAFT_ANGLE_DEG` + a `draft_angle_deg` parameter to
+`build_glyph()`, threaded through `configure()`/`TextRing`/`Additive`/
+`FullElement`/`ResinPrint`, a new `build.draft_angle_deg: 55.0` config
+field, a `--draft-angle-deg` CLI flag, and a tuner field on Font &
+Alignment (right after the modified-left/right offset fields). Verified
+via a direct `build_glyph()` comparison (55° vs 30° producing correctly
+different, both-watertight geometry), a save round-trip test, and a full
+`generate.py` regression run.
+
+**Investigated but found to already be correct:** a report that "Render
+Test Text" wasn't persisting past the Font/Type Test tabs turned out to
+already work as intended (the button lives outside `TabbedContent` in the
+`#buttons` panel, visible from every tab) - likely a stale-process
+artifact on the reporting end, not a real bug; left as-is.
+
+**Explored but not yet started: shared-module split + Postal port.**
+Research phase complete - an Explore agent compared `postal.scad` against
+`blickensderfer.scad` and confirmed Postal is a strict simplification of
+the same cylinder-machine family (same `TextRing`/`LetterPlacement`
+radial-wrap scheme, same four shared v2 lib includes); the only
+code-level (not just parameter-value) divergence found is the
+`HollowSpace`/`DrivePin`/`ResinSupport` "drive pin trio" - Blickensderfer
+has 2 selectable drive-pin styles plus a countersink, Postal has one
+plain rectangular extrude, no countersink. Everything else differs only
+in parameter values (many already config-driven in v4). Design sketched
+but not validated or implemented: a new `cylinder_machine.py` shared
+module that each machine's `configure()` populates via a globals-dict
+sync (`cylinder_machine.__dict__.update({k: v for k, v in g.items() if
+not k.startswith("__")})`) so shared functions can call
+machine-overridden functions (like `HollowSpace`) as ordinary bare
+names - directly mirroring OpenSCAD's own dynamic
+redefinition-across-includes behavior. Per this project's established
+refactor convention (see memory: build new files, don't edit originals
+in place), the plan is `cylinder_machine.py` + `postal.py` as new files
+alongside `blickensderfer.py`, not edits to it. Not started.
+
 ## Resuming later
 
-1. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
-   stand" above) - `logo.radial_offset_mm` is back (part 6), but
+1. **Shared-module split (`cylinder_machine.py`) + Postal port** - design
+   above is sketched but unvalidated; next step is either a Plan-agent
+   validation pass or proceeding straight to implementation.
+2. **Reapply or re-decide on `separation_mm=1.0`** (see "Where things
+   stood" above) - `logo.radial_offset_mm` is back (part 6), but
    `separation_mm` is still the reverted `2.0`, still 61 collisions.
-2. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
+3. **Inter-character collisions** (61 at `separation_mm=2.0`) - no
    automatic fix short of redoing placement/size, or accepting the
    `separation_mm=1.0` tradeoff (verified to eliminate them, at the cost
    of embedding-depth margin).
-3. **Performance** - if ~60-70s at full quality becomes annoying,
+4. **Performance** - if ~60-70s at full quality becomes annoying,
    `points_per_mm`/`quality.minkowski_fn` are the main levers, or
    `build.minkowski_enabled: false` for a ~3s undrafted preview - all
    wired through config + CLI (`--no-minkowski`).
-4. Alignment offsets (mechanism built, all values still at their 0.0
-   no-op defaults) - untouched this session.
-5. `platen_fn`/`body_fn` are both set to 360 right now (per user
+5. Alignment offsets - the mechanism is built and now in real use (see
+   the running config's `modified_left_offset_mm`/
+   `modified_right_offset_mm`), but the base `center_offset_mm`/
+   `left_offset_mm` knobs are still untouched at their 0.0 defaults.
+6. `platen_fn`/`body_fn` are both set to 360 right now (per earlier
    direction, "may both be set at 360") - 720 was floated for `platen_fn`
-   if the scallop needs to be smoother; not tested this session.
+   if the scallop needs to be smoother; not tested.
+7. A "master GUI" to pick which machine (Blickensderfer/Postal/...) to
+   tune - explicitly deferred by the user until Postal actually exists as
+   a second machine (item 1 above).

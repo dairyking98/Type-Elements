@@ -92,12 +92,56 @@ footprint/placement, no taper. Measured: the full ring + assembly in
 ~3s instead of ~30-70s. Not a substitute for a real export - re-enable
 before generating anything meant to be printed.
 
+## Interactive tuner (`tune.py`)
+
+```
+python3 tune.py config/blickensderfer.yaml
+```
+
+A `textual` TUI for iterating on the config without hand-editing YAML or
+re-running the CLI. Tabs: **Font & Alignment**, **Type Test**, **Resin**,
+**Gauge**, **Build**, **Layout**, **Quality**, **Logo**, **Element** (the
+last flagged as advanced - core geometry, not usually touched). A
+persistent **RENDER TEST TEXT** button (outside the tab area, always
+visible) launches/raises `f3d` in orthographic Top View
+(`f3d_top_view_cmds.txt`, `set_camera top` - reverse-engineered from
+`libf3d.so`'s own command strings after a hand-derived
+`--camera-direction` guess came out rotated 90°) to preview the flat
+Type Test text.
+
+**Config tiers**: the master YAML (`config/blickensderfer.yaml`) is never
+written to by the TUI. All edits/saves go to a gitignored per-master
+scratch copy, `config/blickensderfer.running.yaml`, created on first run
+and auto-migrated (`_migrate_running_config`) to backfill any top-level or
+nested keys that exist in master but not yet in a stale running copy,
+without touching your own customizations. "Reset to Defaults" discards the
+running copy and starts fresh from master. "Save" writes the running copy
+to a location you choose (`textual-fspicker`'s file browser) - that's how
+a tuning session becomes a real, committable config.
+
+**Build tab**: a 2-option dropdown (Element / Shaft Gauge) plus an
+independent "Resin supports" checkbox. Element builds `FullElement()`, or
+`ResinPrint()` (adds `ResinSupport()`'s rods/breakaway ring - see the
+Resin tab) when the checkbox is on. Shaft Gauge builds `GaugeTestSet()`
+(see the Gauge tab/section below) regardless of the checkbox - a gauge
+print always carries its own resin supports since it can't stand on its
+own.
+
+**Quirks worth knowing**: `q` alone doesn't quit while any text field has
+focus (Textual consumes it as literal input) - `ctrl+q` always works, and
+either quit path saves the running config first. Quitting/closing the
+terminal also kills any `f3d` process the tuner launched.
+
 ## Layout
 
 ```
 generate.py                 entry point - loads a config, builds, exports
+tune.py                     interactive TUI for editing the config (see above)
+type_test.py                flat CPI/LPI-spaced text preview used by tune.py's Type Test tab
+export_glyphs.py            exports every configured character to its own STL, for visual inspection
 config/
   blickensderfer.yaml        every real machine parameter + build/alignment settings
+  blickensderfer.running.yaml   gitignored scratch copy tune.py actually edits/saves (see above)
 lib/
   glyph_poc.py               single-glyph mesh pipeline (the core technique)
   scad_primitives.py         revolve_polygon/extrude/transform helpers, generic (not machine-specific)
@@ -189,6 +233,28 @@ so the underlying curve is the exact same real cylinder machine-wide per
 row, not independently approximated per glyph; only where it intersects
 each glyph's own silhouette differs, which is correct.
 
+### Character mirroring
+
+A struck type element carries a MIRROR-IMAGE of the desired printed glyph
+- striking is a reflection through the contact plane, same reason a rubber
+stamp or hot-metal slug is cut reversed. `v2`'s `TwoDText` wraps the whole
+aligned/shifted glyph in `mirror([1,0,0])`; `v4` never did this until this
+was found and fixed in `build_glyph()` (negating X on the already-shifted
+contours, after `x_shift`, matching v2's translate-then-mirror order).
+Fixing this also resolved a previously-reported "x offset wrong direction"
+bug as a side effect - both were the same missing mirror. Scoped to
+`build_glyph()` (struck characters) only - `build_flat_text()` (`LogoText`,
+Type Test) is deliberately untouched, since that text is read directly,
+never struck.
+
+### Draft angle is configurable
+
+`build.draft_angle_deg` (config + `--draft-angle-deg` CLI override, also
+on tune.py's Font & Alignment tab) sets the Minkowski draft cone's
+half-angle - `expansion_width_mm = separation_mm * tan(draft_angle_deg /
+2)`. Defaults to `55.0`, the real machine value. Previously a fixed
+`glyph_poc.py` module constant with no override.
+
 ### Draft direction (character protrusion)
 
 The print face's deepest/narrowest point (at `y=radius_y_offset`, where the
@@ -255,6 +321,21 @@ score line around the circumference, not discrete perforation points.
 material to be broken off after printing, not subtracted). Off by default
 (`build.resin_support: false` in the config) since it's only needed right
 before slicing for print; enable via `--resin-support` or the config.
+
+### Shaft Gauge Test (`GaugeTestSet`)
+
+Ported from v2's `[Shaft Gauge Test]` section (`blickensderfer.scad`
+~265-267/517-589). Not part of the real element - a standalone 6-pocket
+"revolver" calibration print for empirically finding
+`element.core_id_offset` (the print-tolerance addition to the shaft's
+minor diameter). Each of the 6 pockets bores the shaft passage at
+`gauge.offset_start + n * gauge.offset_int` (n=0..5) and is engraved with
+its own offset value (`GaugeText`) so you can read off which pocket you
+test-fit on the real machine. `RevolverSolid()` (the hull of the 6
+cylinder pockets) uses `trimesh.util.concatenate(...).convex_hull`, the
+same pattern `CoreEllipses()` already used, since trimesh has no
+hull-of-solids primitive. Build via `generate.py --gauge` or tune.py's
+Build tab ("Shaft Gauge").
 
 ### HollowSpace margin is razor-thin by design at the current settings
 
