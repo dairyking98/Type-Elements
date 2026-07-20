@@ -954,7 +954,7 @@ class TuneApp(App):
     #log { height: 1fr; }
     TabbedContent { height: 1fr; }
     TabPane { padding: 0 1; }
-    .field-row { height: 2; }
+    .field-row { height: auto; margin-bottom: 1; }
     .field-row Horizontal { height: 1; }
     .field-label { width: 26; height: 1; content-align: left middle; }
     .field-row Input { width: 1fr; height: 1; border: none; padding: 0 1; background: $panel; }
@@ -962,7 +962,7 @@ class TuneApp(App):
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .browse-btn { width: 10; height: 1; min-width: 10; border: none; margin-left: 1; }
-    .field-help { color: $text-muted; height: 1; }
+    .field-help { color: $text-muted; height: auto; }
     #buttons { height: 11; dock: bottom; padding: 0 1; }
     #btn-render-test-text { height: 3; width: 1fr; text-style: bold; margin-bottom: 1; }
     #primary-buttons { height: 5; }
@@ -979,9 +979,9 @@ class TuneApp(App):
     .picker-title { text-style: bold; content-align: center middle; width: auto; margin-bottom: 1; }
     .picker-subtitle { color: $text-muted; content-align: center middle; width: auto; margin-bottom: 1; }
     .machine-picker-btn { width: 30; height: 3; margin-bottom: 1; text-style: bold; }
-    .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
+    .advanced-warning { color: $warning; text-style: bold; height: auto; padding: 0 0 1 0; }
     .picker-row { height: 3; }
-    .picker-help { color: $text-muted; height: 1; }
+    .picker-help { color: $text-muted; height: auto; }
     .row-preview { height: 1; background: $panel; padding: 0 1; margin-bottom: 1; color: $text-muted; }
     #layout-custom-rows { height: auto; }
     .custom-row-input { height: 1; margin-bottom: 1; border: none; padding: 0 1;
