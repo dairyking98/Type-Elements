@@ -1,13 +1,24 @@
 """
-Shared cylinder-machine-family code (Blickensderfer/Postal, and future
-family members) - functions here are structurally identical between those
-machines in v2 (same lib/core_shaft.scad, lib/resin_rod.scad,
-lib/resin_support.scad, lib/glyph_pipeline.scad includes), differing only
-in the config-derived parameter VALUES each machine's own configure()
-sets. Machine-specific functions (HollowSpace/DrivePin/ResinSupport - the
-"drive pin trio", the one place v2's two machines genuinely diverge in
-code, not just values) live one-per-machine in lib/blickensderfer.py /
-lib/postal.py instead, and are called from here as ordinary bare names.
+Shared cylinder-machine-family code. Structurally, this module is a full
+shared implementation for exactly Blickensderfer/Postal - functions here
+are structurally identical between those two machines in v2 (same
+lib/core_shaft.scad, lib/resin_rod.scad, lib/resin_support.scad,
+lib/glyph_pipeline.scad includes), differing only in the config-derived
+parameter VALUES each machine's own configure() sets. Machine-specific
+functions (HollowSpace/DrivePin/ResinSupport - the "drive pin trio", the
+one place v2's two machines genuinely diverge in code, not just values)
+live one-per-machine in lib/blickensderfer.py / lib/postal.py instead, and
+are called from here as ordinary bare names.
+
+Other cylindrical machines (Mignon, Bennett, and presumably Helios) are
+NOT full-module reuse cases - each diverges from the rest of this module
+across most of its own body-construction pipeline, and only pulls in
+specific pieces (place_on_cylinder/TextRing/CalibrationTextRing, the
+resin-rod helpers, lib/core_shaft.scad's shared functions). Being
+cylindrical in outward form does not predict how much of this module a
+new machine can actually reuse - verify function-by-function against the
+real v2 source before assuming otherwise (see CLAUDE.md "Porting a new
+machine").
 
 Dynamic dispatch: each machine's configure() calls _receive_config(g,
 name) at the end, which copies every uppercase-leading global (the ~100
@@ -123,10 +134,16 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
     Postal add the FULL Char_Protrusion at the placement stage too (their
     raw material genuinely stands proud of the plain element surface
     before any cutout trims it) - None defaults to Char_Protrusion,
-    preserving that. Mignon/Bennett/Helios's placement radius is the raw
-    Element_Diameter/2 instead (embed depth controlled by the glyph's own
-    geometry, not a placement-stage protrusion) - they pass 0. Does NOT
-    affect the platen cutout's own radius formula (still always the full
+    preserving that. Mignon's placement radius is the raw Element_Diameter/2
+    instead (embed depth controlled by the glyph's own geometry, not a
+    placement-stage protrusion) - it passes 0. Bennett does NOT pass 0
+    despite being cylindrical like Mignon - it deliberately keeps the
+    default (Char_Protrusion), because v4's single-transform placement
+    pipeline doesn't behave like v2's two-independent-transforms one; see
+    lib/bennett.py's module docstring and configure() comment for the full
+    derivation. Don't assume a new machine's value from its physical form -
+    verify against its own v2 source (Helios not yet verified either way).
+    Does NOT affect the platen cutout's own radius formula (still always the full
     Char_Protrusion, baked into build_glyph via radius_y_offset_mm,
     unrelated to this override - verified algebraically in v2, see
     PlatenCutout's comment in lib/glyph_pipeline.scad).

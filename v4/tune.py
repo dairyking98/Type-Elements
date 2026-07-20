@@ -980,6 +980,35 @@ LAYOUT_PRESETS_BY_MACHINE = {
     "bennett": LAYOUT_PRESETS_BENNETT,
 }
 
+# Layout tab's picker-help banner, one flowing string per machine (see
+# CLAUDE.md's tooltip/help-text rules - no manual \n; add the next
+# machine's entry here instead of an if/elif in _compose_layout_tab).
+LAYOUT_PICKER_HELP = {
+    "blickensderfer": (
+        "All layouts share the same physical placement_map - only glyph "
+        "content per row changes. HEBREW_ENGL needs a Hebrew-capable font "
+        "path; v4 doesn't auto-switch fonts per layout like v2 did."
+    ),
+    "postal": (
+        "Postal has only one physical layout, QWERTY. Use Modify glyphs "
+        "below to hand-edit the rows for anything else."
+    ),
+    "mignon": (
+        "30 named layouts, all sharing the same 7-row/12-column physical "
+        "layout - only glyph content changes per row. Rows are shown in "
+        "keyboard-legend order; char_legend remaps this to build order "
+        "internally."
+    ),
+    "bennett": (
+        "Ported from v2/lib/layouts/bennett_layouts.scad's ENGLISH/BRITISH/"
+        "INTERNATIONAL plus v2/bennett.scad's own CUSTOM (identical to "
+        "ENGLISH by default - edit it via Modify glyphs below). All share "
+        "the same 3-row/28-column layout. Rows are shown in keyboard-legend "
+        "order (as printed on the physical keyboard/manual) - "
+        "layout.char_legend remaps this to build order internally."
+    ),
+}
+
 # layout.baseline_row/cutout_row per-row fields (Element tab - see
 # TuneApp._compose_baseline_cutout_fields). Bespoke, not in
 # self.FIELDS/SECTIONS - these are list ELEMENTS (patch_yaml_list_item),
@@ -1437,33 +1466,8 @@ class TuneApp(App):
                     select = Select(options, value=preset_now if preset_now else Select.NULL,
                                     id="layout-select", allow_blank=True, prompt=prompt)
                     yield select
-                if self.machine == "blickensderfer":
-                    yield Static(
-                        "All layouts share the same physical placement_map - only glyph "
-                        "content per row changes. HEBREW_ENGL needs a Hebrew-capable font "
-                        "path; v4 doesn't auto-switch fonts per layout like v2 did.",
-                        classes="picker-help")
-                elif self.machine == "postal":
-                    yield Static(
-                        "Postal has only one physical layout, QWERTY. Use Modify glyphs "
-                        "below to hand-edit the rows for anything else.",
-                        classes="picker-help")
-                elif self.machine == "mignon":
-                    yield Static(
-                        "30 named layouts, all sharing the same 7-row/12-column physical "
-                        "layout - only glyph content changes per row. Rows are shown in "
-                        "keyboard-legend order; char_legend remaps this to build order "
-                        "internally.",
-                        classes="picker-help")
-                elif self.machine == "bennett":
-                    yield Static(
-                        "Ported from v2/lib/layouts/bennett_layouts.scad's ENGLISH/BRITISH/\n"
-                        "INTERNATIONAL plus v2/bennett.scad's own CUSTOM (identical to\n"
-                        "ENGLISH by default - edit it via Modify glyphs below). All share\n"
-                        "the same 3-row/28-column layout. Rows are shown in keyboard-\n"
-                        "legend order (as printed on the physical keyboard/manual) -\n"
-                        "layout.char_legend remaps this to build order internally.",
-                        classes="picker-help")
+                if self.machine in LAYOUT_PICKER_HELP:
+                    yield Static(LAYOUT_PICKER_HELP[self.machine], classes="picker-help")
                 elif options:
                     yield Static(
                         "Use Modify glyphs below to hand-edit the rows for anything "
