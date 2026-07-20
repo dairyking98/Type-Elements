@@ -1544,8 +1544,13 @@ is new, bespoke code in `lib/helios.py`.
 flagged as "not yet verified either way" for Helios:**
 `placement_protrusion=-0.05` (v2's `Letter_Placement_Protrusion=-.05` - a
 real, if small, built-in 0.05mm radial inset, distinct from the platen-
-cutout radius which still uses the full `Char_Protrusion`) and
-`angle_half_step=0` (no half-column centering term, same as Mignon). Both
+cutout radius which still uses the full `Char_Protrusion`) **- WRONG,
+see part 25: this directly copied v2's raw value without re-deriving it
+for v4's different transform structure, the exact mistake `lib/bennett.py`'s
+port had already made and fixed. Corrected to `Char_Protrusion`
+(the default).** and
+`angle_half_step=0` (no half-column centering term, same as Mignon,
+still correct). Both
 threaded through as explicit `lib/helios.py` module globals
 (`Placement_Protrusion`/`Angle_Half_Step`), same pattern Mignon's
 `configure()` uses. Updated `place_on_cylinder`'s docstring to record
@@ -1731,6 +1736,82 @@ survived this change untouched. No shared module
 in this follow-up at all - only `lib/helios.py`/`config/helios.yaml`/
 `tune.py` - so no regression check against other machines was needed
 this time (zero possible side effect).
+
+## 25. Helios's placement_protrusion was wrong - characters sat too deep (user-reported)
+
+User report: "min final char diameter is not working correctly. right
+now the glyphs are inset into the element too much." Traced to
+`lib/helios.py`'s `configure()` setting `Placement_Protrusion=-0.05` -
+copied directly from v2's own `Letter_Placement_Protrusion=-.05`
+(v2/heliosklimax.scad:268) during part 23's port. That was exactly the
+mistake `lib/bennett.py`'s port had already made and fixed, documented at
+length in `cylinder_machine.place_on_cylinder`'s own docstring - which
+part 23 read (and even edited a neighboring line of) without applying
+its lesson to Helios. Should have been caught during the original port;
+wasn't, until it showed up as a physically-wrong build.
+
+**The actual bug.** v2's `LetterPlacement` (where the raw pre-cutout
+character block is positioned) and `PlatenCutout` (the cutting cylinder
+that trims it down to its final visible shape) are TWO INDEPENDENT
+transforms in v2. `Letter_Placement_Protrusion=-.05` only ever moves the
+former - v2/heliosklimax.scad's own file-header comment confirms this
+explicitly: "a small built-in 0.05mm radial inset that only affects
+placement, not the platen-cutout radius." The latter - which is what
+actually determines the physical strike depth, the thing `min_final_
+character_diameter` is supposed to control - uses a completely
+independent formula, confirmed by this same file's own "v2.0" comment:
+`Element_Diameter/2+Platen_Diameter/2+Char_Protrusion`, the EXACT SAME
+formula Blickensderfer/Postal use. v4's `build_glyph()`/
+`place_on_cylinder()` have no such split at all - the platen scallop is
+baked into one local mesh, placed by a single radial offset
+(`placement_protrusion`) - so `place_on_cylinder`'s own docstring proves
+the visible low point lands at exactly `Element_Diameter/2+
+placement_protrusion`. Passing v2's raw `-0.05` (a value that in v2 only
+ever affected the OTHER, unrelated transform) pinned the low point far
+closer to the axis than the real machine's `min_final_character_diameter`
+(28.19mm) implies - `Char_Protrusion` here is `(28.19-27.15)/2=0.52mm`,
+vs. the wrongly-configured `-0.05mm`: over half a millimeter of extra,
+wrong inset. `min_final_character_diameter`/`Char_Protrusion` were
+effectively dead config values, the identical failure mode Bennett's
+port found and named explicitly (`lib/bennett.py`'s own docstring: "with
+`placement_protrusion=0`... `min_final_character_diameter` was a dead
+config field").
+
+**Fix**: removed the `Placement_Protrusion` global and the
+`placement_protrusion=Placement_Protrusion` kwarg from both `Additive()`'s
+`TextRing()` call and `CalibrationAdditive()`'s `CalibrationTextRing()`
+call - omitting it lets `place_on_cylinder` fall through to its own
+default (`Char_Protrusion`), exactly matching Blickensderfer/Postal/
+Bennett's treatment. `angle_half_step=0` is untouched - a real, unrelated
+v2 value with no two-transform split to worry about (angle placement is
+a single unified transform in both v2 and v4). Corrected the stale
+claims this introduced: `cylinder_machine.place_on_cylinder`'s own
+docstring (previously asserted Helios "genuinely" needed a nonzero
+value, now explains Helios needs the SAME re-derivation Bennett needed,
+for the same reason), `lib/helios.py`'s module docstring/`configure()`
+comment, `config/helios.yaml`'s build section comment, and `README.md`'s
+Helios writeup - all previously stated the wrong -0.05 value as verified
+fact rather than flagging it as unresolved/needing the same treatment
+Bennett got.
+
+**Lesson, stated plainly since it already cost a shipped bug once:**
+reading a docstring that documents a prior fix is not the same as
+applying its reasoning to new code in the same sitting - `place_on_
+cylinder`'s docstring explicitly named this exact pitfall before part 23
+ever touched Helios, and it was still missed. Any future machine that
+reuses `place_on_cylinder` needs its OWN check for whether v2's
+`LetterPlacement`/`PlatenCutout` (or equivalent) are one transform or
+two, not a default assumption either way, and not a straight copy of
+whatever raw customizer value v2 happened to expose for the block-
+placement stage specifically.
+
+**Verification** (hard gate): rebuilt at fast preset
+(`--points-per-mm 8 --cone-segments 12 --no-minkowski`) - watertight,
+single volume, all 84 characters placed with zero skips, same
+informational-only inter-character collision set as before (unrelated to
+this fix). No shared module was touched beyond the docstring correction
+above (comment-only, zero logic change) - no cross-machine regression
+risk.
 
 ## Resuming later
 

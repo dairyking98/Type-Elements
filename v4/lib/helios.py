@@ -23,9 +23,11 @@ instead of a countersunk drive pin, and a hulled-cylinder wire clip
 version - structurally similar in spirit (v2's own header: "similar in
 spirit to Blick2/Postal's") but never extracted to a shared lib in v2
 either, so not shared here. TextRing/CalibrationTextRing/place_on_cylinder
-(reused directly with placement_protrusion=-0.05/angle_half_step=0 - v2's
-Letter_Placement_Protrusion=-.05/Angle_Half_Step=0, see
-place_on_cylinder's docstring) are genuinely shared.
+(reused directly with angle_half_step=0 - v2's Angle_Half_Step=0 - and
+placement_protrusion left at its default, Char_Protrusion; see
+configure()'s placement_protrusion comment and SESSION_LOG.md part 25 for
+why the raw v2 Letter_Placement_Protrusion=-.05 does NOT carry over
+directly) are genuinely shared.
 
 DELIBERATE v4-only ENHANCEMENT, not a v2 port (explicit user direction):
 the shaft bore now ALSO reuses cylinder_machine.py's shared core_shaft
@@ -177,13 +179,32 @@ def configure(config_path):
 
     g["PLATEN_RADIUS_MM"] = 1.0 / g["Platen_Diameter"]
 
-    # v2/heliosklimax.scad:268 - Letter_Placement_Protrusion=-.05 (a small
-    # built-in 0.05mm radial inset - see the module docstring's CORRECTION
-    # reference) and Angle_Half_Step=0 (no half-column centering term, like
-    # Mignon) - threaded through cylinder_machine.place_on_cylinder as
-    # explicit overrides (None everywhere else preserves Blickensderfer/
-    # Postal's original hardcoded behavior).
-    g["Placement_Protrusion"] = -0.05
+    # placement_protrusion: v2/heliosklimax.scad:268 sets Letter_Placement_
+    # Protrusion=-.05, but per lib/bennett.py's already-proven derivation
+    # (see place_on_cylinder's own docstring), that raw v2 value does NOT
+    # carry over to v4's placement_protrusion kwarg - a real bug, caught
+    # after shipping (Helios's characters sat far too deep/inset - see
+    # SESSION_LOG.md part 25). v2's LetterPlacement and PlatenCutout are
+    # TWO INDEPENDENT transforms: Letter_Placement_Protrusion=-.05 only
+    # moves where the raw pre-cutout extrusion block starts (v2's own
+    # comment: "a small built-in 0.05mm radial inset that only affects
+    # placement, not the platen-cutout radius"); the platen cutter that
+    # actually determines the visible/physical low point is positioned
+    # independently, at Element_Diameter/2+Platen_Diameter/2+Char_
+    # Protrusion (this module's own docstring's "v2.0" note - the SAME
+    # formula Blickensderfer/Postal use). v4's build_glyph()/
+    # place_on_cylinder() have no such split - the scallop is baked into
+    # ONE local mesh placed by a SINGLE radial offset - so reproducing
+    # v2's real low-point radius requires placement_protrusion=Char_
+    # Protrusion (the default), not the small block-only offset. Left at
+    # None (omitted from the TextRing/CalibrationTextRing calls below) so
+    # it defaults to Char_Protrusion, exactly like Blickensderfer/Postal/
+    # Bennett.
+    #
+    # angle_half_step=0 (no half-column centering term, like Mignon) IS a
+    # real, unrelated v2 value (Angle_Half_Step=0, a single unified
+    # transform in both v2 and v4 - no two-independent-transforms issue
+    # here) - still threaded through as an explicit override.
     g["Angle_Half_Step"] = 0.0
 
     align = cfg["alignment"]
@@ -379,7 +400,7 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
         points_per_mm=points_per_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
         cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
         platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
-        placement_protrusion=Placement_Protrusion, angle_half_step=Angle_Half_Step)
+        angle_half_step=Angle_Half_Step)
     return _assemble(text_ring), char_parts
 
 
@@ -421,7 +442,7 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
-        placement_protrusion=Placement_Protrusion, angle_half_step=Angle_Half_Step)
+        angle_half_step=Angle_Half_Step)
     return _assemble(text_ring), mapping_lines
 
 

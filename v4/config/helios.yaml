@@ -124,12 +124,17 @@ alignment:
   modified_right_chars: ""
   modified_right_offset_mm: 0.0
 
-# mesh-pipeline build settings (v4-specific). placement_protrusion=-0.05
-# (v2's Letter_Placement_Protrusion=-.05 - a small built-in 0.05mm radial
-# inset, independent of the platen-cutout radius which still uses the
-# full Char_Protrusion - see v2's file-header CORRECTION note, part 2) and
-# angle_half_step=0 are threaded through as explicit lib/helios.py module
-# globals (Placement_Protrusion/Angle_Half_Step), the same pattern
+# mesh-pipeline build settings (v4-specific). placement_protrusion is left
+# at its default (Char_Protrusion) - NOT v2's raw Letter_Placement_
+# Protrusion=-.05 (that value only ever moved v2's own pre-cutout
+# extrusion block, an independent transform from the platen cutter that
+# actually sets the visible strike depth; v4 has no such split - see
+# lib/helios.py's configure() comment and SESSION_LOG.md part 25, a real
+# "characters sat too deep" bug fixed there by re-deriving this the way
+# Bennett's port already had to, instead of copying v2's raw value).
+# angle_half_step=0 (a real, unrelated v2 value - Angle_Half_Step=0, no
+# two-transform split for angle) is still threaded through as an explicit
+# lib/helios.py module global (Angle_Half_Step), the same pattern
 # lib/mignon.py's configure() uses for its own non-default overrides.
 build:
   points_per_mm: 15.0

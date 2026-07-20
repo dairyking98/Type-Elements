@@ -310,11 +310,20 @@ own code uses `Element_Clip_Height`), and made `quality.cyl_fn` (declared
 but unused by the original port) genuinely used for the first time.
 
 Two real values `place_on_cylinder`'s own docstring had flagged as "not
-yet verified" for Helios are now resolved: `placement_protrusion=-0.05`
-(v2's `Letter_Placement_Protrusion=-.05` - a real, small built-in 0.05mm
-radial inset, separate from the platen-cutout radius which still uses the
-full `Char_Protrusion`) and `angle_half_step=0` (no half-column centering
-term, same as Mignon).
+yet verified" for Helios are now resolved: `angle_half_step=0` (no
+half-column centering term, same as Mignon), and `placement_protrusion`
+left at its default (`Char_Protrusion`) - NOT v2's raw `Letter_Placement_
+Protrusion=-.05`. That raw value shipped once as a real bug (characters
+sat far too deep/inset): v2's `LetterPlacement` and `PlatenCutout` are
+two INDEPENDENT transforms, and `-.05` only ever moved the former (v2's
+own comment: "a small built-in 0.05mm radial inset that only affects
+placement, not the platen-cutout radius") - the latter, which actually
+sets the visible strike depth, uses the same `Element_Diameter/2+
+Platen_Diameter/2+Char_Protrusion` formula Blickensderfer/Postal do. v4
+has no such split (one combined transform), so reproducing v2's real
+low point requires `placement_protrusion=Char_Protrusion` - the exact
+derivation `lib/bennett.py`'s port already had to make for the same
+reason. See `SESSION_LOG.md` part 25.
 
 **A genuine two-stage `difference()`, not a flattenable additive/
 subtractive split.** v2's `Assemble()` nests three `difference()`s -
