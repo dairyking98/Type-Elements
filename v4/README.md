@@ -218,6 +218,63 @@ real asymmetry in v2's own source, not an oversight. Previously
 acknowledged-but-not-ported; now a real `element.tallen` toggle plus its
 two magnitude fields, all exposed on the Element tab.
 
+### Bennett (`lib/bennett.py`) - shares the glyph pipeline, bespoke body
+
+Like Mignon, Bennett shares `cylinder_machine.py`'s glyph placement/text
+pipeline (`TextRing`/`CalibrationTextRing`, `place_on_cylinder` with
+`placement_protrusion=0` - Bennett's own `Letter_Placement_Protrusion=0`,
+same override Mignon/Helios use) and, unlike Mignon, also reuses
+`lib/core_shaft.scad`'s shared `SecondaryCore`/`CoreGrooves`/`CoreChamfer`/
+`CoreEllipses` directly (`Core_Chamfer_Top=False` - no clip, so unlike
+Blickensderfer/Postal there's no top chamfer under one; `Core_Taper_Top_Z`
+= `Core_Top_Z` - the taper's own top landmark coincides with the absolute
+top, again because there's no clip pushing it down). Bennett does NOT
+override `Angle_Half_Step` the way Mignon does - v2 never sets it, so it
+stays at the shared lib's default 0.5, verified algebraically: Bennett's
+own `Theta=-(360/28*col+360/(2*28))` reduces to exactly
+`(0.5+col)*Latitude_Int`, the same formula shape as Blickensderfer/Postal,
+just with `Latitude_Int` negative instead of positive (same sign
+convention as Mignon).
+
+Everything else is fully bespoke, confirmed by direct comparison against
+`v2/bennett.scad`: two positioner pins with a small chamfer cone
+(`PositionerPins`) instead of a wire clip, a 9-point `rotate_extrude()`
+polygon shaft bore (`HollowBody`, built from landmark arrays + an index
+pattern, ported mechanically) instead of `core_shaft.scad`'s
+`HollowSpace()`+`BottomSlopedSpace()` combination, a full 3-row x
+28-column grid of physical alignment/screw holes (`AlignmentHoles`, no
+Blickensderfer/Postal equivalent at all), two independent flat
+whole-string engraved-text groups cut into the bottom face near the shaft
+(`LabelText` - v2 calls `text()` directly per whole string with
+`halign=valign="center"`, not a ring of individually angle-placed
+characters like Blickensderfer/Postal's `LogoText` or Mignon's
+`ElementLogo`/`ElementLabel` - see `_build_text_string()`'s docstring for
+how whole-string layout was ported: each character placed at its natural
+FreeType advance, the assembled string centered on its total advance
+width - the same "native halign=center centers the ADVANCE box"
+convention this codebase already established for `AlignedText`), a simple
+fixed 8-hole `SpeedHoles` ring (own diameter/radius names, plus a
+half-step angular phase offset Blickensderfer/Postal/Mignon's own
+`SpeedHoles` don't have), top+bottom countersinks and an indicator
+hole/roof taper, and fully bespoke resin-support placement (own
+ring+groove+raft `rotate_extrude()`, 8+8+4 `ResinRod()` calls at three
+different radii/heights - no `CutGroove`/`SpeedHoleSupport`/
+`DrivePinSupport`/`BottomSupports` concepts at all, though it DOES reuse
+`cylinder_machine._resin_rod()` for the rod primitive itself, same as
+Mignon).
+
+No Shaft Gauge Test (`v2/bennett.scad:24`: "Sections with no Bennett
+equivalent (Print Tolerances, Shaft Gauge Test) are omitted" - same as
+Mignon). Its one engraved-text feature lives under its own `label:` config
+section/"Label" tab (not "Logo" - the field shapes don't correspond to
+Blickensderfer/Postal/Mignon's Logo schema at all, no text_spacing/
+position_offset_deg/radial_offset_mm concept). Composing this exposed a
+latent `tune.py` bug: `_compose_tuner_ui()` unconditionally composed a
+"Logo" tab for every machine (never previously exercised, since
+Blickensderfer/Postal/Mignon all have one) - now guarded by `"Logo" in
+self.SECTIONS`, matching the existing `"Label"`/`"Gauge"` guards right
+next to it.
+
 ### Performance
 
 The draft taper is a real Minkowski sum (`manifold3d`), not plain

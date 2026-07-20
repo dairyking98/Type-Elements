@@ -186,6 +186,7 @@ MACHINES = {
     "blickensderfer": ("Blickensderfer", os.path.join(REPO_ROOT, "config", "blickensderfer.yaml")),
     "postal": ("Postal", os.path.join(REPO_ROOT, "config", "postal.yaml")),
     "mignon": ("Mignon", os.path.join(REPO_ROOT, "config", "mignon.yaml")),
+    "bennett": ("Bennett", os.path.join(REPO_ROOT, "config", "bennett.yaml")),
 }
 
 FONT_FILE_FILTERS = Filters(
@@ -197,10 +198,12 @@ YAML_FILE_FILTERS = Filters(
     ("YAML files", lambda p: p.suffix.lower() in (".yaml", ".yml")),
     ("All files", lambda _: True),
 )
-# font.path (Font & Alignment tab), logo.font_path (Logo tab), and Mignon's
-# label.font_path (Logo tab, label_font_path key - see LOGO_FIELDS_MIGNON)
-# are the font-picking fields - each gets a "Browse" button, see
-# _compose_section_tab and on_button_pressed's "browse-" id handling
+# font.path (Font & Alignment tab), logo.font_path (Logo tab), Mignon's
+# label.font_path (Logo tab, label_font_path key - see LOGO_FIELDS_MIGNON),
+# and Bennett's label.font_path (Label tab, plain font_path key - see
+# LABEL_FIELDS_BENNETT) are the font-picking fields - each gets a "Browse"
+# button, see _compose_section_tab and on_button_pressed's "browse-" id
+# handling
 FONT_PATH_FIELD_KEYS = ("path", "font_path", "label_font_path")
 
 # Named Blickensderfer keyboard layouts, ported verbatim from
@@ -441,6 +444,86 @@ ELEMENT_FIELDS_MIGNON = [
     ("cylinder_shape", ["element", "cylinder_shape"], int, "Body shape", "0=Polygonal (12-gon), 1=Cylindrical."),
 ]
 
+# Bennett-specific tabs - see lib/bennett.py's module docstring for why
+# these can't share Blickensderfer/Postal/Mignon's field lists. Bennett's
+# only engraved-text feature (LabelText - two independent flat whole-
+# string groups cut into the bottom face, not a ring of individually
+# angle-placed characters) has no text_spacing/position_offset_deg/
+# radial_offset_mm concept at all, so it gets its own "Label" tab (not
+# "Logo") matching v2's own Shuttle_Label naming and config/bennett.yaml's
+# `label:` section.
+LABEL_FIELDS_BENNETT = [
+    ("font_path", ["label", "font_path"], str, "Label font path", "Font for the engraved LabelText."),
+    ("label1a", ["label", "label1a"], str, "Label 1a (top line, right group)", "Shuttle_Label1a - e.g. a first name."),
+    ("label1b", ["label", "label1b"], str, "Label 1b (bottom line, right group)", "Shuttle_Label1b - e.g. a last name."),
+    ("label2", ["label", "label2"], str, "Label 2 (left group)", "Shuttle_Label2 - e.g. a year."),
+    ("size_mm", ["label", "size_mm"], float, "Label text size (mm)", ""),
+    ("depth_mm", ["label", "depth_mm"], float, "Label depth offset (mm)", "Added to Bottom_Countersink_Depth for the cut's Z start."),
+]
+
+QUALITY_FIELDS_BENNETT = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
+    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft/pin fn", "PositionerPins/CenterShaft."),
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowBody, SpeedHoles, countersinks...)."),
+    ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
+    ("alignment_hole_fn", ["quality", "alignment_hole_fn"], int, "Alignment hole fn", "AlignmentHoles facet count."),
+    ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+]
+
+RESIN_FIELDS_BENNETT = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
+    ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
+    ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
+    ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
+    ("inset", ["resin", "inset"], float, "Inset (mm)", ""),
+    ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
+    ("support_height", ["resin", "support_height"], float, "Support height (mm)",
+     "Ring/raft Z offset below the element, and every rod's base height."),
+    ("support_thickness", ["resin", "support_thickness"], float, "Support thickness (mm)",
+     "Also doubles as the per-rod raft frustum's thickness (Resin_Raft_Thickness)."),
+    ("cut_groove_diameter", ["resin", "cut_groove_diameter"], float, "Cut groove diameter (mm)", ""),
+    ("cut_groove_thickness", ["resin", "cut_groove_thickness"], float, "Cut groove thickness (mm)", ""),
+]
+
+# alignment_hole_height (3 values, per-row - like baseline_row/cutout_row)
+# is NOT exposed here - patch_yaml_value/self.FIELDS only handle scalar
+# values, and baseline_row/cutout_row's per-row widgets are bespoke to
+# those two keys (see TuneApp._compose_baseline_cutout_fields) - edit it
+# directly in the YAML if you need to change it, same as placement_map.
+ELEMENT_FIELDS_BENNETT = [
+    ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
+    ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", ""),
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final char diameter (mm)", "Char_Protrusion = (this - element_diameter)/2."),
+    ("element_height", ["element", "element_height"], float, "Element height (mm)", ""),
+    ("shaft_diameter", ["element", "shaft_diameter"], float, "Shaft diameter (mm)", ""),
+    ("positioner_pin_diameter", ["element", "positioner_pin_diameter"], float, "Positioner pin diameter (mm)", ""),
+    ("positioner_pin_radius", ["element", "positioner_pin_radius"], float, "Positioner pin radius (mm)", ""),
+    ("indicator_diameter", ["element", "indicator_diameter"], float, "Indicator hole diameter (mm)", ""),
+    ("alignment_hole_diameter", ["element", "alignment_hole_diameter"], float, "Alignment hole diameter (mm)", ""),
+    ("alignment_hole_depth", ["element", "alignment_hole_depth"], float, "Alignment hole depth (mm)", ""),
+    ("alignment_hole_chamfer", ["element", "alignment_hole_chamfer"], float, "Alignment hole chamfer (mm)", ""),
+    ("speed_hole_diameter", ["element", "speed_hole_diameter"], float, "Speed hole diameter (mm)", ""),
+    ("speed_hole_radius", ["element", "speed_hole_radius"], float, "Speed hole radial (mm)", ""),
+    ("speed_hole_quantity", ["element", "speed_hole_quantity"], int, "Speed hole qty", ""),
+    ("countersink_diameter", ["element", "countersink_diameter"], float, "Countersink diameter (mm)", ""),
+    ("top_countersink_depth", ["element", "top_countersink_depth"], float, "Top countersink depth (mm)", ""),
+    ("bottom_countersink_depth", ["element", "bottom_countersink_depth"], float, "Bottom countersink depth (mm)", ""),
+    ("shell_size", ["element", "shell_size"], float, "Shell size (mm)", "Minimum cylinder wall thickness."),
+    ("core_groove_qty", ["element", "core_groove_qty"], int, "Core groove qty", ""),
+    ("core_groove_d", ["element", "core_groove_d"], float, "Core groove depth (mm)", ""),
+    ("core_chamfer", ["element", "core_chamfer"], float, "Core chamfer (mm)", ""),
+    ("core_bottom_offset", ["element", "core_bottom_offset"], float, "Core bottom offset (mm)", ""),
+    ("core_contact_length", ["element", "core_contact_length"], float, "Core contact length (mm)", ""),
+    ("core_web_width", ["element", "core_web_width"], float, "Core web width (mm)", ""),
+    ("core_web_qty", ["element", "core_web_qty"], int, "Core web qty", ""),
+    ("core_web_length", ["element", "core_web_length"], float, "Core web length (mm)", ""),
+]
+
 ELEMENT_FIELDS_BLICKENSDERFER = [
     ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
     ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", "Real platen cylinder diameter."),
@@ -505,6 +588,14 @@ SECTIONS_BY_MACHINE = {
     "mignon": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
                "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
                "Element": ELEMENT_FIELDS_MIGNON},
+    # no "Gauge" key - Bennett has no Shaft Gauge Test either (v2/bennett.
+    # scad:24: "Sections with no Bennett equivalent (Print Tolerances,
+    # Shaft Gauge Test) are omitted"). No "Logo" key - its one engraved-
+    # text feature is LABEL_FIELDS_BENNETT's "Label" tab instead (see that
+    # list's neighboring comment).
+    "bennett": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_BENNETT,
+                "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
+                "Element": ELEMENT_FIELDS_BENNETT},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -845,10 +936,43 @@ LAYOUT_PRESETS_MIGNON = {
     ],
 }
 
+# Bennett's 4 named layouts, ported verbatim from v2/lib/layouts/
+# bennett_layouts.scad's ENGLISH/BRITISH/INTERNATIONAL arrays plus
+# v2/bennett.scad's own CUSTOMLAYOUT (Lowercase/Uppercase/Figs - identical
+# content to ENGLISH by default, a real, if redundant, 4th LAYOUTS entry
+# in v2's own source, not an omission here). All 4 share the same
+# 3-row/28-column structure and identity placement_map. Rows are shown in
+# keyboard-legend order (as printed on the physical keyboard), matching
+# config/bennett.yaml's layout.char_legend remap - see lib/bennett.py's
+# configure().
+LAYOUT_PRESETS_BENNETT = {
+    "ENGLISH": [
+        "qweruiopasdftyjkl,zxcvghbnm.",
+        "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
+        "12347890\"#$%56;?:,£@_(&-)/'.",
+    ],
+    "BRITISH": [
+        "qweruiopasdftyjkl,zxcvghbnm.",
+        "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
+        "12347890\"¾$%56;?:½£@_(&-)/'¼",
+    ],
+    "CUSTOM": [
+        "qweruiopasdftyjkl,zxcvghbnm.",
+        "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
+        "12347890\"#$%56;?:,£@_(&-)/'.",
+    ],
+    "INTERNATIONAL": [
+        "qweruiopasdftyjkl,zxcvghbnm.",
+        "QWERUIOPASDFTYJKLÖZXCVGHBNMÄ",
+        "1234789üà#£%56?Ååö§@:(&-)/\"ä",
+    ],
+}
+
 LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
     "postal": LAYOUT_PRESETS_POSTAL,
     "mignon": LAYOUT_PRESETS_MIGNON,
+    "bennett": LAYOUT_PRESETS_BENNETT,
 }
 
 # layout.baseline_row/cutout_row per-row fields (Element tab - see
@@ -1330,6 +1454,15 @@ class TuneApp(App):
                         "legend order (as printed on the physical keyboard/manual) -\n"
                         "layout.char_legend remaps this to build order internally.",
                         classes="picker-help")
+                elif self.machine == "bennett":
+                    yield Static(
+                        "Ported from v2/lib/layouts/bennett_layouts.scad's ENGLISH/BRITISH/\n"
+                        "INTERNATIONAL plus v2/bennett.scad's own CUSTOM (identical to\n"
+                        "ENGLISH by default - edit it via Modify glyphs below). All share\n"
+                        "the same 3-row/28-column layout. Rows are shown in keyboard-\n"
+                        "legend order (as printed on the physical keyboard/manual) -\n"
+                        "layout.char_legend remaps this to build order internally.",
+                        classes="picker-help")
                 elif options:
                     yield Static(
                         "Use Modify glyphs below to hand-edit the rows if you need\n"
@@ -1466,7 +1599,10 @@ class TuneApp(App):
                 yield from self._compose_build_tab()
                 yield from self._compose_layout_tab()
                 yield from self._compose_section_tab("Quality")
-                yield from self._compose_section_tab("Logo")
+                # no "Logo" key for Bennett - its one engraved-text feature
+                # is the "Label" tab instead (see LABEL_FIELDS_BENNETT).
+                if "Logo" in self.SECTIONS:
+                    yield from self._compose_section_tab("Logo")
                 if "Label" in self.SECTIONS:
                     yield from self._compose_section_tab("Label")
                 yield from self._compose_section_tab("Element")
