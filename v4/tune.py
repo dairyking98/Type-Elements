@@ -360,22 +360,25 @@ LOGO_FIELDS_MIGNON = [
     ("text_size_mm", ["logo", "text_size_mm"], float, "Logo text size (mm)", ""),
     ("text_spacing", ["logo", "text_spacing"], float, "Logo char spacing (deg)", "Angular spacing between logo characters."),
     ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)",
-     "The Label fields below always sit 180 degrees opposite this value - "
-     "moving Logo also moves Label."),
+     "The Label tab's own text always sits 180 degrees opposite this "
+     "value - moving Logo also moves Label."),
     ("height_offset_mm", ["logo", "height_offset_mm"], float, "Logo height offset (mm)",
      "Local nudge off the chamfer surface the logo sits on - NOT the "
      "same concept as Blickensderfer/Postal's radial offset (Mignon's "
      "logo/label sit on an angled chamfer surface, not the flat top face)."),
-    # Label: not a v2 concept - a second engraved-text feature, same
-    # format as Logo above, always placed 180 degrees opposite it (no
-    # position_offset_deg field here - it's derived, see logo's help text
-    # above and lib/mignon.py's configure()). Keys prefixed label_* since
-    # "font_path"/"text"/etc. above are already taken by Logo's own fields
-    # (self.inputs keys must be unique within one machine's field set) -
-    # AND the actual config/mignon.yaml keys are also prefixed label_*, not
-    # just these internal field keys: patch_yaml_value matches by bare key
-    # TEXT across the whole file, not by section, so identical YAML key
-    # names under logo:/label: would collide and patch the wrong one.
+]
+
+# Label: not a v2 concept - a second engraved-text feature, own tab, same
+# field format as Logo above, always placed 180 degrees opposite it (no
+# position_offset_deg field here - it's derived, see Logo's help text
+# above and lib/mignon.py's configure()). Keys prefixed label_* since
+# "font_path"/"text"/etc. above are already taken by Logo's own fields
+# (self.inputs keys must be unique within one machine's field set) - AND
+# the actual config/mignon.yaml keys are also prefixed label_*, not just
+# these internal field keys: patch_yaml_value matches by bare key TEXT
+# across the whole file, not by section, so identical YAML key names
+# under logo:/label: would collide and patch the wrong one.
+LABEL_FIELDS_MIGNON = [
     ("label_font_path", ["label", "label_font_path"], str, "Label font path", "Font for the engraved ElementLabel."),
     ("label_text", ["label", "label_text"], str, "Label text", "The engraved text itself."),
     ("label_text_size_mm", ["label", "label_text_size_mm"], float, "Label text size (mm)", ""),
@@ -495,7 +498,7 @@ SECTIONS_BY_MACHINE = {
     # ELEMENT_FIELDS_MIGNON's neighboring comment) - compose()/
     # _compose_build_tab() check for its absence and skip the tab/dropdown
     # option accordingly, rather than every machine being forced to have one.
-    "mignon": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_MIGNON,
+    "mignon": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
                "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
                "Element": ELEMENT_FIELDS_MIGNON},
 }
@@ -1460,6 +1463,8 @@ class TuneApp(App):
                 yield from self._compose_layout_tab()
                 yield from self._compose_section_tab("Quality")
                 yield from self._compose_section_tab("Logo")
+                if "Label" in self.SECTIONS:
+                    yield from self._compose_section_tab("Label")
                 yield from self._compose_section_tab("Element")
 
             with Vertical(id="buttons"):

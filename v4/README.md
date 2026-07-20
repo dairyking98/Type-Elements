@@ -199,8 +199,9 @@ SESSION_LOG.md parts 20-21 for the full account.
 mignon.scad's real `[Logo]` customizer section (confirmed end to end) has
 exactly ONE engraved-text feature (`Cylinder_Label`), which is what this
 app's `logo.*` config/"Logo" tab already drives. A second, independent
-`label.*` feature was added anyway (v4-only, not a v2 port) - same field
-format as Logo (font/text/size/spacing/height-offset), always placed 180
+`label.*` feature was added anyway (v4-only, not a v2 port), with its
+own "Label" tab - same field format as Logo (font/text/size/spacing/
+height-offset), always placed 180
 degrees opposite Logo's `position_offset_deg` (computed in `configure()`
 as an invariant, not independently stored - moving Logo moves Label with
 it). Defaults to empty text rather than duplicating Logo's default
