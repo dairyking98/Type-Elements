@@ -108,7 +108,7 @@ def configure(config_path):
     g["Shuttle_Label1a"] = label["label1a"]
     g["Shuttle_Label1b"] = label["label1b"]
     g["Shuttle_Label2"] = label["label2"]
-    g["Shuttle_Label_Size"] = label["size_mm"]
+    g["Shuttle_Label_Size"] = label["label_size_mm"]
     g["Shuttle_Label_Depth"] = label["depth_mm"]
 
     e = cfg["element"]
