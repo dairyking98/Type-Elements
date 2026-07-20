@@ -1,0 +1,203 @@
+# Bennett type element - all real parameters ported 1:1 from
+# v2/bennett.scad (see that file for authoritative source/comments).
+# Bennett shares the glyph placement pipeline (TextRing/CalibrationTextRing,
+# via cylinder_machine.py) with Blickensderfer/Postal/Mignon, and reuses
+# lib/core_shaft.scad's shared SecondaryCore/CoreGrooves/CoreChamfer/
+# CoreEllipses (Core_Chamfer_Top=false - no clip, so unlike Blickensderfer/
+# Postal there's no top chamfer under a clip) and lib/resin_rod.scad's
+# ResinRod - but its own body (PositionerPins/HollowBody/AlignmentHoles/
+# LabelText/SpeedHoles/Countersinks/IndicatorHole) and resin-support
+# placement are fully bespoke, structurally unlike either the
+# Blickensderfer/Postal "drive pin trio" pattern or Mignon's chamfer-boss
+# body - see lib/bennett.py's module docstring for the full comparison.
+# Two v2 customizer params are declared but never referenced by any module
+# in v2/bennett.scad (confirmed dead code, not a v4 omission):
+# Inside_Radius and Resin_Support_Buildplate_Diameter - neither is ported.
+
+machine: bennett
+
+font:
+  # v2's real value is the font family name "Average Mono" (Type_Size=
+  # 3.00), not a file path - this is that font's real file.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/AverageMono.otf"
+  size_mm: 3.00
+
+# Bennett's only engraved-text feature (Shuttle_Label1a/1b/Shuttle_Label2,
+# LabelText() in lib/bennett.py) - NOT a ring of individually angle-placed
+# characters like Blickensderfer/Postal's Logo or Mignon's Logo/Label (v2
+# calls text() directly with a whole string, halign=valign="center", cut
+# INTO the bottom face near the shaft as two independent flat groups, not
+# embossed on a curved/chamfered surface) - kept under its own v2-matching
+# `label:` section rather than forced into the other machines' `logo:`
+# schema, since the field shapes don't correspond (no text_spacing/
+# position_offset_deg/radial_offset_mm - see lib/bennett.py's
+# _build_text_string()/LabelText() docstrings for the placement chain).
+label:
+  # v2's real value is "Courier New:style=bold", not a file path/not
+  # installed here - nearest real bold monospace-ish file on disk.
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime-Bold.ttf"
+  label1a: "Leonard"     # Shuttle_Label1a
+  label1b: "Chau"        # Shuttle_Label1b
+  label2: "2025"         # Shuttle_Label2
+  size_mm: 1.7           # Shuttle_Label_Size
+  # Z offset added to Bottom_Countersink_Depth for where the (fixed 2mm
+  # deep, not itself configurable in v2 - see LabelText()) cut starts.
+  depth_mm: 0.2          # Shuttle_Label_Depth
+
+element:
+  platen_diameter: 30
+  element_diameter: 31.9
+  min_final_character_diameter: 32.9   # Char_Protrusion = (this - element_diameter)/2
+  element_height: 18
+  shaft_diameter: 3.4
+  positioner_pin_diameter: 2.5
+  positioner_pin_radius: 4.813
+  indicator_diameter: 2.2
+  alignment_hole_diameter: 1.8
+  alignment_hole_depth: 2.4
+  alignment_hole_chamfer: 0.3
+  # [Lowercase, Uppercase, Figures] Alignment Hole Height - Alignment_Hole
+  alignment_hole_height: [13.19, 7.0, 1.19]
+  speed_hole_diameter: 6.1
+  speed_hole_radius: 10.801
+  speed_hole_quantity: 8
+  countersink_diameter: 23.4
+  top_countersink_depth: 0.7
+  bottom_countersink_depth: 0.5
+  shell_size: 1.0                      # Minimum Cylinder Thickness
+  core_groove_qty: 16
+  core_groove_d: 0.6
+  core_chamfer: 0.5
+  core_bottom_offset: 0.0
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 6.0
+
+# quality/facet counts - Bennett's own naming (Cyl_Fn/Surface_Fn/
+# Alignment_Hole_Fn/Groove_Fn), no separate body_fn (Cylinder() is a plain
+# cylinder at Surface_Fn, no clip to distinguish it from). Mink_Fn/Resin_Fn
+# live under quality.minkowski_fn/resin.resin_fn respectively, matching
+# every other machine's schema.
+quality:
+  cyl_fn: 360
+  surface_fn: 120
+  groove_fn: 40
+  alignment_hole_fn: 40
+  minkowski_fn: 12         # Mink_Fn
+  platen_fn: 360
+
+# per-row baseline/platen-cutout heights (mm, ABSOLUTE from the bottom
+# face - v2/bennett.scad's Baseline_Z_Offset=0, same convention as Mignon,
+# unlike Blickensderfer/Postal's negative-from-clip-end convention),
+# latitude spacing (Latitude_Int=-360/28 - NEGATIVE, same sign convention
+# as Mignon, verified algebraically against Bennett's own Theta formula -
+# see lib/bennett.py), and the physical layout.
+#
+# rows: stored in RAW KEYBOARD-LEGEND order (v2's `Layout` array, from
+# v2/lib/layouts/bennett_layouts.scad's ENGLISH - the real Layout_
+# Selection=0 default), NOT the Char_Legend-remapped `Physical_Layout`
+# order used for actual glyph placement - lib/bennett.py's configure()
+# applies char_legend below to compute the real build-time DHIATENSOR,
+# mirroring v2/bennett.scad:290-293's Physical_Layout=[for (row) [for
+# (col) Layout[row][Char_Legend[col]]]] exactly, the same scheme
+# config/mignon.yaml's layout.char_legend already uses. placement_map is
+# identity here (Bennett has no separate physical-column reordering beyond
+# the content remap Char_Legend already performs - unlike Blickensderfer's
+# genuinely non-identity placement_map).
+layout:
+  baseline_row: [14.9, 9.2, 2.95]
+  cutout_row: [16.15, 10.35, 4.35]
+  latitude_columns: 28
+  placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+  char_legend: [12, 22, 3, 11, 21, 2, 10, 20, 1, 9, 19, 0, 8, 18, 27, 17, 7, 26, 16, 6, 25, 15, 5, 24, 14, 4, 23, 13]
+  rows:
+    - "qweruiopasdftyjkl,zxcvghbnm."
+    - "QWERUIOPASDFTYJKL,ZXCVGHBNM."
+    - "12347890\"#$%56;?:,£@_(&-)/'."
+  modify_glyphs: false
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+# mesh-pipeline build settings (v4-specific) - Bennett's placement_
+# protrusion is left at the shared lib's default (Char_Protrusion),
+# same as Blickensderfer/Postal - NOT 0 despite v2's own
+# Letter_Placement_Protrusion=0, because v4's build_glyph()/
+# place_on_cylinder() bake the platen scallop into one local mesh placed
+# by a single radial offset, unlike v2's two independent transforms (see
+# lib/bennett.py's configure() for the full derivation - min_final_
+# character_diameter/Char_Protrusion would otherwise be a dead config
+# value here, same latent bug Mignon still has). Keeps the default 0.5
+# half-column centering step too (v2 never overrides Angle_Half_Step -
+# verified algebraically that Bennett's own Theta=-(360/28*col+360/
+# (2*28)) formula reduces to exactly (0.5+col)*Latitude_Int, the shared
+# lib's default).
+build:
+  points_per_mm: 15.0
+  separation_mm: 2.0
+  render_core_groove: true
+  resin_support: true          # Generate_Support
+  target: "element"
+  simplify_tolerance_mm: 0.005
+  minkowski_enabled: true
+  draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated
+                                # dimension, uses the shared angle-derived formula
+
+# lib/resin_rod.scad (Resin_Rod_Raft left at the lib's own is_undef->true
+# default in v2 - Bennett's own ResinSupport() big ring/raft only reaches
+# the outer edge, so every individual rod still needs its own small raft,
+# unlike Mignon which sets this false). support_height/support_thickness/
+# cut_groove_diameter/cut_groove_thickness are Bennett-specific (its own
+# bespoke ResinSupport(), not Blickensderfer/Postal's shared CutGroove/
+# resin_support.scad placement layer).
+resin:
+  resin_fn: 20
+  rod_od: 1.0                  # Resin_Support_Wire_Thickness
+  tip_od: 0.7                  # Resin_Support_Contact_Point_Diameter
+  tip_l: 1.0
+  inset: 0.35                  # Resin_Support_Contact_Point_Diameter/2
+  raft_od: 2.4
+  # Resin_Raft_Thickness=Resin_Support_Thickness (same value, two v2 names
+  # for one number - see lib/bennett.py's configure()); min_rod_height is
+  # DERIVED (-Resin_Raft_Thickness), not independently stored.
+  support_height: 4.0          # Resin_Support_Height
+  support_thickness: 1.0       # Resin_Support_Thickness
+  cut_groove_diameter: 0.75    # Resin_Support_Cut_Groove_Diameter
+  cut_groove_thickness: 0.2    # Resin_Support_Cut_Groove_Thickness
+
+output:
+  directory: "output"
+  stl_name: "bennett_running.stl"
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/bennett.scad) - see config/blickensderfer.yaml's matching comment.
+type_test:
+  cpi: 10.0                    # Test_CPI
+  lpi: 6.0
+  text: |-
+    to do: stop.
+    wait! uh... no,
+    (parentheses)
+    excitement!
+
+# Calibration (v2's Testing_Baseline/Testing_Cutout/Testing_Layout +
+# Testing_Offsets, wired to the same Cutout_Test/Baseline_Test/Test_Layout
+# mechanism every other machine uses) - see config/blickensderfer.yaml's
+# matching comment. Bennett's real Testing_Offsets=[-.65,-.6,...,.7] (28
+# columns) is exactly testSweepArray(-0.65, 0.05, 28). Unlike every other
+# machine's config, v2's own real defaults for BOTH Testing_Baseline and
+# Testing_Cutout are false (neither sweep active) - kept faithful to that
+# here rather than defaulting one on.
+calibration:
+  test_char: "H"
+  vary_baseline: false
+  vary_cutout: false
+  start: -0.65
+  interval: 0.05

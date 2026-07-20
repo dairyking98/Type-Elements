@@ -578,7 +578,11 @@ def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_
     + cone, apex at z=depth, wide base at z=0 - see build_glyph's own
     comment for the derivation), minus its platen-scallop carve, which
     has no equivalent on a flat engraved label. depth plays separation_mm's
-    role: expansion_width_mm = depth * tan(draft_angle_deg/2)."""
+    role: expansion_width_mm = depth * tan(draft_angle_deg/2) - since
+    depth here is typically small (Logo/Label text, not a struck
+    character's 0.5-2mm), the resulting taper is a subtle edge round-over,
+    not a big structural draft - the point is a nicer edge, not print
+    release, so no platen/mirror complexity is needed."""
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = freetype.Face(fp)
