@@ -1865,11 +1865,8 @@ class TuneApp(App):
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
         if values["target"] == "gauge":
             # GaugeTestSet() doesn't touch TextRing/build_glyph at all, so
-            # the Minkowski/points-per-mm knobs don't apply here - only
-            # --no-core-groove (still worth skipping for a quick check)
+            # the Minkowski/points-per-mm knobs don't apply here.
             cmd += ["--gauge"]
-            if fast:
-                cmd += ["--no-core-groove"]
         elif values["target"] == "calibration":
             # CalibrationElement() DOES go through build_glyph/TextRing
             # (same real draft/placement machinery, just a different
@@ -1882,7 +1879,7 @@ class TuneApp(App):
             # the next one, or you'd be chasing a moving reference.
             cmd += ["--calibrate", "--calibration-reference-config", self.master_config_path]
             if fast:
-                cmd += ["--no-minkowski", "--no-core-groove"]
+                cmd += ["--no-minkowski"]
             else:
                 cmd += ["--minkowski"]
         else:
@@ -1895,7 +1892,7 @@ class TuneApp(App):
             # checkbox, so Quick Preview still shows resin supports when
             # that's checked.
             if fast:
-                cmd += ["--no-minkowski", "--no-core-groove"]
+                cmd += ["--no-minkowski"]
             else:
                 cmd += ["--minkowski"]
         returncode = await self._stream_subprocess(cmd)
