@@ -11,12 +11,48 @@ config/blickensderfer.yaml for the full parameter set and comments.
 
 import argparse
 import importlib
+import math
 import os
 import sys
 
+import numpy as np
+import trimesh
 import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+
+
+def _apply_cross_section(mesh, angle_deg, flip):
+    """Debug-only: clips mesh to one side of a vertical plane through the
+    machine's central (Z) axis at angle_deg (degrees, measured in the XY
+    plane) - a cutaway view for inspecting internal geometry (hollow
+    space, drive pin, resin supports, ...) without printing/viewing the
+    whole opaque part. angle_deg=None (the default, nothing passed on the
+    CLI) is a no-op - this never changes output for a normal build.
+    flip=True keeps the opposite half (whichever side would otherwise be
+    discarded) instead.
+
+    Uses manifold3d's own Manifold.trim_by_plane rather than
+    trimesh.intersections.slice_mesh_plane - tried that first, but its
+    triangulated cap left FullElement (no resin supports) non-watertight/
+    non-volume after the cut even off-axis, while manifold3d's native
+    half-space trim (the same engine scad_primitives.union_all() already
+    uses for real assembly booleans, per CLAUDE.md) produced a clean
+    watertight result in the same case."""
+    if angle_deg is None:
+        return mesh
+    from manifold3d import Manifold, Mesh as ManifoldMesh
+
+    angle_rad = math.radians(angle_deg)
+    normal = (math.cos(angle_rad), math.sin(angle_rad), 0.0)
+    if flip:
+        normal = tuple(-n for n in normal)
+    manifold = Manifold(mesh=ManifoldMesh(
+        vert_properties=np.array(mesh.vertices, dtype=np.float32),
+        tri_verts=np.array(mesh.faces, dtype=np.uint32)))
+    trimmed = manifold.trim_by_plane(normal, 0.0)
+    result = trimmed.to_mesh()
+    return trimesh.Trimesh(vertices=result.vert_properties, faces=result.tri_verts, process=False)
 
 
 def _load_machine(config_path):
@@ -109,6 +145,14 @@ def main():
     parser.add_argument("--out", default=None,
                          help="override output.directory/output.stl_name from the config "
                               "(full path to the .stl to write)")
+    parser.add_argument("--cross-section-angle-deg", type=float, default=None,
+                         help="debug: clip the final mesh to one side of a vertical plane "
+                              "through the machine's central axis at this angle (degrees) - "
+                              "applies to any build target (element/gauge/calibration); "
+                              "omit to disable (default)")
+    parser.add_argument("--cross-section-flip", action="store_true",
+                         help="debug: with --cross-section-angle-deg, keep the opposite "
+                              "half of the cut instead of the default side")
     args = parser.parse_args()
 
     bd = _load_machine(args.config)
@@ -133,6 +177,7 @@ def main():
         # not part of the real element at all - no char placement, no
         # HollowSpace intersection check (nothing to check it against)
         full = bd.GaugeTestSet(render_core_groove=render_core_groove)
+        full = _apply_cross_section(full, args.cross_section_angle_deg, args.cross_section_flip)
         print(f"GaugeTestSet: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
@@ -171,6 +216,7 @@ def main():
             minkowski_enabled=args.minkowski_enabled,
             draft_angle_deg=args.draft_angle_deg,
         )
+        full = _apply_cross_section(full, args.cross_section_angle_deg, args.cross_section_flip)
         print(f"CalibrationElement: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
@@ -198,6 +244,7 @@ def main():
         minkowski_enabled=args.minkowski_enabled,
         draft_angle_deg=args.draft_angle_deg,
     )
+    full = _apply_cross_section(full, args.cross_section_angle_deg, args.cross_section_flip)
 
     label = "ResinPrint" if resin_support else "FullElement"
     print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "

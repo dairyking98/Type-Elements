@@ -1539,6 +1539,29 @@ class TuneApp(App):
                     "(see the Calibration tab) to find layout.baseline_row/cutout_row.",
                     classes="picker-help")
 
+                yield Static("Debug", classes="field-label")
+                with Horizontal(classes="picker-row"):
+                    yield Static("Cross section", classes="field-label")
+                    yield Switch(value=False, id="build-xsection-enabled")
+                with Vertical(classes="field-row"):
+                    with Horizontal():
+                        yield Static("Angle of plane (deg)", classes="field-label")
+                        yield Input(value="0", id="build-xsection-angle")
+                    yield Static(
+                        "Only applies while Cross section is on. Clips the built "
+                        "mesh to one side of a vertical plane through the machine's "
+                        "central axis at this angle.",
+                        classes="field-help")
+                with Horizontal(classes="picker-row"):
+                    yield Static("Render only the cut bodies", classes="field-label")
+                    yield Switch(value=False, id="build-xsection-flip")
+                yield Static(
+                    "Keeps the opposite half of the cut instead of the default "
+                    "side - i.e. whichever half is normally removed. Session-only "
+                    "debug settings: not saved to the config, apply to any build "
+                    "target (Element/Shaft Gauge/Calibration Element).",
+                    classes="picker-help")
+
     def _compose_type_test_tab(self):
         with TabPane("Type Test", id="tab-type-test"):
             with VerticalScroll():
@@ -1862,6 +1885,20 @@ class TuneApp(App):
         label = "Quick Preview" if fast else "Render"
         self.log_line(f"[bold]--- {label} ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
+        # Debug section's cross-section controls - session-only (never
+        # saved to the config, see _compose_build_tab), so read straight
+        # from the widgets here rather than through values/_collect_values.
+        # Applies to any build target below, hence handled once up front.
+        if self.query_one("#build-xsection-enabled", Switch).value:
+            angle_raw = self.query_one("#build-xsection-angle", Input).value.strip()
+            try:
+                angle = float(angle_raw)
+            except ValueError:
+                self.log_line(f"[red]bad cross-section angle: {angle_raw!r} (expected a number)[/red]")
+                return
+            cmd += ["--cross-section-angle-deg", str(angle)]
+            if self.query_one("#build-xsection-flip", Switch).value:
+                cmd += ["--cross-section-flip"]
         if values["target"] == "gauge":
             # GaugeTestSet() doesn't touch TextRing/build_glyph at all, so
             # the Minkowski/points-per-mm knobs don't apply here.
