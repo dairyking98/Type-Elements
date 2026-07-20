@@ -696,7 +696,8 @@ RESIN_FIELDS_HAMMOND = [
     ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
     ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
     ("spacing", ["resin", "spacing"], float, "Support grid spacing (mm)",
-     "Pitch of the resin-support rod grid and its gusseting bracing - see lib/hammond.py's ResinSupport()."),
+     "Rod pitch (vertical: real theta step along the arc; horizontal: raycast grid pitch)."),
+    ("edge_gap", ["resin", "edge_gap"], float, "Edge gap (mm)", "Resin_Support_Edge_Gap - only used for vertical orientation."),
     ("orientation", ["resin", "orientation"], str, "Print orientation",
      '"vertical" (stands the shuttle up on end) or "horizontal" (prints flat, as-built).'),
 ]

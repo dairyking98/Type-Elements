@@ -218,12 +218,14 @@ resin:
   spacing: 3.0                      # Resin_Support_Spacing - real angular
                                      # rod pitch is spacing/Shuttle_Arc_Radius
                                      # radians (v2:615's thetaspacing formula)
+  edge_gap: 0.1                     # Resin_Support_Edge_Gap (v2:314)
   # Resin_Support_Orientation (v2:300) - "vertical" stands the shuttle up
-  # on one end (v2's VertResinPrint2, rotate([0,-90,0])); "horizontal"
-  # prints it flat in its natural as-built frame (v2's HorizResinPrint -
-  # no rotation, just recentered). Both reuse the same ResinSupport()
-  # grid+raycast+gusset scheme (see lib/hammond.py's ResinPrint()) - only
-  # the pre-orientation transform differs.
+  # on one end (v2's VertResinPrint2, rotate([0,-90,0])) and reuses v2's
+  # real VertResinSupport2() placement math (lib/hammond.py's
+  # ResinSupport()); "horizontal" prints it flat in its natural as-built
+  # frame (v2's HorizResinPrint - no rotation, just recentered) and still
+  # uses the simpler grid+raycast fallback (v2's own HorizResinSupport2
+  # is a separate ~90-line scheme, not ported - see lib/hammond.py).
   orientation: vertical              # [vertical, horizontal]
 
 output:

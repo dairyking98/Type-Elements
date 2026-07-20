@@ -60,19 +60,21 @@ GrooveShape(), not Groove() - Python has one namespace for module
 globals, unlike OpenSCAD's separate module/variable namespaces, so it
 can't share the name with the Groove config boolean.
 
-Resin support is NOT a port of v2's VertResinSupport2 (~140 lines, 8
-separate placement tiers using 3 independently-invented rod primitives -
-RodTip/ResinRod/ConnectingRod) - per explicit direction, individual rod
-SHAPE reuses cylinder_machine._resin_rod() (the same shared primitive
-Mignon/Bennett already reuse), and placement is a single grid+raycast
-scheme built directly against the real oriented print-frame mesh (see
-ResinSupport() below) rather than hand-porting v2's own chain of rotated-
-frame coordinate formulas. The one deliberately NEW piece is the angled
-reinforcement rod between adjacent grid rods (gusseting/bracing) -
-sp.connecting_rod() (lib/scad_primitives.py), ported from v2's
-ConnectingRod() (v2/hammond.scad:419) - which doesn't exist for any other
-machine's resin-support system since none of them brace rods against each
-other.
+Resin support for the "vertical" print orientation (ResinSupport()) is a
+faithful port of v2's real VertResinSupport2() - same tiers, same
+coordinates, same ConnectingRod/ResinRod call sites - after an earlier
+from-scratch grid+raycast redesign (rod SHAPE reused, but placement
+re-derived from the built mesh's own surface) repeatedly didn't match
+v2's real connecting-rod pattern. Individual rod SHAPE still reuses
+cylinder_machine._resin_rod() (the shared primitive Mignon/Bennett also
+reuse) in place of v2's own bespoke ResinRod(); ConnectingRod is
+sp.connecting_rod() (lib/scad_primitives.py, ported literally from
+v2/hammond.scad:419's hull-of-two-spheres) - the one primitive that
+doesn't exist for any other machine's resin-support system, since none
+of them brace rods against each other. "horizontal" orientation still
+uses the simpler grid+raycast scheme (_ResinSupportRaycastGrid()) - v2's
+own real HorizResinSupport2 is a separate ~90-line placement algorithm,
+not ported.
 """
 
 import numpy as np
@@ -248,6 +250,7 @@ def configure(config_path):
     g["Resin_Raft_OD"] = r["raft_od"]
     g["Resin_Rod_Raft"] = True  # each rod grows its own small raft (no shared raft ring here)
     g["Resin_Support_Spacing"] = r["spacing"]
+    g["Resin_Support_Edge_Gap"] = r.get("edge_gap", 0.1)
     g["Resin_Support_Orientation"] = r.get("orientation", "vertical")
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
@@ -280,6 +283,10 @@ def configure(config_path):
     g["Cp_1_Y"] = R * np.sin(np.radians(theta_a))
     g["Cp_2_X"] = x_prime - g["Shuttle_Rib_Circle_Radius"] * np.cos(np.radians(theta_2))
     g["Cp_2_Y"] = y_prime + g["Shuttle_Rib_Circle_Radius"] * np.sin(np.radians(theta_2))
+    # v2:343-344 - used by VertResinSupport2's "Under Rib - Rib Thickness
+    # on Edges" tier (ResinSupport()).
+    g["Inner_Arc_Intercept"] = np.sqrt((R - g["Shuttle_Rib_Width"]) ** 2 - g["Z_Offset"] ** 2)
+    g["Outer_Arc_Intercept"] = np.sqrt(R ** 2 - g["Z_Offset"] ** 2)
 
     # ---- ShuttleTaper() derived geometry (v2:326-330) ----
     g["Taper_Inset_X"] = (R - g["z"]) * np.cos(np.radians(half_ang_deg - g["Shuttle_Taper"]))
@@ -606,25 +613,18 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
 
 # ------------------------------------------------------------- Resin support
 
-def ResinSupport(body):
-    """See module docstring for why this is NOT a port of v2's
-    VertResinSupport2. Numerically finds the real lowest-surface-point on
-    a grid of (X,Y) positions (ray-casting straight down against the
-    actual built, already print-oriented mesh) and drops a resin-support
-    rod (cylinder_machine._resin_rod - the shared rod primitive Mignon/
-    Bennett also reuse) at each hit. Grid pitch is the real v2 Resin_
-    Support_Spacing value.
-
-    Bracing (sp.connecting_rod, ported from v2/hammond.scad:419's
-    ConnectingRod) matches v2's real usage pattern, not an arbitrary
-    full-grid mesh: every one of v2's own ConnectingRod call sites
-    (v2:627,638,643-658,671,683) connects two points sharing the SAME
-    angular/lateral position (this grid's j index) but DIFFERENT
-    longitudinal position (i) - never laterally between two different j
-    rows - and always drops the brace a few mm below each rod's own tip
-    contact point rather than connecting flush at the very top (e.g.
-    v2:671's h-1 -> h-4). Reproduced here as i-only bracing with a fixed
-    brace_drop below each endpoint's tip."""
+def _ResinSupportRaycastGrid(body):
+    """Grid+raycast resin support - NOT a v2 port, used only for the
+    "horizontal" print orientation, where v2's own real support scheme
+    (HorizResinSupport2, v2:864-947) is a completely separate ~90-line
+    placement algorithm not ported here (see ResinPrint()'s docstring).
+    Numerically finds the real lowest-surface-point on a grid of (X,Y)
+    positions (ray-casting straight down against the actual built,
+    already print-oriented mesh) and drops a resin-support rod
+    (cylinder_machine._resin_rod) at each hit, with a diagonal brace
+    (sp.connecting_rod) between longitudinal (i) neighbors, matching the
+    axis/drop conventions ResinSupport() below uses for the real,
+    v2-faithful vertical-orientation case."""
     _require_configured()
     spacing = Resin_Support_Spacing
     bounds = body.bounds
@@ -655,16 +655,6 @@ def ResinSupport(body):
         parts.append(sp.translate(rod, [loc[0], loc[1], 0]))
         live_tips[key] = loc
 
-    # v2's own ConnectingRod() calls (v2:627,638,643-658,671,683) always
-    # connect two points sharing the SAME angular position (Y) but
-    # DIFFERENT longitudinal position (X, the i grid index here) - never
-    # laterally between two different angular rows (j) - and always drop
-    # a few mm below the rod's own tip contact point rather than bracing
-    # flush at the very top (e.g. v2:671's h-1 -> h-4). Braced only along
-    # i (matching v2's real axis), and each end dropped by brace_drop
-    # below its own tip for the same reason - a level, tip-to-tip,
-    # both-directions brace (the first version of this function) doesn't
-    # match either property.
     brace_drop = 1.5
     for (i, j), loc in live_tips.items():
         nloc = live_tips.get((i + 1, j))
@@ -673,8 +663,157 @@ def ResinSupport(body):
         z1 = max(loc[2] - brace_drop, Resin_Min_Rod_Height)
         z2 = max(nloc[2] - brace_drop, Resin_Min_Rod_Height)
         parts.append(sp.connecting_rod([loc[0], loc[1], z1], [nloc[0], nloc[1], z2], Resin_Rod_OD))
-    print(f"ResinSupport: {len(live_tips)} rods, "
+    print(f"ResinSupport (raycast fallback): {len(live_tips)} rods, "
           f"{sum(1 for (i, j) in live_tips if (i + 1, j) in live_tips)} braced", flush=True)
+    return sp.union_all(parts)
+
+
+def ResinSupport():
+    """Faithful port of v2's VertResinSupport2() (v2:609-735) - only used
+    for the "vertical" print orientation (v2's own real, matching
+    orientation). After repeated feedback that a from-scratch grid+
+    raycast redesign didn't match v2's real connecting-rod placement,
+    this reproduces v2's actual tiers, coordinates, and ConnectingRod/
+    ResinRod call sites directly, rather than re-deriving placement from
+    the built mesh's own surface.
+
+    Rod SHAPE reuses cylinder_machine._resin_rod() (the shared primitive
+    Mignon/Bennett also reuse) in place of v2's own bespoke ResinRod
+    (h1,r1,r2,h2,r3) - r1/r3 always match the shared primitive's
+    Resin_Rod_OD/2 and Resin_Raft_OD/2 anyway; r2 (tip diameter) is
+    simplified to the single configured Resin_Tip_OD rather than v2's
+    two-tier Resin_Support_Contact_Diameter/_Rib distinction - a minor,
+    explicitly-accepted simplification (this is NOT the thing reported as
+    wrong). ConnectingRod is sp.connecting_rod() (v2:419, ported
+    literally as a hull of two spheres).
+
+    Coordinate frame: v2 wraps the WHOLE union in
+    translate([0,0,-Resin_Support_Min_Height-Resin_Support_Base_Thickness])
+    (v2:611) - reproduced by computing every point/height exactly as v2
+    writes it (its own pre-shift convention: ResinRod's raft sits at
+    z=0, tip at z=h1) and re-basing per-primitive: _rod() subtracts
+    (Resin_Min_Rod_Height+Resin_Raft_Thickness) from h1 before calling
+    cylinder_machine._resin_rod (whose own raft-at-that-same-negative-z
+    convention already IS that shift); _crod() subtracts it explicitly
+    from each endpoint's z. Must be added directly alongside the ALREADY
+    print-oriented body with no further transform (see ResinPrint()),
+    matching v2's own VertResinPrint2 - RibbedShuttle() and
+    VertResinSupport2() are siblings in one union(), not nested."""
+    _require_configured()
+    shift = Resin_Min_Rod_Height + Resin_Raft_Thickness
+
+    def _rod(h1, add_raft=True):
+        h = h1 - shift
+        h = max(h, -Resin_Raft_Thickness + 0.05)  # avoid a degenerate/inverted shape
+        return cylinder_machine._resin_rod(h, add_raft=add_raft)
+
+    def _crod(p1, p2):
+        return sp.connecting_rod([p1[0], p1[1], p1[2] - shift],
+                                  [p2[0], p2[1], p2[2] - shift], Resin_Rod_OD)
+
+    parts = []
+
+    # Xx/Xxx (v2:602-607)
+    if not Is_Math:
+        Xx = [-X_Min + Resin_Tip_OD / 2.0, -X_Min * 2 / 3.0, -X_Min / 3.0,
+              X_Max / 3.0, X_Max * 2 / 3.0, X_Max - Resin_Tip_OD / 2.0]
+        Xxx = 3.0
+    else:
+        Xx = [-X_Min + Resin_Tip_OD / 2.0, -X_Min * 2 / 3.0, -X_Min / 3.0,
+              X_Max / 4.0, X_Max * 2 / 4.0, X_Max * 3 / 4.0, X_Max - Resin_Tip_OD / 2.0]
+        Xxx = 4.0
+
+    thetamax = np.radians(Angle_Pitch * 32.0) - 2.0 * np.radians(Shuttle_Taper)
+    thetaspacing = Resin_Support_Spacing / Shuttle_Arc_Radius  # radians (arc-length/radius)
+    n_theta_steps = max(1, int(np.floor((thetamax / 2.0) / thetaspacing + 1e-9)))
+    thetas = [i * thetaspacing for i in range(n_theta_steps + 1)]
+
+    # ---- Under Large Arc (v2:613-689) ----
+    for s in (-1, 1):
+        for x in Xx:
+            # at the taper (v2:631-638) - constant per (s,x), doesn't
+            # depend on theta despite living inside v2's theta loop
+            # (harmless duplication there since union() merges overlaps;
+            # built once here instead).
+            theta_t = thetamax / 2.0
+            y1 = (Shuttle_Arc_Radius - 1) * np.cos(np.pi / 2.0 + theta_t * s)
+            z1 = (Shuttle_Arc_Radius - 1) * np.sin(np.pi / 2.0 + theta_t * s)
+            p_a = [x, y1, z1 - Z_Offset + Resin_Raft_Thickness + Resin_Min_Rod_Height]
+            p_b = [x, y1 - 0.5 * (-s), Resin_Rod_OD]
+            parts.append(_crod(p_a, p_b))
+
+            for theta in thetas:
+                y = (Shuttle_Arc_Radius - 1) * np.cos(np.pi / 2.0 + theta * s)
+                za = (Shuttle_Arc_Radius - 1) * np.sin(np.pi / 2.0 + theta * s)
+                z_common = za - Z_Offset + Resin_Raft_Thickness + Resin_Min_Rod_Height
+
+                # Under Shuttle Arc Radius (v2:619-630)
+                parts.append(_crod([x, y, z_common], [x, y, Resin_Rod_OD]))
+                parts.append(sp.translate(_rod(Resin_Min_Rod_Height), [x, y, 0]))
+
+                # Under Shuttle Arc ConRods (v2:640-660)
+                if abs(y) <= Taper_Inset_Y - Resin_Support_Spacing:
+                    for n in (0, 1):
+                        xa = [-X_Min * 2 / 3.0, X_Max * (2.0 if not Is_Math else 3.0) / Xxx][n]
+                        xb = [-(X_Min - Resin_Tip_OD / 2.0), X_Max - Resin_Tip_OD / 2.0][n]
+                        parts.append(_crod([xa, y, z_common - 2], [xb, y, z_common - 2 - 3]))
+
+                        xc = [-X_Min / 3.0, X_Max * 1 / Xxx][n]
+                        xd = [-X_Min * 2 / 3.0, X_Max * 2 / Xxx][n]
+                        parts.append(_crod([xc, y, z_common - 2], [xd, y, z_common - 2 - 3]))
+
+                        if Is_Math:
+                            xe = [-X_Min / 3.0, X_Max * 2 / Xxx][n]
+                            xf = [-X_Min * 2 / 3.0, X_Max * 3 / Xxx][n]
+                            parts.append(_crod([xe, y, z_common - 2], [xf, y, z_common - 2 - 3]))
+
+                # Under Rib Supports (v2:662-686)
+                if not Groove:
+                    ay = abs(y)
+                    if Cp_2_X < ay <= Cp_1_X:
+                        h = np.sqrt(max(Shuttle_Rib_Circle_Radius ** 2 - (ay - X_Prime) ** 2, 0.0)) \
+                            + Y_Prime - Z_Offset + Resin_Min_Rod_Height + Resin_Raft_Thickness
+                        parts.append(sp.translate(_rod(h), [0, y, 0]))
+                        if h - 1 >= 3 + Resin_Raft_Thickness + Resin_Min_Rod_Height:
+                            for n in (-X_Min / 3.0, X_Max / Xxx):
+                                parts.append(_crod([0, y, h - 1], [n, y, h - 4]))
+                    if ay <= Cp_2_X:
+                        d = Shuttle_Rib_Circle_Offset - Z_Offset + Resin_Min_Rod_Height + Resin_Raft_Thickness
+                        h = d - np.sqrt(max(Shuttle_Rib_Circle ** 2 - y ** 2, 0.0)) + z
+                        parts.append(sp.translate(_rod(h), [0, y, 0]))
+                        if h - 1 >= 3 + Resin_Raft_Thickness + Resin_Min_Rod_Height:
+                            for n in (-X_Min / 3.0, X_Max / Xxx):
+                                parts.append(_crod([0, y, h - 1], [n, y, h - 4]))
+
+    # ---- Under Rib - Rib Thickness on Edges (v2:691-711) ----
+    half_ang_rad2 = np.radians(90.0 - Angle_Pitch * 16.0)
+    y_component_taper = (Shuttle_Arc_Radius + Shuttle_Taper_Step) * np.cos(half_ang_rad2)
+    z_component = Shuttle_Taper_Step * np.sin(half_ang_rad2)
+
+    if not Groove:
+        h1 = Resin_Min_Rod_Height + Resin_Raft_Thickness
+        parts.append(sp.translate(_rod(h1, add_raft=True),
+                                   [0, -Outer_Arc_Intercept + Resin_Support_Edge_Gap, 0]))
+        parts.append(sp.translate(_rod(h1, add_raft=False),
+                                   [0, -Inner_Arc_Intercept - Resin_Support_Edge_Gap, 0]))
+        parts.append(sp.translate(_rod(h1, add_raft=True),
+                                   [0, Outer_Arc_Intercept - Resin_Support_Edge_Gap, 0]))
+        parts.append(sp.translate(_rod(h1, add_raft=False),
+                                   [0, Inner_Arc_Intercept + Resin_Support_Edge_Gap, 0]))
+
+    # ---- Outer Edge Supports (v2:713-732) - regardless of Groove ----
+    h_edge1 = Resin_Min_Rod_Height + z_component + Resin_Raft_Thickness
+    h_edge2 = Resin_Raft_Thickness
+    for x in Xx:
+        parts.append(sp.translate(_rod(h_edge1, add_raft=False), [x, y_component_taper, 0]))
+    for x in Xx:
+        parts.append(sp.translate(_rod(h_edge1, add_raft=False), [x, -y_component_taper, 0]))
+    for x in Xx:
+        parts.append(sp.translate(_rod(h_edge2, add_raft=True), [x, y_component_taper, 0]))
+    for x in Xx:
+        parts.append(sp.translate(_rod(h_edge2, add_raft=True), [x, -y_component_taper, 0]))
+
+    print(f"ResinSupport: {len(parts)} parts (v2-faithful VertResinSupport2 port)", flush=True)
     return sp.union_all(parts)
 
 
@@ -692,27 +831,39 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
     NO rotation at all, just translate(-Z_Offset,0,0) - prints flat, in
     the shuttle's own natural as-built frame (arc curve facing up).
 
-    Either way, the whole oriented body is then shifted so its lowest
-    point sits at Resin_Min_Rod_Height above a true Z=0 buildplate,
-    matching cylinder_machine._resin_rod()'s own h-is-buildplate-relative
-    convention - and ResinSupport() (grid+raycast against whatever mesh
-    it's given) is completely orientation-agnostic, so it's unchanged
-    either way; only this pre-transform differs."""
+    For "vertical", ResinSupport() is a faithful port of v2's real
+    VertResinSupport2() - added directly alongside the oriented body with
+    NO extra normalization, exactly matching v2's own VertResinPrint2
+    (RibbedShuttle() and VertResinSupport2() as siblings in one union(),
+    both relying on the same real Z_Offset/X_Max constants to land in the
+    right place relative to each other - no separate "shift to
+    buildplate" step exists in v2, and adding one here would break that).
+
+    For "horizontal", v2's own real support scheme (HorizResinSupport2)
+    is a separate ~90-line placement algorithm not ported - falls back to
+    _ResinSupportRaycastGrid(), which DOES need the extra shift (it has
+    no analytic reference for where the buildplate should sit, so it
+    normalizes off the mesh's own bounds instead)."""
     full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)
     if Resin_Support_Orientation == "horizontal":
         oriented = sp.translate(full, [-Z_Offset, 0, 0])
-    else:
-        oriented = sp.scad_transform(full, ("rotate", [0, -90, 0]), ("translate", [-Z_Offset, 0, -X_Max]))
-    lowest_z = oriented.bounds[0][2]
-    oriented = sp.translate(oriented, [0, 0, Resin_Min_Rod_Height - lowest_z])
+        if not Resin_Support:
+            combined, _, _, _ = sp.check_and_repair(oriented, label="ResinPrint")
+            return combined, char_parts
+        lowest_z = oriented.bounds[0][2]
+        oriented = sp.translate(oriented, [0, 0, Resin_Min_Rod_Height - lowest_z])
+        combined = _ResinSupportRaycastGrid(oriented)
+        combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
+        return combined, char_parts
 
+    oriented = sp.scad_transform(full, ("rotate", [0, -90, 0]), ("translate", [-Z_Offset, 0, -X_Max]))
     if not Resin_Support:
         combined, _, _, _ = sp.check_and_repair(oriented, label="ResinPrint")
         return combined, char_parts
 
-    combined = ResinSupport(oriented)
+    combined = sp.union_all([oriented, ResinSupport()])
     combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
     return combined, char_parts

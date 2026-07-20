@@ -2297,6 +2297,73 @@ mode`) rather than inventing a new generic mechanism - `_collect_values`/
 `_load_current` already read/write `Select`/`Input` widgets identically
 via `.value`, so no changes needed there.
 
+## 33. Hammond resin support: real VertResinSupport2 port (abandoned the redesign)
+
+Part 32's fix wasn't enough - user reported the connecting rods were
+"still incorrect": wrong direction/orientation, not attached correctly,
+wrong placement, all at once. Rather than guess a fourth time, re-pulled
+the exact v2 source (v2/hammond.scad:596-735) and did a real, literal
+port of `VertResinSupport2()` for the "vertical" orientation - same
+tiers, same coordinates, same `ConnectingRod`/`ResinRod` call sites -
+replacing the grid+raycast redesign entirely for that case (parts 29-32's
+approach is kept ONLY as `_ResinSupportRaycastGrid()`, now used
+exclusively for "horizontal", since v2's own real horizontal-orientation
+support scheme, `HorizResinSupport2`, is a separate ~90-line algorithm
+never in scope to port).
+
+**Key derivation, worth recording since it wasn't obvious from the code
+alone**: v2's own `ResinRod(h1,r1,r2,h2,r3)` has its RAFT at local z=0
+and TIP at local z=h1 (confirmed by reading its full body -
+`cylinder(h=h1-1,r=r1)` from z=0, tip taper at z=[h1-1,h1]) - a
+DIFFERENT convention from the shared `cylinder_machine._resin_rod(h)`,
+whose raft sits at z=-(Resin_Min_Rod_Height+Resin_Raft_Thickness) and tip
+near z=h. `VertResinSupport2()` wraps its whole union in
+`translate([0,0,-Resin_Support_Min_Height-Resin_Support_Base_Thickness])`
+(v2:611) to place it correctly relative to the body. Reconciled by
+re-basing every `ResinRod` call's h1 through a local `_rod()` helper
+(`h = h1 - (Resin_Min_Rod_Height+Resin_Raft_Thickness)` before calling
+the shared primitive - the shared primitive's own raft-position
+convention already IS that same shift, so this reproduces v2's real
+final world position without applying the outer translate twice) and
+every `ConnectingRod` endpoint through `_crod()` (which DOES subtract the
+shift explicitly, since `sp.connecting_rod` has no such built-in
+convention to double up with).
+
+**Real values added**: `resin.edge_gap` (`Resin_Support_Edge_Gap`, v2:314)
+and `Inner_Arc_Intercept`/`Outer_Arc_Intercept` (v2:343-344, derived in
+`configure()`) - both needed by the "Under Rib - Rib Thickness on Edges"
+tier, neither previously ported since the redesign didn't need them.
+
+**Simplification kept** (not what was reported wrong): v2's `ResinRod`
+tip radius (`r2`) is two-tier - `Resin_Support_Contact_Diameter` for most
+rods, `Resin_Support_Contact_Diameter_Rib` for the "under rib" tiers -
+collapsed to the single configured `Resin_Tip_OD` for every rod, since
+the shared `cylinder_machine._resin_rod()` reads that from config rather
+than taking a per-call override. A genuinely minor cosmetic difference
+(0.4mm vs an unported ~0.2mm tip point), not a placement/structural one.
+
+**Verified** all 3 affected combinations via `generate.py` (horizontal
+was untouched by this change, reproduces part 32's exact
+`volume=2612.998mm3` baseline):
+- groove=false, vertical: `verts=85097 faces=171186 volume=4765.334mm3`
+  (1300 parts - watertight/winding_consistent/is_volume=True)
+- groove=true, vertical: `verts=65166 faces=131000 volume=4275.807mm3`
+  (924 parts - fewer tiers, "Under Rib Supports"/"Under Rib - Rib
+  Thickness on Edges" are both `if (Groove==false)` in v2, faithfully
+  skipped here too)
+- groove=false, horizontal: unchanged (`volume=2612.998mm3`, raycast
+  fallback)
+
+Also spot-checked (outside the STL export) that the oriented body and
+the new `ResinSupport()` land in physically sensible relative positions
+without any extra normalization step: body's own lowest point sits at
+world Z≈0 (matching v2's real design - no artificial "shift to
+buildplate" hack needed here, unlike the horizontal raycast fallback,
+which has no analytic reference and still needs one).
+
+`tune.py`: added `edge_gap` to `RESIN_FIELDS_HAMMOND` (71 fields now, up
+from 70). Headless smoke test confirms compose/save/quit still work.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
