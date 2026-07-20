@@ -1813,6 +1813,80 @@ this fix). No shared module was touched beyond the docstring correction
 above (comment-only, zero logic change) - no cross-machine regression
 risk.
 
+## 26. f3d never auto-launched for Helios previews - a 33-second diagnostic hiding after "wrote ..." (user-reported)
+
+User report: ran a Quick Preview for a Helios element, watched it finish
+successfully (opened the STL afterward and it looked correct), but f3d
+never auto-opened - and quitting the TUI printed a scary-looking
+`Exception ignored in: <function BaseSubprocessTransport.__del__>` /
+`RuntimeError: Event loop is closed` traceback. That traceback is just
+asyncio cleanup noise (fires whenever a subprocess transport is
+garbage-collected after the event loop that owned it has already
+closed) - a symptom, not the cause. Ruled out a hard crash first
+(headless `TuneApp().run_test()` boots the picker and composes Helios's
+form fine, and a direct rebuild of the STL succeeds watertight/is_volume
+and renders correctly in f3d standalone - see the render check earlier
+this session) before finding the real bug.
+
+**Root cause**: `tune.py`'s `_run_build()` only launches f3d after
+`generate.py`'s subprocess reports `returncode == 0`
+(`lib/cylinder_machine.py`'s `TuneApp._run_build`, unchanged this
+session). `generate.py` prints `wrote <path>` as soon as the STL is on
+disk, but then - for any machine defining `HollowSpace()` - runs one
+more diagnostic step: `hollow.contains(part.vertices)` per character, to
+report whether any struck character's root reaches the hollow cavity.
+Timed it directly: for Helios, that ONE diagnostic call took **33
+seconds** (`lib/helios.py`'s `HollowingElement()`/`HollowSpace()` mesh
+had 95,760 faces - `.contains()` has no `pyembree` acceleration in this
+environment, confirmed by `import trimesh.ray.ray_pyembree` failing, so
+it falls back to an O(points x faces) ray-cast). The user saw `wrote
+...` scroll by (looking done, especially since the fast build itself
+only takes ~2.6s) and quit before the still-running subprocess finished
+its extra diagnostic pass - killing it before `returncode == 0` was ever
+observed, so f3d's launch branch never ran. Confirmed the same
+diagnostic on Blickensderfer takes 0.18s against a 2,682-face
+`HollowSpace()` mesh - not a universally slow path, specific to Helios's
+own mesh being ~36x heavier for this one internal, invisible feature.
+
+**Why Helios's hollow-cavity mesh was so much heavier**: two compounding
+factors, both introduced during part 23's port, neither justified by
+anything actually visible in the printed part. (1)
+`HollowingElement()`'s profile is a `shapely` convex hull of 5 circles
+(`resolution=32` each) - unlike a single-circle hull elsewhere (e.g.
+`WireBite()`), 5 SEPARATE circles each contribute their own arc segments
+to the hull boundary, compounding into 134 profile points (measured),
+vs. Blickensderfer's fixed 9-point hand-designed profile. (2) the
+revolve used `sections=Surface_Fn`, and Helios's own config default for
+`surface_fn` is 360 (vs. Blickensderfer's 120) - appropriate for
+genuinely visible exterior surfaces (`Cylinder`/`ClipRetainer`/
+`WireClip`) but wasted on a cavity that's entirely internal and never
+seen once printed.
+
+**Fix**: `HollowingElement()` now uses a fixed `resolution=6`/
+`sections=60` (not `Surface_Fn`) for its own hull/revolve, chosen
+empirically to land close to Blickensderfer's own face count (3,480 vs.
+2,682) rather than picked arbitrarily. Diagnostic timing:
+33s -> 1.12s (~29x). Full Quick Preview, end-to-end via `generate.py`
+exactly as `tune.py` invokes it: ~4.2s total (previously would have been
+~2.6s build + 33s diagnostic ~ 36s) - comfortably inside normal
+patience. Full-quality Render also got faster as a side effect (the
+actual boolean cut is lighter too, not just the diagnostic): ~44s vs.
+the ~79s measured in part 25, still watertight/is_volume/single-volume,
+identical character placement (still 84/84 placed, same 16
+informational inter-character collisions, unrelated to this change).
+
+**Lesson**: an arbitrary "looks smooth enough" resolution choice made
+during initial geometry porting (part 23's `resolution=32`, chosen with
+no real justification beyond "seemed fine") had a real, compounding
+downstream cost in a totally different code path (a debug diagnostic in
+`generate.py`, not the geometry construction itself) that wasn't
+exercised/timed until a real user workflow (Quick Preview -> auto-launch
+f3d) hit it. For any internal/invisible geometry feature (a cavity, a
+web, a fillet nobody will ever see or touch), default to a LOW,
+deliberately-chosen resolution rather than reusing the same high-fidelity
+knob visible exterior surfaces need - and time diagnostic/debug code
+paths too, not just the main build, before considering a port done.
+
 ## Resuming later
 
 1. **Hammond/Hammond_split and IBM are next** - the last two machines on

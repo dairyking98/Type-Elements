@@ -341,7 +341,18 @@ order directly - see its module docstring for the full derivation.
 (matching v2's `hull(){circle(); ...}` exactly, real rounded corners),
 the same hull-then-revolve technique `WireBite()`/Mignon's
 `AlignmentPin()` already use, rather than `cylinder_machine.
-_hollow_space_profile()`'s hand-rounded point-list approximation.
+_hollow_space_profile()`'s hand-rounded point-list approximation - though
+its circle resolution/revolve sections are a fixed, deliberately LOW
+`6`/`60` (not `Surface_Fn`), not the `32`/`Surface_Fn` it originally
+shipped with: at the higher values, this entirely-internal/invisible
+cavity's mesh hit ~96k faces, and `generate.py`'s optional "character
+root reaches the hollow cavity" diagnostic (a `.contains()` ray-cast with
+no `pyembree` acceleration in this environment) took 33 SECONDS on it
+alone, running silently AFTER the STL was already written - long enough
+that a user watching the build finish would reasonably quit before it
+returned, which meant `tune.py`'s f3d auto-launch (gated on the
+subprocess's exit code) never fired. Now well under 2 seconds. See
+`SESSION_LOG.md` part 26.
 
 `Resin_Support`/`Resin_Support_*` are declared in v2 but it never builds
 any actual support geometry with them - `ResinSupport()`/`ResinPrint()`
@@ -358,7 +369,9 @@ and the superseded `GERMAN`, both inline in v2's source), 4 physical rows
 (vs. everyone else's 3) - required zero additional `tune.py` literal-
 count fixes, since the row-count-agnostic work from Mignon's port (see
 "Layout tab" above) already covers this generically. See
-`SESSION_LOG.md` parts 23-24 for the full audit pass and verification.
+`SESSION_LOG.md` parts 23-24 for the full audit pass and verification,
+part 25 for the placement_protrusion fix, and part 26 for the
+hollow-cavity performance fix above.
 
 ### Performance
 

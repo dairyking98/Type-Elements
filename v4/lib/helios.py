@@ -274,7 +274,33 @@ def HollowingElement():
     pentagon-ish cross-section, not cylinder_machine._hollow_space_profile's
     hand-rounded point list. Built the same way cylinder_machine.WireBite()/
     mignon.AlignmentPin() build a real shapely hull before revolving/
-    extruding it."""
+    extruding it.
+
+    circle resolution / revolve sections are deliberately LOW and fixed
+    here (not Surface_Fn) - this cavity is entirely internal/invisible
+    once printed (unlike Cylinder/ClipRetainer/WireClip, which genuinely
+    benefit from Surface_Fn's full resolution), so it doesn't need that
+    fidelity, and unioning 5 separate circles (vs. a single-circle hull
+    elsewhere, e.g. WireBite) compounds resolution into profile point
+    count fast. A real, shipped bug caught via user report (see
+    SESSION_LOG.md part 26): at resolution=32/sections=Surface_Fn(360
+    default), this mesh hit ~134 profile points x 360 sections = 95760
+    faces - fine for the actual boolean cut, but generate.py's optional
+    'does any character root reach the hollow cavity' diagnostic
+    (hasattr(bd, 'HollowSpace') - see FullElement()'s caller) calls
+    .contains() per character against this SAME mesh, an O(points x
+    faces) ray-cast with no pyembree installed in this environment - 33
+    SECONDS for that one diagnostic call alone, run AFTER the STL is
+    already written to disk. A user watching the log sees the build
+    finish, assumes it's done, and quits while the subprocess is still
+    grinding through this - killing it before tune.py's `returncode==0`
+    check is ever reached, so f3d never auto-launches (and Python's
+    asyncio subprocess-transport cleanup prints a scary but unrelated
+    'Event loop is closed' warning on exit). Fixed by using a fixed
+    resolution=6/sections=60 here instead - visually indistinguishable
+    for a 1mm fillet nobody ever sees, ~3480 faces (close to
+    Blickensderfer's own ~2682-face HollowSpace), diagnostic now
+    sub-second."""
     from shapely.geometry import Point
     from shapely.ops import unary_union
 
@@ -290,10 +316,10 @@ def HollowingElement():
         ((x_min + x_max) / 2, y_max),  # Top
         (x_max, y_min),               # Bottom Right
     ]
-    circles = [Point(px, py).buffer(r, resolution=32) for px, py in centers]
+    circles = [Point(px, py).buffer(r, resolution=6) for px, py in centers]
     hull_poly = unary_union(circles).convex_hull
     profile = list(hull_poly.exterior.coords)
-    return sp.revolve_polygon(profile, sections=Surface_Fn)
+    return sp.revolve_polygon(profile, sections=60)
 
 
 def MinkCleanup():
