@@ -221,9 +221,15 @@ two magnitude fields, all exposed on the Element tab.
 ### Bennett (`lib/bennett.py`) - shares the glyph pipeline, bespoke body
 
 Like Mignon, Bennett shares `cylinder_machine.py`'s glyph placement/text
-pipeline (`TextRing`/`CalibrationTextRing`, `place_on_cylinder` with
-`placement_protrusion=0` - Bennett's own `Letter_Placement_Protrusion=0`,
-same override Mignon/Helios use) and, unlike Mignon, also reuses
+pipeline (`TextRing`/`CalibrationTextRing`), but leaves `place_on_cylinder`'s
+`placement_protrusion` at its DEFAULT (`Char_Protrusion`) rather than
+passing 0, despite v2's own `Letter_Placement_Protrusion=0` - see
+`lib/bennett.py`'s `configure()` for why that value doesn't survive
+translation into v4's model (a real bug, caught after shipping: with
+`placement_protrusion=0`, `min_final_character_diameter` was a dead config
+field - every character's real-world protrusion pinned to
+`Element_Diameter/2` no matter what it was set to. Mignon has the exact
+same latent bug, not yet fixed). And, unlike Mignon, Bennett also reuses
 `lib/core_shaft.scad`'s shared `SecondaryCore`/`CoreGrooves`/`CoreChamfer`/
 `CoreEllipses` directly (`Core_Chamfer_Top=False` - no clip, so unlike
 Blickensderfer/Postal there's no top chamfer under one; `Core_Taper_Top_Z`

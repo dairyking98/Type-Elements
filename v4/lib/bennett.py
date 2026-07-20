@@ -11,9 +11,21 @@ configure(path) once before using anything else in this module (see
 generate.py).
 
 Bennett shares the glyph placement/text pipeline (TextRing/
-CalibrationTextRing, place_on_cylinder with placement_protrusion=0 - see
-that function's docstring, which already anticipated Bennett by name) and
-lib/core_shaft.scad's shared SecondaryCore/CoreGrooves/CoreChamfer/
+CalibrationTextRing, place_on_cylinder with the DEFAULT placement_
+protrusion=Char_Protrusion - same as Blickensderfer/Postal, deliberately
+NOT the placement_protrusion=0 place_on_cylinder's own docstring names
+Bennett/Mignon/Helios for. That guidance is a straight copy of v2's
+Letter_Placement_Protrusion=0, which does not survive translation: v2
+applies Char_Protrusion via a SEPARATE transform (PlatenCutout's cutting-
+cylinder position, independent of LetterPlacement's block origin), while
+v4 bakes the platen scallop into one local mesh placed by a single
+placement_protrusion offset - passing 0 here silently pins every
+character's real-world "low point" (what a caliper measures across two
+opposing characters as Min_Final_Character_Diameter) to Element_Diameter/
+2 no matter what min_final_character_diameter is configured to, instead
+of Element_Diameter/2+Char_Protrusion like v2 actually produces - see
+configure()'s comment for the full derivation) and lib/core_shaft.scad's
+shared SecondaryCore/CoreGrooves/CoreChamfer/
 CoreEllipses (Core_Chamfer_Top=False - no clip, so unlike Blickensderfer/
 Postal there's no top chamfer under one; Core_Taper_Top_Z=Core_Top_Z - the
 taper's own top landmark coincides with the absolute top, again because
@@ -169,15 +181,39 @@ def configure(config_path):
 
     g["PLATEN_RADIUS_MM"] = 1.0 / g["Platen_Diameter"]
 
-    # v2/bennett.scad:309 - Letter_Placement_Protrusion=0 (placement
-    # radius is the raw Element_Diameter/2, not +Char_Protrusion) - same
-    # override Mignon/Helios use, threaded through cylinder_machine.
-    # place_on_cylinder as an explicit kwarg (see TextRing/
-    # CalibrationTextRing calls below). Angle_Half_Step is NOT overridden
-    # (v2 never sets it) - every call below omits that kwarg, leaving it
-    # at the shared lib's own default (0.5), matching Blickensderfer/
-    # Postal's behavior exactly.
-    g["Placement_Protrusion"] = 0.0
+    # v2/bennett.scad:309 sets Letter_Placement_Protrusion=0, but that does
+    # NOT mean cylinder_machine.place_on_cylinder's placement_protrusion
+    # kwarg should be 0 - the two live at different levels of the
+    # pipeline. In v2, LetterPlacement (block origin) and PlatenCutout
+    # (the scallop-cutting cylinder's position) are two INDEPENDENT
+    # world-space transforms - Blickensderfer/Postal add Char_Protrusion
+    # to both (redundant but consistent), Bennett/Mignon add it only to
+    # PlatenCutout (Letter_Placement_Protrusion=0), relying on
+    # Letter_Extrude_Offset to still reach the cutout surface. Either way,
+    # PlatenCutout ALWAYS positions its cutting cylinder at
+    # Element_Diameter/2+Platen_Diameter/2+Char_Protrusion, so the
+    # resulting "low point" (the scallop's shallowest point, i.e. what a
+    # caliper measures as Min_Final_Character_Diameter across two opposing
+    # characters) always ends up at Element_Diameter/2+Char_Protrusion,
+    # regardless of Letter_Placement_Protrusion.
+    #
+    # v4's build_glyph()/place_on_cylinder() don't have two independent
+    # transforms - the scallop is baked into ONE local mesh (via
+    # separation_mm) that then gets radially placed by a SINGLE offset,
+    # placement_protrusion. place_on_cylinder's own docstring proves the
+    # low point (mesh z_local=separation_mm) lands at exactly
+    # Element_Diameter/2+placement_protrusion - so placement_protrusion
+    # must equal Char_Protrusion to reproduce v2's real low-point radius,
+    # NOT 0 (0 pins the low point to Element_Diameter/2 no matter what
+    # min_final_character_diameter is set to - confirmed empirically: it
+    # was a dead config field). This differs from the (incorrect) guidance
+    # in place_on_cylinder's own docstring, which named Bennett/Mignon/
+    # Helios as machines that should pass 0 - a straight copy of v2's
+    # Letter_Placement_Protrusion value that doesn't survive v4's
+    # different transform structure. Simplest fix: don't override at all -
+    # omit placement_protrusion from the TextRing/CalibrationTextRing
+    # calls below, so it defaults to Char_Protrusion, exactly like
+    # Blickensderfer/Postal.
 
     align = cfg["alignment"]
     g["ALIGN_KWARGS"] = {
@@ -458,11 +494,13 @@ def IndicatorHole():
 def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None):
+    # placement_protrusion omitted - defaults to Char_Protrusion, same as
+    # Blickensderfer/Postal (see configure()'s comment on why v2's
+    # Letter_Placement_Protrusion=0 does NOT translate to 0 here).
     text_ring, char_parts = cylinder_machine.TextRing(
         points_per_mm=points_per_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
         cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
-        platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
-        placement_protrusion=Placement_Protrusion)
+        platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     return sp.union_all([text_ring, Cylinder()]), char_parts
 
 
@@ -517,13 +555,13 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
                          points_per_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
+    # placement_protrusion omitted - see Additive()'s matching comment.
     text_ring, mapping_lines = cylinder_machine.CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
         reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
-        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
-        placement_protrusion=Placement_Protrusion)
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     return sp.union_all([text_ring, Cylinder()]), mapping_lines
 
 

@@ -126,13 +126,19 @@ alignment:
   modified_right_chars: ""
   modified_right_offset_mm: 0.0
 
-# mesh-pipeline build settings (v4-specific) - Bennett's placement radius
-# is the raw Element_Diameter/2 (Letter_Placement_Protrusion=0, like
-# Mignon/Helios - see cylinder_machine.place_on_cylinder's docstring), but
-# UNLIKE Mignon it keeps the default 0.5 half-column centering step (v2
-# never overrides Angle_Half_Step - verified algebraically that Bennett's
-# own Theta=-(360/28*col+360/(2*28)) formula reduces to exactly
-# (0.5+col)*Latitude_Int, the shared lib's default - see lib/bennett.py).
+# mesh-pipeline build settings (v4-specific) - Bennett's placement_
+# protrusion is left at the shared lib's default (Char_Protrusion),
+# same as Blickensderfer/Postal - NOT 0 despite v2's own
+# Letter_Placement_Protrusion=0, because v4's build_glyph()/
+# place_on_cylinder() bake the platen scallop into one local mesh placed
+# by a single radial offset, unlike v2's two independent transforms (see
+# lib/bennett.py's configure() for the full derivation - min_final_
+# character_diameter/Char_Protrusion would otherwise be a dead config
+# value here, same latent bug Mignon still has). Keeps the default 0.5
+# half-column centering step too (v2 never overrides Angle_Half_Step -
+# verified algebraically that Bennett's own Theta=-(360/28*col+360/
+# (2*28)) formula reduces to exactly (0.5+col)*Latitude_Int, the shared
+# lib's default).
 build:
   points_per_mm: 15.0
   separation_mm: 2.0
@@ -143,8 +149,6 @@ build:
   minkowski_enabled: true
   draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated
                                 # dimension, uses the shared angle-derived formula
-  placement_protrusion: 0.0
-  angle_half_step: 0.5
 
 # lib/resin_rod.scad (Resin_Rod_Raft left at the lib's own is_undef->true
 # default in v2 - Bennett's own ResinSupport() big ring/raft only reaches
