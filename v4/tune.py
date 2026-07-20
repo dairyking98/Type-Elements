@@ -197,10 +197,11 @@ YAML_FILE_FILTERS = Filters(
     ("YAML files", lambda p: p.suffix.lower() in (".yaml", ".yml")),
     ("All files", lambda _: True),
 )
-# font.path (Font & Alignment tab) and logo.font_path (Logo tab) are the
-# only two font-picking fields - both get a "Browse" button, see
+# font.path (Font & Alignment tab), logo.font_path (Logo tab), and Mignon's
+# label.font_path (Logo tab, label_font_path key - see LOGO_FIELDS_MIGNON)
+# are the font-picking fields - each gets a "Browse" button, see
 # _compose_section_tab and on_button_pressed's "browse-" id handling
-FONT_PATH_FIELD_KEYS = ("path", "font_path")
+FONT_PATH_FIELD_KEYS = ("path", "font_path", "label_font_path")
 
 # Named Blickensderfer keyboard layouts, ported verbatim from
 # v2/lib/layouts/blick_layouts.scad's DHIATENSOR/QWERTY/SCANDI/
@@ -354,15 +355,33 @@ GAUGE_FIELDS = [
 # Mignon-specific tabs - see lib/mignon.py's module docstring for why
 # these can't share Blickensderfer/Postal's field lists.
 LOGO_FIELDS_MIGNON = [
-    ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved ElementLabel."),
+    ("font_path", ["logo", "font_path"], str, "Logo font path", "Font for the engraved ElementLogo."),
     ("text", ["logo", "text"], str, "Logo text", "The engraved text itself."),
     ("text_size_mm", ["logo", "text_size_mm"], float, "Logo text size (mm)", ""),
     ("text_spacing", ["logo", "text_spacing"], float, "Logo char spacing (deg)", "Angular spacing between logo characters."),
-    ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)", ""),
+    ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)",
+     "The Label fields below always sit 180 degrees opposite this value - "
+     "moving Logo also moves Label."),
     ("height_offset_mm", ["logo", "height_offset_mm"], float, "Logo height offset (mm)",
-     "Local nudge off the chamfer surface the label sits on - NOT the "
+     "Local nudge off the chamfer surface the logo sits on - NOT the "
      "same concept as Blickensderfer/Postal's radial offset (Mignon's "
-     "label sits on an angled chamfer surface, not the flat top face)."),
+     "logo/label sit on an angled chamfer surface, not the flat top face)."),
+    # Label: not a v2 concept - a second engraved-text feature, same
+    # format as Logo above, always placed 180 degrees opposite it (no
+    # position_offset_deg field here - it's derived, see logo's help text
+    # above and lib/mignon.py's configure()). Keys prefixed label_* since
+    # "font_path"/"text"/etc. above are already taken by Logo's own fields
+    # (self.inputs keys must be unique within one machine's field set) -
+    # AND the actual config/mignon.yaml keys are also prefixed label_*, not
+    # just these internal field keys: patch_yaml_value matches by bare key
+    # TEXT across the whole file, not by section, so identical YAML key
+    # names under logo:/label: would collide and patch the wrong one.
+    ("label_font_path", ["label", "label_font_path"], str, "Label font path", "Font for the engraved ElementLabel."),
+    ("label_text", ["label", "label_text"], str, "Label text", "The engraved text itself."),
+    ("label_text_size_mm", ["label", "label_text_size_mm"], float, "Label text size (mm)", ""),
+    ("label_text_spacing", ["label", "label_text_spacing"], float, "Label char spacing (deg)", "Angular spacing between label characters."),
+    ("label_height_offset_mm", ["label", "label_height_offset_mm"], float, "Label height offset (mm)",
+     "Local nudge off the chamfer surface the label sits on."),
 ]
 
 QUALITY_FIELDS_MIGNON = [
@@ -392,7 +411,17 @@ ELEMENT_FIELDS_MIGNON = [
     ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", ""),
     ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
      "Min final char diameter (mm)", "Char_Protrusion = (this - element_diameter)/2."),
-    ("element_height", ["element", "element_height"], float, "Element height (mm)", ""),
+    ("element_height", ["element", "element_height"], float, "Base element height (mm)",
+     "Cylinder_Height_ - the untallened height. Actual built height adds "
+     "height_increase_mm below when Tallen is on."),
+    ("tallen", ["element", "tallen"], bool, "Tallen (Plakatschrift)",
+     "Display-type variant: adds height_increase_mm to element height and "
+     "shifts every baseline row by tallen_baseline_offset_mm. Cutout rows "
+     "are unaffected. Off for a standard element."),
+    ("height_increase_mm", ["element", "height_increase_mm"], float, "Tallen height increase (mm)",
+     "Added to base element height when Tallen is on."),
+    ("tallen_baseline_offset_mm", ["element", "tallen_baseline_offset_mm"], float, "Tallen baseline offset (mm)",
+     "Added to every baseline row when Tallen is on."),
     ("cylinder_top_height_offset", ["element", "cylinder_top_height_offset"], float, "Top height offset (mm)", ""),
     ("cylinder_top_chamfer", ["element", "cylinder_top_chamfer"], float, "Top chamfer size (mm)", ""),
     ("cylinder_top_diameter", ["element", "cylinder_top_diameter"], float, "Top diameter (mm)", ""),
@@ -516,16 +545,312 @@ LAYOUT_PRESETS_POSTAL = {
     ],
 }
 
+# Mignon's 30 real named layouts from v2/lib/layouts/mignon_layouts.scad's
+# Layouts=[] array (33 total minus 3 empty placeholders - CUSTOMLAYOUT,
+# DEUTSCH_FRAKTUR_GOTISCH, DEUTSCH_FRAKTUR_PROF_STIEHL - all-empty-string
+# rows in the real source, never finished/used there either). A few source
+# rows had a 13th character v2 itself never reads (Char_Legend only ever
+# indexes 0-11) - truncated to 12 to match what v2 actually uses (Georgian
+# rows 2/4, Greek rows 3/4).
+#
+# Stored here in RAW KEYBOARD-LEGEND order - i.e. v2's own `Layout` array,
+# exactly as printed on the physical keyboard/manual - NOT the Char_Legend-
+# remapped `Physical_Layout` order used for actual glyph placement. The two
+# differ by a fixed rotation: physical = keyboard[7:12] + keyboard[0:7]
+# (Char_Legend=[7,8,9,10,11,0,1,2,3,4,5,6]), equivalently keyboard =
+# physical[5:] + physical[:5] - the exact "move the first 5 characters to
+# the end" transform the user asked for, applied once here to what used to
+# be stored (physical order, from the original import) to reach the
+# canonical keyboard-legend representation. mignon.py's configure() applies
+# the Char_Legend remap itself when loading layout.rows into DHIATENSOR, so
+# the actual built geometry is unchanged - only this display/edit
+# representation moved to match what a person reads off the machine.
+LAYOUT_PRESETS_MIGNON = {
+    'English 2': [
+        '\'"%&(£$);:,.',
+        '?PFUGQpfugq¼',
+        '!VINABvinab½',
+        '_LDETMldetm¾',
+        'JKOSRZkosrzj',
+        '/YCHWXychwx@',
+        '#1234567890-',
+    ],
+    'English 3': [
+        '()&\'".,:¼½¾⅛',
+        '?PFUGQpfugq⅜',
+        '=VINABvinab⅝',
+        '+LDETMldetm⅞',
+        'JKOSRZkosrzj',
+        '/YCHWXychwx_',
+        '£23456789%@-',
+    ],
+    'English 4': [
+        '()&\'".,:¼½¾⅛',
+        '?PFUGQpfugq⅜',
+        '=VINABvinab⅝',
+        '$LDETMldetm⅞',
+        'JKOSRZkosrzj',
+        '/YCHWXychwx_',
+        '£23456789%@-',
+    ],
+    'German 2': [
+        '§%&():,.äöü¾',
+        '"PFUGQpfugq½',
+        '?VINABvinab¼',
+        "_LDETMldetm'",
+        'JKOSRZkosrzj',
+        '/YCHWXychwx!',
+        '„1234567890-',
+    ],
+    'German 4': [
+        '&():"!?\'äöü_',
+        '§PFUGQpfugq;',
+        'JVINABvinabj',
+        '/LDETMldetm,',
+        '%KOSRZkosrz=',
+        '¾YCHWXychwx+',
+        '½¼23456789.-',
+    ],
+    'German-French': [
+        '§%&():,.äöüè',
+        '"PFUGQpfugqà',
+        '?VINABvinabé',
+        "_LDETMldetm'",
+        'JKOSRZkosrzj',
+        '/YCHWXychwxç',
+        '^1234567890-',
+    ],
+    'Bohemian 3': [
+        '!?´%23456789',
+        'PFUGJpfugjů"',
+        'VNIABvniabíá',
+        'LDETMldetméě',
+        'KOSRZkosrzšř',
+        'YCHWXychwxžú',
+        '&ˇ§Qqýč/,:.-',
+    ],
+    'Bulgarian': [
+        '§ЮЯЛЦVюялць&',
+        '№ПРХСУпрхсуй',
+        '/ЩШКАМщшкам!',
+        'ЗОВЪТѢовътѣз',
+        '%ГИНЕДгинед?',
+        'IЖФѪБЧжфѫбч"',
+        '2456789.-,;:',
+    ],
+    'Cyrillic': [
+        '§%№VI:"!,?=-',
+        'ЂПФУГJпфугjђ',
+        'ЧВИНАБвинабч',
+        'ШЛДЕТМлдетмш',
+        'ЋКОСРЗкосрзћ',
+        'ЏЉЦХЊЖљцхњжџ',
+        '/123456789._',
+    ],
+    'Danish 2': [
+        'Æ§&?()_\'¨:"æ',
+        'ØPFUGQpfugqø',
+        'JVINABvinabj',
+        '%LDETMldetm,',
+        '/KOSRZkosrz÷',
+        '¼YCHWXychwx+',
+        '½¾23456789.-',
+    ],
+    'Danish 3': [
+        'Æ§&?()_\'¨:"æ',
+        'ØPFUGQpfugqø',
+        'JVINABvinabj',
+        '%LDETMldetm,',
+        '/KOSRZkosrz÷',
+        '¼YCHWXychwx+',
+        '½¾23456789.=',
+    ],
+    'Esperanto': [
+        '()23456789é"',
+        "'PFUGQpfugq:",
+        '!VINABvinab.',
+        '?LDETMldetm,',
+        'JKOSRZkosrzj',
+        '^YCHWXychwx-',
+        'ĴŜĈĤĜŬŝĉĥĝŭĵ',
+    ],
+    'French 3': [
+        'K&()?:,"_çùk',
+        'WJFQBYjfqbyw',
+        '§VNIAPvniapà',
+        "/DOUT'doutéè",
+        '%CSERGcserg^',
+        '½HLMZXhlmzx+',
+        '¼23456789.-=',
+    ],
+    'Georgian': [
+        '[]!":.,-;?*\'',
+        'IV&წძცყქღჷა^',
+        'XCგბეიულტჲ¨=',
+        'LDჩუმდაႱზჱ§,',
+        '$Mჴვროთხნჵჶ№',
+        '£§ჰჭჟჯფპკ#ჳ/',
+        '1234567890%½',
+    ],
+    'Greek (new ortography)': [
+        '£123456789-;',
+        "&ΠΡΚΓΞπρκγξ'",
+        '½ΛΤΗΑΒλτηαβ͂',
+        '¼ΜΔΕΝΨμδενψ̇',
+        '_ΘΟΥΙΖθουιζ.',
+        '%ΧΩΣͅΦχωσϛφ,',
+        '$()/„῟῞῏῎´᾿¨',
+    ],
+    'Dutch 2': [
+        '&():"?\'¨`^´_',
+        '£PFUGQpfugqĳ',
+        'JVINABvinabj',
+        '/LDETMldetm,',
+        '%KOSRZkosrz+',
+        '¾YCHWXychwx=',
+        '½¼2345ƒ6789.',
+    ],
+    'Italian 3': [
+        '"%&()^àèìòùé',
+        '?WFUGQwfugq!',
+        'JVINABvinabj',
+        "_LDETMldetm'",
+        '=KOSRZkosrz,',
+        '/YCHPXychpx:',
+        '+º23456789.-',
+    ],
+    'Croatian-Slovenian': [
+        '%+=_:,.!?"-´',
+        '&PFUGKpfugkć',
+        'QVINAJvinajq',
+        'ĐLDETMldetmđ',
+        '§ČOSŠZčosšz/',
+        'WBCHRŽbchržw',
+        'YX23456789xy',
+    ],
+    'Latvian': [
+        '32ļģŗņķ?!=/̦',
+        '4PFUGCpfugc"',
+        '5VINABvinab-',
+        '6LDETMldetm,',
+        '7KOSRZkosrz.',
+        '8HJX%§hjxāūē',
+        '9ČŠŽ()čšžī:̄',
+    ],
+    'Lithuanian': [
+        "!'23456789;-",
+        'ŲPFUGĄpfugąų',
+        'ĮVINABvinabį',
+        ',LDETMldetm?',
+        '_KOSĘZkosęz/',
+        '.YCHRJychrj"',
+        '%ŽĖŠČŪžėščū§',
+    ],
+    'Polish 2': [
+        '?§&óśńźćąę\'"',
+        '%PFUGQpfugq!',
+        'ŻVINABvinabż',
+        'ŁLDETMldetmł',
+        'JKOSRZkosrzj',
+        '/YCHWXychwx,',
+        '|:23456789.-',
+    ],
+    'Portuguese 2': [
+        '&?Ç!º̃áéêóç#',
+        '%PFUGQpfugq£',
+        ':VINABvinab$',
+        '(LDETMldetm)',
+        'JKOSRZkosrzj',
+        "'YCHWXychwx,",
+        '"/23456789.-',
+    ],
+    'Romanian 1': [
+        '§W()"?w\';:!_',
+        '&KFOMHkfomhî',
+        '/DCESBdcesbș',
+        '=GPARUgparuă',
+        '+LTINVltinvț',
+        '%YXJZQyxjzqâ',
+        '½23456789,.-',
+    ],
+    'Russian (new ortography)': [
+        '№ХЬЯЛУхьялу!',
+        '1ТГСЮЙтгсюй/',
+        '2РПОИЫрпоиы"',
+        '3ЧВЕНДчвендз',
+        "4ЦАМКБцамкб'",
+        '5ЖЩШЭФжщшэф.',
+        '6789%$£§/,:-',
+    ],
+    'Russian 3': [
+        'ЭХЯЛЬГэхяльг',
+        'ОПРСЮУпрсюуо',
+        'IЩШЧТНщшчтнi',
+        'ЗФЦКАЕфцкаез',
+        '2БИМВДбимвд?',
+        '4ЖЙЫЪѢжйыъѣ!',
+        '56789№§.-:,/',
+    ],
+    'Spanish-American': [
+        '&?¿!¡;áéíóúñ',
+        '%PFUGQpfugq£',
+        ':VINABvinab$',
+        '(LDETMldetm)',
+        'JKOSRZkosrzj',
+        "'YCHWXychwx,",
+        '"/23456789.-',
+    ],
+    'International Script': [
+        '123456789-,_',
+        '&PFUGQpfugq.',
+        'JVINABvinabj',
+        '=LDETMldetmé',
+        '%KOSRZkosrzç',
+        '/YCHWXychwx:',
+        '§!?()"´`^ˇ˚˜',
+    ],
+    'Swedish 2': [
+        '§()ÄÖ:"\',äö+',
+        'QPFUGÅpfugåq',
+        '?VINABvinab=',
+        '&LDETMldetm_',
+        '%KOSRJkosrj.',
+        'XYCHWZychwzx',
+        '/¼½¾23456789',
+    ],
+    'Ukrainian': [
+        'ҐХЯЛЬГґхяльг',
+        "%ПРСЮУпрсюу'",
+        'IЩШЧТНщшчтнi',
+        '2ФЦКАЕфцкае?',
+        'ЗБИМВДбимвдз',
+        '4ЖОЙЄЇжойєї!',
+        '56789№§.-:,/',
+    ],
+    'Hungarian 2': [
+        '?:!"ÖÜ,űőöüú',
+        'ÉPFUGYpfugyé',
+        'ÓVINABvinabó',
+        'ÁLDETMldetmá',
+        'JKOSRZkosrzj',
+        '/QCHWXqchwx.',
+        '+%23456789§-',
+    ],
+}
+
 LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
     "postal": LAYOUT_PRESETS_POSTAL,
+    "mignon": LAYOUT_PRESETS_MIGNON,
 }
 
 # layout.baseline_row/cutout_row per-row fields (Element tab - see
 # TuneApp._compose_baseline_cutout_fields). Bespoke, not in
 # self.FIELDS/SECTIONS - these are list ELEMENTS (patch_yaml_list_item),
-# not standalone scalar YAML keys patch_yaml_value can patch.
-BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(3)]
+# not standalone scalar YAML keys patch_yaml_value can patch. Row count
+# varies per machine (3 for Blickensderfer/Postal, 7 for Mignon), so
+# self.BASELINE_CUTOUT_KEYS is computed per-instance in _load_machine(),
+# not a fixed module constant - see there.
 
 
 def get_nested(d, path):
@@ -581,7 +906,9 @@ def patch_yaml_list_item(text, key, index, value):
 
 
 def patch_yaml_rows(text, rows):
-    """layout.rows is a 3-item YAML block list, not a single-line scalar -
+    """layout.rows is a multi-item YAML block list (3 items for
+    Blickensderfer/Postal, 7 for Mignon - row-count-agnostic here, just
+    writes however many items `rows` has), not a single-line scalar -
     patch_yaml_value's one-token regex doesn't apply. Matches the `rows:`
     line plus every immediately-following more-indented `- "..."` line
     and replaces the whole block, preserving the existing indent style."""
@@ -719,6 +1046,10 @@ class TuneApp(App):
         self.SECTIONS = SECTIONS_BY_MACHINE.get(self.machine, SECTIONS_BY_MACHINE["blickensderfer"])
         self.FIELDS = [field for fields in self.SECTIONS.values() for field in fields]
         self.LAYOUT_PRESETS = LAYOUT_PRESETS_BY_MACHINE.get(self.machine, {})
+        # row count varies per machine (3 for Blickensderfer/Postal, 7 for
+        # Mignon) - see BASELINE_CUTOUT_KEYS' module comment
+        n_rows = len(self.cfg["layout"]["baseline_row"])
+        self.BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(n_rows)]
 
     @staticmethod
     def _running_config_path(master_path):
@@ -909,20 +1240,27 @@ class TuneApp(App):
     # not in self.FIELDS - _collect_values/_save_to_yaml/
     # _refresh_widgets_from_cfg handle them explicitly, same pattern as
     # the Layout/Type Test tabs' own bespoke widgets.
+    # Only meaningful for Blickensderfer/Postal's 3 real shift rows
+    # (lowercase/uppercase/figs) - Mignon's 7 rows have no such semantic
+    # names (v2 itself has no per-row label concept, see
+    # lib/glyph_pipeline.scad's Row_Labels comment: "default: numeric
+    # 'row N'" for machines with no 3-entry meaning). Rows beyond this
+    # list's length just show as "Row N" with no parenthetical.
     ROW_LABELS = ["lowercase", "uppercase", "figs"]
 
     def _compose_baseline_cutout_fields(self):
         yield Static(
-            "Per-row baseline/platen-cutout (mm below the clip end) - see\n"
-            "the Calibration tab for empirically finding these.",
+            "Per-row baseline/platen-cutout (mm - see the Calibration tab\n"
+            "for empirically finding these).",
             classes="picker-help")
         for arr_key, label in (("baseline_row", "Baseline"), ("cutout_row", "Cutout")):
             values = self.cfg["layout"][arr_key]
-            for i, row_label in enumerate(self.ROW_LABELS):
+            for i in range(len(values)):
                 key = f"{arr_key}_{i}"
+                row_label = f" ({self.ROW_LABELS[i]})" if i < len(self.ROW_LABELS) else ""
                 with Vertical(classes="field-row"):
                     with Horizontal():
-                        yield Static(f"{label} row {i} ({row_label})", classes="field-label")
+                        yield Static(f"{label} row {i}{row_label}", classes="field-label")
                         inp = Input(value=str(values[i]), id=f"field-{key}")
                         self.inputs[key] = inp
                         yield inp
@@ -970,21 +1308,35 @@ class TuneApp(App):
                         "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
                         "(v2 auto-switches fonts per layout; v4 does not).",
                         classes="picker-help")
-                elif options:
+                elif self.machine == "postal":
                     yield Static(
                         "Postal has only one physical layout (v2/postal.scad has no\n"
                         "preset-switching menu) - QWERTY is it. Use Modify glyphs below\n"
-                        "to hand-edit the 3 rows if you need something else.",
+                        "to hand-edit the rows if you need something else.",
+                        classes="picker-help")
+                elif self.machine == "mignon":
+                    yield Static(
+                        "Ported from v2/lib/layouts/mignon_layouts.scad (30 real named\n"
+                        "layouts - a few placeholder/never-finished ones in the source\n"
+                        "are excluded). All share the same 7-row/12-column layout -\n"
+                        "only glyph content per row changes. Rows are shown in keyboard-\n"
+                        "legend order (as printed on the physical keyboard/manual) -\n"
+                        "layout.char_legend remaps this to build order internally.",
+                        classes="picker-help")
+                elif options:
+                    yield Static(
+                        "Use Modify glyphs below to hand-edit the rows if you need\n"
+                        "something other than the selected preset.",
                         classes="picker-help")
                 else:
                     yield Static(
                         "No named layout presets for this machine yet - use Modify glyphs\n"
-                        "below to hand-edit the 3 rows directly.",
+                        "below to hand-edit the rows directly.",
                         classes="picker-help")
 
                 yield Static("Rows (read-only preview of the preset above):", classes="field-label")
                 display_rows = self._display_rows_for_preset()
-                for i in range(3):
+                for i in range(len(display_rows)):
                     static = Static(display_rows[i], id=f"layout-original-row-{i}", classes="row-preview")
                     yield static
 
@@ -994,18 +1346,18 @@ class TuneApp(App):
                     sw = Switch(value=modify_now, id="layout-modify-glyphs")
                     yield sw
                 yield Static(
-                    f"Unlocks a hand-editable copy of the 3 rows below, capped at\n"
-                    f"{char_cap} characters each (placement_map's length - more than that\n"
-                    "would crash TextRing). Fewer than that just leaves some physical\n"
-                    "positions unstruck. While on, this edited copy - not the preset\n"
-                    "dropdown above - is what gets saved to layout.rows.",
+                    f"Unlocks a hand-editable copy of the {len(display_rows)} rows below,\n"
+                    f"capped at {char_cap} characters each (placement_map's length - more\n"
+                    "than that would crash TextRing). Fewer than that just leaves some\n"
+                    "physical positions unstruck. While on, this edited copy - not the\n"
+                    "preset dropdown above - is what gets saved to layout.rows.",
                     classes="picker-help")
 
                 custom_rows_container = Vertical(id="layout-custom-rows")
                 custom_rows_container.display = modify_now
                 with custom_rows_container:
                     current_rows = self.cfg["layout"]["rows"]
-                    for i in range(3):
+                    for i in range(len(current_rows)):
                         inp = Input(value=current_rows[i], id=f"layout-custom-row-{i}",
                                     max_length=char_cap, classes="custom-row-input")
                         yield inp
@@ -1167,7 +1519,7 @@ class TuneApp(App):
         # bespoke like everything above, since they're list elements, not
         # standalone scalar YAML keys - see BASELINE_CUTOUT_KEYS/
         # patch_yaml_list_item.
-        for key in BASELINE_CUTOUT_KEYS:
+        for key in self.BASELINE_CUTOUT_KEYS:
             raw = self.inputs[key].value.strip()
             try:
                 values[key] = float(raw)
@@ -1180,10 +1532,10 @@ class TuneApp(App):
         with open(self.config_path) as f:
             text = f.read()
         for key, value in values.items():
-            if key in BASELINE_CUTOUT_KEYS:
+            if key in self.BASELINE_CUTOUT_KEYS:
                 continue
             text = patch_yaml_value(text, key, value)
-        for key in BASELINE_CUTOUT_KEYS:
+        for key in self.BASELINE_CUTOUT_KEYS:
             arr_key, index_str = key.rsplit("_", 1)
             text = patch_yaml_list_item(text, arr_key, int(index_str), values[key])
         modify_glyphs = self.query_one("#layout-modify-glyphs", Switch).value
@@ -1194,7 +1546,8 @@ class TuneApp(App):
             # row to the placement_map cap in case anything bypassed the
             # Input's own max_length (e.g. a paste)
             char_cap = len(self.cfg["layout"]["placement_map"])
-            custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:char_cap] for i in range(3)]
+            n_rows = len(self.cfg["layout"]["rows"])
+            custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:char_cap] for i in range(n_rows)]
             text = patch_yaml_rows(text, custom_rows)
         else:
             layout_select = self.query_one("#layout-select", Select)
@@ -1244,17 +1597,17 @@ class TuneApp(App):
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
         display_rows = self._display_rows_for_preset()
-        for i in range(3):
+        for i in range(len(display_rows)):
             self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
         modify_glyphs = bool(self.cfg["layout"]["modify_glyphs"])
         self.query_one("#layout-modify-glyphs", Switch).value = modify_glyphs
         self.query_one("#layout-custom-rows").display = modify_glyphs
         current_rows = self.cfg["layout"]["rows"]
-        for i in range(3):
+        for i in range(len(current_rows)):
             self.query_one(f"#layout-custom-row-{i}", Input).value = current_rows[i]
         for arr_key in ("baseline_row", "cutout_row"):
             arr = self.cfg["layout"][arr_key]
-            for i in range(3):
+            for i in range(len(arr)):
                 self.inputs[f"{arr_key}_{i}"].value = str(arr[i])
 
     def action_reload(self):
@@ -1571,7 +1924,7 @@ class TuneApp(App):
         # self.cfg only updates on an actual save, so that would have
         # kept showing the OLD preset while just browsing the dropdown.
         display_rows = self._rows_for_layout_select_value(event.value)
-        for i in range(3):
+        for i in range(len(display_rows)):
             self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
@@ -1586,7 +1939,7 @@ class TuneApp(App):
             # "custom"), so it starts as an exact copy to hand-edit from
             layout_select_value = self.query_one("#layout-select", Select).value
             display_rows = self._rows_for_layout_select_value(layout_select_value)
-            for i in range(3):
+            for i in range(len(display_rows)):
                 self.query_one(f"#layout-custom-row-{i}", Input).value = display_rows[i]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

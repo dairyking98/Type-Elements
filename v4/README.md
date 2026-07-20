@@ -173,6 +173,50 @@ literally), caught via a direct render comparison, fixed by hardcoding
 the sign flip in `mignon.py`'s own `configure()` (machine-specific, not a
 `cylinder_machine.py` change).
 
+**Layout tab.** `tune.py`'s Layout tab was written when Blickensderfer/
+Postal (3 rows each) were the only machines and had "3" hardcoded as a
+literal in nine places (`BASELINE_CUTOUT_KEYS`, row-preview widget
+construction, custom-row seeding, save round-trip, etc.) - all now derive
+the row count from the config (`len(layout.baseline_row)`, etc.), which
+reduces to the same 3-row behavior for Blickensderfer/Postal
+(regression-verified) and correctly handles Mignon's 7. All 30 of
+Mignon's real named layout presets (German 4, Cyrillic, Bulgarian,
+Georgian, etc.) were ported from `v2/lib/layouts/mignon_layouts.scad`
+into `LAYOUT_PRESETS_MIGNON` (3 placeholder-empty presets in v2's own
+source were excluded; two anomalous 13-character rows in v2's Georgian/
+Greek data, unreachable by v2's own `Char_Legend` indexing, were
+truncated to 12). `layout.rows`/`LAYOUT_PRESETS_MIGNON` are stored in RAW
+KEYBOARD-LEGEND order (v2's own `Layout` array - what's printed on the
+physical keyboard/manual), not the `Char_Legend`-remapped `Physical_
+Layout` build order - `lib/mignon.py`'s `configure()` applies
+`layout.char_legend` (`[7,8,9,10,11,0,1,2,3,4,5,6]`, matching
+`v2/mignon.scad:88` exactly) to compute the actual build-time `DHIATENSOR`
+itself, so the legend can be read/edited the way a person actually reads
+it off the machine without hand-deriving the build order. See
+SESSION_LOG.md parts 20-21 for the full account.
+
+**Label - a genuine second engraved-text feature, not in v2.** v2/
+mignon.scad's real `[Logo]` customizer section (confirmed end to end) has
+exactly ONE engraved-text feature (`Cylinder_Label`), which is what this
+app's `logo.*` config/"Logo" tab already drives. A second, independent
+`label.*` feature was added anyway (v4-only, not a v2 port) - same field
+format as Logo (font/text/size/spacing/height-offset), always placed 180
+degrees opposite Logo's `position_offset_deg` (computed in `configure()`
+as an invariant, not independently stored - moving Logo moves Label with
+it). Defaults to empty text rather than duplicating Logo's default
+verbatim: at Logo's real 15deg/char spacing a normal-length label already
+spans most of the ring, so two identical strings 180 degrees apart would
+overlap rather than sit cleanly opposite each other.
+
+**Tallen (Plakatschrift) mode.** A display-type variant
+(`v2/mignon.scad:109-115,197`, off by default like this file's real
+untallened German 4 element) that adds `height_increase_mm` (3mm) to the
+element height and shifts every baseline row by
+`tallen_baseline_offset_mm` (-1.25mm) - cutout rows are NOT affected, a
+real asymmetry in v2's own source, not an oversight. Previously
+acknowledged-but-not-ported; now a real `element.tallen` toggle plus its
+two magnitude fields, all exposed on the Element tab.
+
 ### Performance
 
 The draft taper is a real Minkowski sum (`manifold3d`), not plain

@@ -43,15 +43,45 @@ logo:
   # surface, a genuinely different placement geometry).
   height_offset_mm: 0.5
 
+# v4-only second engraved-text feature (NOT a v2 concept - v2/mignon.scad
+# has exactly one, Cylinder_Label, ported above as logo.*) - same
+# font/size/spacing/height-offset format as logo above, always placed 180
+# degrees opposite logo's position_offset_deg (derived in lib/mignon.py's
+# configure(), not stored here - editing logo.position_offset_deg keeps
+# the label locked opposite it). text defaults to empty (renders nothing)
+# rather than duplicating logo.text verbatim - at logo's real 15deg/char
+# spacing, "Leonard Chau 2026" (18 chars) already spans ~255 degrees, so a
+# second copy of it 180 degrees away would heavily overlap the first
+# rather than sitting cleanly opposite it. Fill in your own shorter text.
+# Keys prefixed label_* (not font_path/text/... like logo above) - tune.py's
+# patch_yaml_value matches by bare key text across the WHOLE config file,
+# not by section, so identical key names under logo:/label: would collide
+# (the same literal "font_path:"/"text:"/etc. appearing twice) and patch
+# the wrong one - every YAML key patch_yaml_value can touch must be
+# globally unique in the file (see GAUGE_FIELDS' matching comment in tune.py).
+label:
+  label_font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Iosevka Etoile.ttf"
+  label_text: ""
+  label_text_size_mm: 1.2495
+  label_text_spacing: 15.0
+  label_height_offset_mm: 0.5
+
 element:
   platen_diameter: 26.5
   element_diameter: 18.64
   min_final_character_diameter: 19.4
-  # Cylinder_Height_=40.5 (Tallen=false, so Element_Height = this
-  # directly - Tallen/Height_Increase/Tallen_Baseline_Offset, a
-  # Plakatschrift-specific variant, not ported - element_height below
-  # already reflects the untallened value real machines use).
+  # Cylinder_Height_=40.5 - the BASE/untallened height; actual built
+  # Element_Height adds height_increase_mm on top of this when tallen is on.
   element_height: 40.5
+  # Tallen (Plakatschrift, a display-type variant) - v2/mignon.scad:109-
+  # 115,197. Off by default (matches v2's Tallen=false and this file's
+  # real Layout_Selection=5 German 4 default, an untallened element).
+  # When on: Element_Height = element_height + height_increase_mm, and
+  # every baseline row shifts by tallen_baseline_offset_mm (cutout rows
+  # are NOT affected - v2 has no Cutout_Tallen variant).
+  tallen: false
+  height_increase_mm: 3.0
+  tallen_baseline_offset_mm: -1.25
   cylinder_top_height_offset: 3.0
   cylinder_top_chamfer: 2.0
   cylinder_top_diameter: 10.5
@@ -77,22 +107,30 @@ quality:
 # face - v2/mignon.scad:281 Baseline_Z_Offset=0, unlike Blickensderfer/
 # Postal's negative-from-clip-end convention), latitude spacing, and the
 # physical layout (v2's German 4 / Layouts[5], the real default -
-# Layout_Selection=5 - remapped through Char_Legend=[7,8,9,10,11,0,1,2,3,
-# 4,5,6] the same way Postal's Physical_Layout is pre-baked, since Mignon
-# also has no separate placement_map override - identity below).
+# Layout_Selection=5).
+#
+# rows: stored in RAW KEYBOARD-LEGEND order (v2's `Layout` array, matching
+# what's printed on the physical keyboard/manual), NOT the Char_Legend-
+# remapped `Physical_Layout` order used for actual glyph placement -
+# mignon.py's configure() applies char_legend below to compute the real
+# build-time DHIATENSOR, mirroring v2/mignon.scad:275's
+# Physical_Layout=[for (row) [for (col) Layout[row][Char_Legend[col]]]]
+# exactly. Mignon also has no separate placement_map override beyond
+# Char_Legend - identity below.
 layout:
   baseline_row: [2.25, 7.55, 12.75, 17.8, 22.8, 28.0, 32.8]
   cutout_row: [2.7, 8.25, 13.6, 18.7, 23.7, 28.7, 33.6]
   latitude_columns: 12
   placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  char_legend: [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6]
   rows:
-    - "'äöü_&():\"!?"
-    - "fugq;§PFUGQp"
-    - "inabjJVINABv"
-    - "detm,/LDETMl"
-    - "osrz=%KOSRZk"
-    - "chwx+¾YCHWXy"
-    - "789.-½¼23456"
+    - "&():\"!?'äöü_"
+    - "§PFUGQpfugq;"
+    - "JVINABvinabj"
+    - "/LDETMldetm,"
+    - "%KOSRZkosrz="
+    - "¾YCHWXychwx+"
+    - "½¼23456789.-"
   modify_glyphs: false
 
 alignment:

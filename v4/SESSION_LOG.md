@@ -1329,6 +1329,166 @@ newly verified for Mignon (50 fields, no Gauge tab mounted, correct
 Element/Resin values, save round-trip) via headless `App.run_test()`
 against scratch config copies throughout - never the user's real files.
 
+## 20. Layout tab was hardcoded to 3 rows everywhere - fixed for Mignon's 7, imported all 30 real presets
+
+Right after the Mignon port landed, testing the Layout tab surfaced the
+obvious gap: it was written when Blickensderfer/Postal (3 physical rows
+each) were the only machines, and "3" had leaked into the code as a
+literal in nine separate places rather than being derived from the
+config. Mignon has 7 rows and, unlike Postal's single QWERTY preset, a
+real catalog of ~30 named language layouts in
+`v2/lib/layouts/mignon_layouts.scad` that were never imported.
+
+**Importing the presets.** Read all 338 lines of
+`mignon_layouts.scad` directly and transcribed its 33 raw layout
+arrays. 3 are empty placeholders in v2 itself (`CUSTOMLAYOUT`,
+`DEUTSCH_FRAKTUR_GOTISCH`, `DEUTSCH_FRAKTUR_PROF_STIEHL`) and were
+excluded, leaving 30. Each row was passed through the same
+`Char_Legend=[7,8,9,10,11,0,1,2,3,4,5,6]` remap used for Postal's
+preset import (part 14/15) - v2 authors the raw arrays in one column
+order and remaps them to physical placement order at load time, so a
+literal transcription would have been wrong. Two rows (Georgian rows
+2/4, Greek-new-ortography rows 3/4) have 13 characters in v2's source
+where every other row has 12 - confirmed this is dead data in v2
+itself (`Char_Legend` only ever indexes 0-11, so v2 never reads a
+13th character either) and truncated to `r[:12]` rather than guessing
+which character was erroneously included. Result:
+`LAYOUT_PRESETS_MIGNON`, a 30-entry dict of 7-row layouts, verified
+programmatically (all 30 x 7 x 12) before being pasted into `tune.py`
+and registered in `LAYOUT_PRESETS_BY_MACHINE["mignon"]`.
+
+**The `range(3)` sweep.** `grep -n "range(3)"` found nine hardcoded
+occurrences across `tune.py`: `BASELINE_CUTOUT_KEYS` (a module-level
+constant - had to become an instance attribute,
+`self.BASELINE_CUTOUT_KEYS`, computed in `_load_machine()` from
+`len(self.cfg["layout"]["baseline_row"])`, since row count now varies
+per machine), `_compose_baseline_cutout_fields`'s `ROW_LABELS`
+enumeration (silently dropped rows past index 3 - fixed to iterate
+`range(len(values))` and only use `ROW_LABELS[i]` as an optional
+parenthetical when in range), `_compose_layout_tab` (x2: the
+row-preview widgets and the help text's literal word "3 rows"),
+`_refresh_widgets_from_cfg` (x3), `on_select_changed`,
+`on_switch_changed`, and `_save_to_yaml`'s custom-rows collection. All
+now derive the count from actual data (`len(display_rows)`,
+`len(current_rows)`, `len(arr)`, or `n_rows` read from config)
+instead of a literal. Also restructured `_compose_layout_tab`'s
+preset-help-text branch from `if blickensderfer / elif options / else`
+to explicit per-machine `elif` branches - the old fallthrough would
+have matched Mignon into Postal's "only one physical layout" copy,
+since Mignon now has `options` truthy too, just with 30 instead of 1.
+
+**Verification**, all via headless `App.run_test()` against scratch
+config copies: Mignon - 30 presets load, dropdown correctly
+auto-detects "German 4" as the current preset from `config/mignon.yaml`'s
+rows, all 7 read-only preview widgets exist, all 14
+`baseline_row_N`/`cutout_row_N` Element-tab fields present, switching
+the dropdown to "Russian 3" + enabling "Modify glyphs" correctly seeds
+all 7 custom-row `Input` widgets from `LAYOUT_PRESETS_MIGNON["Russian
+3"]`, and a preset-switch-then-save round-trip writes the full 7 new
+rows to `layout.rows`. Blickensderfer/Postal regression - both still
+show exactly 6 baseline/cutout fields and 3 row widgets (unchanged),
+Gauge tab still mounts, Postal's single QWERTY preset still
+auto-detects correctly. Visually confirmed via an `App.run_test()`
+SVG screenshot of Mignon's Layout tab: German 4 selected, all 7 rows
+rendered with correct content, help text reads "7 rows" (not the old
+hardcoded "3 rows").
+
+## 21. Mignon Element/Logo tab audit: keyboard-legend layout order, a real second "Label" feature, Tallen mode
+
+User audit request: make sure Mignon's Element tab (and "check all other
+things") are genuinely Mignon-specific, not leftover Blickensderfer/Postal
+material, and that nothing real from v2 is missing. Cross-checked
+`ELEMENT_FIELDS_MIGNON`/`LOGO_FIELDS_MIGNON`/`QUALITY_FIELDS_MIGNON`/
+`RESIN_FIELDS_MIGNON` and `config/mignon.yaml`'s actual numeric values
+field-by-field against `v2/mignon.scad`'s real customizer sections - no
+leaked Blickensderfer/Postal fields or wrong-machine values found (every
+field list was already correctly scoped, every value matched v2 exactly).
+Found and fixed three real, distinct gaps instead:
+
+**Layout preset rows were stored in build order, not keyboard-legend
+order.** The 30 presets imported in part 20 (and `config/mignon.yaml`'s
+own `layout.rows`) were stored as v2's Char_Legend-remapped
+`Physical_Layout` (`Char_Legend=[7,8,9,10,11,0,1,2,3,4,5,6]`,
+`v2/mignon.scad:88,275`) - correct for driving the build directly, but not
+how a person reads the legend off the actual keyboard/manual (v2's own,
+separate `Layout` array). User's example: `7890-#123456` should read
+`#1234567890-`. Algebraically, `keyboard = physical[5:] + physical[:5]`
+is the *exact* inverse of the Char_Legend remap for this specific
+7-then-5 split - verified both symbolically and by round-tripping every
+row of every preset back through Char_Legend and confirming an exact
+match against the original physical-order data (zero build-output change).
+Applied that rotation to all 30 `LAYOUT_PRESETS_MIGNON` entries and to
+`config/mignon.yaml`'s `layout.rows`, added `layout.char_legend:
+[7,8,9,10,11,0,1,2,3,4,5,6]` to config, and added the actual remap step
+(`DHIATENSOR = [[row[char_legend[c]] for c in ...] for row in
+layout["rows"]]`) to `lib/mignon.py`'s `configure()` - previously
+`DHIATENSOR` was just `layout["rows"]` verbatim, silently relying on the
+stored data already being pre-remapped. Verified the rebuilt `DHIATENSOR`
+is byte-identical to the old hardcoded physical-order string for German 4
+- this is purely a display/edit-order change, the STL is unaffected.
+
+**A genuine second "Label" engraved-text feature, not in v2 at all.**
+Re-read v2/mignon.scad's real `[Logo]` customizer section (lines 218-236)
+end to end - it contains exactly ONE engraved-text feature
+(`Cylinder_Label`/`ElementLabel()`), which is what this app's existing
+`logo.*` config/tune.py "Logo" tab already drives (schema-reuse naming,
+not a second feature - confirmed Blickensderfer's real `[Logo]` section
+the same way: one `LogoText()`, no separate label concept anywhere in v2).
+User wants a second, independent one added anyway, same field format as
+Logo, permanently 180 degrees opposite it. Implemented as a genuinely new
+v4-only feature: extracted the placement math into
+`_render_engraved_text(text, size, spacing, position_offset,
+height_offset, font_path)`, renamed the existing function `ElementLabel`
+-> `ElementLogo` (unchanged behavior, still reads `logo.*`), added a new
+`ElementLabel()` reading a new `label.*` config section, with
+`Label_Position_Offset` computed as `Logo_Position_Offset + 180.0` in
+`configure()` (an invariant, not a stored/independently-editable value -
+moving Logo moves Label with it). `Additive()`/`CalibrationAdditive()`
+now union both. tune.py's `LOGO_FIELDS_MIGNON` gained 5 parallel
+`label_*`-keyed fields (font/text/size/spacing/height-offset, no position
+field since it's derived) in the same "Logo" tab, `label_font_path` added
+to `FONT_PATH_FIELD_KEYS` for its own Browse button. Default `label.text`
+is empty, NOT a copy of `logo.text` - checked the math first: at Logo's
+real 15deg/char spacing, "Leonard Chau 2026" (18 chars) already spans
+~255 degrees, so a second copy 180 degrees away would heavily overlap the
+first instead of sitting cleanly opposite it (255+255 > 360). Verified via
+direct `FullElement()` builds + `f3d` renders: default (empty label)
+builds clean; a short test string ("TEST") renders legibly at the bottom
+of the chamfer ring while "Leonard Chau 2026" occupies the top - visually
+confirmed 180 degrees apart, no overlap.
+
+**Tallen (Plakatschrift) mode - acknowledged missing in the original port
+comment, now implemented.** `v2/mignon.scad:109-115,197`: a display-type
+variant that adds `Height_Increase` (3mm) to `Element_Height` and shifts
+every `Baseline` row by `Tallen_Baseline_Offset` (-1.25mm) when
+`Tallen=true` - `Cutout` has no Tallen variant in v2 at all, a real
+asymmetry (Baseline shifts, Cutout doesn't), not an oversight to fix.
+Added `element.tallen`/`height_increase_mm`/`tallen_baseline_offset_mm`
+to config (off by default, matching v2 and this file's real untallened
+German 4 element), wired into `configure()`
+(`Element_Height`/`BASELINE_ROW` both conditional on `Tallen`, `CUTOUT_ROW`
+untouched), and exposed as three new `ELEMENT_FIELDS_MIGNON` entries.
+Verified: `Tallen=false` reproduces the exact prior `Element_Height`
+(40.5) and `BASELINE_ROW` values; `Tallen=true` gives 43.5 and every
+baseline shifted by exactly -1.25 with `CUTOUT_ROW` unchanged; full builds
+succeed watertight in both states.
+
+Deliberately NOT touched, flagged as pre-existing/cross-machine gaps
+rather than Mignon-specific bugs (would be real scope creep to fix here):
+v2's "unified" glyph-quality system (`Weight_Adj_Mode`/`Scale_Multiplier`/
+`Y_Scale`/`Text_Align_Method` and friends) has no v4 implementation for
+ANY machine, not just Mignon (`grep` confirmed zero references anywhere
+in `lib/*.py`). Same for `Character_Modifieds`/`Typeface_2` (per-character
+baseline shift + secondary-font-by-character) - present in ALL THREE v2
+machine files, not ported for any of them. Both belong in a dedicated
+follow-up, not folded into a "make Mignon's existing fields correct" pass.
+
+Regression-verified Blickensderfer/Postal: field counts unchanged
+(78/73), no duplicate `self.inputs` keys introduced by the new
+`label_*`/`tallen`/etc. keys (checked across the whole file, not just
+Mignon's own section, since `self.inputs` is a single flat dict), no
+Mignon-only keys leaked into their field sets.
+
 ## Resuming later
 
 1. **Bennett, then Helios** - the next two machines per the original
@@ -1345,3 +1505,7 @@ against scratch config copies throughout - never the user's real files.
 3. Everything in part 14's original "Resuming later" list (separation_mm,
    inter-character collisions, performance, alignment offsets,
    platen_fn/body_fn) is still open.
+4. v2's "unified" glyph-quality system (Weight_Adj_Mode/Scale_Multiplier/
+   Y_Scale/Text_Align_Method/Text_Align_Modified*) and the Character_
+   Modifieds/Typeface_2 per-character override systems have no v4
+   implementation for ANY machine (not Mignon-specific) - see part 21.

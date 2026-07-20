@@ -77,12 +77,30 @@ def configure(config_path):
     g["Logo_Text_Size"] = logo["text_size_mm"]
     g["Logo_Text_Spacing"] = logo["text_spacing"]
     g["Logo_Position_Offset"] = logo["position_offset_deg"]
-    # Cylinder_Label_Height_Offset - the label's local radial nudge off
-    # the chamfer surface (ElementLabel's own transform, unrelated to
-    # Blickensderfer/Postal's Logo_Radial_Offset - Mignon's label sits on
-    # an angled chamfer surface, not the flat top face, so its geometry
-    # needs a different placement chain entirely, see ElementLabel()).
+    # Cylinder_Label_Height_Offset - the local radial nudge off the chamfer
+    # surface (ElementLogo's own transform, unrelated to Blickensderfer/
+    # Postal's Logo_Radial_Offset - Mignon's logo/label sit on an angled
+    # chamfer surface, not the flat top face, so their geometry needs a
+    # different placement chain entirely, see _render_engraved_text()).
     g["Logo_Height_Offset"] = logo["height_offset_mm"]
+
+    # Label: NOT a v2 concept (v2/mignon.scad has exactly one engraved-text
+    # feature, Cylinder_Label, which is what Logo_* above already is - see
+    # ElementLogo()'s docstring) - a v4-only second engraved-text feature,
+    # same rendering chain as Logo, always placed 180 degrees around from
+    # it (Label_Position_Offset is DERIVED, not stored - "180 degrees
+    # opposite from Logo text" is an invariant, not just an initial value).
+    # label_* keys (not font_path/text/... like logo above) - config's own
+    # comment explains why: tune.py's patch_yaml_value matches by bare key
+    # text across the whole file, so identical key names under logo:/
+    # label: would collide.
+    label = cfg["label"]
+    g["LABEL_FONT_PATH"] = label["label_font_path"]
+    g["Label_Text"] = label["label_text"]
+    g["Label_Text_Size"] = label["label_text_size_mm"]
+    g["Label_Text_Spacing"] = label["label_text_spacing"]
+    g["Label_Height_Offset"] = label["label_height_offset_mm"]
+    g["Label_Position_Offset"] = logo["position_offset_deg"] + 180.0
 
     e = cfg["element"]
     g["z"] = 0.001
@@ -90,7 +108,18 @@ def configure(config_path):
     g["Platen_Diameter"] = e["platen_diameter"]
     g["Min_Final_Character_Diameter"] = e["min_final_character_diameter"]
     g["Char_Protrusion"] = (e["min_final_character_diameter"] - e["element_diameter"]) / 2.0
-    g["Element_Height"] = e["element_height"]
+    # v2/mignon.scad:109-115,197 - Tallen (Plakatschrift, a display-type
+    # variant): Element_Height=Cylinder_Height_+Height_Increase when on
+    # (element_height below is Cylinder_Height_, the base/untallened
+    # value), and every Baseline row shifts by Tallen_Baseline_Offset -
+    # Cutout is NOT affected (v2 has no Cutout_Tallen variant, confirmed
+    # by its absence from the source - a real asymmetry, not an omission).
+    # Previously not ported at all (element_height stored the untallened
+    # value directly, no toggle) - now a real, off-by-default option.
+    g["Tallen"] = e.get("tallen", False)
+    g["Height_Increase"] = e.get("height_increase_mm", 3.0)
+    g["Tallen_Baseline_Offset"] = e.get("tallen_baseline_offset_mm", -1.25)
+    g["Element_Height"] = e["element_height"] + (g["Height_Increase"] if g["Tallen"] else 0.0)
     g["Cylinder_Top_Height_Offset"] = e["cylinder_top_height_offset"]
     g["Cylinder_Top_Chamfer"] = e["cylinder_top_chamfer"]
     g["Cylinder_Top_Diameter"] = e["cylinder_top_diameter"]
@@ -109,7 +138,8 @@ def configure(config_path):
     g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
 
     layout = cfg["layout"]
-    g["BASELINE_ROW"] = layout["baseline_row"]
+    g["BASELINE_ROW"] = ([b + g["Tallen_Baseline_Offset"] for b in layout["baseline_row"]]
+                          if g["Tallen"] else layout["baseline_row"])
     g["CUTOUT_ROW"] = layout["cutout_row"]
     # v2/mignon.scad:120 - Latitude_Int=-360/len(Layout[0]) - NEGATIVE,
     # unlike Blickensderfer/Postal's positive 360/columns. Columns wrap
@@ -122,7 +152,19 @@ def configure(config_path):
     # place_on_cylinder's docstring for what this shifts).
     g["BASELINE_Z_OFFSET"] = 0.0
     g["PLACEMENT_MAP"] = layout["placement_map"]
-    g["DHIATENSOR"] = layout["rows"]
+    # v2/mignon.scad:88,275 - Char_Legend=[7,8,9,10,11,0,1,2,3,4,5,6],
+    # Physical_Layout=[for (row) [for (col) Layout[row][Char_Legend[col]]]].
+    # layout.rows (config, and tune.py's LAYOUT_PRESETS_MIGNON) is stored in
+    # RAW KEYBOARD-LEGEND order (v2's `Layout` - what's printed on the
+    # physical keyboard/manual), so it can be typed/read the way a person
+    # actually reads the legend; DHIATENSOR needs the Char_Legend-remapped
+    # PHYSICAL order (what TextRing/place_on_cylinder actually place by
+    # column index) - this is that remap, applied once here rather than
+    # baked into the stored data, so editing the legend never requires
+    # re-deriving the physical order by hand.
+    char_legend = layout.get("char_legend", list(range(layout["latitude_columns"])))
+    g["CHAR_LEGEND"] = char_legend
+    g["DHIATENSOR"] = [[row[char_legend[c]] for c in range(len(char_legend))] for row in layout["rows"]]
 
     g["PLATEN_RADIUS_MM"] = 1.0 / g["Platen_Diameter"]
 
@@ -233,38 +275,60 @@ def ElementChamfer():
     return sp.union_all([top, frustum])
 
 
-def ElementLabel(points_per_mm=20.0):
-    """v2/mignon.scad:341-355 - the engraved label, placed on
-    ElementChamfer()'s angled chamfer surface (rotate([45,0,90])), not
-    flat on the top face like Blickensderfer/Postal's LogoText() - a
-    genuinely different placement chain, not just different parameter
-    values (see the module docstring). v2's version gets the same small
-    sphere-minkowski rounding LetterText() uses (r=.05, purely a cosmetic
-    edge-softening, not the big draft-cone taper struck characters get) -
-    simplified here to a plain flat extrude, same accepted simplification
-    LogoText() already makes for Blickensderfer/Postal's logo text (see
-    that function's docstring) - fine for a decorative label, not
-    attempted to match exactly."""
-    n_chars = len(Logo_Text)
+def _render_engraved_text(text, text_size, text_spacing, position_offset, height_offset,
+                           font_path, points_per_mm=20.0):
+    """Shared placement chain for ElementLogo()/ElementLabel() - v2/
+    mignon.scad:341-355's ElementLabel(), placed on ElementChamfer()'s
+    angled chamfer surface (rotate([45,0,90])), not flat on the top face
+    like Blickensderfer/Postal's LogoText() - a genuinely different
+    placement chain, not just different parameter values (see the module
+    docstring). v2's version gets the same small sphere-minkowski rounding
+    LetterText() uses (r=.05, purely a cosmetic edge-softening, not the
+    big draft-cone taper struck characters get) - simplified here to a
+    plain flat extrude, same accepted simplification LogoText() already
+    makes for Blickensderfer/Postal's logo text (see that function's
+    docstring) - fine for a decorative label, not attempted to match
+    exactly."""
+    n_chars = len(text)
     parts = []
-    for n, ch in enumerate(Logo_Text):
+    for n, ch in enumerate(text):
         if ch == " ":
             continue
-        mesh = build_flat_text(ch, points_per_mm, 0.09, font_size_mm=Logo_Text_Size,
-                                font_path=LOGO_FONT_PATH)
+        mesh = build_flat_text(ch, points_per_mm, 0.09, font_size_mm=text_size,
+                                font_path=font_path)
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
-        angle_n = Logo_Text_Spacing * n + Logo_Position_Offset - (n_chars - 1) * Logo_Text_Spacing / 2
+        angle_n = text_spacing * n + position_offset - (n_chars - 1) * text_spacing / 2
         placed = sp.scad_transform(
             mesh,
             ("rotate", [0, 0, angle_n]),
             ("translate", [Cylinder_Top_Diameter / 2 + Cylinder_Top_Chamfer, 0,
                             Element_Height - Cylinder_Top_Height_Offset]),
             ("rotate", [45, 0, 90]),
-            ("translate", [0, Logo_Height_Offset, -0.05]),
+            ("translate", [0, height_offset, -0.05]),
         )
         parts.append(placed)
     return sp.union_all(parts)
+
+
+def ElementLogo(points_per_mm=20.0):
+    """v2/mignon.scad's actual (only) engraved-text feature - v2 calls
+    this "Cylinder_Label" internally, but it's what Blickensderfer/
+    Postal's config schema and this app's UI call "Logo" (logo.* config
+    keys) for schema-reuse convenience - see configure()'s docstring."""
+    return _render_engraved_text(Logo_Text, Logo_Text_Size, Logo_Text_Spacing,
+                                  Logo_Position_Offset, Logo_Height_Offset,
+                                  LOGO_FONT_PATH, points_per_mm)
+
+
+def ElementLabel(points_per_mm=20.0):
+    """v4-only second engraved-text feature (NOT a v2 concept - see
+    configure()'s docstring) - same placement chain as ElementLogo(),
+    always 180 degrees opposite it (Label_Position_Offset is derived from
+    Logo_Position_Offset, not independently stored)."""
+    return _render_engraved_text(Label_Text, Label_Text_Size, Label_Text_Spacing,
+                                  Label_Position_Offset, Label_Height_Offset,
+                                  LABEL_FONT_PATH, points_per_mm)
 
 
 def MinkCleanup():
@@ -331,7 +395,7 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                               sections=Surface_Fn)
     inner = sp.union_all([text_ring, body])
     cleaned = inner.difference(MinkCleanup(), engine="manifold")
-    return sp.union_all([cleaned, ElementChamfer(), ElementLabel()]), char_parts
+    return sp.union_all([cleaned, ElementChamfer(), ElementLogo(), ElementLabel()]), char_parts
 
 
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
@@ -385,7 +449,7 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
                               sections=Surface_Fn)
     inner = sp.union_all([text_ring, body])
     cleaned = inner.difference(MinkCleanup(), engine="manifold")
-    return sp.union_all([cleaned, ElementChamfer(), ElementLabel()]), mapping_lines
+    return sp.union_all([cleaned, ElementChamfer(), ElementLogo(), ElementLabel()]), mapping_lines
 
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
