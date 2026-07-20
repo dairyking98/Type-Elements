@@ -1554,12 +1554,14 @@ class TuneApp(App):
                         classes="field-help")
                 with Horizontal(classes="picker-row"):
                     yield Static("Render only the cut bodies", classes="field-label")
-                    yield Switch(value=False, id="build-xsection-flip")
+                    yield Switch(value=False, id="build-cut-bodies")
                 yield Static(
-                    "Keeps the opposite half of the cut instead of the default "
-                    "side - i.e. whichever half is normally removed. Session-only "
-                    "debug settings: not saved to the config, apply to any build "
-                    "target (Element/Shaft Gauge/Calibration Element).",
+                    "Exports the negative/cutter tool bodies (HollowSpace, drive "
+                    "pin, core grooves, ...) instead of the real element, so you "
+                    "can verify what's actually being removed - independent of "
+                    "Cross section, and only applies to Element/Resin builds "
+                    "(ignored for Shaft Gauge/Calibration Element). Session-only "
+                    "debug settings: neither of these is saved to the config.",
                     classes="picker-help")
 
     def _compose_type_test_tab(self):
@@ -1885,10 +1887,12 @@ class TuneApp(App):
         label = "Quick Preview" if fast else "Render"
         self.log_line(f"[bold]--- {label} ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "generate.py"), self.config_path]
-        # Debug section's cross-section controls - session-only (never
-        # saved to the config, see _compose_build_tab), so read straight
-        # from the widgets here rather than through values/_collect_values.
-        # Applies to any build target below, hence handled once up front.
+        # Debug section's controls - session-only (never saved to the
+        # config, see _compose_build_tab), so read straight from the
+        # widgets here rather than through values/_collect_values. Both
+        # are independent of each other and of the build target below -
+        # --cut-bodies is simply ignored by generate.py for the gauge/
+        # calibrate branches (see its own docstring).
         if self.query_one("#build-xsection-enabled", Switch).value:
             angle_raw = self.query_one("#build-xsection-angle", Input).value.strip()
             try:
@@ -1897,8 +1901,8 @@ class TuneApp(App):
                 self.log_line(f"[red]bad cross-section angle: {angle_raw!r} (expected a number)[/red]")
                 return
             cmd += ["--cross-section-angle-deg", str(angle)]
-            if self.query_one("#build-xsection-flip", Switch).value:
-                cmd += ["--cross-section-flip"]
+        if self.query_one("#build-cut-bodies", Switch).value:
+            cmd += ["--cut-bodies"]
         if values["target"] == "gauge":
             # GaugeTestSet() doesn't touch TextRing/build_glyph at all, so
             # the Minkowski/points-per-mm knobs don't apply here.
