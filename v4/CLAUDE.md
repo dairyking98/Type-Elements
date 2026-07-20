@@ -1,5 +1,18 @@
 # v4 conventions
 
+## Workflow - commit directly to main by default
+
+For routine changes in this repo, edit files directly in the existing
+checkout and commit straight to `main` - no feature branch, no worktree,
+no PR, unless explicitly asked for one (a large/risky change the user
+wants reviewed separately, or an explicit "put this on a branch"/"open a
+PR"). `.claude/settings.json`'s `worktree.bgIsolation: "none"` disables
+the harness's default enforced-worktree-isolation behavior for
+background sessions in this repo specifically, so this applies to fresh
+agent sessions here too, not just interactive ones - don't reach for
+`EnterWorktree`/branch-and-PR as the default move just because that's
+the harness's out-of-the-box behavior elsewhere.
+
 ## Before writing new code
 
 Search `lib/cylinder_machine.py` (shared across cylinder machines) and the
