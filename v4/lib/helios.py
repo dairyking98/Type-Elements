@@ -11,12 +11,9 @@ All real-machine numbers live in config/helios.yaml, not here - call
 configure(path) once before using anything else in this module (see
 generate.py).
 
-Diverges from cylinder_machine.py across essentially the whole body-
-construction pipeline, same as Mignon/Bennett - confirmed by direct
-comparison against v2/heliosklimax.scad: no SecondaryCore/CoreGrooves/
-CoreChamfer/CoreEllipses/core_shaft.scad family at all (v2's own header:
-"not applicable - Helios has no SecondaryCore/CoreGrooves/CoreChamfer/
-CoreEllipses system in the original"), a 5-point-hull rotate_extrude()
+Otherwise diverges from cylinder_machine.py across essentially the whole
+body-construction pipeline, same as Mignon/Bennett - confirmed by direct
+comparison against v2/heliosklimax.scad: a 5-point-hull rotate_extrude()
 hollow cavity (HollowingElement, true circular corner rounding via a real
 shapely hull of circles - unlike cylinder_machine._hollow_space_profile's
 hand-rounded point list) instead of HollowSpace()+BottomSlopedSpace(), a
@@ -25,10 +22,27 @@ instead of a countersunk drive pin, and a hulled-cylinder wire clip
 (WireClip) instead of core_shaft.scad's WireBite() shapely-hull-and-extrude
 version - structurally similar in spirit (v2's own header: "similar in
 spirit to Blick2/Postal's") but never extracted to a shared lib in v2
-either, so not shared here. Only the glyph placement/text pipeline
-(TextRing/CalibrationTextRing, reused directly with placement_protrusion=
--0.05/angle_half_step=0 - v2's Letter_Placement_Protrusion=-.05/
-Angle_Half_Step=0, see place_on_cylinder's docstring) is genuinely shared.
+either, so not shared here. TextRing/CalibrationTextRing/place_on_cylinder
+(reused directly with placement_protrusion=-0.05/angle_half_step=0 - v2's
+Letter_Placement_Protrusion=-.05/Angle_Half_Step=0, see
+place_on_cylinder's docstring) are genuinely shared.
+
+DELIBERATE v4-only ENHANCEMENT, not a v2 port (explicit user direction):
+the shaft bore now ALSO reuses cylinder_machine.py's shared core_shaft
+family - Core()/CoreChamfer()/SecondaryCore()/CoreEllipses()/
+CoreGrooves(), the same "fancy core stuff" Blickensderfer/Postal/Bennett
+all have - in place of the plain straight bore v2's real
+`CenterShaftHole`-equivalent cylinder() call had (v2's own header still
+correctly says the ORIGINAL had no SecondaryCore/CoreGrooves/CoreChamfer/
+CoreEllipses system at all; this is a real, intentional deviation from
+that original, not a correction of a porting mistake). See
+config/helios.yaml's header for why the core_chamfer/core_bottom_offset/
+core_contact_length/core_web_*/core_groove_* values are estimates, not
+real-machine numbers - there is no v2 source of truth for them. Core_Top_
+Z=Element_Height+Clip_Height / Core_Taper_Top_Z=Element_Height follow
+Blickensderfer/Postal's "has a clip" convention (see configure()'s
+Clip_Height bridging-alias comment), not Bennett/Mignon's clip-less one -
+Helios's own ClipRetainer()/WireClip() put it in that same situation.
 
 Two-stage difference (NOT a simple Additive-Subtractive split): v2's real
 Assemble() nests THREE difference()s, not one - AlignmentPinSupport()/
@@ -46,16 +60,16 @@ union would eat the boss v2 never actually cuts there, since v2 only adds
 the boss AFTER that cut already happened. Additive() below reproduces the
 real staged construction (stage-1 cut, THEN union the bosses); FullElement's
 own final difference is only the genuine outer-scope cut (AlignmentPinHole/
-CenterShaftHole/WireClip).
+WireClip/the core_shaft family - see _final_cut()).
 
-No SecondaryCore-family Cyl_Fn user, no Logo/Label engraved text, no Shaft
-Gauge Test (v2's own header: "Sections with no Helios equivalent (Logo,
-Print Tolerances, Shaft Gauge Test) are omitted"). v2 also declares
-Resin_Support/Resin_Support_* parameters but never builds any support
-geometry with them (v2's own header, confirmed: no ResinRod/CutGroove-
-equivalent module anywhere in the file) - ResinSupport()/ResinPrint() below
-are a no-op/alias to FullElement(), matching that reality rather than
-inventing a resin-support system that was never there.
+No Logo/Label engraved text, no Shaft Gauge Test (v2's own header:
+"Sections with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge
+Test) are omitted"). v2 also declares Resin_Support/Resin_Support_*
+parameters but never builds any support geometry with them (v2's own
+header, confirmed: no ResinRod/CutGroove-equivalent module anywhere in
+the file) - ResinSupport()/ResinPrint() below are a no-op/alias to
+FullElement(), matching that reality rather than inventing a resin-support
+system that was never there.
 """
 
 import trimesh
@@ -76,9 +90,11 @@ _configured = False
 def configure(config_path):
     """Loads config_path (YAML) and sets this module's globals - see
     blickensderfer.configure()'s docstring for the general scheme. Helios's
-    element: section has no wall/clip-height-under-a-drive-pin/core-groove
-    keys at all - see the module docstring for why (no core_shaft.scad
-    family, no drive pin)."""
+    element: section has no wall-thickness/drive-pin keys (no drive pin at
+    all - see the module docstring) but DOES have a core_shaft-family
+    section (core_chamfer/core_bottom_offset/core_contact_length/
+    core_web_*/core_groove_*) - a v4-only enhancement, not ported from v2
+    (see the module docstring's "DELIBERATE v4-only ENHANCEMENT" note)."""
     global _configured
     import yaml
     with open(config_path) as f:
@@ -114,14 +130,39 @@ def configure(config_path):
     g["Element_Wire_Diameter"] = e["element_wire_diameter"]
     g["Element_Clip_Bite"] = e["element_clip_bite"]
     g["Element_Clip_Angle"] = e["element_clip_angle"]
+    # Clip_Height: bridging alias - cylinder_machine.Core()/CoreChamfer()/
+    # SecondaryCore() (reused below for the shaft bore, see the module
+    # docstring's "v4-only ENHANCEMENT" note) reference the bare name
+    # `Clip_Height`, not `Element_Clip_Height` - every other machine that
+    # reuses those functions happens to already have a global named exactly
+    # that. Set as a second name for the same value rather than renaming
+    # Element_Clip_Height everywhere else in this module (which every OTHER
+    # Helios-specific function - ClipRetainer/WireClip/the module docstring -
+    # already refers to by its original v2-derived name).
+    g["Clip_Height"] = g["Element_Clip_Height"]
+
+    # core_shaft family (v4-only enhancement - see the module docstring and
+    # config/helios.yaml's header for why these are estimates, not real
+    # Helios numbers). Has a clip (like Blickensderfer/Postal), so
+    # Core_Top_Z sits above the clip and Core_Taper_Top_Z sits under it -
+    # NOT Bennett/Mignon's clip-less Core_Taper_Top_Z=Core_Top_Z.
+    g["Core_Chamfer"] = e["core_chamfer"]
+    g["Core_Bottom_Offset"] = e["core_bottom_offset"]
+    g["Core_Contact_Length"] = e["core_contact_length"]
+    g["Core_Web_Width"] = e["core_web_width"]
+    g["Core_Web_Qty"] = e["core_web_qty"]
+    g["Core_Web_Length"] = e["core_web_length"]
+    g["Core_Groove_Qty"] = e["core_groove_qty"]
+    g["Core_Groove_D"] = e["core_groove_d"]
+    g["Core_Secondary_ID_Offset"] = e["core_groove_d"] / 2 + g["z"]
+    g["Core_Top_Z"] = g["Element_Height"] + g["Element_Clip_Height"]
+    g["Core_Bottom_Z"] = g["Core_Bottom_Offset"]
+    g["Core_Taper_Top_Z"] = g["Element_Height"]
 
     q = cfg["quality"]
-    # Cyl_Fn: declared for schema parity only - see config/helios.yaml's
-    # matching comment, never referenced by any function below (verified
-    # against v2's real Assemble()/TypeTest() - every cylinder there uses
-    # Surface_Fn).
-    g["Cyl_Fn"] = q["cyl_fn"]
+    g["Cyl_Fn"] = q["cyl_fn"]  # now genuinely used - Core()'s shaft-bore facet count
     g["Surface_Fn"] = q["surface_fn"]
+    g["Groove_Fn"] = q["groove_fn"]
     g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
 
     layout = cfg["layout"]
@@ -160,6 +201,7 @@ def configure(config_path):
     g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
+    g["DEFAULT_RENDER_CORE_GROOVE"] = b.get("render_core_groove", True)
     g["DEFAULT_CONE_SEGMENTS"] = q.get("minkowski_fn", GLYPH_DEFAULT_CONE_SEGMENTS)
     g["DEFAULT_SIMPLIFY_TOLERANCE_MM"] = b.get("simplify_tolerance_mm", GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM)
     g["DEFAULT_MINKOWSKI_ENABLED"] = b.get("minkowski_enabled", GLYPH_DEFAULT_MINKOWSKI_ENABLED)
@@ -268,11 +310,6 @@ def AlignmentPinHole():
         [-Element_Square_Hole_Position, 0, Element_Shell_Thickness / 2])
 
 
-def CenterShaftHole():
-    return sp.cylinder_z(Shaft_Diameter, Element_Height + Element_Clip_Height + 2 * z,
-                          sections=Surface_Fn, base_z=-z)
-
-
 def WireClip():
     """v2 ~350-359 - hull() of two cylinders (each tipped to lie along X),
     a tapered wire-bite channel - built as trimesh.util.concatenate(...).
@@ -306,8 +343,12 @@ def HollowSpace():
 # reproduces v2's real nested difference()s: stage-1 cuts (HollowingElement/
 # MinkCleanup/IndicatorHole) happen BEFORE AlignmentPinSupport()/
 # ClipRetainer() are added, so those bosses are never touched by stage-1's
-# cuts, only by the genuine final-stage ones (AlignmentPinHole/
-# CenterShaftHole/WireClip - see _final_cut()).
+# cuts, only by the genuine final-stage ones (AlignmentPinHole/WireClip/the
+# core_shaft family - see _final_cut()). The core_shaft parts are all near
+# the shaft axis (radius well under Element_Square_Hole_Position=8.92mm),
+# so they don't reach back into AlignmentPinSupport's boss - verified by
+# the hard-gate watertight/is_volume check, not just assumed from the
+# numbers.
 
 def _assemble(text_ring):
     base = sp.union_all([text_ring, Cylinder()])
@@ -316,8 +357,19 @@ def _assemble(text_ring):
     return sp.union_all([stage1_body, AlignmentPinSupport(), ClipRetainer()])
 
 
-def _final_cut():
-    return sp.union_all([AlignmentPinHole(), CenterShaftHole(), WireClip()])
+def _final_cut(render_core_groove=None):
+    render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
+    parts = [
+        AlignmentPinHole(),
+        WireClip(),
+        cylinder_machine.Core(0),
+        cylinder_machine.CoreChamfer(0),
+        cylinder_machine.SecondaryCore(0),
+        cylinder_machine.CoreEllipses(),
+    ]
+    if render_core_groove:
+        parts.append(cylinder_machine.CoreGrooves(0))
+    return sp.union_all(parts)
 
 
 def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
@@ -336,12 +388,8 @@ def Subtractive(render_core_groove=None):
     (that's staged - see the module docstring) - unions EVERY negative/
     cutter shape from both stages together, only for generate.py's
     --cut-bodies debug visualization, which just wants to see every
-    negative shape at once. render_core_groove: accepted (matching every
-    other machine's Subtractive() signature/generate.py's uniform
-    build_fn(...) call) but unused - no core groove system at all (see the
-    module docstring)."""
-    return sp.union_all([HollowingElement(), MinkCleanup(), IndicatorHole(),
-                          AlignmentPinHole(), CenterShaftHole(), WireClip()])
+    negative shape at once."""
+    return sp.union_all([HollowingElement(), MinkCleanup(), IndicatorHole(), _final_cut(render_core_groove)])
 
 
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
@@ -355,7 +403,7 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      draft_angle_deg=draft_angle_deg)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
-    full = additive.difference(_final_cut(), engine="manifold")
+    full = additive.difference(_final_cut(render_core_groove), engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="FullElement")
     return full, char_parts
 
@@ -391,7 +439,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     print(f"CalibrationAdditive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
-    full = additive.difference(_final_cut(), engine="manifold")
+    full = additive.difference(_final_cut(render_core_groove), engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="CalibrationElement")
     return full, mapping_lines
 

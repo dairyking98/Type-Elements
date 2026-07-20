@@ -281,16 +281,33 @@ Blickensderfer/Postal/Mignon all have one) - now guarded by `"Logo" in
 self.SECTIONS`, matching the existing `"Label"`/`"Gauge"` guards right
 next to it.
 
-### Helios Klimax (`lib/helios.py`) - shares the glyph pipeline only, bespoke body
+### Helios Klimax (`lib/helios.py`) - shares the glyph pipeline AND the core_shaft family, bespoke body otherwise
 
 `v2/heliosklimax.scad` is unusually self-documenting - its own header
 records a real v1->v2 byte-check correction history, and explicitly lists
-what it has no equivalent of at all: `SecondaryCore`/`CoreGrooves`/
-`CoreChamfer`/`CoreEllipses` (no `core_shaft.scad` family whatsoever),
-Logo/Label engraved text, and (same as Bennett/Mignon) a Shaft Gauge Test.
-So even less is shared with `cylinder_machine.py` than Mignon/Bennett -
-only `TextRing`/`CalibrationTextRing`/`place_on_cylinder` (dispatched the
-usual way via `cylinder_machine._receive_config`).
+what the ORIGINAL had no equivalent of at all: `SecondaryCore`/
+`CoreGrooves`/`CoreChamfer`/`CoreEllipses` (no `core_shaft.scad` family
+whatsoever), Logo/Label engraved text, and (same as Bennett/Mignon) a
+Shaft Gauge Test. `TextRing`/`CalibrationTextRing`/`place_on_cylinder`
+are shared the usual way (via `cylinder_machine._receive_config`).
+
+**Deliberate v4-only enhancement, not a v2 port (explicit user
+direction):** the shaft bore now ALSO reuses `cylinder_machine.py`'s
+shared `Core()`/`CoreChamfer()`/`SecondaryCore()`/`CoreEllipses()`/
+`CoreGrooves()` - the same "fancy core stuff" Blickensderfer/Postal/
+Bennett have - in place of the plain straight bore the real v2 file had.
+Since v2 never had this system for Helios, `element.core_chamfer`/
+`core_bottom_offset`/`core_contact_length`/`core_web_*`/`core_groove_*`
+are NOT real-machine numbers - they're starting estimates scaled from
+Bennett's config (closest shaft diameter, 3.4mm vs Helios's 4.16mm),
+meant to be tuned against the physical part the same way
+`baseline_row`/`cutout_row` already are. `Core_Top_Z`/`Core_Taper_Top_Z`
+follow Blickensderfer/Postal's "has a clip" convention (not Bennett/
+Mignon's clip-less one), since Helios's own clip retainer puts it in that
+same situation - this also required a `Clip_Height` bridging alias in
+`configure()` (the shared functions reference that bare name; Helios's
+own code uses `Element_Clip_Height`), and made `quality.cyl_fn` (declared
+but unused by the original port) genuinely used for the first time.
 
 Two real values `place_on_cylinder`'s own docstring had flagged as "not
 yet verified" for Helios are now resolved: `placement_protrusion=-0.05`
@@ -304,7 +321,7 @@ subtractive split.** v2's `Assemble()` nests three `difference()`s -
 `AlignmentPinSupport()`/`ClipRetainer()` (two bosses) are added only
 *after* the first round of cuts (`HollowingElement`/`MinkCleanup`/
 `IndicatorHole`), then are themselves cut by a second round
-(`AlignmentPinHole`/`CenterShaftHole`/`WireClip`). This isn't cosmetic:
+(`AlignmentPinHole`/`WireClip`/the core_shaft family above). This isn't cosmetic:
 `AlignmentPinSupport`'s boss position genuinely falls inside
 `HollowingElement`'s own cavity extent (verified against the real config
 values), so a naively flattened "union everything, subtract everything"
@@ -317,14 +334,12 @@ the same hull-then-revolve technique `WireBite()`/Mignon's
 `AlignmentPin()` already use, rather than `cylinder_machine.
 _hollow_space_profile()`'s hand-rounded point-list approximation.
 
-Two v2 fields are declared but genuinely unused, confirmed by v2's own
-header comment (not just an artifact of this port): `Cyl_Fn` is declared
-but never referenced anywhere in `Assemble()`/`TypeTest()` (every
-cylinder there uses `Surface_Fn`) - kept in the config for schema parity,
-read by nothing. `Resin_Support`/`Resin_Support_*` are declared but v2
-never builds any actual support geometry with them - `ResinSupport()`/
-`ResinPrint()` here are a plain no-op/alias to `FullElement()` rather
-than inventing a resin system that was never really there.
+`Resin_Support`/`Resin_Support_*` are declared in v2 but it never builds
+any actual support geometry with them - `ResinSupport()`/`ResinPrint()`
+here are a plain no-op/alias to `FullElement()` rather than inventing a
+resin system that was never really there (unlike `Cyl_Fn`, which was
+originally declared-but-unused the same way but is now wired up for real
+by the core_shaft reuse above - see that note).
 
 No Shaft Gauge Test, no Logo/Label tab (see the header note above) -
 `SECTIONS_BY_MACHINE["helios"]` has no `"Gauge"`/`"Logo"`/`"Label"` key,
@@ -334,7 +349,7 @@ and the superseded `GERMAN`, both inline in v2's source), 4 physical rows
 (vs. everyone else's 3) - required zero additional `tune.py` literal-
 count fixes, since the row-count-agnostic work from Mignon's port (see
 "Layout tab" above) already covers this generically. See
-`SESSION_LOG.md` part 23 for the full audit pass and verification.
+`SESSION_LOG.md` parts 23-24 for the full audit pass and verification.
 
 ### Performance
 

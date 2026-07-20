@@ -2,16 +2,33 @@
 # v2/heliosklimax.scad (see that file's header comment for the full
 # byte-check/correction history against v1/HeliosKlimax/HeliosKlimaxElement.scad).
 #
-# Helios has NO SecondaryCore/CoreGrooves/CoreChamfer/CoreEllipses system
-# (its shaft bore is a plain rotate_extrude() hull profile, HollowingElement()
-# in lib/helios.py), NO Logo/Label engraved-text feature, and NO Shaft Gauge
-# Test - v2's own header: "Sections with no Helios equivalent (Logo, Print
-# Tolerances, Shaft Gauge Test) are omitted rather than left empty." Its
-# clip/wire-bite mechanism (WireClip() below) is structurally similar in
-# spirit to Blickensderfer/Postal's own local (never-shared-to-a-lib)
-# clip/wire-bite, but built from plain hulled cylinders rather than
-# core_shaft.scad concepts - see lib/helios.py's module docstring for the
-# full function-by-function comparison against cylinder_machine.py.
+# Helios's v2 source has NO SecondaryCore/CoreGrooves/CoreChamfer/
+# CoreEllipses system at all (its shaft bore was originally a plain
+# rotate_extrude() hull profile, HollowingElement() in lib/helios.py), NO
+# Logo/Label engraved-text feature, and NO Shaft Gauge Test - v2's own
+# header: "Sections with no Helios equivalent (Logo, Print Tolerances,
+# Shaft Gauge Test) are omitted rather than left empty." Its clip/wire-bite
+# mechanism (WireClip() below) is structurally similar in spirit to
+# Blickensderfer/Postal's own local (never-shared-to-a-lib) clip/wire-bite,
+# but built from plain hulled cylinders rather than core_shaft.scad
+# concepts - see lib/helios.py's module docstring for the full
+# function-by-function comparison against cylinder_machine.py.
+#
+# DELIBERATE v4-only ENHANCEMENT (explicit user direction, not a v2 port):
+# the shaft bore now reuses lib/cylinder_machine.py's shared core_shaft
+# family (Core/CoreChamfer/SecondaryCore/CoreEllipses/CoreGrooves - the
+# "fancy core stuff" every other cylinder machine has) in place of the
+# plain straight bore v2 actually had. Since v2 never had this system for
+# Helios, core_chamfer/core_bottom_offset/core_contact_length/
+# core_web_*/core_groove_* below are NOT real-machine numbers ported from
+# anywhere - they're starting estimates scaled from Bennett's config
+# (closest shaft diameter, 3.4mm vs Helios's own 4.16mm; Bennett's own
+# element_height 18.0mm is also close to Helios's 18.7mm), meant to be
+# dialed in against the real part the same way baseline_row/cutout_row
+# already are. Core_Top_Z/Core_Taper_Top_Z follow Blickensderfer/Postal's
+# "has a clip" convention (not Bennett/Mignon's clip-less one) since
+# Helios's own ClipRetainer()/WireClip() put it in that same situation -
+# see lib/helios.py's configure() comment.
 machine: helios
 
 font:
@@ -42,20 +59,33 @@ element:
   element_wire_diameter: 0.554          # Element_Wire_Diameter
   element_clip_bite: 0.7                # Element_Clip_Bite
   element_clip_angle: 180               # Element_Clip_Angle
+  # core_shaft family (v4-only enhancement, see this file's header) -
+  # reused via lib/cylinder_machine.py's Core/CoreChamfer/SecondaryCore/
+  # CoreEllipses/CoreGrooves. Values scaled from config/bennett.yaml's
+  # equivalent fields (closest shaft diameter) - not real Helios
+  # dimensions, tune against the physical part.
+  core_chamfer: 0.5
+  core_bottom_offset: 0.0
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 6.0
+  core_groove_qty: 16
+  core_groove_d: 0.6
 
-# quality/facet counts. cyl_fn is declared for schema parity with every
-# other machine's Cyl_Fn ("critical shaft/pin cylinder facet number" per
-# v2's own comment) but, verified against v2/heliosklimax.scad's real
-# Assemble()/TypeTest() bodies, is never actually referenced anywhere in
-# the file (every cylinder there uses Surface_Fn) - kept declared-but-
-# unused here too, matching the original exactly, same treatment as
-# element: Resin_Support below. Text_Fn/Text_2D_Fn (v2's OpenSCAD $fn hook
-# for glyph curves) has no v4 equivalent at all - text-curve sampling is
-# controlled by build.points_per_mm's vector tracing instead, unlike v2's
-# $fn-based approach - so it is NOT ported (not even declared-but-unused).
+# quality/facet counts. cyl_fn is now genuinely used (Core()'s shaft-bore
+# facet count, via the core_shaft family above) - previously declared but
+# unused, since v2's real Assemble()/TypeTest() never reference it
+# (every cylinder there uses Surface_Fn instead; still true for every
+# OTHER cylinder in the body - HollowingElement/MinkCleanup/clip/etc). Text_
+# Fn/Text_2D_Fn (v2's OpenSCAD $fn hook for glyph curves) has no v4
+# equivalent at all - text-curve sampling is controlled by
+# build.points_per_mm's vector tracing instead, unlike v2's $fn-based
+# approach - so it is NOT ported (not even declared-but-unused).
 quality:
   cyl_fn: 360
   surface_fn: 360
+  groove_fn: 40           # CoreGrooves() twist angular sampling - v4-only, see core_shaft note above
   minkowski_fn: 12       # Mink_Fn - v2's own comment: "not a calibrated dimension"
   platen_fn: 360          # v4-only, no dedicated v2 Platen_Fn - real platen cutout cylinder segments
 
@@ -105,6 +135,7 @@ build:
   points_per_mm: 15.0
   separation_mm: 2.0
   resin_support: false         # see the resin: section below - v2 never builds any support geometry
+  render_core_groove: true     # CoreGrooves() - v4-only, see the core_shaft note above; slow, off for quick iteration
   target: "element"
   simplify_tolerance_mm: 0.005
   minkowski_enabled: true

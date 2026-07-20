@@ -545,14 +545,15 @@ ELEMENT_FIELDS_BENNETT = [
 QUALITY_FIELDS_HELIOS = [
     ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves",
+     "16 twisted friction grooves (v4-only, see the core_shaft note on the Element tab) - slow, off for quick iteration."),
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
-    # no cyl_fn field here - declared in the YAML for schema parity with
-    # every other machine's Cyl_Fn, but verified unused by any function in
-    # lib/helios.py (v2's own Assemble()/TypeTest() never reference it
-    # either - every cylinder there uses Surface_Fn) - see
-    # config/helios.yaml's matching comment. Edit it directly in the YAML
-    # if you're chasing a real reason to wire it up.
-    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Every cylinder/revolve in the body (HollowingElement, MinkCleanup, clip, shaft...)."),
+    # cyl_fn is now genuinely used (Core()'s shaft-bore facet count, via
+    # the v4-only core_shaft reuse - see config/helios.yaml's element
+    # section comment) - previously declared-but-unused.
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Core() shaft-bore facet count."),
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Every other cylinder/revolve in the body (HollowingElement, MinkCleanup, clip...)."),
+    ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
 ]
@@ -601,6 +602,19 @@ ELEMENT_FIELDS_HELIOS = [
     ("element_wire_diameter", ["element", "element_wire_diameter"], float, "Wire diameter (mm)", ""),
     ("element_clip_bite", ["element", "element_clip_bite"], float, "Clip bite (mm)", ""),
     ("element_clip_angle", ["element", "element_clip_angle"], float, "Clip angle (deg)", ""),
+    # core_shaft family (v4-only enhancement, NOT ported from v2 - v2's own
+    # Helios had no SecondaryCore/CoreGrooves/CoreChamfer/CoreEllipses at
+    # all. Values below are starting estimates scaled from Bennett's
+    # config (closest shaft diameter), not real Helios dimensions - see
+    # config/helios.yaml's header and lib/helios.py's module docstring.
+    ("core_chamfer", ["element", "core_chamfer"], float, "Core chamfer (mm)", "Estimated, not from v2 - see the note above."),
+    ("core_bottom_offset", ["element", "core_bottom_offset"], float, "Core bottom offset (mm)", "Estimated, not from v2 - see the note above."),
+    ("core_contact_length", ["element", "core_contact_length"], float, "Core contact length (mm)", "Estimated, not from v2 - see the note above."),
+    ("core_web_width", ["element", "core_web_width"], float, "Core web width (mm)", "Estimated, not from v2 - see the note above."),
+    ("core_web_qty", ["element", "core_web_qty"], int, "Core web qty", "Estimated, not from v2 - see the note above."),
+    ("core_web_length", ["element", "core_web_length"], float, "Core web length (mm)", "Estimated, not from v2 - see the note above."),
+    ("core_groove_qty", ["element", "core_groove_qty"], int, "Core groove qty", "Estimated, not from v2 - see the note above."),
+    ("core_groove_d", ["element", "core_groove_d"], float, "Core groove depth (mm)", "Estimated, not from v2 - see the note above."),
 ]
 
 ELEMENT_FIELDS_BLICKENSDERFER = [

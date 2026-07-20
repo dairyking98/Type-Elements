@@ -1645,6 +1645,93 @@ regression run reproduced the exact baseline from this file's own
 "Verifying a geometry-affecting change" section byte-for-byte
 (`verts=42618 faces=85408 ... volume=5666.804mm3`).
 
+## 24. Helios's shaft bore upgraded to reuse cylinder_machine.py's core_shaft family
+
+Follow-up to part 23, same session's continuation. Explicit user
+direction: "we can reuse the cylinder machines design for chamfering the
+inner shaft, bottom and top boss, then doing the fancy core stuff that
+are on all the other cylinders" - i.e. swap Helios's plain straight
+shaft-bore cylinder for the same `Core()`/`CoreChamfer()`/
+`SecondaryCore()`/`CoreEllipses()`/`CoreGrooves()` family Blickensderfer/
+Postal/Bennett already reuse from `lib/cylinder_machine.py`. A real,
+deliberate DEVIATION from v2 (which part 23's own audit correctly
+confirmed had none of this), not a porting correction - documented as
+such in both `config/helios.yaml`'s header and `lib/helios.py`'s module
+docstring, per CLAUDE.md's "say so explicitly instead of silently
+diverging" rule.
+
+**No v2 source of truth for the new dimensions.** `core_chamfer`/
+`core_bottom_offset`/`core_contact_length`/`core_web_*`/`core_groove_*`
+have no real Helios value to port - v2 simply never had this system.
+Seeded from Bennett's config instead (closest shaft diameter of any
+existing machine: 3.4mm vs. Helios's own 4.16mm, and a close element
+height too: 18.0mm vs. 18.7mm) as starting estimates, explicitly flagged
+in both files as not-real-machine-numbers, meant to be tuned against the
+physical part the same iterative way `layout.baseline_row`/`cutout_row`
+already are - not treated as final values.
+
+**A real bridging-alias footgun, caught before it caused a `NameError`.**
+`cylinder_machine.Core()` references the bare global name `Clip_Height`,
+not `Element_Clip_Height` - every existing reuser of that function
+(Blickensderfer/Postal) happens to already have a config field named
+exactly that, so this had never been exercised with a differently-named
+source field before. Helios's own code (`ClipRetainer()`/`WireClip()`/
+the rest of this module) already used `Element_Clip_Height` throughout
+from part 23's port, and renaming it everywhere purely to satisfy one
+reused function would have been needless churn - added `Clip_Height` as
+a second global for the same value in `configure()` instead, documented
+inline as a bridging alias. This is exactly the class of bug CLAUDE.md's
+`_receive_config()` warning already calls out ("a new machine-set global
+with a lowercase name is silently excluded") generalized one step
+further: not just casing, but genuine cross-machine naming mismatches
+between a shared function's expectations and a new machine's own
+config-derived names - worth checking for on any future reuse of an
+existing shared function by a new machine.
+
+**Core_Top_Z/Core_Taper_Top_Z convention chosen deliberately, not by
+default.** Helios has a real clip (`ClipRetainer()`/`WireClip()`, ported
+faithfully from v2 in part 23), the same situation Blickensderfer/Postal
+are in (chamfer/taper sit under the clip, `Core_Taper_Top_Z=Element_
+Height` distinct from `Core_Top_Z=Element_Height+Clip_Height`) - NOT
+Bennett/Mignon's clip-less `Core_Taper_Top_Z=Core_Top_Z`. Picked by
+matching Helios's own physical situation to the right sibling precedent,
+not by copying whichever machine was edited most recently.
+
+**Two-stage difference structure preserved.** The new core_shaft parts
+join `AlignmentPinHole`/`WireClip` in the genuine final-stage cut
+(`_final_cut()`, previously named for `CenterShaftHole` which this change
+removes entirely, replaced by `Core(0)`) - all near the shaft axis
+(radius well under `Element_Square_Hole_Position`=8.92mm), so none of
+them reach back into `AlignmentPinSupport`'s boss the way a naive
+single-difference flattening risked for `HollowingElement` in part 23.
+Confirmed by the build succeeding watertight/single-volume, not just
+reasoned about.
+
+**`build.render_core_groove`/`quality.groove_fn`/`quality.cyl_fn`** added
+to `config/helios.yaml` and threaded through `FullElement`/
+`CalibrationElement`/`Subtractive` (previously `render_core_groove` was
+accepted-but-ignored, matching Mignon's "no core groove system" pattern -
+now genuinely honored, since there IS one). `quality.cyl_fn` goes from
+declared-but-unused (part 23's finding, confirmed correct for the
+original v2 file) to genuinely read, for the first time, by `Core()`'s
+shaft-bore facet count.
+
+**Verification** (hard gate): rebuilt at both fast
+(`--points-per-mm 8 --cone-segments 12 --no-minkowski`) and full quality
+(config defaults) - `FullElement: watertight=True winding_consistent=True
+is_volume=True` in every case, all 84 characters placed with zero skips,
+same 44 informational inter-character collisions as part 23 (unrelated
+to this change, at the layout/font level not the shaft). Verified
+`--no-core-groove` actually changes the output (verts/volume differ from
+the default-on build) - confirms the toggle is genuinely wired, not
+silently ignored the way it used to be. `--resin-support` still produces
+a byte-identical volume to the plain build, confirming the no-op alias
+survived this change untouched. No shared module
+(`cylinder_machine.py`/`scad_primitives.py`/`glyph_poc.py`) was touched
+in this follow-up at all - only `lib/helios.py`/`config/helios.yaml`/
+`tune.py` - so no regression check against other machines was needed
+this time (zero possible side effect).
+
 ## Resuming later
 
 1. **Hammond/Hammond_split and IBM are next** - the last two machines on
