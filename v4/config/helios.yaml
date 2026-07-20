@@ -1,0 +1,153 @@
+# Helios Klimax type element - all real parameters ported 1:1 from
+# v2/heliosklimax.scad (see that file's header comment for the full
+# byte-check/correction history against v1/HeliosKlimax/HeliosKlimaxElement.scad).
+#
+# Helios has NO SecondaryCore/CoreGrooves/CoreChamfer/CoreEllipses system
+# (its shaft bore is a plain rotate_extrude() hull profile, HollowingElement()
+# in lib/helios.py), NO Logo/Label engraved-text feature, and NO Shaft Gauge
+# Test - v2's own header: "Sections with no Helios equivalent (Logo, Print
+# Tolerances, Shaft Gauge Test) are omitted rather than left empty." Its
+# clip/wire-bite mechanism (WireClip() below) is structurally similar in
+# spirit to Blickensderfer/Postal's own local (never-shared-to-a-lib)
+# clip/wire-bite, but built from plain hulled cylinders rather than
+# core_shaft.scad concepts - see lib/helios.py's module docstring for the
+# full function-by-function comparison against cylinder_machine.py.
+machine: helios
+
+font:
+  # v2's real value is the font family name "Kurinto Type" (Type_Size=2.7),
+  # not a file path - this is that font's real regular-weight file.
+  path: "/home/lchau/fonts/Library/Sans Text/Kurinto Type.ttf"
+  size_mm: 2.7
+
+element:
+  platen_diameter: 30
+  element_diameter: 27.15
+  min_final_character_diameter: 28.19   # Char_Protrusion = (this - element_diameter)/2
+  element_height: 18.7
+  shaft_diameter: 4.16
+  # Alignment pin (a boss + through-hole near the shaft, not a countersunk
+  # drive pin like Blickensderfer/Postal's DrivePin() - see
+  # lib/helios.py's AlignmentPinSupport()/AlignmentPinHole()).
+  element_square_hole_position: 8.92    # Element_Square_Hole_Position
+  element_square_hole_width: 4.10       # Element_Square_Hole_Width
+  element_square_hole_length: 2.88      # Element_Square_Hole_Length
+  element_square_hole_support_height: 3 # Element_Square_Hole_Support_Height
+  element_indicator_hole_position: 10   # Element_Indicator_Hole_Position
+  element_indicator_hole_diameter: 2    # Element_Indicator_Hole_Diameter
+  element_shell_thickness: 1.5          # Element_Shell_Thickness
+  element_inside_radius: 1              # Element_Inside_Radius - HollowingElement()'s hull-circle rounding radius
+  element_clip_height: 3                # Element_Clip_Height
+  element_clip_diameter: 7              # Element_Clip_Diameter
+  element_wire_diameter: 0.554          # Element_Wire_Diameter
+  element_clip_bite: 0.7                # Element_Clip_Bite
+  element_clip_angle: 180               # Element_Clip_Angle
+
+# quality/facet counts. cyl_fn is declared for schema parity with every
+# other machine's Cyl_Fn ("critical shaft/pin cylinder facet number" per
+# v2's own comment) but, verified against v2/heliosklimax.scad's real
+# Assemble()/TypeTest() bodies, is never actually referenced anywhere in
+# the file (every cylinder there uses Surface_Fn) - kept declared-but-
+# unused here too, matching the original exactly, same treatment as
+# element: Resin_Support below. Text_Fn/Text_2D_Fn (v2's OpenSCAD $fn hook
+# for glyph curves) has no v4 equivalent at all - text-curve sampling is
+# controlled by build.points_per_mm's vector tracing instead, unlike v2's
+# $fn-based approach - so it is NOT ported (not even declared-but-unused).
+quality:
+  cyl_fn: 360
+  surface_fn: 360
+  minkowski_fn: 12       # Mink_Fn - v2's own comment: "not a calibrated dimension"
+  platen_fn: 360          # v4-only, no dedicated v2 Platen_Fn - real platen cutout cylinder segments
+
+# per-row baseline/platen-cutout heights (mm, negative-from-clip-end - v2's
+# Baseline_Z_Offset=Element_Height, same convention as Blickensderfer/
+# Postal, NOT Bennett/Mignon's absolute-from-bottom convention - see v2's
+# own file-header CORRECTION note, part 1), latitude spacing
+# (Latitude_Int=360/21, Angle_Half_Step=0 - no half-column centering term,
+# like Mignon), and the physical layout.
+#
+# rows: v2's GERMAN_MOD array (LAYOUT=GERMAN_MOD is the real default/only
+# content actually used - GERMAN above it in v2 is superseded, not
+# separately exposed as a preset here). Physical_Layout=LAYOUT directly
+# (no CharLegend remap, unlike Bennett/Mignon) - placement_map is identity.
+layout:
+  baseline_row: [-3.0, -7.8, -12.5, -17.3]
+  cutout_row: [-2.5, -7.3, -12, -16.8]
+  latitude_columns: 21
+  placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  rows:
+    - "wertuionklpasdcfghbvm"
+    - "WERTUIONKLPASDCFGHBVM"
+    - "'!+züjö.:xyä23456789q"
+    - "\"()Z⁄J=,;XY¢ß&%/-_§?Q"
+  modify_glyphs: false
+
+# alignment.mode "center" = v2's Text_Align_Method=0 (Advance Center,
+# native) - Helios's real defaults never set Text_Align_Modified_Chars/
+# Text_Align_Modified2_Chars, so no per-character overrides here either.
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+# mesh-pipeline build settings (v4-specific). placement_protrusion=-0.05
+# (v2's Letter_Placement_Protrusion=-.05 - a small built-in 0.05mm radial
+# inset, independent of the platen-cutout radius which still uses the
+# full Char_Protrusion - see v2's file-header CORRECTION note, part 2) and
+# angle_half_step=0 are threaded through as explicit lib/helios.py module
+# globals (Placement_Protrusion/Angle_Half_Step), the same pattern
+# lib/mignon.py's configure() uses for its own non-default overrides.
+build:
+  points_per_mm: 15.0
+  separation_mm: 2.0
+  resin_support: false         # see the resin: section below - v2 never builds any support geometry
+  target: "element"
+  simplify_tolerance_mm: 0.005
+  minkowski_enabled: true
+  draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated dimension
+
+# v2's own file-header note: "the original file declares Resin_Support/
+# Resin_Support_* parameters but never actually generates any resin
+# support geometry with them (no ResinRod/CutGroove-equivalent module,
+# nothing calls them)". Preserved here as declared-but-unused too, same
+# as quality.cyl_fn above - lib/helios.py's ResinPrint() is therefore
+# identical to FullElement() (see its docstring), and the values below are
+# schema parity only, not wired to any geometry.
+resin:
+  resin_support_base_thickness: 2.0
+  resin_support_rod_thickness: 0.4
+  resin_support_min_height: 1.0
+  resin_support_spacing: 3.0
+  resin_support_contact_radius: 0.2
+
+output:
+  directory: "output"
+  stl_name: "helios_running.stl"
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/heliosklimax.scad) - see config/blickensderfer.yaml's matching comment.
+# text below is v2's own Test_String_Text default.
+type_test:
+  cpi: 10.0                    # Test_CPI
+  lpi: 6.0
+  text: |-
+    The quick brown fox jumps over the lazy dog 1234567890
+
+# Calibration (v2's Testing_Baseline/Testing_Cutout/Testing_Layout +
+# Testing_Offsets=[-.5,-.4,...,.6], wired to the same Cutout_Test/
+# Baseline_Test/Test_Layout mechanism every other machine uses) - see
+# config/blickensderfer.yaml's matching comment. Testing_Offsets is
+# exactly testSweepArray(-0.5, 0.1, 12), the same start/interval Mignon's
+# real defaults use. v2's own real Testing_Baseline/Testing_Cutout
+# defaults are BOTH false (neither sweep active), same as Bennett - kept
+# faithful to that here rather than defaulting one on.
+calibration:
+  test_char: "H"
+  vary_baseline: false
+  vary_cutout: false
+  start: -0.5
+  interval: 0.1

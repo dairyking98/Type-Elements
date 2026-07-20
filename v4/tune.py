@@ -187,6 +187,7 @@ MACHINES = {
     "postal": ("Postal", os.path.join(REPO_ROOT, "config", "postal.yaml")),
     "mignon": ("Mignon", os.path.join(REPO_ROOT, "config", "mignon.yaml")),
     "bennett": ("Bennett", os.path.join(REPO_ROOT, "config", "bennett.yaml")),
+    "helios": ("Helios Klimax", os.path.join(REPO_ROOT, "config", "helios.yaml")),
 }
 
 FONT_FILE_FILTERS = Filters(
@@ -536,6 +537,72 @@ ELEMENT_FIELDS_BENNETT = [
     ("core_web_length", ["element", "core_web_length"], float, "Core web length (mm)", ""),
 ]
 
+# Helios-specific tabs - see lib/helios.py's module docstring for why
+# these can't share any other machine's field lists. No "Logo"/"Label" key
+# at all (v2 has no engraved-text feature - v2's own header: "Sections
+# with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge Test) are
+# omitted"), no "Gauge" key (same reason).
+QUALITY_FIELDS_HELIOS = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
+    # no cyl_fn field here - declared in the YAML for schema parity with
+    # every other machine's Cyl_Fn, but verified unused by any function in
+    # lib/helios.py (v2's own Assemble()/TypeTest() never reference it
+    # either - every cylinder there uses Surface_Fn) - see
+    # config/helios.yaml's matching comment. Edit it directly in the YAML
+    # if you're chasing a real reason to wire it up.
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Every cylinder/revolve in the body (HollowingElement, MinkCleanup, clip, shaft...)."),
+    ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+]
+
+# v2's own header comment: "the original file declares Resin_Support/
+# Resin_Support_* parameters but never actually generates any resin
+# support geometry with them" - preserved as declared-but-unused, same as
+# v2 itself (its Customizer showed these fields too, despite nothing ever
+# reading them) - lib/helios.py's ResinPrint() is a no-op alias to
+# FullElement() regardless of these values, see its docstring.
+RESIN_FIELDS_HELIOS = [
+    ("resin_support_base_thickness", ["resin", "resin_support_base_thickness"], float,
+     "Support base thickness (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+    ("resin_support_rod_thickness", ["resin", "resin_support_rod_thickness"], float,
+     "Support rod thickness (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+    ("resin_support_min_height", ["resin", "resin_support_min_height"], float,
+     "Support min height (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+    ("resin_support_spacing", ["resin", "resin_support_spacing"], float,
+     "Support spacing (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+    ("resin_support_contact_radius", ["resin", "resin_support_contact_radius"], float,
+     "Support contact radius (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+]
+
+ELEMENT_FIELDS_HELIOS = [
+    ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
+    ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", ""),
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final char diameter (mm)", "Char_Protrusion = (this - element_diameter)/2."),
+    ("element_height", ["element", "element_height"], float, "Element height (mm)", ""),
+    ("shaft_diameter", ["element", "shaft_diameter"], float, "Shaft diameter (mm)", ""),
+    ("element_square_hole_position", ["element", "element_square_hole_position"], float,
+     "Alignment pin radial position (mm)", ""),
+    ("element_square_hole_width", ["element", "element_square_hole_width"], float, "Alignment pin hole width (mm)", ""),
+    ("element_square_hole_length", ["element", "element_square_hole_length"], float, "Alignment pin hole length (mm)", ""),
+    ("element_square_hole_support_height", ["element", "element_square_hole_support_height"], float,
+     "Alignment pin support height (mm)", ""),
+    ("element_indicator_hole_position", ["element", "element_indicator_hole_position"], float,
+     "Indicator hole radial position (mm)", ""),
+    ("element_indicator_hole_diameter", ["element", "element_indicator_hole_diameter"], float,
+     "Indicator hole diameter (mm)", ""),
+    ("element_shell_thickness", ["element", "element_shell_thickness"], float, "Shell thickness (mm)", ""),
+    ("element_inside_radius", ["element", "element_inside_radius"], float, "Inside corner radius (mm)",
+     "HollowingElement()'s hull-circle rounding radius."),
+    ("element_clip_height", ["element", "element_clip_height"], float, "Clip retainer height (mm)", ""),
+    ("element_clip_diameter", ["element", "element_clip_diameter"], float, "Clip retainer diameter (mm)", ""),
+    ("element_wire_diameter", ["element", "element_wire_diameter"], float, "Wire diameter (mm)", ""),
+    ("element_clip_bite", ["element", "element_clip_bite"], float, "Clip bite (mm)", ""),
+    ("element_clip_angle", ["element", "element_clip_angle"], float, "Clip angle (deg)", ""),
+]
+
 ELEMENT_FIELDS_BLICKENSDERFER = [
     ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
     ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", "Real platen cylinder diameter."),
@@ -608,6 +675,12 @@ SECTIONS_BY_MACHINE = {
     "bennett": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_BENNETT,
                 "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
                 "Element": ELEMENT_FIELDS_BENNETT},
+    # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
+    # scad's own header: "Sections with no Helios equivalent (Logo, Print
+    # Tolerances, Shaft Gauge Test) are omitted"). No "Logo"/"Label" key
+    # either - same header, no engraved-text feature at all.
+    "helios": {**SECTIONS_COMMON, "Quality": QUALITY_FIELDS_HELIOS, "Resin": RESIN_FIELDS_HELIOS,
+               "Element": ELEMENT_FIELDS_HELIOS},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -973,11 +1046,33 @@ LAYOUT_PRESETS_BENNETT = {
     ],
 }
 
+# Helios's 2 inline layout arrays from v2/heliosklimax.scad's [Key
+# Mapping] section - GERMAN and GERMAN_MOD (LAYOUT=GERMAN_MOD is what v2
+# actually assigns/uses; GERMAN is a real, if superseded, second array in
+# the source, exposed here the same way Bennett's redundant CUSTOM preset
+# is). Both share the same 4-row/21-column structure and identity
+# placement_map (Physical_Layout=LAYOUT directly, no CharLegend remap).
+LAYOUT_PRESETS_HELIOS = {
+    "GERMAN_MOD": [
+        "wertuionklpasdcfghbvm",
+        "WERTUIONKLPASDCFGHBVM",
+        "'!+züjö.:xyä23456789q",
+        "\"()Z⁄J=,;XY¢ß&%/-_§?Q",
+    ],
+    "GERMAN": [
+        "wertuionklpasdcfghbvm",
+        "WERTUIONKLPASDCFGHBVM",
+        "'!+züjö.:xyä23456789q",
+        "\"()Z⅟J=,;XY₰ß&%/-_§?Q",
+    ],
+}
+
 LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
     "postal": LAYOUT_PRESETS_POSTAL,
     "mignon": LAYOUT_PRESETS_MIGNON,
     "bennett": LAYOUT_PRESETS_BENNETT,
+    "helios": LAYOUT_PRESETS_HELIOS,
 }
 
 # Layout tab's picker-help banner, one flowing string per machine (see
@@ -1006,6 +1101,12 @@ LAYOUT_PICKER_HELP = {
         "the same 3-row/28-column layout. Rows are shown in keyboard-legend "
         "order (as printed on the physical keyboard/manual) - "
         "layout.char_legend remaps this to build order internally."
+    ),
+    "helios": (
+        "GERMAN_MOD is v2's real default/only-used layout; GERMAN is a "
+        "second array present in the source but superseded there. Both "
+        "share the same 4-row/21-column physical layout, identity "
+        "placement_map."
     ),
 }
 

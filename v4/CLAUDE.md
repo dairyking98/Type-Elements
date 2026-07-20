@@ -90,11 +90,11 @@ the cited section for the full incident).
 
 - **Physical form and code-sharing are two separate axes - check both,
   don't infer one from the other.** Ported so far: Blickensderfer,
-  Postal, Mignon, Bennett. Remaining, per the roadmap: Helios Klimax
-  (cylindrical), Hammond/Hammond_split (shuttle mechanism - a different
-  form factor from the cylindrical family), IBM (spherical - also a
-  different form factor). All of Blickensderfer/Postal/Mignon/Bennett/
-  Helios are cylindrical in outward form, but:
+  Postal, Mignon, Bennett, Helios Klimax. Remaining, per the roadmap:
+  Hammond/Hammond_split (shuttle mechanism - a different form factor from
+  the cylindrical family), IBM (spherical - also a different form
+  factor). All of Blickensderfer/Postal/Mignon/Bennett/Helios are
+  cylindrical in outward form, but:
   - **Blickensderfer and Postal are near-twins** - they diverge in code
     only at the "drive pin trio" (`HollowSpace`/`DrivePin`/
     `ResinSupport`); everything else lives in `lib/cylinder_machine.py`

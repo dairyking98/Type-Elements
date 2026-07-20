@@ -142,7 +142,10 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
     pipeline doesn't behave like v2's two-independent-transforms one; see
     lib/bennett.py's module docstring and configure() comment for the full
     derivation. Don't assume a new machine's value from its physical form -
-    verify against its own v2 source (Helios not yet verified either way).
+    verify against its own v2 source. Helios passes -0.05 (v2's own
+    Letter_Placement_Protrusion=-.05 - a real, small built-in 0.05mm
+    radial inset, genuinely different from Bennett/Mignon's reasoning -
+    see lib/helios.py's configure() comment).
     Does NOT affect the platen cutout's own radius formula (still always the full
     Char_Protrusion, baked into build_glyph via radius_y_offset_mm,
     unrelated to this override - verified algebraically in v2, see

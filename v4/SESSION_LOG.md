@@ -1526,23 +1526,150 @@ from here on - see `CLAUDE.md`: `height: auto`, never a fixed row
 count; no manual `\n` line breaks (let Textual wrap once); keep the
 wording to 1-2 short sentences.
 
+## 23. Helios Klimax ported (Bennett's own port, in between, has no log chapter - see CLAUDE.md's note on that)
+
+Diffed `v2/heliosklimax.scad` (unusually, already self-documenting - its
+own header records a real v1->v2 byte-check correction history) against
+`lib/cylinder_machine.py` function-by-function per the standing rule, not
+assumed from "it's cylindrical too". Result: even less shared than
+Mignon/Bennett - Helios has no `SecondaryCore`/`CoreGrooves`/`CoreChamfer`/
+`CoreEllipses` at all (v2's own header: "not applicable... in the
+original"), no Logo/Label engraved text, and no Shaft Gauge Test (same
+header: "Sections with no Helios equivalent... are omitted"). Only
+`TextRing`/`CalibrationTextRing`/`place_on_cylinder` (via
+`cylinder_machine._receive_config`) are genuinely reused; everything else
+is new, bespoke code in `lib/helios.py`.
+
+**Two real values resolved that `place_on_cylinder`'s docstring had
+flagged as "not yet verified either way" for Helios:**
+`placement_protrusion=-0.05` (v2's `Letter_Placement_Protrusion=-.05` - a
+real, if small, built-in 0.05mm radial inset, distinct from the platen-
+cutout radius which still uses the full `Char_Protrusion`) and
+`angle_half_step=0` (no half-column centering term, same as Mignon). Both
+threaded through as explicit `lib/helios.py` module globals
+(`Placement_Protrusion`/`Angle_Half_Step`), same pattern Mignon's
+`configure()` uses. Updated `place_on_cylinder`'s docstring to record
+Helios's real verified value instead of leaving it as an open question.
+
+**A genuine two-stage `difference()` in v2's `Assemble()`, not a simple
+additive-minus-subtractive split.** v2 nests three `difference()`s:
+`AlignmentPinSupport()`/`ClipRetainer()` (two bosses) are unioned in
+*after* the first round of cuts (`HollowingElement`/`MinkCleanup`/
+`IndicatorHole`), then themselves get cut by a second round
+(`AlignmentPinHole`/`CenterShaftHole`/`WireClip`). Checked whether
+flattening this into one "union everything, subtract everything" (the
+pattern every other machine's `FullElement` uses) would actually change
+the result, since that's a much simpler shape to write - it would have:
+`AlignmentPinSupport`'s boss sits at radius 8.92mm, height range
+[1.5, 4.5]mm, which falls *inside* `HollowingElement`'s own cavity extent
+(radial span ~[4.58, 11.08]mm, height span ~[2.5, 16.2]mm, both computed
+from the real config values) - in the true nested v2 order the boss is
+added after that cut already happened, so it's untouched by it; a naive
+flattened version would incorrectly eat the boss. `lib/helios.py`'s
+`_assemble()` reproduces the real staged construction directly instead
+(stage-1 cut, then union the bosses; `FullElement`'s own final
+`.difference()` is only the genuine outer-scope cut). Documented at
+length in the module docstring so the next person touching this file
+doesn't "simplify" it back into the wrong flattened form.
+
+**`HollowingElement()`'s true circular-hull cross-section**, ported as a
+real `shapely` convex hull of 5 circles (matching v2's `hull(){circle();
+circle(); ...}` exactly - true rounded corners) rather than
+`cylinder_machine._hollow_space_profile()`'s hand-rounded point-list
+approximation, the same technique `WireBite()`/`mignon.AlignmentPin()`
+already use for a real hull-then-revolve/extrude.
+
+**Two declared-but-unused v2 fields, preserved as such rather than wired
+up or silently dropped** (v2's own header comment confirms both,
+independently of this port): `Cyl_Fn` ("critical shaft/pin cylinder facet
+number") is declared but never referenced anywhere in v2's real
+`Assemble()`/`TypeTest()` - every cylinder there uses `Surface_Fn`
+instead; kept in `config/helios.yaml`/`lib/helios.py`'s `configure()` for
+schema parity, not read by any function. `Resin_Support`/
+`Resin_Support_*` are declared but v2 never builds any actual support
+geometry with them (no `ResinRod`/`CutGroove`-equivalent module anywhere
+in the file) - `ResinSupport()`/`ResinPrint()` in `lib/helios.py` are
+therefore a plain no-op/alias to `FullElement()`, so toggling tune.py's
+always-present "Resin supports" checkbox does something sane (produces
+the plain element) instead of an `AttributeError` for this one machine.
+`Text_Fn`/`Text_2D_Fn` (v2's OpenSCAD `$fn` hook for glyph curves) was
+*not* ported even as declared-but-unused, since it has no v4 equivalent
+at all - v4's `build_glyph()` samples curves via `points_per_mm`
+vector-tracing, not an OpenSCAD facet count.
+
+**tune.py wiring**: `MACHINES["helios"]`, `SECTIONS_BY_MACHINE["helios"]`
+(`Font & Alignment`/`Calibration`/`Quality`/`Resin`/`Element` only - no
+`Logo`/`Label`/`Gauge` key, per the header note above),
+`LAYOUT_PRESETS_HELIOS` (both of v2's inline arrays, `GERMAN_MOD` -
+v2's real default/only-used one - and the superseded `GERMAN`, the same
+"expose what's textually in the source" treatment Bennett's redundant
+`CUSTOM` preset got), and a `LAYOUT_PICKER_HELP["helios"]` entry.
+`BASELINE_CUTOUT_KEYS`/`ROW_LABELS`/the Layout tab's row-count logic were
+already fully row-count-agnostic from Mignon's part-20 fix, so Helios's 4
+rows (vs. everyone else's 3) needed zero additional literal-count fixes -
+confirmed by grep, not just assumption. Verified the whole form actually
+composes (not just that the dicts are well-formed) via a headless
+`TuneApp(...).run_test()` against a scratch copy in `/tmp` (never the real
+config, per the standing warning above) - all 8 expected tabs present,
+no `Logo`/`Label`/`Gauge` tabs, no exceptions.
+
+**Audit pass** (per CLAUDE.md's "every machine port gets its own dated
+chapter" rule): cross-checked `ELEMENT_FIELDS_HELIOS`/
+`QUALITY_FIELDS_HELIOS`/`RESIN_FIELDS_HELIOS` and `config/helios.yaml`'s
+actual values field-by-field against v2's real customizer sections and
+against Mignon/Bennett's equivalent lists - no leaked fields from another
+machine, no missing real v2 field, `resin.*` lives under `resin:` (not
+`quality:`, avoiding Mignon's known outlier - see CLAUDE.md "Pick one
+convention"). No list-valued config key silently unexposed:
+`layout.baseline_row`/`cutout_row` get the existing bespoke
+`patch_yaml_list_item` treatment (row-count-agnostic already), `layout.
+placement_map`/`rows` are deliberately YAML-only (same treatment as every
+other machine).
+
+**Verification** (hard gate): full-quality build (`generate.py
+config/helios.yaml`, config defaults - Minkowski on, `points_per_mm=15`)
+completed in ~62s, `FullElement: watertight=True winding_consistent=True
+is_volume=True volume=4276.923mm3`, all 84 characters placed with zero
+skips. 44 inter-character collisions were reported (detection-only, per
+`_check_inter_character_collisions`'s existing design) - expected at
+Helios's tight 21-column layout on a 27.15mm element, not a defect
+introduced here. Fast preset (`--points-per-mm 8 --cone-segments 12
+--no-minkowski`) verified clean across every build mode: plain
+`FullElement`, `--resin-support` (byte-identical volume to plain,
+confirming the no-op alias), `--cut-bodies`, and `--calibrate`. Confirmed
+zero side effects on existing machines: `cylinder_machine.py`/
+`scad_primitives.py`/`glyph_poc.py` were not touched by this port (Helios
+needed none of their machine-specific pieces beyond
+`TextRing`/`CalibrationTextRing`/`place_on_cylinder`), and a Blickensderfer
+regression run reproduced the exact baseline from this file's own
+"Verifying a geometry-affecting change" section byte-for-byte
+(`verts=42618 faces=85408 ... volume=5666.804mm3`).
+
 ## Resuming later
 
-1. **Bennett, then Helios** - the next two machines per the original
-   roadmap order. Given how much Mignon diverged from `cylinder_machine.py`
-   despite being nominally similar on paper, do NOT assume either reuses
-   more than TextRing/Calibration without direct v2 source comparison
-   first (Bennett's header comments suggest it may share more with
-   Blickensderfer/Postal's family than Mignon did - verify, don't assume).
-2. Mignon's `TypeTest()` (v2/mignon.scad:449-466) was not ported -
+1. **Hammond/Hammond_split and IBM are next** - the last two machines on
+   the original roadmap, and the first two that are NOT cylindrical in
+   form at all (shuttle mechanism and spherical, respectively). Per
+   CLAUDE.md's machine-taxonomy note, do not reach for
+   `lib/cylinder_machine.py` as a starting point for either - they need
+   their own from-scratch "what, if anything, is genuinely shared with an
+   existing machine vs. `glyph_poc.py`/`scad_primitives.py`-level
+   primitives only" exercise, the same one Mignon/Bennett/Helios each
+   went through for the cylindrical family.
+2. Bennett's port (between Mignon and Helios) has no `SESSION_LOG.md`
+   chapter of its own - per CLAUDE.md, that's flagged as correlating with
+   Bennett having more small undocumented inconsistencies than Mignon.
+   Worth a dedicated retroactive audit pass if anyone's in that area.
+3. Mignon's `TypeTest()` (v2/mignon.scad:449-466) was not ported -
    tune.py's Type Test tab still works for Mignon (it's a generic flat
    CPI/LPI preview, not machine-specific), but the real fixed-pitch
    TypeTest() module itself (JoinRows/AlignedText-based) has no v4
    equivalent for any machine yet, not just Mignon - pre-existing gap.
-3. Everything in part 14's original "Resuming later" list (separation_mm,
+   Same is true for Helios's own `TypeTest()` (v2/heliosklimax.scad:366-383).
+4. Everything in part 14's original "Resuming later" list (separation_mm,
    inter-character collisions, performance, alignment offsets,
    platen_fn/body_fn) is still open.
-4. v2's "unified" glyph-quality system (Weight_Adj_Mode/Scale_Multiplier/
+5. v2's "unified" glyph-quality system (Weight_Adj_Mode/Scale_Multiplier/
    Y_Scale/Text_Align_Method/Text_Align_Modified*) and the Character_
    Modifieds/Typeface_2 per-character override systems have no v4
    implementation for ANY machine (not Mignon-specific) - see part 21.
