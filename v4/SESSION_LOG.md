@@ -2115,19 +2115,6 @@ separate runs.
 
 **Deferred / open questions**:
 
-- **Physical relief depth not visually verified.** Working through the
-  real v2 numbers algebraically, Hammond's character front face
-  (`Element_Diameter/2+placement_protrusion` =
-  `Shuttle_Arc_Radius+Shuttle_Thickness`) lands at exactly the same radius
-  as `ShuttleCylinder`'s own blank outer surface - i.e. characters appear
-  flush with the surrounding shell rather than protruding past it the way
-  Blickensderfer/Postal's `Char_Protrusion` does (their bare `Cylinder()`
-  has NO `+Char_Protrusion` term, so characters genuinely stand proud of
-  it). This matches v2's own real source exactly (confirmed line-by-line,
-  not a port artifact), so it's not a new bug, but it's worth checking
-  against a real f3d render/photo of the actual machine before trusting
-  it for a production print - flagged the same way Bennett/Helios's own
-  `placement_protrusion` derivations were flagged for later verification.
 - **`Groove=true`** (v2's alternate snap-fit/groove assembly variant -
   `GroovedShuttle()`/`Groove()`/`PinSupport2()`) is deferred entirely -
   `Groove=false` (the default, and the only variant `ResinPrint`'s real v2
@@ -2136,9 +2123,74 @@ separate runs.
 - No dedicated `Calibration`/named-layout-preset support in the TUI yet
   (see tune.py wiring note above).
 
+## 30. Hammond follow-up: real relief-height bug, tune.py quit crash, config format bug
+
+Three fixes found via actual user testing (real console preview of the
+Hammond machine), not derivable from re-reading v2's source alone.
+
+**Character relief height was wrong** (user-reported: "the letters aren't
+protruding correctly"). Part 29 flagged this as an open question but
+guessed it might be faithful to v2 as-is; it was not - measuring the
+actual built mesh (bare shell's own outer radius vs. a real character's
+outer radius with the part-29 numbers) showed characters landing at
+37.94mm vs. the shell's own 37.935mm surface - essentially flush, ~0mm
+of real relief. Root cause: `Letter_Placement_Protrusion=Shuttle_
+Thickness` (v2:380, what part 29 passed as `place_on_cylinder`'s
+`placement_protrusion`) is only where the character's BLOCK ROOT/anchor
+sits, flush with the shell surface - v2's real extrude chain
+(`Letter_Extrude_Offset=-.5`, `Letter_Extrude_Depth=Shuttle_Text_
+Protrusion+.5`, v2:381-382) pushes the ink-bearing FRONT face an
+*additional* `Shuttle_Text_Protrusion` (0.9mm) past that anchor - a
+distinction part 29's algebraic re-derivation missed (it correctly
+verified v2's real placement RADIUS matches, but conflated "root anchor"
+with "visible front face"). Fixed by passing
+`placement_protrusion=Shuttle_Thickness+Shuttle_Text_Protrusion` in both
+`Additive()`/`CalibrationAdditive()`. Verified: a real character now
+protrudes ~0.906mm past the shell surface (0.9mm expected). Full
+`ResinPrint` rebuild still watertight/valid (volume rose slightly,
+4292.355mm3 -> 4373.674mm3, matching the added ink-relief material).
+**Lesson**: an algebraic re-derivation that "matches the real v2 value"
+for one specific transform doesn't guarantee the SEMANTICS were mapped
+correctly onto v4's differently-structured pipeline - visual/measured
+verification against the actual built mesh is what actually caught this,
+not another round of reading the same v2 source more carefully.
+
+**tune.py crashed quitting from the machine picker** (`self.machine is
+None`, `_save_before_exit()` unconditionally iterating `self.FIELDS`,
+which is only set once a machine is loaded) - pre-existing bug, not
+Hammond-specific, surfaced by testing the new picker entry. Fixed with an
+early return when no machine is loaded (nothing to save).
+
+**`config/hammond.yaml`'s `type_test.text`** used a plain quoted string
+instead of the `|-` block-scalar format `patch_yaml_text_block()`
+requires - fixed to match every other machine's config. A stale
+`config/hammond.running.yaml` (bootstrapped from the master before this
+fix landed, and never auto-resynced - a scratch file, gitignored) had to
+be deleted by hand once for the running copy to pick up the corrected
+master; not a recurring issue once regenerated.
+
+**Also requested, not yet started**: menu/config coverage still has real
+gaps for Hammond-specific concepts - v2's `Resin_Support_Orientation`
+(Vertical vs. Horizontal print - only Vertical's `VertResinPrint2` path
+is ported, `HorizResinPrint`/`HorizGroovedResin3` aren't) and the
+`Groove`/rib assembly toggle (`RibAssembled()` vs. `GroovedShuttle()` -
+this is almost certainly what "rendering with or without the rib" means,
+Groove=true being the deferred variant from part 29) both need real
+config/tune.py wiring, not just the current single hardcoded path. Not
+attempted yet - scoping this out is the next session's work.
+
 ## Resuming later
 
-1. **Hammond_split.scad and IBM are next** - `hammond.scad` itself is
+1. **Hammond follow-up work (part 30)**: (a) wire up `Resin_Support_
+   Orientation` (Vertical/Horizontal print, v2's `HorizResinPrint`/
+   `HorizGroovedResin3` paths aren't ported at all yet) as a real
+   config/tune.py toggle: (b) wire up the `Groove`/rib assembly variant
+   (`GroovedShuttle()` vs. the currently-hardcoded `RibAssembled()` path)
+   the same way - almost certainly what "with or without the rib" means;
+   (c) go through `tune.py`'s Hammond tabs field-by-field against
+   `config/hammond.yaml` for anything still missing (named layout
+   presets, Calibration wiring - see part 29's open items).
+2. **Hammond_split.scad and IBM are next** - `hammond.scad` itself is
    done (part 29). `hammond_split.scad` turned out to share almost
    nothing with `hammond.scad` (see part 29's audit) - treat it as its
    own from-scratch port, not a quick follow-on. IBM (spherical) is still

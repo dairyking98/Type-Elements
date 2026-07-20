@@ -20,12 +20,23 @@ header explicitly excludes Hammond (along with IBM) from the cylinder
 family's placement-layer/body assumptions, and Hammond's real body has no
 cylinder wall/core/shaft topology at all.
 
-placement_protrusion=Shuttle_Thickness (NOT the default Char_Protrusion,
-which is 0/unused here - see configure()) - v2's real
-Letter_Placement_Protrusion (v2:380). angle_half_step is left at the
-shared lib's default 0.5 - v2's own header comment already verified its
-Theta formula reduces to (Angle_Half_Step+latitude)*Latitude_Int with the
-lib's own default half-step, no override needed.
+placement_protrusion=Shuttle_Thickness+Shuttle_Text_Protrusion (NOT the
+default Char_Protrusion, which is 0/unused here - see configure()).
+Shuttle_Thickness alone (v2:380's Letter_Placement_Protrusion) is only
+where the character's BLOCK ROOT/anchor sits (flush with the shell's own
+outer surface, Shuttle_Arc_Radius+Shuttle_Thickness) - v2's real extrude
+chain (Letter_Extrude_Offset=-.5, Letter_Extrude_Depth=Shuttle_Text_
+Protrusion+.5, v2:381-382) pushes the ink-bearing FRONT face an
+additional Shuttle_Text_Protrusion (0.9mm) past that anchor - confirmed
+by measuring a real built character: with placement_protrusion=Shuttle_
+Thickness alone, the front face landed at the same radius as the bare
+shell's own surface (~37.94mm vs 37.935mm - essentially flush, no real
+protrusion), reported as "letters aren't protruding correctly." Adding
+Shuttle_Text_Protrusion here reproduces v2's real relief height. angle_
+half_step is left at the shared lib's default 0.5 - v2's own header
+comment already verified its Theta formula reduces to (Angle_Half_Step+
+latitude)*Latitude_Int with the lib's own default half-step, no override
+needed.
 
 Skip_Platen_Cutout (v2:384, Hammond strikes a flat anvil, not a curved
 platen) translates to PLATEN_RADIUS_MM=0 - build_glyph's scallop formula
@@ -441,7 +452,7 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
         points_per_mm=points_per_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
         cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
         platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
-        placement_protrusion=Shuttle_Thickness)
+        placement_protrusion=Shuttle_Thickness + Shuttle_Text_Protrusion)
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
@@ -486,7 +497,7 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
-        placement_protrusion=Shuttle_Thickness)
+        placement_protrusion=Shuttle_Thickness + Shuttle_Text_Protrusion)
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
