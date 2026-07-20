@@ -143,6 +143,18 @@ def configure(config_path):
     # assignment, never a customizer slider - kept as a code literal here
     # too, same treatment as z).
     s = 0.2
+    # The "-1" is NOT a stray/duplicated Top_Countersink_Depth - it ties
+    # Core_Top_Z to RoofTaper()'s own base_z (Element_Height-
+    # Top_Countersink_Depth-1, see RoofTaper() below), which is the same
+    # expression minus this "s". RoofTaper() carves a cone from d=0 at
+    # that base_z widening to the full Countersink_Diameter at the
+    # countersink mouth (base_z+1) - Core_Top_Z sits just inside that
+    # cone's start (+s clearance) so the core/shaft taper's material
+    # doesn't collide with the roof-relief cut. Confirmed by comparing
+    # radii at z=Core_Top_Z: RoofTaper's carved void is already wider
+    # there than the core taper/chamfer's own radius. This traces back to
+    # v1 (BennettElement.scad:417, inline before Core_Top_Z existed as a
+    # named constant), not a v2/v4 porting artifact.
     g["Core_Top_Z"] = g["Element_Height"] - g["Top_Countersink_Depth"] - 1 + s
     g["Core_Bottom_Z"] = g["Bottom_Countersink_Depth"]
     # No clip (unlike Blickensderfer/Postal) - the secondary-core taper's
@@ -296,16 +308,27 @@ def Cylinder():
 
 def PositionerPins():
     """v2/bennett.scad:372-383 - two positioner pins (opposite each other,
-    theta=90/270deg) with a small chamfer cone at their base to clean up
-    print artifacts that would otherwise drag on the alignment pins."""
+    theta=90/270deg) with a small chamfer cone to clean up print artifacts
+    that would otherwise drag on the alignment pins.
+
+    DEVIATES from v2/v1 here: the original places the chamfer at the
+    bottom mouth (Bottom_Countersink_Depth+Shell_Size), smooth end facing
+    down toward the floor. Confirmed with Leonard these pins actually mate
+    from the top, so the chamfer is mirrored to the top mouth
+    (Element_Height-Top_Countersink_Depth-Shell_Size) with its taper
+    direction flipped to match: the smooth end (matching the plain pin
+    diameter) faces the top/roof mouth, the abrupt step faces down into
+    the body - the same relationship the original had to the bottom
+    mouth, just mirrored."""
     parts = []
     for n in (0, 1):
         theta_deg = 180 * n + 90
         x = Element_Positioner_Pin_Radius * np.cos(np.radians(theta_deg))
         y = Element_Positioner_Pin_Radius * np.sin(np.radians(theta_deg))
         pin = sp.cylinder_z(Element_Positioner_Pin_Diameter, Element_Height + 2 * z, sections=Cyl_Fn)
-        chamfer = sp.frustum_z(Element_Positioner_Pin_Diameter, Element_Positioner_Pin_Diameter + 1, 2,
-                                sections=Cyl_Fn, base_z=Bottom_Countersink_Depth + Shell_Size)
+        chamfer = sp.frustum_z(Element_Positioner_Pin_Diameter + 1, Element_Positioner_Pin_Diameter, 2,
+                                sections=Cyl_Fn,
+                                base_z=Element_Height - Top_Countersink_Depth - Shell_Size - 2)
         group = sp.union_all([pin, chamfer])
         parts.append(sp.translate(group, [x, y, -z]))
     return sp.union_all(parts)
