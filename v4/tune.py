@@ -365,7 +365,20 @@ LOGO_FIELDS_MIGNON = [
     ("height_offset_mm", ["logo", "height_offset_mm"], float, "Logo height offset (mm)",
      "Local nudge off the chamfer surface the logo sits on - NOT the "
      "same concept as Blickensderfer/Postal's radial offset (Mignon's "
-     "logo/label sit on an angled chamfer surface, not the flat top face)."),
+     "logo/label sit on an angled chamfer surface, not the flat top face). "
+     "The chamfer is CURVED and the text is a FLAT panel resting tangent "
+     "to it - a small offset only clears characters near the center of "
+     "the text; characters further out (long text, wide char spacing) "
+     "stay partly embedded/invisible no matter how high this goes unless "
+     "text_depth_mm below is also increased."),
+    ("text_depth_mm", ["logo", "text_depth_mm"], float, "Logo extrusion depth (mm)",
+     "How far the raised text material extends - thicker makes it both "
+     "more visible and more forgiving of the chamfer's curvature clipping "
+     "part of it away. v2's real value is a thin 0.09mm."),
+    ("minkowski_text", ["logo", "minkowski_text"], bool, "Minkowski text",
+     "Draft-cone taper for BOTH Logo and Label text (not a v2 option) - "
+     "uses the same draft_angle_deg/minkowski_fn/simplify_tolerance_mm as "
+     "struck characters. Off: plain flat extrude (fast)."),
 ]
 
 # Label: not a v2 concept - a second engraved-text feature, own tab, same
@@ -384,7 +397,14 @@ LABEL_FIELDS_MIGNON = [
     ("label_text_size_mm", ["label", "label_text_size_mm"], float, "Label text size (mm)", ""),
     ("label_text_spacing", ["label", "label_text_spacing"], float, "Label char spacing (deg)", "Angular spacing between label characters."),
     ("label_height_offset_mm", ["label", "label_height_offset_mm"], float, "Label height offset (mm)",
-     "Local nudge off the chamfer surface the label sits on."),
+     "Local nudge off the chamfer surface the label sits on. The chamfer "
+     "is CURVED and the text is a FLAT panel resting tangent to it - see "
+     "Logo's matching help text; label_text_depth_mm below usually needs "
+     "increasing together with this."),
+    ("label_text_depth_mm", ["label", "label_text_depth_mm"], float, "Label extrusion depth (mm)",
+     "How far the raised text material extends - thicker makes it both "
+     "more visible and more forgiving of the chamfer's curvature clipping "
+     "part of it away. v2's real value is a thin 0.09mm."),
 ]
 
 QUALITY_FIELDS_MIGNON = [
@@ -1742,7 +1762,11 @@ class TuneApp(App):
             # the next one, or you'd be chasing a moving reference.
             cmd += ["--calibrate", "--calibration-reference-config", self.master_config_path]
             if fast:
-                cmd += ["--no-minkowski", "--no-core-groove"]
+                # --no-minkowski-text: no-op for non-Mignon machines (see
+                # generate.py) - Mignon's CalibrationElement() also renders
+                # Logo/Label text, same reasoning as the normal element
+                # branch below.
+                cmd += ["--no-minkowski", "--no-core-groove", "--no-minkowski-text"]
             else:
                 cmd += ["--minkowski"]
         else:
@@ -1754,8 +1778,17 @@ class TuneApp(App):
             # build.resin_support was just saved from the Build tab's own
             # checkbox, so Quick Preview still shows resin supports when
             # that's checked.
+            #
+            # logo.minkowski_text (Mignon only) is different: unlike
+            # minkowski_enabled, Render does NOT force it on - it only
+            # ever applies if BOTH the checkbox is on AND this is a real
+            # Render, never during Quick Preview, regardless of the
+            # checkbox. So Preview forces it off explicitly; Render passes
+            # nothing, deferring to whatever was just saved from the
+            # checkbox (which --save-to-yaml already wrote before this
+            # subprocess launches).
             if fast:
-                cmd += ["--no-minkowski", "--no-core-groove"]
+                cmd += ["--no-minkowski", "--no-core-groove", "--no-minkowski-text"]
             else:
                 cmd += ["--minkowski"]
         returncode = await self._stream_subprocess(cmd)

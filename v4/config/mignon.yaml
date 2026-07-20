@@ -40,8 +40,28 @@ logo:
   # surface ElementLabel() places the label on (see lib/mignon.py) - NOT
   # the same concept as Blickensderfer/Postal's radial_offset_mm (their
   # label sits flat on the top face; Mignon's sits on an angled chamfer
-  # surface, a genuinely different placement geometry).
-  height_offset_mm: 0.5
+  # surface, a genuinely different placement geometry). 1.0/0.3 (not v2's
+  # unmodified .5/.09) - see text_depth_mm below for why: at v2's thin
+  # depth this offset alone leaves most of the text embedded/invisible.
+  height_offset_mm: 1.0
+  # v4-only, not a v2 field (v2 hardcodes .09) - how far the raised text
+  # extends. The chamfer is a CURVED frustum and the text is a flat panel
+  # resting tangent to it, so a thin extrusion only clears the surface at
+  # the exact tangent point - increasing height_offset_mm alone just slides
+  # the same thin sliver around rather than exposing the character, and
+  # enough offset to clear the whole curve detaches it into a floating
+  # island. A deeper extrusion spans embedded (anchored)->exposed
+  # (visible) at a modest offset instead. Verified visually at 0.3/1.0:
+  # full "Leonard Chau 2026" text solidly raised and attached all the way
+  # around the arc, not just near center.
+  text_depth_mm: 0.3
+  # v4-only - v2 has no toggle, its small sphere-minkowski edge-rounding
+  # is unconditional (gated only by the preview-quality Mink_On flag).
+  # off (false): plain flat extrude, both Logo and Label text. on (true):
+  # a real draft-cone taper (build.draft_angle_deg/quality.minkowski_fn/
+  # build.simplify_tolerance_mm - the same knobs struck characters use),
+  # applied to BOTH Logo and Label - one checkbox, not per-feature.
+  minkowski_text: false
 
 # v4-only second engraved-text feature (NOT a v2 concept - v2/mignon.scad
 # has exactly one, Cylinder_Label, ported above as logo.*) - same
@@ -64,7 +84,10 @@ label:
   label_text: ""
   label_text_size_mm: 1.2495
   label_text_spacing: 15.0
-  label_height_offset_mm: 0.5
+  # see logo.height_offset_mm/text_depth_mm's matching comments above -
+  # same curved-chamfer-vs-flat-panel reasoning applies here.
+  label_height_offset_mm: 1.0
+  label_text_depth_mm: 0.3
 
 element:
   platen_diameter: 26.5

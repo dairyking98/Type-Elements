@@ -41,6 +41,7 @@ import trimesh
 
 from glyph_poc import (
     build_flat_text,
+    build_flat_text_drafted,
     DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
     DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
@@ -83,6 +84,22 @@ def configure(config_path):
     # chamfer surface, not the flat top face, so their geometry needs a
     # different placement chain entirely, see _render_engraved_text()).
     g["Logo_Height_Offset"] = logo["height_offset_mm"]
+    # v4-only, not a v2 field - v2's ElementLabel() hardcodes .09. Exposed
+    # because height_offset_mm ALONE can't reliably clear the chamfer's
+    # curvature: it's a CURVED surface and the text is a FLAT panel resting
+    # tangent to it, so a thin extrusion only exposes a razor sliver near
+    # the tangent point (confirmed visually: v2's real 0.09mm at the old
+    # 0.5mm offset default left ~50% of each character embedded/invisible,
+    # only its silhouette edge grazing the surface). A deeper extrusion
+    # spans from solidly-embedded (anchored, printable) to solidly-exposed
+    # (visible) at a modest offset, instead of needing a huge offset that
+    # detaches the text into a floating, unattached island.
+    g["Logo_Text_Depth"] = logo.get("text_depth_mm", 0.3)
+    # v4-only - v2 has no toggle here at all, LetterText()'s small sphere-
+    # minkowski rounding is unconditional there (gated only by the global
+    # Mink_On preview flag). One checkbox covers both Logo and Label - see
+    # _render_engraved_text()'s docstring.
+    g["Minkowski_Text"] = logo.get("minkowski_text", False)
 
     # Label: NOT a v2 concept (v2/mignon.scad has exactly one engraved-text
     # feature, Cylinder_Label, which is what Logo_* above already is - see
@@ -100,6 +117,7 @@ def configure(config_path):
     g["Label_Text_Size"] = label["label_text_size_mm"]
     g["Label_Text_Spacing"] = label["label_text_spacing"]
     g["Label_Height_Offset"] = label["label_height_offset_mm"]
+    g["Label_Text_Depth"] = label.get("label_text_depth_mm", 0.3)
     g["Label_Position_Offset"] = logo["position_offset_deg"] + 180.0
 
     e = cfg["element"]
@@ -276,26 +294,48 @@ def ElementChamfer():
 
 
 def _render_engraved_text(text, text_size, text_spacing, position_offset, height_offset,
-                           font_path, points_per_mm=20.0):
+                           font_path, text_depth, points_per_mm=20.0):
     """Shared placement chain for ElementLogo()/ElementLabel() - v2/
     mignon.scad:341-355's ElementLabel(), placed on ElementChamfer()'s
     angled chamfer surface (rotate([45,0,90])), not flat on the top face
     like Blickensderfer/Postal's LogoText() - a genuinely different
     placement chain, not just different parameter values (see the module
-    docstring). v2's version gets the same small sphere-minkowski rounding
-    LetterText() uses (r=.05, purely a cosmetic edge-softening, not the
-    big draft-cone taper struck characters get) - simplified here to a
-    plain flat extrude, same accepted simplification LogoText() already
-    makes for Blickensderfer/Postal's logo text (see that function's
-    docstring) - fine for a decorative label, not attempted to match
-    exactly."""
+    docstring).
+
+    text_depth: v2 hardcodes this at .09 (paired with its own small
+    sphere-minkowski edge-rounding, LetterText()'s r=.05 - not the big
+    draft-cone taper struck characters get). At that thin default it's
+    nearly invisible here: the chamfer is a CURVED frustum and the text is
+    a rigid FLAT panel resting tangent to it at one point, so a thin
+    extrusion only clears the surface right at that tangent point - the
+    rest of each character's own footprint dips back under the curve and
+    stays embedded/invisible, only its silhouette edge grazing through as
+    a sliver (confirmed visually). A deeper extrusion (config default
+    0.3mm - see configure()'s Logo_Text_Depth/Label_Text_Depth comment)
+    spans from solidly-embedded (anchored into the body, printable) to
+    solidly-exposed (visible) using a modest height_offset, instead of
+    needing a height_offset big enough to clear the WHOLE curve on its
+    own, which detaches the text into an unattached floating island long
+    before that happens.
+
+    Minkowski_Text (logo.minkowski_text, one checkbox covering both Logo
+    and Label - v4-only) opts into a real draft-cone taper via
+    build_flat_text_drafted() instead of a plain flat extrude - the SAME
+    mechanism/DEFAULT_DRAFT_ANGLE_DEG struck characters use, not v2's
+    separate small-sphere rounding."""
     n_chars = len(text)
     parts = []
     for n, ch in enumerate(text):
         if ch == " ":
             continue
-        mesh = build_flat_text(ch, points_per_mm, 0.09, font_size_mm=text_size,
-                                font_path=font_path)
+        if Minkowski_Text:
+            mesh = build_flat_text_drafted(ch, points_per_mm, text_depth, font_size_mm=text_size,
+                                            font_path=font_path, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
+                                            cone_segments=DEFAULT_CONE_SEGMENTS,
+                                            simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM)
+        else:
+            mesh = build_flat_text(ch, points_per_mm, text_depth, font_size_mm=text_size,
+                                    font_path=font_path)
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
         angle_n = text_spacing * n + position_offset - (n_chars - 1) * text_spacing / 2
@@ -318,7 +358,7 @@ def ElementLogo(points_per_mm=20.0):
     keys) for schema-reuse convenience - see configure()'s docstring."""
     return _render_engraved_text(Logo_Text, Logo_Text_Size, Logo_Text_Spacing,
                                   Logo_Position_Offset, Logo_Height_Offset,
-                                  LOGO_FONT_PATH, points_per_mm)
+                                  LOGO_FONT_PATH, Logo_Text_Depth, points_per_mm)
 
 
 def ElementLabel(points_per_mm=20.0):
@@ -328,7 +368,7 @@ def ElementLabel(points_per_mm=20.0):
     Logo_Position_Offset, not independently stored)."""
     return _render_engraved_text(Label_Text, Label_Text_Size, Label_Text_Spacing,
                                   Label_Position_Offset, Label_Height_Offset,
-                                  LABEL_FONT_PATH, points_per_mm)
+                                  LABEL_FONT_PATH, Label_Text_Depth, points_per_mm)
 
 
 def MinkCleanup():

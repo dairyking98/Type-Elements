@@ -57,6 +57,14 @@ def main():
                          help="skip the Minkowski draft sweep (fast, undrafted preview - "
                               "correct platen curve/placement, no taper) regardless of "
                               "the config")
+    parser.add_argument("--minkowski-text", dest="minkowski_text", action="store_true", default=None,
+                         help="force Mignon's Logo/Label draft-cone text on, regardless of the "
+                              "config (logo.minkowski_text) - no-op for machines without this "
+                              "option")
+    parser.add_argument("--no-minkowski-text", dest="minkowski_text", action="store_false",
+                         help="force Mignon's Logo/Label text to the plain flat extrude "
+                              "(fast), regardless of the config - no-op for machines without "
+                              "this option")
     parser.add_argument("--no-core-groove", action="store_true",
                          help="skip CoreGrooves (slow) regardless of the config")
     parser.add_argument("--resin-support", dest="resin_support", action="store_true", default=None,
@@ -105,6 +113,13 @@ def main():
 
     bd = _load_machine(args.config)
     bd.configure(args.config)
+
+    # Minkowski_Text is a plain module global (like Logo_Text/Cylinder_Shape/
+    # etc.), not threaded through build_fn's kwargs the way minkowski_enabled
+    # is - overriding it here directly, same effect. hasattr guards machines
+    # without this option (everything but Mignon) as a no-op.
+    if args.minkowski_text is not None and hasattr(bd, "Minkowski_Text"):
+        bd.Minkowski_Text = args.minkowski_text
 
     render_core_groove = False if args.no_core_groove else None  # None = use config default
 
