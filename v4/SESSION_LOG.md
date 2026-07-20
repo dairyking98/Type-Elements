@@ -1489,6 +1489,43 @@ Regression-verified Blickensderfer/Postal: field counts unchanged
 Mignon's own section, since `self.inputs` is a single flat dict), no
 Mignon-only keys leaked into their field sets.
 
+## 22. tune.py help-text/tooltip `Static`s were clipped, then found to double-wrap once un-clipped
+
+User report: tooltip/help messages in the TUI get cut off when longer
+than their box. Traced to `.field-help`, `.picker-help`, and
+`.advanced-warning` all being pinned to a fixed `height` (1 or 2 rows)
+in `TuneApp.CSS` - any message longer than that was clipped instead of
+wrapping. Worst offenders were the Gauge/Calibration `SECTION_INTROS`
+banners: authored as 7-9 line strings but rendered squashed to a single
+visible line. Fixed by switching `.field-help`/`.picker-help`/
+`.advanced-warning` to `height: auto` (and `.field-row` to `height:
+auto` + `margin-bottom: 1`, since it previously relied on a fixed
+`height: 2` for both the Horizontal row and its optional help line).
+
+That surfaced a second, distinct bug: those same banners (and the
+Layout tab's per-machine notes, the Build tab's target explainer, the
+Type Test intro) were hand-wrapped with embedded `\n` at some assumed
+width. With the box now auto-sizing, Textual wrapped each
+already-broken line a *second* time - confirmed via a headless
+`App.run_test()` region check, Gauge's 7-line intro rendered at
+`height=14`. On a normal-height terminal this pushed the real
+Offset start/Offset int inputs (Gauge) and test_char/start/interval
+inputs (Calibration) far enough down the tab to require scrolling past
+the fold - reported by the user as the text "covering" the inputs and
+making them impossible to edit. Fixed by removing every manual `\n`
+line break from TUI-displayed help text (single flowing string, wraps
+exactly once) and rewriting the wording shorter throughout - dropped
+internal v2-source cross-references and redundant clauses. Re-verified
+headlessly: Gauge's intro dropped from 14 rendered lines to 6, with
+both its inputs landing at row 12/15 even in a 24-row terminal.
+Short one-line field-level hints (e.g. "TrueType font for the struck
+characters.") were already concise and left untouched.
+
+New standing rule for any tooltip/help-text `Static` added to tune.py
+from here on - see `CLAUDE.md`: `height: auto`, never a fixed row
+count; no manual `\n` line breaks (let Textual wrap once); keep the
+wording to 1-2 short sentences.
+
 ## Resuming later
 
 1. **Bennett, then Helios** - the next two machines per the original

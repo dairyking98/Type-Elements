@@ -526,30 +526,23 @@ SECTIONS_BY_MACHINE = {
 # Static intro banner shown above a section tab's fields, keyed by section
 # name - (text, css class). Only sections that need one appear here.
 SECTION_INTROS = {
-    "Element": ("ADVANCED - real machine dimensions.\nGenerally shouldn't need to change these.",
+    "Element": ("ADVANCED - real machine dimensions. Rarely need changing.",
                 "advanced-warning"),
     "Gauge": (
-        "Shaft Gauge Test (v2's GaugeTestSet()) - a small 6-pocket\n"
-        "calibration test print, NOT part of the real element. Each pocket\n"
-        "bores the shaft passage at offset_start + n*offset_int (n=0..5),\n"
-        "engraved with its own value. Print it, test-fit each numbered\n"
-        "pocket on the real machine's shaft, and set Element > Core ID\n"
-        "offset to whichever number fits. Select \"Shaft Gauge\" on the\n"
-        "Build tab, then Preview/Render as usual to build this instead.",
+        "Small 6-pocket calibration print, not the real element. Each "
+        "pocket bores its shaft passage at offset_start + n*offset_int. "
+        "Test-fit each pocket on the real shaft, then set Element > Core "
+        "ID offset to the best-fitting number. Select \"Shaft Gauge\" on "
+        "the Build tab to build it.",
         "picker-help"),
     "Calibration": (
-        "A real element, but every physical position strikes the SAME\n"
-        "test character, and Vary baselines/Vary cutouts (usually only\n"
-        "one checked at a time) get a different swept value per column\n"
-        "instead of its row's normal value. The sweep is centered on the\n"
-        "MASTER config's baseline/cutout row, not this running copy's -\n"
-        "so it stays a fixed target even after you've already dialed in\n"
-        "a value here. Print it, test-fit each position on the real\n"
-        "machine, and read off which column's value looks/fits best from\n"
-        "the Render log (or the .txt file Save writes alongside the STL)\n"
-        "- then enter it in that row's baseline/cutout field on the\n"
-        "Element tab. Select \"Calibration Element\" on the Build tab,\n"
-        "then Preview/Render as usual to build this instead.",
+        "A real element where every position strikes the same test "
+        "character. Turn on Vary baselines or Vary cutouts (usually just "
+        "one) to sweep that value per column instead of each row's normal "
+        "value, centered on the MASTER config's row so it stays a fixed "
+        "target. Test-fit each column on the real machine, then enter the "
+        "best-fitting value in that row's Element tab field. Select "
+        "\"Calibration Element\" on the Build tab to build it.",
         "picker-help"),
 }
 
@@ -974,7 +967,7 @@ class TuneApp(App):
     #log { height: 1fr; }
     TabbedContent { height: 1fr; }
     TabPane { padding: 0 1; }
-    .field-row { height: 2; }
+    .field-row { height: auto; margin-bottom: 1; }
     .field-row Horizontal { height: 1; }
     .field-label { width: 26; height: 1; content-align: left middle; }
     .field-row Input { width: 1fr; height: 1; border: none; padding: 0 1; background: $panel; }
@@ -982,7 +975,7 @@ class TuneApp(App):
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .browse-btn { width: 10; height: 1; min-width: 10; border: none; margin-left: 1; }
-    .field-help { color: $text-muted; height: 1; }
+    .field-help { color: $text-muted; height: auto; }
     #buttons { height: 11; dock: bottom; padding: 0 1; }
     #btn-render-test-text { height: 3; width: 1fr; text-style: bold; margin-bottom: 1; }
     #primary-buttons { height: 5; }
@@ -999,9 +992,9 @@ class TuneApp(App):
     .picker-title { text-style: bold; content-align: center middle; width: auto; margin-bottom: 1; }
     .picker-subtitle { color: $text-muted; content-align: center middle; width: auto; margin-bottom: 1; }
     .machine-picker-btn { width: 30; height: 3; margin-bottom: 1; text-style: bold; }
-    .advanced-warning { color: $warning; text-style: bold; height: 2; padding: 0 0 1 0; }
+    .advanced-warning { color: $warning; text-style: bold; height: auto; padding: 0 0 1 0; }
     .picker-row { height: 3; }
-    .picker-help { color: $text-muted; height: 1; }
+    .picker-help { color: $text-muted; height: auto; }
     .row-preview { height: 1; background: $panel; padding: 0 1; margin-bottom: 1; color: $text-muted; }
     #layout-custom-rows { height: auto; }
     .custom-row-input { height: 1; margin-bottom: 1; border: none; padding: 0 1;
@@ -1273,8 +1266,8 @@ class TuneApp(App):
 
     def _compose_baseline_cutout_fields(self):
         yield Static(
-            "Per-row baseline/platen-cutout (mm - see the Calibration tab\n"
-            "for empirically finding these).",
+            "Per-row baseline/platen-cutout (mm). See the Calibration tab "
+            "to find these empirically.",
             classes="picker-help")
         for arr_key, label in (("baseline_row", "Baseline"), ("cutout_row", "Cutout")):
             values = self.cfg["layout"][arr_key]
@@ -1326,35 +1319,31 @@ class TuneApp(App):
                     yield select
                 if self.machine == "blickensderfer":
                     yield Static(
-                        "Ported from v2/lib/layouts/blick_layouts.scad. All share the same\n"
-                        "physical placement_map - only glyph content per row changes.\n"
-                        "HEBREW_ENGL needs a Hebrew-capable font.path to render correctly\n"
-                        "(v2 auto-switches fonts per layout; v4 does not).",
+                        "All layouts share the same physical placement_map - only glyph "
+                        "content per row changes. HEBREW_ENGL needs a Hebrew-capable font "
+                        "path; v4 doesn't auto-switch fonts per layout like v2 did.",
                         classes="picker-help")
                 elif self.machine == "postal":
                     yield Static(
-                        "Postal has only one physical layout (v2/postal.scad has no\n"
-                        "preset-switching menu) - QWERTY is it. Use Modify glyphs below\n"
-                        "to hand-edit the rows if you need something else.",
+                        "Postal has only one physical layout, QWERTY. Use Modify glyphs "
+                        "below to hand-edit the rows for anything else.",
                         classes="picker-help")
                 elif self.machine == "mignon":
                     yield Static(
-                        "Ported from v2/lib/layouts/mignon_layouts.scad (30 real named\n"
-                        "layouts - a few placeholder/never-finished ones in the source\n"
-                        "are excluded). All share the same 7-row/12-column layout -\n"
-                        "only glyph content per row changes. Rows are shown in keyboard-\n"
-                        "legend order (as printed on the physical keyboard/manual) -\n"
-                        "layout.char_legend remaps this to build order internally.",
+                        "30 named layouts, all sharing the same 7-row/12-column physical "
+                        "layout - only glyph content changes per row. Rows are shown in "
+                        "keyboard-legend order; char_legend remaps this to build order "
+                        "internally.",
                         classes="picker-help")
                 elif options:
                     yield Static(
-                        "Use Modify glyphs below to hand-edit the rows if you need\n"
-                        "something other than the selected preset.",
+                        "Use Modify glyphs below to hand-edit the rows for anything "
+                        "other than the selected preset.",
                         classes="picker-help")
                 else:
                     yield Static(
-                        "No named layout presets for this machine yet - use Modify glyphs\n"
-                        "below to hand-edit the rows directly.",
+                        "No named layout presets yet - use Modify glyphs below to edit "
+                        "the rows directly.",
                         classes="picker-help")
 
                 yield Static("Rows (read-only preview of the preset above):", classes="field-label")
@@ -1369,11 +1358,9 @@ class TuneApp(App):
                     sw = Switch(value=modify_now, id="layout-modify-glyphs")
                     yield sw
                 yield Static(
-                    f"Unlocks a hand-editable copy of the {len(display_rows)} rows below,\n"
-                    f"capped at {char_cap} characters each (placement_map's length - more\n"
-                    "than that would crash TextRing). Fewer than that just leaves some\n"
-                    "physical positions unstruck. While on, this edited copy - not the\n"
-                    "preset dropdown above - is what gets saved to layout.rows.",
+                    f"Unlocks {len(display_rows)} hand-editable rows, max {char_cap} "
+                    "characters each. Shorter rows just leave some positions unstruck. "
+                    "While on, this edited copy (not the preset above) is what gets saved.",
                     classes="picker-help")
 
                 custom_rows_container = Vertical(id="layout-custom-rows")
@@ -1407,30 +1394,26 @@ class TuneApp(App):
                     sw = Switch(value=resin_now, id="build-resin-support")
                     yield sw
                 gauge_help = (
-                    " Shaft\nGauge = GaugeTestSet() (see the Gauge tab) - a calibration test\n"
-                    "print, not part of the real element; always has its own resin\n"
-                    "supports built in regardless of this checkbox."
+                    " Shaft Gauge: a small calibration print (see the Gauge tab) - "
+                    "always includes its own resin supports regardless of this "
+                    "checkbox."
                 ) if has_gauge else ""
                 yield Static(
-                    "Element = FullElement(), or ResinPrint() (adds ResinSupport()'s\n"
-                    "rods/breakaway ring) if Resin supports is on - see the Resin tab\n"
-                    "for its own settings, which only matter when this is on."
-                    f"{gauge_help} Calibration\n"
-                    "Element = a real element with the SAME test character struck at\n"
-                    "every position, sweeping baseline or platen cutout per column\n"
-                    "(see the Calibration tab) - for empirically finding\n"
-                    "layout.baseline_row/cutout_row.",
+                    "Element: the real element. Turn on Resin supports to add "
+                    "rods/breakaway ring (see the Resin tab for those settings)."
+                    f"{gauge_help} Calibration Element: strikes the same test "
+                    "character everywhere, sweeping baseline or cutout per column "
+                    "(see the Calibration tab) to find layout.baseline_row/cutout_row.",
                     classes="picker-help")
 
     def _compose_type_test_tab(self):
         with TabPane("Type Test", id="tab-type-test"):
             with VerticalScroll():
                 yield Static(
-                    "Flat, fixed-pitch (CPI) test block - matches v2's TypeTest()\n"
-                    "spacing convention. Uses the Font tab's path/size. NOT part of\n"
-                    "the real element - overwrites the same scratch output STL as\n"
-                    "Render/Quick Preview, so the same f3d --watch window shows it.\n"
-                    "Multiple lines are supported (stacked vertically).",
+                    "Flat, fixed-pitch (CPI) test block using the Font tab's "
+                    "path/size. Not part of the real element - overwrites the same "
+                    "scratch STL as Render/Quick Preview, so the same f3d window "
+                    "shows it. Supports multiple lines, stacked vertically.",
                     classes="picker-help")
                 yield Static("Test text", classes="field-label")
                 yield TextArea(self.cfg["type_test"]["text"], id="type-test-text")
