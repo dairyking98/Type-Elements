@@ -2200,16 +2200,78 @@ from v2/hammond.scad following the same pattern as `Rib()`/
 as its own follow-up, explicitly deferred again by user choice this
 round (asked which of the two to do first; orientation was picked).
 
+## 31. Hammond rib/groove assembly toggle (element.groove)
+
+Ported v2's second, mutually-exclusive assembly mechanism - user
+specifically wanted this next since it "also affects the resin support."
+
+**New config**: `element.groove` (bool, default `false`) plus the real v2
+values it needs - `shuttle_groove_nub_angle`, `groove_tab_width`,
+`groove_opening_offset`, `support_groove_thickness` (derives
+`Support_Groove_R` for `ResinChamfer()`). `Shuttle_Groove_Depth`/
+`Shuttle_Groove_Nub_Size` are both `Shuttle_Thickness/2` (derived, not
+independently tunable, matching v2:259-260). Confirmed `PinSupport2()`/
+`Groove_Retaining_Pin_Diameter` are declared in v2 but never actually
+called/referenced anywhere in `v2/hammond.scad` - dead code, not ported,
+same treatment as `bennett.yaml`'s dead-param callouts.
+
+**New lib/hammond.py functions**: `GrooveShape()` (a circumferential
+snap-fit slot cut into the shell's inner surface via a disk+tab 2D union
+minus 4 angled nub-cylinder cutouts, v2:484-500) and `ResinChamfer()` (a
+small cone-frustum chamfer at the shell's bottom-inner edge, v2:789-792).
+Naming note: the v2 module is literally called `Groove()`, but Python
+has one namespace for module globals (unlike OpenSCAD's separate module/
+variable namespaces) - naming the function `Groove()` would silently
+shadow the `Groove` config boolean the moment `configure()` ran (hit this
+live: `TypeError: 'bool' object is not callable` calling `hammond.
+Groove()` after `configure()` had already overwritten it) - renamed to
+`GrooveShape()` to avoid the collision.
+
+`Additive()`/`CalibrationAdditive()` now branch on `Groove`: `false`
+unions `RibAssembled()` onto the shell (unchanged, existing path);
+`true` subtracts `GrooveShape()` and `ResinChamfer()` from the shell
+instead, with no `RibAssembled()` at all - matching v2's real
+`GroovedShuttle()` vs. `RibbedShuttle()` split exactly (mutually
+exclusive assembly mechanisms, not a partial/additive variant).
+`ShuttleTaper()`'s Z-depth also depends on `Groove` (v2:571's
+`c=[Rib_Bottom_Z+z+(Groove?2:0), 10]`) - was hardcoded to the
+`Groove=false` case in part 29, now reads the real flag.
+
+**Resin support needed zero changes** - confirmed the user's own
+intuition ("it also affects the resin support") is about the GEOMETRY
+changing, not the support CODE: `ResinSupport()`'s grid+raycast+gusset
+scheme (part 29) finds attachment points by ray-casting against whatever
+mesh it's handed, so it automatically adapted to the groove variant's
+different underlying shape with no changes needed - unlike v2, where
+`HorizResinSupport2`/`VertResinSupport2` both have to explicitly branch
+on `Groove` throughout their own hardcoded placement logic.
+
+**Verified all 4 combinations** (groove x orientation) via `generate.py`,
+all watertight/valid/is_volume=True:
+- groove=false, vertical (existing baseline, unchanged): `volume=4373.674mm3`
+- groove=true, vertical: `verts=45556 faces=92136 volume=4196.261mm3`
+  (132 rods/131 braced - lower volume than the rib variant, consistent
+  with removing the rib+pin material)
+- groove=false, horizontal (from part 30, unchanged)
+- groove=true, horizontal: `verts=17197 faces=34406 volume=1887.059mm3`
+  (only 8 rods/0 braced - sparser support grid than the other 3 combos,
+  worth a closer look if this combination is used for a real print, but
+  not a crash/invalid-geometry issue)
+
+**tune.py**: added `groove` (bool) plus the 4 new real-value fields to
+`ELEMENT_FIELDS_HAMMOND`. Headless `TuneApp(...).run_test()` smoke test
+(scratch config, per standing warning) confirms compose/save/quit all
+still work (70 fields now, up from 64).
+
 ## Resuming later
 
-1. **Hammond follow-up work (part 30)**: (a) DONE - `resin.orientation`
-   (vertical/horizontal print) is wired up in config/lib/tune.py; (b) wire
-   up the `Groove`/rib assembly variant (`GroovedShuttle()` vs. the
-   currently-hardcoded `RibAssembled()` path) - almost certainly what
-   "with or without the rib" means - this needs real new body-geometry
-   code (`Groove()`/`PinSupport2()`/`GroovedShuttle()`/`ResinChamfer()`),
-   not just a transform, unlike (a);
-   (c) go through `tune.py`'s Hammond tabs field-by-field against
+1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
+   orientation` (vertical/horizontal print); (b) DONE - `element.groove`
+   (rib vs. snap-fit assembly, part 31); (c) the groove+horizontal
+   combination's sparse resin-support grid (8 rods, 0 braced) is worth
+   revisiting if that combination is actually used for a real print -
+   may need a finer grid pitch for very flat/low-relief footprints;
+   (d) go through `tune.py`'s Hammond tabs field-by-field against
    `config/hammond.yaml` for anything still missing (named layout
    presets, Calibration wiring - see part 29's open items).
 2. **Hammond_split.scad and IBM are next** - `hammond.scad` itself is

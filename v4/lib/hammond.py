@@ -48,9 +48,17 @@ hammond_split.scad (a completely different two-piece spoke/folder
 assembly, self-contained with its own inlined glyph placement) is a
 SEPARATE machine in everything but name and is NOT covered here - see
 config/hammond.yaml's header comment and SESSION_LOG.md's Hammond audit
-chapter. Groove=true (v2's alternate snap-fit/groove assembly variant) is
-also deferred - Groove=false (the default, and the only variant
-ResinPrint's real v2 dispatch path exercises) is the only one ported.
+chapter.
+
+Groove (config/hammond.yaml's element.groove) picks between v2's two
+real, mutually-exclusive assembly mechanisms: false (default) is the
+internal rib + square drive-pin boss (Rib()/PinSupport()/
+PinSupportHole(), unioned onto the shell); true is a snap-fit groove cut
+directly into the shell (GrooveShape()/ResinChamfer(), subtracted -
+see GrooveShape()'s docstring). Note the module-level function is named
+GrooveShape(), not Groove() - Python has one namespace for module
+globals, unlike OpenSCAD's separate module/variable namespaces, so it
+can't share the name with the Groove config boolean.
 
 Resin support is NOT a port of v2's VertResinSupport2 (~140 lines, 8
 separate placement tiers using 3 independently-invented rod primitives -
@@ -159,6 +167,18 @@ def configure(config_path):
     # Angle_Pitch (v2:203) = (angular_span_deg/angular_divisions)/
     # shrinkage_multiplier - the shuttle's real 120deg/32-division arc.
     g["Angle_Pitch"] = (e["angular_span_deg"] / float(e["angular_divisions"])) / e["shrinkage_multiplier"]
+
+    # Groove (v2:258) - see config/hammond.yaml's matching comment. Shuttle_
+    # Groove_Depth/Shuttle_Groove_Nub_Size (v2:259-260) are both derived
+    # from Shuttle_Thickness, not independently tunable.
+    g["Groove"] = bool(e.get("groove", False))
+    g["Shuttle_Groove_Depth"] = g["Shuttle_Thickness"] / 2.0
+    g["Shuttle_Groove_Nub_Size"] = g["Shuttle_Thickness"] / 2.0
+    g["Shuttle_Groove_Nub_Angle"] = e["shuttle_groove_nub_angle"]
+    g["Groove_Tab_Width"] = e["groove_tab_width"]
+    g["Groove_Opening_Offset"] = e["groove_opening_offset"]
+    g["Support_Groove_Thickness"] = e["support_groove_thickness"]
+    g["Support_Groove_R"] = 0.5 * (g["Shuttle_Thickness"] - g["Support_Groove_Thickness"])
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
@@ -401,10 +421,58 @@ def RibAssembled():
     return combined.difference(PinSupportHole(), engine="manifold")
 
 
+def GrooveShape():
+    """v2:484-500 - circumferential snap-fit slot cut into the shell,
+    opening from its INNER surface (a solid disk r=Shuttle_Arc_Radius+
+    Shuttle_Groove_Depth, unioned with a radial "tab" box reaching out to
+    x=50 - a construction sentinel, not a real dimension, same as
+    _wedge_complement_poly's far=100), minus 4 nub-shaped retention-detent
+    clearances at +-29/+-58deg. Z-spans [Rib_Bottom_Z, Rib_Bottom_Z+
+    Shuttle_Rib_Thickness] for the disk, [Rib_Bottom_Z-Groove_Opening_
+    Offset/2, Rib_Bottom_Z+Shuttle_Rib_Thickness+Groove_Opening_Offset/2]
+    for the tab (v2's translate() only wraps the cube, not the cylinder -
+    two different Z depths, built as separate solids here rather than one
+    shared extrusion). Subtracted from the shell in the Groove=true
+    assembly path, replacing Rib()/PinSupport()/PinSupportHole() entirely
+    - no separate rib piece in this assembly at all."""
+    res = _circ_res(Cyl_Fn)
+    disk_2d = Point(0, 0).buffer(Shuttle_Arc_Radius + Shuttle_Groove_Depth, resolution=res)
+    disk = trimesh.creation.extrude_polygon(disk_2d, Shuttle_Rib_Thickness)
+
+    tab_2d = ShapelyPolygon([
+        (0, -Groove_Tab_Width / 2.0), (50, -Groove_Tab_Width / 2.0),
+        (50, Groove_Tab_Width / 2.0), (0, Groove_Tab_Width / 2.0),
+    ])
+    tab = trimesh.creation.extrude_polygon(tab_2d, Shuttle_Rib_Thickness + Groove_Opening_Offset)
+    tab = sp.translate(tab, [0, 0, -Groove_Opening_Offset / 2.0])
+
+    shape = sp.union_all([disk, tab])
+    for n in (-2, -1, 1, 2):
+        nub = sp.cylinder_z(2 * Shuttle_Groove_Nub_Size, Shuttle_Rib_Thickness + 2 * z,
+                             sections=Cyl_Fn, base_z=-z)
+        nub = sp.translate(nub, [Shuttle_Arc_Radius + Shuttle_Groove_Depth, 0, 0])
+        nub = sp.rotate_z(nub, Shuttle_Groove_Nub_Angle * n)
+        shape = shape.difference(nub, engine="manifold")
+
+    return sp.translate(shape, [0, 0, BASELINE_Z_OFFSET])  # Rib_Bottom_Z
+
+
+def ResinChamfer():
+    """v2:789-792 - cone frustum subtracted from the shell's bottom-inner
+    edge (r1=Anvil_OD/2+Support_Groove_R at z=0, tapering to r2=Anvil_OD/2
+    at z=Support_Groove_R) - a small chamfer at the shell's bottom face,
+    part of the Groove=true assembly path only."""
+    return sp.frustum_z(2 * (Anvil_OD / 2.0 + Support_Groove_R), Anvil_OD,
+                         Support_Groove_R, sections=Cyl_Fn, base_z=0.0)
+
+
 def ShuttleTaper():
     parts = []
     b = [-z, Shuttle_Height - Shuttle_Rib_Plane]
-    c = [BASELINE_Z_OFFSET + z, 10.0]  # BASELINE_Z_OFFSET is Rib_Bottom_Z; Groove=false (no +2)
+    # v2:571's c=[Rib_Bottom_Z+z+(Groove?2:0), 10] - the Groove=true
+    # assembly needs 2mm more taper depth at the bottom (BASELINE_Z_OFFSET
+    # is Rib_Bottom_Z).
+    c = [BASELINE_Z_OFFSET + z + (2.0 if Groove else 0.0), 10.0]
     half_ang_rad = np.radians(Angle_Pitch * 16.0 + z)
     p3x = (Shuttle_Arc_Radius - z) * np.cos(half_ang_rad)
     p3y = (Shuttle_Arc_Radius - z) * np.sin(half_ang_rad)
@@ -457,6 +525,15 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
+    # Groove (config/hammond.yaml's element.groove) picks between v2's two
+    # real, mutually-exclusive assembly mechanisms - GroovedShuttle()
+    # (snap-fit groove, no separate rib piece) vs. RibbedShuttle() (rib +
+    # square drive-pin boss, the default/original path). See Groove()'s
+    # docstring for the full derivation.
+    if Groove:
+        shell = shell.difference(GrooveShape(), engine="manifold")
+        shell = shell.difference(ResinChamfer(), engine="manifold")
+        return shell, char_parts
     return sp.union_all([shell, RibAssembled()]), char_parts
 
 
@@ -502,6 +579,10 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
+    if Groove:
+        shell = shell.difference(GrooveShape(), engine="manifold")
+        shell = shell.difference(ResinChamfer(), engine="manifold")
+        return shell, mapping_lines
     return sp.union_all([shell, RibAssembled()]), mapping_lines
 
 

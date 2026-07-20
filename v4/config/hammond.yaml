@@ -105,6 +105,23 @@ element:
   # much (v2:351 "Cp_1_X=Shuttle_Arc_Radius*cos(Theta_A)-2  //limit of resin
   # support" - a real, named machine clearance, not a construction sentinel).
   rib_fillet_resin_clearance: 2.0
+  # Groove (v2:258) - the shuttle's two real, mutually-exclusive assembly
+  # mechanisms: false (default) is the internal rib + square drive-pin
+  # boss (Rib()/PinSupport()/PinSupportHole(), assembled separately and
+  # glued/pinned to the shuttle body); true is a snap-fit groove cut
+  # directly into the shell (Groove()/ResinChamfer(), no separate rib
+  # piece at all) - see lib/hammond.py's GroovedShuttle()-equivalent path
+  # for the full derivation. v2's PinSupport2()/Groove_Retaining_Pin_
+  # Diameter are declared but never actually called/referenced anywhere
+  # in v2/hammond.scad - confirmed dead code, not ported (same convention
+  # as bennett.yaml's dead-param callouts).
+  groove: false
+  shuttle_groove_nub_angle: 29           # Shuttle_Groove_Nub_Angle (deg)
+  groove_tab_width: 3.15                 # Groove_Tab_Width (3+.15 in v2)
+  groove_opening_offset: 0.5             # Groove_Opening_Offset
+  support_groove_thickness: 0.5          # Support_Groove_Thickness - also
+                                          # derives Support_Groove_R for
+                                          # ResinChamfer() (v2:322)
 
 # quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
 # comment: "no separate structural-quality tier from Cyl_Fn").

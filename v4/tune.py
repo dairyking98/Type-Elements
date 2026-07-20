@@ -730,6 +730,12 @@ ELEMENT_FIELDS_HAMMOND = [
     ("angular_divisions", ["element", "angular_divisions"], int, "Angular divisions", ""),
     ("is_math", ["element", "is_math"], bool, "Math layout", "Whether the active layout preset is the Math one (selects math_shuttle_height/the 4th baseline row)."),
     ("rib_fillet_resin_clearance", ["element", "rib_fillet_resin_clearance"], float, "Rib fillet clearance (mm)", ""),
+    ("groove", ["element", "groove"], bool, "Snap-fit groove (no rib)",
+     "Off (default): internal rib + drive-pin boss. On: snap-fit groove cut into the shell instead - no separate rib piece."),
+    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used when groove is on."),
+    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used when groove is on."),
+    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used when groove is on."),
+    ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Only used when groove is on."),
 ]
 
 SECTIONS_BY_MACHINE = {
