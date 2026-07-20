@@ -26,11 +26,16 @@ opposing characters as Min_Final_Character_Diameter) to Element_Diameter/
 of Element_Diameter/2+Char_Protrusion like v2 actually produces - see
 configure()'s comment for the full derivation) and lib/core_shaft.scad's
 shared SecondaryCore/CoreGrooves/CoreChamfer/
-CoreEllipses (Core_Chamfer_Top=False - no clip, so unlike Blickensderfer/
-Postal there's no top chamfer under one; Core_Taper_Top_Z=Core_Top_Z - the
-taper's own top landmark coincides with the absolute top, again because
-there's no clip pushing it down, matching lib/core_shaft.scad's own
+CoreEllipses (Core_Taper_Top_Z=Core_Top_Z - no clip, so the taper's own
+top landmark coincides with the absolute top instead of sitting under a
+clip like Blickensderfer/Postal, matching lib/core_shaft.scad's own
 documented default for exactly this case) with cylinder_machine.py.
+DEVIATES from v1/v2 on one point: CoreChamfer's top chamfer, which v1/v2
+never call (Core_Chamfer_Top=False - no clip to chamfer under, so the
+original author skipped it), is enabled here (chamfer_top=True) with a
+sized-up chamfer that meets bennett.RoofTaper()'s cone exactly where
+their two surfaces cross - see configure()'s Core_Chamfer_Top_Size
+derivation and _subtractive_parts() below.
 Unlike Mignon, Bennett does NOT override Angle_Half_Step (v2 never sets
 it, so it stays at the shared lib's default 0.5 - verified algebraically:
 Bennett's own Theta=-(360/28*col+360/(2*28)) reduces to exactly
@@ -138,19 +143,58 @@ def configure(config_path):
     g["Core_Web_Length"] = e["core_web_length"]
     g["Core_Secondary_ID_Offset"] = e["core_groove_d"] / 2.0 + g["z"]
 
-    # s=.2 - Bennett's own small fudge-factor constant for the core/shaft
-    # taper landmarks below (v2/bennett.scad:239, a plain top-level
-    # assignment, never a customizer slider - kept as a code literal here
-    # too, same treatment as z).
-    s = 0.2
-    g["Core_Top_Z"] = g["Element_Height"] - g["Top_Countersink_Depth"] - 1 + s
+    # Core_Top_Z used to carry an unexplained "-1+s" (v1/v2's own literal,
+    # BennettElement.scad:417) - traced that "-1" to RoofTaper()'s base_z
+    # (Element_Height-Top_Countersink_Depth-1, see RoofTaper() below):
+    # RoofTaper() carves a cone from d=0 at its base_z widening to the
+    # full Countersink_Diameter at the countersink mouth (base_z+1), only
+    # when Generate_Support is on. Core_Top_Z is now explicitly coupled to
+    # that same toggle instead of unconditionally assuming the roof cut
+    # exists - with no resin support, there's no roof cone to stay clear
+    # of, so the core/shaft taper's top landmark sits right at the
+    # countersink mouth instead of dropping under it.
+    #
+    # When Generate_Support IS on, rather than a fixed-margin fudge factor
+    # (the old "+s"), the top core-chamfer is extended UPWARD past
+    # Core_Top_Z, past where an un-extended chamfer would flat-cap, until
+    # its cone's opening radius exactly coincides with RoofTaper's cone -
+    # the two carved surfaces blend smoothly with no gap and no arbitrary
+    # safety margin (see TopCoreChamfer() below, which builds this
+    # directly rather than through cylinder_machine.CoreChamfer()'s
+    # built-in top branch - that helper pins the WIDE end at Core_Top_Z
+    # and lets the NARROW end drift as its chamfer size grows, the
+    # opposite of what's needed: the narrow end must stay put at the
+    # normal unmodified position while the wide end extends upward).
+    # Both cones are lines in (height above Core_Top_Z, radius) space:
+    #   chamfer: r = (Shaft_Diameter/2 + Core_Secondary_ID_Offset/4 + Core_Chamfer) + h
+    #     (h = how far the wide end is pushed above Core_Top_Z; the cone's
+    #     slope is ~1 - CoreChamferShape's d1 radius grows by exactly
+    #     Core_Chamfer over a height of Core_Chamfer+z)
+    #   roof:    r = (Countersink_Diameter/2) * h
+    # Solving r_chamfer(h)=r_roof(h) for h gives Core_Chamfer_Top_Size
+    # (the chamfer's new overall size, narrow end anchored, wide end
+    # pushed out to the crossing point) and Core_Chamfer_Top_Anchor_Z
+    # (=Core_Top_Z+h, where TopCoreChamfer() places the wide end).
+    generate_support = cfg["build"]["resin_support"]
+    if generate_support:
+        g["Core_Top_Z"] = g["Element_Height"] - g["Top_Countersink_Depth"] - 1
+        _chamfer_flat_r = g["Shaft_Diameter"] / 2.0 + g["Core_Secondary_ID_Offset"] / 4.0
+        _roof_slope = g["Countersink_Diameter"] / 2.0
+        _crossing_h = (_chamfer_flat_r + g["Core_Chamfer"]) / (_roof_slope - 1.0)
+    else:
+        g["Core_Top_Z"] = g["Element_Height"] - g["Top_Countersink_Depth"]
+        _crossing_h = 0.0
+    g["Core_Chamfer_Top_Size"] = g["Core_Chamfer"] + _crossing_h
+    g["Core_Chamfer_Top_Anchor_Z"] = g["Core_Top_Z"] + _crossing_h
     g["Core_Bottom_Z"] = g["Bottom_Countersink_Depth"]
     # No clip (unlike Blickensderfer/Postal) - the secondary-core taper's
     # own top landmark coincides with the absolute top, lib/core_shaft.
     # scad's documented default for exactly this case (see this module's
-    # docstring). Core_Chamfer_Top=False is passed directly as a
-    # cylinder_machine.CoreChamfer() call-site kwarg instead (not a
-    # global - see Subtractive() below).
+    # docstring). _subtractive_parts() passes chamfer_top=False to
+    # cylinder_machine.CoreChamfer() (bottom only) and adds the top piece
+    # separately via TopCoreChamfer() below instead (DEVIATES from v1/v2's
+    # Core_Chamfer_Top=False - see this module's docstring and
+    # TopCoreChamfer() for why).
     g["Core_Taper_Top_Z"] = g["Core_Top_Z"]
 
     q = cfg["quality"]
@@ -296,16 +340,27 @@ def Cylinder():
 
 def PositionerPins():
     """v2/bennett.scad:372-383 - two positioner pins (opposite each other,
-    theta=90/270deg) with a small chamfer cone at their base to clean up
-    print artifacts that would otherwise drag on the alignment pins."""
+    theta=90/270deg) with a small chamfer cone to clean up print artifacts
+    that would otherwise drag on the alignment pins.
+
+    DEVIATES from v2/v1 here: the original places the chamfer at the
+    bottom mouth (Bottom_Countersink_Depth+Shell_Size), smooth end facing
+    down toward the floor. Confirmed with Leonard these pins actually mate
+    from the top, so the chamfer is mirrored to the top mouth
+    (Element_Height-Top_Countersink_Depth-Shell_Size) with its taper
+    direction flipped to match: the smooth end (matching the plain pin
+    diameter) faces the top/roof mouth, the abrupt step faces down into
+    the body - the same relationship the original had to the bottom
+    mouth, just mirrored."""
     parts = []
     for n in (0, 1):
         theta_deg = 180 * n + 90
         x = Element_Positioner_Pin_Radius * np.cos(np.radians(theta_deg))
         y = Element_Positioner_Pin_Radius * np.sin(np.radians(theta_deg))
         pin = sp.cylinder_z(Element_Positioner_Pin_Diameter, Element_Height + 2 * z, sections=Cyl_Fn)
-        chamfer = sp.frustum_z(Element_Positioner_Pin_Diameter, Element_Positioner_Pin_Diameter + 1, 2,
-                                sections=Cyl_Fn, base_z=Bottom_Countersink_Depth + Shell_Size)
+        chamfer = sp.frustum_z(Element_Positioner_Pin_Diameter + 1, Element_Positioner_Pin_Diameter, 2,
+                                sections=Cyl_Fn,
+                                base_z=Element_Height - Top_Countersink_Depth - Shell_Size - 2)
         group = sp.union_all([pin, chamfer])
         parts.append(sp.translate(group, [x, y, -z]))
     return sp.union_all(parts)
@@ -504,6 +559,23 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     return sp.union_all([text_ring, Cylinder()]), char_parts
 
 
+def TopCoreChamfer():
+    """Bennett-specific top core chamfer - see configure()'s
+    Core_Chamfer_Top_Size/Core_Chamfer_Top_Anchor_Z derivation for why this
+    is built directly instead of through cylinder_machine.CoreChamfer()'s
+    chamfer_top branch. The shape's narrow end (matching the plain
+    Shaft_Diameter+Core_Secondary_ID_Offset/2, CoreChamferShape's fixed d2)
+    stays at the normal unmodified chamfer position; the wide end (sized by
+    Core_Chamfer_Top_Size) is placed at Core_Chamfer_Top_Anchor_Z, meeting
+    RoofTaper()'s cone exactly where the two would naturally cross (or,
+    with no resin support, collapsing to the same plain chamfer
+    cylinder_machine.CoreChamfer(chamfer_top=True) would have built)."""
+    shape = cylinder_machine.CoreChamferShape(Core_Secondary_ID_Offset / 2, size=Core_Chamfer_Top_Size)
+    return sp.scad_transform(shape,
+                              ("translate", [0, 0, Core_Chamfer_Top_Anchor_Z]),
+                              ("rotate", [180, 0, 0]))
+
+
 def _subtractive_parts(render_core_groove):
     parts = [
         PositionerPins(),
@@ -518,6 +590,7 @@ def _subtractive_parts(render_core_groove):
         IndicatorHole(),
         cylinder_machine.SecondaryCore(0),
         cylinder_machine.CoreChamfer(0, chamfer_top=False),
+        TopCoreChamfer(),
         cylinder_machine.CoreEllipses(),
     ]
     roof = RoofTaper()

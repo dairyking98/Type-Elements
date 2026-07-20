@@ -551,9 +551,14 @@ def CoreGrooves(Offset):
     return sp.union_all(parts)
 
 
-def CoreChamferShape(Offset):
-    return sp.frustum_z(Shaft_Diameter + Offset + 2 * Core_Chamfer,
-                         Shaft_Diameter + Offset, Core_Chamfer + z, sections=Surface_Fn)
+def CoreChamferShape(Offset, size=None):
+    """size overrides the global Core_Chamfer for this call only - Bennett's
+    top instance sizes up past the default so its cone's opening radius
+    reaches exactly where it meets bennett.RoofTaper()'s cone (see
+    bennett.configure()'s Core_Chamfer_Top_Size derivation)."""
+    chamfer_size = Core_Chamfer if size is None else size
+    return sp.frustum_z(Shaft_Diameter + Offset + 2 * chamfer_size,
+                         Shaft_Diameter + Offset, chamfer_size + z, sections=Surface_Fn)
 
 
 def CoreChamfer(Offset, chamfer_top=True):
