@@ -2263,6 +2263,40 @@ all watertight/valid/is_volume=True:
 (scratch config, per standing warning) confirms compose/save/quit all
 still work (70 fields now, up from 64).
 
+## 32. Connecting-rod bracing pattern corrected; resin.orientation is a dropdown
+
+Two user-reported fixes.
+
+**Connecting rods didn't match v2's real pattern.** Part 29's
+`ResinSupport()` braced grid-adjacent rods in BOTH directions (i+1,j AND
+i,j+1) with a level, tip-to-tip connection. Re-checked every one of v2's
+own `ConnectingRod()` call sites (v2:627,638,643-658,671,683) - all of
+them connect two points sharing the SAME angular/lateral position but
+DIFFERENT longitudinal position (never laterally between two different
+angular rows), and always drop the brace a few mm below the rod's own
+tip contact point (e.g. v2:671's `h-1 -> h-4`) rather than connecting
+flush at the very top. Fixed `ResinSupport()` to match both properties:
+braces only along the i (longitudinal) grid axis now, and each endpoint
+drops by a fixed `brace_drop=1.5mm` below its own tip (clamped to
+`Resin_Min_Rod_Height`) before connecting - a real diagonal brace
+supporting the rod's upper region, not a flat cross-tie at the top.
+
+Verified all 4 groove x orientation combinations still watertight/valid
+after the change (volumes shifted slightly from part 31's numbers, as
+expected - roughly half as much bracing material now that only one
+direction is braced): groove=false/vertical `volume=4301.835mm3`,
+groove=true/vertical `volume=4141.871mm3`, groove=false/horizontal
+`volume=2612.998mm3`, groove=true/horizontal unchanged at
+`volume=1887.059mm3` (0 braced either way for that combination, see part
+31's open item about its sparse grid).
+
+**`resin.orientation` is now a dropdown**, not a free-text field -
+mirrors the existing `elif key == "mode":` special-case in
+`_compose_section_tab` (the only other string-enum field, `alignment.
+mode`) rather than inventing a new generic mechanism - `_collect_values`/
+`_load_current` already read/write `Select`/`Input` widgets identically
+via `.value`, so no changes needed there.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

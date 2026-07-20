@@ -612,10 +612,19 @@ def ResinSupport(body):
     a grid of (X,Y) positions (ray-casting straight down against the
     actual built, already print-oriented mesh) and drops a resin-support
     rod (cylinder_machine._resin_rod - the shared rod primitive Mignon/
-    Bennett also reuse) at each hit, bracing adjacent grid rods together
-    with an angled reinforcement strut (sp.connecting_rod - the one
-    genuinely new primitive, v2/hammond.scad:419's ConnectingRod ported).
-    Grid pitch is the real v2 Resin_Support_Spacing value."""
+    Bennett also reuse) at each hit. Grid pitch is the real v2 Resin_
+    Support_Spacing value.
+
+    Bracing (sp.connecting_rod, ported from v2/hammond.scad:419's
+    ConnectingRod) matches v2's real usage pattern, not an arbitrary
+    full-grid mesh: every one of v2's own ConnectingRod call sites
+    (v2:627,638,643-658,671,683) connects two points sharing the SAME
+    angular/lateral position (this grid's j index) but DIFFERENT
+    longitudinal position (i) - never laterally between two different j
+    rows - and always drops the brace a few mm below each rod's own tip
+    contact point rather than connecting flush at the very top (e.g.
+    v2:671's h-1 -> h-4). Reproduced here as i-only bracing with a fixed
+    brace_drop below each endpoint's tip."""
     _require_configured()
     spacing = Resin_Support_Spacing
     bounds = body.bounds
@@ -646,17 +655,26 @@ def ResinSupport(body):
         parts.append(sp.translate(rod, [loc[0], loc[1], 0]))
         live_tips[key] = loc
 
+    # v2's own ConnectingRod() calls (v2:627,638,643-658,671,683) always
+    # connect two points sharing the SAME angular position (Y) but
+    # DIFFERENT longitudinal position (X, the i grid index here) - never
+    # laterally between two different angular rows (j) - and always drop
+    # a few mm below the rod's own tip contact point rather than bracing
+    # flush at the very top (e.g. v2:671's h-1 -> h-4). Braced only along
+    # i (matching v2's real axis), and each end dropped by brace_drop
+    # below its own tip for the same reason - a level, tip-to-tip,
+    # both-directions brace (the first version of this function) doesn't
+    # match either property.
+    brace_drop = 1.5
     for (i, j), loc in live_tips.items():
-        for ni, nj in ((i + 1, j), (i, j + 1)):
-            nloc = live_tips.get((ni, nj))
-            if nloc is None:
-                continue
-            parts.append(sp.connecting_rod([loc[0], loc[1], loc[2]],
-                                            [nloc[0], nloc[1], nloc[2]],
-                                            Resin_Rod_OD))
+        nloc = live_tips.get((i + 1, j))
+        if nloc is None:
+            continue
+        z1 = max(loc[2] - brace_drop, Resin_Min_Rod_Height)
+        z2 = max(nloc[2] - brace_drop, Resin_Min_Rod_Height)
+        parts.append(sp.connecting_rod([loc[0], loc[1], z1], [nloc[0], nloc[1], z2], Resin_Rod_OD))
     print(f"ResinSupport: {len(live_tips)} rods, "
-          f"{sum(1 for (i, j) in live_tips if (i + 1, j) in live_tips or (i, j + 1) in live_tips)} "
-          f"braced", flush=True)
+          f"{sum(1 for (i, j) in live_tips if (i + 1, j) in live_tips)} braced", flush=True)
     return sp.union_all(parts)
 
 

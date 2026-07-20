@@ -1598,6 +1598,12 @@ class TuneApp(App):
                                              value=val, id=f"field-{key}", allow_blank=False)
                                 self.inputs[key] = sel
                                 yield sel
+                            elif key == "orientation":
+                                val = str(current) if str(current) in ("vertical", "horizontal") else "vertical"
+                                sel = Select([("Vertical", "vertical"), ("Horizontal", "horizontal")],
+                                             value=val, id=f"field-{key}", allow_blank=False)
+                                self.inputs[key] = sel
+                                yield sel
                             else:
                                 inp = Input(value=str(current), id=f"field-{key}")
                                 self.inputs[key] = inp
