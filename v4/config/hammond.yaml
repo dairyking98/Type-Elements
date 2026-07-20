@@ -201,6 +201,13 @@ resin:
   spacing: 3.0                      # Resin_Support_Spacing - real angular
                                      # rod pitch is spacing/Shuttle_Arc_Radius
                                      # radians (v2:615's thetaspacing formula)
+  # Resin_Support_Orientation (v2:300) - "vertical" stands the shuttle up
+  # on one end (v2's VertResinPrint2, rotate([0,-90,0])); "horizontal"
+  # prints it flat in its natural as-built frame (v2's HorizResinPrint -
+  # no rotation, just recentered). Both reuse the same ResinSupport()
+  # grid+raycast+gusset scheme (see lib/hammond.py's ResinPrint()) - only
+  # the pre-orientation transform differs.
+  orientation: vertical              # [vertical, horizontal]
 
 output:
   directory: "output"

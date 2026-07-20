@@ -2169,24 +2169,46 @@ fix landed, and never auto-resynced - a scratch file, gitignored) had to
 be deleted by hand once for the running copy to pick up the corrected
 master; not a recurring issue once regenerated.
 
-**Also requested, not yet started**: menu/config coverage still has real
-gaps for Hammond-specific concepts - v2's `Resin_Support_Orientation`
-(Vertical vs. Horizontal print - only Vertical's `VertResinPrint2` path
-is ported, `HorizResinPrint`/`HorizGroovedResin3` aren't) and the
-`Groove`/rib assembly toggle (`RibAssembled()` vs. `GroovedShuttle()` -
-this is almost certainly what "rendering with or without the rib" means,
-Groove=true being the deferred variant from part 29) both need real
-config/tune.py wiring, not just the current single hardcoded path. Not
-attempted yet - scoping this out is the next session's work.
+**Also requested**: `resin.orientation` (`vertical`/`horizontal`) added to
+`config/hammond.yaml` and wired into `lib/hammond.py`'s `ResinPrint()`
+and `tune.py`'s `RESIN_FIELDS_HAMMOND`. "vertical" is v2's real
+`VertResinPrint2` orientation (`rotate([0,-90,0])` then
+`translate(-Z_Offset,0,-X_Max)`, unchanged from part 29); "horizontal" is
+v2's real `HorizResinPrint` orientation - turned out to be simpler than
+expected: NO rotation at all, just `translate(-Z_Offset,0,0)` (prints
+flat, in the shuttle's own natural as-built frame - the arc's own X/Y/Z
+axes are already the print axes, v2 doesn't reorient it for this path).
+`ResinSupport()`'s grid+raycast+gusset scheme (part 29) needed zero
+changes for this - it already builds against whatever oriented mesh it's
+handed, so adding a second orientation was just a different pre-
+transform, not new support-placement code, unlike a v2-faithful port
+would have needed (v2's `HorizResinSupport2` is a completely separate
+~90-line placement scheme from `VertResinSupport2`). Verified both:
+vertical reproduces part 29/30's exact baseline (`volume=4373.674mm3`,
+unchanged); horizontal is a new, different, valid, watertight result
+(`verts=29375 faces=59046 volume=2645.954mm3`, 49 rods/41 braced - fewer
+than vertical's 132/131, consistent with a flatter print needing less
+support density).
+
+**Still not started**: the `Groove`/rib assembly toggle (`RibAssembled()`
+vs. `GroovedShuttle()` - almost certainly what "rendering with or without
+the rib" means, `Groove=true` being the deferred variant from part 29).
+Unlike the orientation toggle, this needs real NEW body-geometry code
+(`Groove()`/`PinSupport2()`/`GroovedShuttle()`/`ResinChamfer()`, ported
+from v2/hammond.scad following the same pattern as `Rib()`/
+`PinSupport()`/`RibAssembled()`), not just a different transform - scoped
+as its own follow-up, explicitly deferred again by user choice this
+round (asked which of the two to do first; orientation was picked).
 
 ## Resuming later
 
-1. **Hammond follow-up work (part 30)**: (a) wire up `Resin_Support_
-   Orientation` (Vertical/Horizontal print, v2's `HorizResinPrint`/
-   `HorizGroovedResin3` paths aren't ported at all yet) as a real
-   config/tune.py toggle: (b) wire up the `Groove`/rib assembly variant
-   (`GroovedShuttle()` vs. the currently-hardcoded `RibAssembled()` path)
-   the same way - almost certainly what "with or without the rib" means;
+1. **Hammond follow-up work (part 30)**: (a) DONE - `resin.orientation`
+   (vertical/horizontal print) is wired up in config/lib/tune.py; (b) wire
+   up the `Groove`/rib assembly variant (`GroovedShuttle()` vs. the
+   currently-hardcoded `RibAssembled()` path) - almost certainly what
+   "with or without the rib" means - this needs real new body-geometry
+   code (`Groove()`/`PinSupport2()`/`GroovedShuttle()`/`ResinChamfer()`),
+   not just a transform, unlike (a);
    (c) go through `tune.py`'s Hammond tabs field-by-field against
    `config/hammond.yaml` for anything still missing (named layout
    presets, Calibration wiring - see part 29's open items).

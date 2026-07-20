@@ -697,6 +697,8 @@ RESIN_FIELDS_HAMMOND = [
     ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
     ("spacing", ["resin", "spacing"], float, "Support grid spacing (mm)",
      "Pitch of the resin-support rod grid and its gusseting bracing - see lib/hammond.py's ResinSupport()."),
+    ("orientation", ["resin", "orientation"], str, "Print orientation",
+     '"vertical" (stands the shuttle up on end) or "horizontal" (prints flat, as-built).'),
 ]
 
 ELEMENT_FIELDS_HAMMOND = [

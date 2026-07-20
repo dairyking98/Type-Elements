@@ -228,6 +228,7 @@ def configure(config_path):
     g["Resin_Raft_OD"] = r["raft_od"]
     g["Resin_Rod_Raft"] = True  # each rod grows its own small raft (no shared raft ring here)
     g["Resin_Support_Spacing"] = r["spacing"]
+    g["Resin_Support_Orientation"] = r.get("orientation", "vertical")
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
     g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
@@ -581,19 +582,31 @@ def ResinSupport(body):
 def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
-    """v2/hammond.scad:811-822 VertResinPrint2's real print orientation -
+    """Resin_Support_Orientation (v2:300) picks between two real v2 print
+    orientations:
+
+    "vertical" - v2/hammond.scad:811-822 VertResinPrint2's orientation:
     rotate([0,-90,0]) then translate(-Z_Offset,0,-X_Max) - stands the arc
-    up on one end for vertical printing, kept faithful (a real, deliberate
-    orientation choice, not something the resin-support redesign touches).
-    The whole oriented body is then shifted so its lowest point sits at
-    Resin_Min_Rod_Height above a true Z=0 buildplate, matching
-    cylinder_machine._resin_rod()'s own h-is-buildplate-relative
-    convention."""
+    up on one end.
+
+    "horizontal" - v2/hammond.scad:824-847 HorizResinPrint's orientation:
+    NO rotation at all, just translate(-Z_Offset,0,0) - prints flat, in
+    the shuttle's own natural as-built frame (arc curve facing up).
+
+    Either way, the whole oriented body is then shifted so its lowest
+    point sits at Resin_Min_Rod_Height above a true Z=0 buildplate,
+    matching cylinder_machine._resin_rod()'s own h-is-buildplate-relative
+    convention - and ResinSupport() (grid+raycast against whatever mesh
+    it's given) is completely orientation-agnostic, so it's unchanged
+    either way; only this pre-transform differs."""
     full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)
-    oriented = sp.scad_transform(full, ("rotate", [0, -90, 0]), ("translate", [-Z_Offset, 0, -X_Max]))
+    if Resin_Support_Orientation == "horizontal":
+        oriented = sp.translate(full, [-Z_Offset, 0, 0])
+    else:
+        oriented = sp.scad_transform(full, ("rotate", [0, -90, 0]), ("translate", [-Z_Offset, 0, -X_Max]))
     lowest_z = oriented.bounds[0][2]
     oriented = sp.translate(oriented, [0, 0, Resin_Min_Rod_Height - lowest_z])
 
