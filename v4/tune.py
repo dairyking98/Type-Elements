@@ -1124,6 +1124,21 @@ LAYOUT_PICKER_HELP = {
     ),
 }
 
+# Build tab's "Resin supports" checkbox (see _compose_build_tab) is
+# always shown, every machine - but has no effect for machines with no
+# resin-support geometry modeled at all (lib/helios.py's ResinSupport()
+# returns None, ResinPrint() is a no-op alias to FullElement()). Extra
+# note appended to that checkbox's help text, keyed by machine name, per
+# CLAUDE.md's per-machine-banner-text rule (no if/elif chain) - empty
+# string (via .get()) for every machine that DOES have real resin
+# supports modeled.
+RESIN_SUPPORT_UNAVAILABLE_NOTE = {
+    "helios": (
+        " This checkbox has no effect for Helios - no resin support "
+        "geometry is modeled (see ResinPrint() in lib/helios.py)."
+    ),
+}
+
 # layout.baseline_row/cutout_row per-row fields (Element tab - see
 # TuneApp._compose_baseline_cutout_fields). Bespoke, not in
 # self.FIELDS/SECTIONS - these are list ELEMENTS (patch_yaml_list_item),
@@ -1646,12 +1661,14 @@ class TuneApp(App):
                     "always includes its own resin supports regardless of this "
                     "checkbox."
                 ) if has_gauge else ""
+                resin_unavailable = RESIN_SUPPORT_UNAVAILABLE_NOTE.get(self.machine, "")
                 yield Static(
                     "Element: the real element. Turn on Resin supports to add "
                     "rods/breakaway ring (see the Resin tab for those settings)."
                     f"{gauge_help} Calibration Element: strikes the same test "
                     "character everywhere, sweeping baseline or cutout per column "
-                    "(see the Calibration tab) to find layout.baseline_row/cutout_row.",
+                    "(see the Calibration tab) to find layout.baseline_row/cutout_row."
+                    f"{resin_unavailable}",
                     classes="picker-help")
 
                 yield Static("Debug", classes="field-label")

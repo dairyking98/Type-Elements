@@ -17,8 +17,11 @@ comparison against v2/heliosklimax.scad: a 5-point-hull rotate_extrude()
 hollow cavity (HollowingElement, true circular corner rounding via a real
 shapely hull of circles - unlike cylinder_machine._hollow_space_profile's
 hand-rounded point list) instead of HollowSpace()+BottomSlopedSpace(), a
-plain boss+through-hole alignment pin (AlignmentPinSupport/AlignmentPinHole)
-instead of a countersunk drive pin, and a hulled-cylinder wire clip
+plain through-hole alignment pin (AlignmentPinHole - v2's own support
+boss around it, AlignmentPinSupport, is disabled by explicit user
+request, commented out rather than deleted; see that function's own
+comment and SESSION_LOG.md part 28) instead of a countersunk drive pin,
+and a hulled-cylinder wire clip
 (WireClip) instead of core_shaft.scad's WireBite() shapely-hull-and-extrude
 version - structurally similar in spirit (v2's own header: "similar in
 spirit to Blick2/Postal's") but never extracted to a shared lib in v2
@@ -52,17 +55,20 @@ ClipRetainer() are added AFTER the first round of cuts (HollowingElement/
 MinkCleanup/IndicatorHole) and are THEN themselves cut by the second round
 (AlignmentPinHole/CenterShaftHole/WireClip). Flattening this into one
 "additive union minus subtractive union" (like every other machine's
-FullElement) would be WRONG here: HollowingElement's cavity genuinely
-overlaps AlignmentPinSupport's boss position (radius 8.92mm falls inside
-the cavity's radial span [Shaft_Diameter/2+Shell+Inside, Element_Diameter/2
+FullElement) would be WRONG here even with AlignmentPinSupport() disabled
+(see above): HollowingElement's cavity genuinely overlaps where
+AlignmentPinSupport's boss USED to sit (radius 8.92mm falls inside the
+cavity's radial span [Shaft_Diameter/2+Shell+Inside, Element_Diameter/2
 -Shell-Inside], and the boss's z-range [1.5, 4.5] falls inside the
 cavity's height span too - verified against v2's real x_min/x_max/y_min/
-y_max formulas) - subtracting HollowingElement from a single flattened
-union would eat the boss v2 never actually cuts there, since v2 only adds
-the boss AFTER that cut already happened. Additive() below reproduces the
-real staged construction (stage-1 cut, THEN union the bosses); FullElement's
-own final difference is only the genuine outer-scope cut (AlignmentPinHole/
-WireClip/the core_shaft family - see _final_cut()).
+y_max formulas) - if it's ever reinstated, a flattened union would eat it
+the same way. ClipRetainer() independently needs the same staging too
+(it overlaps MinkCleanup's top cutting cylinder's z-range) - so the
+two-stage structure stays regardless of AlignmentPinSupport's on/off
+state. Additive() below reproduces the real staged construction (stage-1
+cut, THEN union the bosses); FullElement's own final difference is only
+the genuine outer-scope cut (AlignmentPinHole/WireClip/the core_shaft
+family - see _final_cut()).
 
 No Logo/Label engraved text, no Shaft Gauge Test (v2's own header:
 "Sections with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge
@@ -320,13 +326,18 @@ def IndicatorHole():
     return sp.translate(h, [Element_Indicator_Hole_Position, 0, Element_Height - Element_Shell_Thickness / 2])
 
 
-def AlignmentPinSupport():
-    """v2 ~333-335 - a boss the alignment pin hole is later cut through
-    (see AlignmentPinHole()). $fn unspecified in source, same treatment as
-    MinkCleanup() above - Surface_Fn here instead of a fixed 20 since this
-    IS visible/functional model geometry, not a cleanup-only shape."""
-    c = sp.cylinder_z(Element_Square_Hole_Width + 2, Element_Square_Hole_Support_Height, sections=Surface_Fn)
-    return sp.translate(c, [-Element_Square_Hole_Position, 0, Element_Shell_Thickness - z])
+# AlignmentPinSupport() - v2 ~333-335, a boss the alignment pin hole was
+# cut through (see AlignmentPinHole()). Disabled by explicit user
+# request (not a v2/porting correction - v2 does have this boss) -
+# commented out rather than deleted so it can be reinstated later.
+# Uncomment this function AND its call in _assemble() below to restore.
+#
+# def AlignmentPinSupport():
+#     """$fn unspecified in source, same treatment as MinkCleanup() above -
+#     Surface_Fn here instead of a fixed 20 since this IS visible/
+#     functional model geometry, not a cleanup-only shape."""
+#     c = sp.cylinder_z(Element_Square_Hole_Width + 2, Element_Square_Hole_Support_Height, sections=Surface_Fn)
+#     return sp.translate(c, [-Element_Square_Hole_Position, 0, Element_Shell_Thickness - z])
 
 
 def ClipRetainer():
@@ -362,20 +373,22 @@ def WireClip():
 # ---------------------------------------------------------------- Element
 # See the module docstring's "Two-stage difference" note - _assemble()
 # reproduces v2's real nested difference()s: stage-1 cuts (HollowingElement/
-# MinkCleanup/IndicatorHole) happen BEFORE AlignmentPinSupport()/
-# ClipRetainer() are added, so those bosses are never touched by stage-1's
-# cuts, only by the genuine final-stage ones (AlignmentPinHole/WireClip/the
-# core_shaft family - see _final_cut()). The core_shaft parts are all near
-# the shaft axis (radius well under Element_Square_Hole_Position=8.92mm),
-# so they don't reach back into AlignmentPinSupport's boss - verified by
-# the hard-gate watertight/is_volume check, not just assumed from the
-# numbers.
+# MinkCleanup/IndicatorHole) happen BEFORE ClipRetainer() (and, if
+# reinstated, AlignmentPinSupport()) is added, so it's never touched by
+# stage-1's cuts, only by the genuine final-stage ones (AlignmentPinHole/
+# WireClip/the core_shaft family - see _final_cut()). The core_shaft parts
+# are all near the shaft axis (radius well under Element_Square_Hole_
+# Position=8.92mm), so they don't reach back into where AlignmentPinSupport's
+# boss would sit if reinstated - verified by the hard-gate watertight/
+# is_volume check, not just assumed from the numbers.
 
 def _assemble(text_ring):
     base = sp.union_all([text_ring, Cylinder()])
     stage1_cut = sp.union_all([HollowingElement(), MinkCleanup(), IndicatorHole()])
     stage1_body = base.difference(stage1_cut, engine="manifold")
-    return sp.union_all([stage1_body, AlignmentPinSupport(), ClipRetainer()])
+    # AlignmentPinSupport() disabled - see its own (commented-out)
+    # definition above. Uncomment both to restore.
+    return sp.union_all([stage1_body, ClipRetainer()])
 
 
 def _final_cut(render_core_groove=None):

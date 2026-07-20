@@ -330,13 +330,17 @@ subtractive split.** v2's `Assemble()` nests three `difference()`s -
 `AlignmentPinSupport()`/`ClipRetainer()` (two bosses) are added only
 *after* the first round of cuts (`HollowingElement`/`MinkCleanup`/
 `IndicatorHole`), then are themselves cut by a second round
-(`AlignmentPinHole`/`WireClip`/the core_shaft family above). This isn't cosmetic:
-`AlignmentPinSupport`'s boss position genuinely falls inside
+(`AlignmentPinHole`/`WireClip`/the core_shaft family above). This isn't
+cosmetic: `AlignmentPinSupport`'s boss position genuinely falls inside
 `HollowingElement`'s own cavity extent (verified against the real config
 values), so a naively flattened "union everything, subtract everything"
 (the shape every other machine's `FullElement` uses) would incorrectly
 eat the boss. `lib/helios.py`'s `_assemble()` reproduces the real staged
 order directly - see its module docstring for the full derivation.
+(`AlignmentPinSupport()` itself is currently disabled by explicit user
+request - commented out, not deleted, in `lib/helios.py` - but the
+two-stage structure stays regardless, since `ClipRetainer()` independently
+needs it too; see `SESSION_LOG.md` part 28.)
 `HollowingElement()` itself is a true `shapely` convex hull of 5 circles
 (matching v2's `hull(){circle(); ...}` exactly, real rounded corners),
 the same hull-then-revolve technique `WireBite()`/Mignon's

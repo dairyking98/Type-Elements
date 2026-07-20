@@ -1953,6 +1953,49 @@ shouldn't exist just entrenches it, and in this case would have meant
 carrying a hardcoded, config-rule-violating magic number indefinitely
 for a problem that had a strictly better fix available.
 
+## 28. Disabled Helios's alignment-pin boss (user request); documented Resin supports as a no-op on the Build tab
+
+Two small, explicit user requests, not bugs.
+
+**Disabled `AlignmentPinSupport()`** (the boss `AlignmentPinHole()` is
+cut through, v2's real support material around the alignment pin) -
+commented out rather than deleted, per the user's own instruction, so it
+can be reinstated later without re-deriving it from v2. Removed its call
+from `_assemble()`'s union list; left `AlignmentPinHole()` itself
+untouched (still cuts through the plain wall now, thinner than with the
+boss - the user asked to remove the boss specifically, not the hole/pin
+mechanism). Updated the module docstring's "Two-stage difference"
+explanation and the `_assemble()`-adjacent comment to stop describing
+the boss as active, while keeping the geometric reasoning for why the
+two-stage `difference()` structure is still necessary regardless
+(`ClipRetainer()` independently needs the same staging - it overlaps
+`MinkCleanup()`'s top cutting cylinder's z-range - so disabling the boss
+doesn't simplify `_assemble()`'s architecture, just removes one union
+member from it). Verified: still watertight/single-volume, volume
+dropped by ~52mm3 (the boss's own material), matching expectations.
+
+**Documented "Resin supports" as a no-op for Helios on the Build tab.**
+The checkbox is always shown regardless of machine (`_compose_build_tab`
+has no per-machine gating for it, unlike the Gauge/Logo/Label tabs which
+check `"X" in self.SECTIONS`), and toggling it for Helios silently does
+nothing observable - `ResinPrint()` is already a plain alias to
+`FullElement()` (part 23: v2 declares `Resin_Support`/`Resin_Support_*`
+but never builds any actual support geometry). Added a new
+`RESIN_SUPPORT_UNAVAILABLE_NOTE` dict (keyed by machine name, `""` via
+`.get()` for every machine that DOES have real resin supports modeled)
+appended to the existing help `Static` beneath the checkbox, following
+CLAUDE.md's per-machine-banner-text rule (`LAYOUT_PICKER_HELP` is the
+template - a dict lookup, not an `if self.machine == "x"` branch).
+Verified via a headless `TuneApp(...).run_test()` against scratch copies
+of both a Helios and a Blickensderfer config: the note text is present
+for Helios, absent for Blickensderfer.
+
+**Verification**: rebuilt Helios at fast settings (watertight/is_volume,
+84/84 characters placed) and reran the Blickensderfer regression
+(`generate.py` untouched this round, but `tune.py`'s shared
+`_compose_build_tab` was touched, so machine-neutrality was worth
+reconfirming) - reproduces the documented baseline byte-for-byte.
+
 ## Resuming later
 
 1. **Hammond/Hammond_split and IBM are next** - the last two machines on
