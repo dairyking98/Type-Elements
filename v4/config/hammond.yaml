@@ -97,10 +97,11 @@ element:
   # is this same value, not an independently-tunable one.
   angular_span_deg: 120
   angular_divisions: 32
-  # Is_Math (v2:128 - search(LAYOUTS[Layout_Selection][3],"Math")) is a
-  # derived tag lookup in v2; here it's just which real layout preset is
-  # active - Normal_U (default) is not the Math layout, so false.
-  is_math: false
+  # Is_Math (v2:128 - search(LAYOUTS[Layout_Selection][3],"Math")) is
+  # DERIVED in lib/hammond.py's configure() from len(layout.rows)==4 (the
+  # Math Universal preset is the only real 4-row layout - see tune.py's
+  # Layout tab) - not a separate settable toggle here, so it can't drift
+  # out of sync with which preset is actually selected.
   # Rib()'s fillet region insets its resin-support-clearance corner by this
   # much (v2:351 "Cp_1_X=Shuttle_Arc_Radius*cos(Theta_A)-2  //limit of resin
   # support" - a real, named machine clearance, not a construction sentinel).
@@ -134,12 +135,16 @@ quality:
 
 # Baseline (v2:130) is [Lowercase, Uppercase, Figures, Math], measured from
 # the bottom RIB plane (Baseline_Z_Offset=Rib_Bottom_Z, a derived value -
-# see lib/hammond.py's configure()). Default layout (Normal_U) has only 3
-# rows, so only the first 3 entries apply here; the 4th (Math, -9.89) is a
-# real v2 value kept for when the Math layout preset is wired up, not
-# currently read. Cutout (v2:133) is unused (Skip_Platen_Cutout=true, see
-# lib/hammond.py) - cutout_row is set equal to baseline_row as a documented
-# no-op rather than porting the dead [0,0,0,0].
+# see lib/hammond.py's configure()). This master config's default layout
+# (Normal Universal) has only 3 rows, so only the first 3 entries apply
+# here - the real 4th (Math, -9.89) value lives in tune.py's
+# LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE["hammond"]["Math Universal"],
+# applied automatically when that layout preset is selected (switches
+# baseline_row/cutout_row to 4 entries at the same time as rows, since
+# Is_Math is derived from row count - see lib/hammond.py's configure()).
+# Cutout (v2:133) is unused (Skip_Platen_Cutout=true, see lib/hammond.py)
+# - cutout_row is set equal to baseline_row as a documented no-op rather
+# than porting the dead [0,0,0,0].
 #
 # Placement_Map (v2:371, col<=14 ? col-16 : col-14) is Hammond's real
 # non-identity physical-column mapping for the arc's seam at column 14/15 -
@@ -159,7 +164,6 @@ layout:
   # since tune.py's Element tab reads layout.cutout_row directly, same as
   # baseline_row.
   cutout_row: [3.74, -1.21, -5.71]
-  baseline_row_math: -9.89
   latitude_columns: 30
   placement_map: [-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
   rows:

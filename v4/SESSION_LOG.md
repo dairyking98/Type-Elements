@@ -2364,6 +2364,90 @@ which has no analytic reference and still needs one).
 `tune.py`: added `edge_gap` to `RESIN_FIELDS_HAMMOND` (71 fields now, up
 from 70). Headless smoke test confirms compose/save/quit still work.
 
+## 34. Hammond: groove dropdown, Math layout preset, auto-derived Is_Math
+
+Three more requests in one pass: the groove checkbox should be a
+dropdown too, there's a "Math shuttle" layout variant to wire up (check
+v1, might not be in v2), and `Is_Math` should auto-follow row count
+instead of being a separate toggle.
+
+**Checked v1 first, per the request** -
+`v1/Hammond/HammondShuttle.scad` (the pre-v2-migration original) has the
+exact same `Layouts`/`IsMath`/`Math_U` system v2 already has (confirmed
+line-by-line: same 4-row `Math_U` array, same `IsMath=search(...,
+"Math")` derivation) - nothing extra hiding in v1. "Math Universal"
+(`LAYOUTS[2]` in `v2/lib/layouts/hammond_layouts.scad`) is the only real
+"math shuttle" variant, and it's the one now wired up.
+
+**`Is_Math` is now derived, not a toggle** - `element.is_math` removed
+from `config/hammond.yaml` entirely; `lib/hammond.py`'s `configure()`
+computes `Is_Math = len(cfg["layout"]["rows"]) == 4` instead (Math
+Universal is the only 4-row preset; everything else is 3). Removed the
+now-dead `is_math` field from `ELEMENT_FIELDS_HAMMOND` and the
+now-unused `baseline_row_math` YAML key (its real value, -9.89, moved to
+the preset data below instead of sitting unused in the master config).
+
+**Two layout presets added** (`LAYOUT_PRESETS_HAMMOND` in `tune.py`):
+"Normal Universal" (the existing default, 3 rows) and "Math Universal"
+(4 rows, `v2/lib/layouts/hammond_layouts.scad`'s `Math_U`). This is the
+first machine whose presets differ in ROW COUNT, which the existing
+preset-picker infrastructure wasn't fully built for - `patch_yaml_rows`
+itself was already "row-count-agnostic" (writes however many rows it's
+given), but two real problems surfaced from actually testing the switch,
+not just reading the code:
+
+1. **`baseline_row`/`cutout_row` also need to grow to 4 entries** when
+   Math Universal is selected (`TextRing`'s `n_rows = len(reference_
+   baseline_row)` would otherwise stay at 3, silently dropping the 4th
+   row's characters). No existing mechanism resizes these - the per-row
+   `BASELINE_CUTOUT_KEYS` Input widgets are a fixed set sized once at
+   `_load_machine()` time. Added `LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE`
+   (keyed by machine, then preset name - only Hammond has an entry, since
+   no other machine's presets vary in row count) plus a new
+   `patch_yaml_inline_list()` (replaces a whole `key: [...]` array,
+   unlike `patch_yaml_list_item` which only patches one element) -
+   applied in `_save_to_yaml` right after `patch_yaml_rows`, overwriting
+   whatever the (now-stale-length) `BASELINE_CUTOUT_KEYS` loop had just
+   written.
+2. **Selecting a longer preset crashed immediately** - `on_select_changed`
+   (and `on_switch_changed`, and `_refresh_widgets_from_cfg`) all update
+   per-row preview/edit widgets by iterating `range(len(new_rows))` and
+   querying `#layout-original-row-{i}`/`#layout-custom-row-{i}` - fine
+   when every preset has the same row count (true for every other
+   machine), but Math Universal's 4th row has no matching widget (the
+   fixed set from compose() time only has 3) - immediate `NoMatches` on
+   selecting the dropdown value. Fixed with a new `_update_row_widget()`
+   helper (query + no-op if missing, used at all 4 call sites) and a
+   `self.inputs.get()` guard in `_refresh_widgets_from_cfg`'s
+   `baseline_row`/`cutout_row` widget-sync loop (a plain dict lookup,
+   raises `KeyError` not `NoMatches`, needed the same fix for the same
+   reason). The read-only preview/edit widgets for a 4th row don't
+   *appear* until a recompose (switching machine and back, or
+   restarting) - a known, accepted UX gap, not a crash.
+
+**`element.groove` is now a dropdown** ("Rib" / "No Rib (Groove)"),
+matching the `mode`/`orientation` pattern - added as a `key == "groove"`
+special case checked BEFORE the generic `typ is bool` branch (order
+matters in the if/elif chain; `groove`'s type is still `bool`, so the
+generic branch would otherwise catch it first and render a Switch).
+`_collect_values`/`_load_current` needed no changes - both already treat
+Select and Switch widgets identically via `.value` for a `bool`-typed
+field.
+
+**Verified**: `Is_Math` auto-derivation (3-row config -> `False`/
+`Shuttle_Height=16.6`; 4-row config -> `True`/`Shuttle_Height=21.24`);
+full `generate.py` build on a hand-built 4-row Math config (120
+characters = 4x30, 0 skipped, `ResinSupport: 1852 parts`,
+`volume=5765.334mm3`, watertight/winding_consistent/is_volume=True);
+Normal Universal regression unchanged (`volume=4765.334mm3`); a full
+headless `TuneApp` cycle - switch to Math Universal via the dropdown,
+save, confirm `rows`/`baseline_row`/`cutout_row` all landed correctly in
+the RUNNING config (not the master - tripped over this distinction
+myself mid-debugging) - then a real `generate.py` build from that exact
+tune.py-written config reproduces the same `volume=5765.334mm3`
+byte-for-byte; groove dropdown save round-trips correctly
+(`groove: true` written and read back).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

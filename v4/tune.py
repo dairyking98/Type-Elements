@@ -170,6 +170,7 @@ from datetime import datetime
 import yaml
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.css.query import NoMatches
 from textual.widgets import (Button, Footer, Header, Input, Select, Static, Switch,
                               RichLog, TabbedContent, TabPane, TextArea)
 from textual_fspicker import FileOpen, FileSave, Filters
@@ -729,7 +730,6 @@ ELEMENT_FIELDS_HAMMOND = [
     ("shuttle_taper_step", ["element", "shuttle_taper_step"], float, "Taper step (mm)", ""),
     ("angular_span_deg", ["element", "angular_span_deg"], float, "Angular span (deg)", "Angle_Pitch = (this/angular_divisions)/shrinkage_multiplier."),
     ("angular_divisions", ["element", "angular_divisions"], int, "Angular divisions", ""),
-    ("is_math", ["element", "is_math"], bool, "Math layout", "Whether the active layout preset is the Math one (selects math_shuttle_height/the 4th baseline row)."),
     ("rib_fillet_resin_clearance", ["element", "rib_fillet_resin_clearance"], float, "Rib fillet clearance (mm)", ""),
     ("groove", ["element", "groove"], bool, "Snap-fit groove (no rib)",
      "Off (default): internal rib + drive-pin boss. On: snap-fit groove cut into the shell instead - no separate rib piece."),
@@ -1159,12 +1159,51 @@ LAYOUT_PRESETS_HELIOS = {
     ],
 }
 
+# v2/lib/layouts/hammond_layouts.scad's LAYOUTS[0]/LAYOUTS[2] (Normal_U/
+# Math_U) - the two real presets that differ in ROW COUNT (3 vs 4), which
+# no other machine's layout presets do. "Math Universal" is the "math
+# shuttle" variant - confirmed identical in v1/Hammond/HammondShuttle.scad
+# (the pre-v2-migration original), nothing extra hiding there. Is_Math
+# auto-derives from len(rows)==4 (lib/hammond.py's configure()), so
+# selecting this preset alone is enough to switch Shuttle_Height/the Xx
+# resin-support array - see LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE below
+# for how baseline_row/cutout_row (which ALSO need a 4th entry for this
+# preset) get resized to match.
+LAYOUT_PRESETS_HAMMOND = {
+    "Normal Universal": [
+        "-;p.lo,kimjunhybgtvfrcdexswzaq",
+        "!:P.LO?KIMJUNHYBGTVFRCDEXSWZAQ",
+        "/=0.)9°(8^'7*&6¢_5£%4+$3×#2@\"1",
+    ],
+    "Math Universal": [
+        "√·p.lo,kimjunhybgtvfrcdexswzaq",
+        "∫:P∂LO?KIMJUNHYBGTVFRCDEXSWZAQ",
+        "/=0>)9<(8|'7*÷6]Γ5[∝4+Δ3×∑2_\"1",
+        "―ₙ₀πλ₉ωκ₈φε₇τη₆βγ₅θψ₄ρδ₃ξσ₂ζα₁",
+    ],
+}
+
+# layout.baseline_row/cutout_row that go WITH each of the row-count-
+# varying presets above - only Hammond needs this (every other machine's
+# presets keep the machine's one fixed row count). Applied in
+# _save_to_yaml alongside patch_yaml_rows, since the generic per-row
+# Input widgets (BASELINE_CUTOUT_KEYS) are sized for whatever row count
+# was on disk at compose() time and can't grow/shrink themselves mid-
+# session - see SESSION_LOG.md's Hammond chapter.
+LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
+    "hammond": {
+        "Normal Universal": [3.74, -1.21, -5.71],
+        "Math Universal": [3.74, -1.21, -5.71, -9.89],
+    },
+}
+
 LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
     "postal": LAYOUT_PRESETS_POSTAL,
     "mignon": LAYOUT_PRESETS_MIGNON,
     "bennett": LAYOUT_PRESETS_BENNETT,
     "helios": LAYOUT_PRESETS_HELIOS,
+    "hammond": LAYOUT_PRESETS_HAMMOND,
 }
 
 # Layout tab's picker-help banner, one flowing string per machine (see
@@ -1199,6 +1238,14 @@ LAYOUT_PICKER_HELP = {
         "second array present in the source but superseded there. Both "
         "share the same 4-row/21-column physical layout, identity "
         "placement_map."
+    ),
+    "hammond": (
+        "Math Universal has 4 rows instead of 3 - selecting it switches "
+        "Shuttle_Height and the resin-support layout to the Math shuttle "
+        "variant automatically (Is_Math is derived from the row count, "
+        "not a separate toggle), and resizes baseline_row/cutout_row to "
+        "match. Both are real v2 presets - v1's original source has "
+        "nothing extra beyond these two."
     ),
 }
 
@@ -1276,6 +1323,27 @@ def patch_yaml_list_item(text, key, index, value):
         val_str += ".0"
     items[index] = val_str
     return text[:m.start()] + m.group(1) + ", ".join(items) + m.group(3) + text[m.end():]
+
+
+def patch_yaml_inline_list(text, key, values):
+    """Replaces the WHOLE inline flow-style YAML list (key: [a, b, c]),
+    not just one element like patch_yaml_list_item - needed when the
+    list's own LENGTH changes, e.g. Hammond's layout.baseline_row/
+    cutout_row growing from 3 to 4 entries when the Math Universal layout
+    preset is selected (see LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE) - a
+    per-index patch can't add/remove elements."""
+    pattern = re.compile(rf'^(\s*{re.escape(key)}:\s*\[)([^\]]*)(\])', re.MULTILINE)
+    m = pattern.search(text)
+    if not m:
+        raise ValueError(f"key {key!r} not found in config text - was it renamed/removed?")
+
+    def _fmt(v):
+        s = f"{v:.6f}".rstrip("0").rstrip(".")
+        if "." not in s and "e" not in s.lower():
+            s += ".0"
+        return s
+
+    return text[:m.start()] + m.group(1) + ", ".join(_fmt(v) for v in values) + m.group(3) + text[m.end():]
 
 
 def patch_yaml_rows(text, rows):
@@ -1575,6 +1643,26 @@ class TuneApp(App):
                 return name
         return None  # custom/unrecognized - leave as-is unless explicitly changed
 
+    def _update_row_widget(self, id_prefix, i, value):
+        """Sets a #{id_prefix}-{i} widget's displayed value if a matching
+        widget actually exists - silently no-ops otherwise instead of
+        raising. Needed because Hammond's layout presets can have a
+        DIFFERENT row count than whatever was on disk at compose() time
+        (Math Universal is 4 rows, everything else is 3) - the per-row
+        preview/edit widgets are a fixed set sized once at compose time
+        and can't grow reactively when a longer preset is picked
+        mid-session. A recompose (switching machine and back, or
+        restarting) picks up the new row count properly; this just
+        avoids crashing in the meantime."""
+        try:
+            w = self.query_one(f"#{id_prefix}-{i}")
+        except NoMatches:
+            return
+        if isinstance(w, Static):
+            w.update(value)
+        else:
+            w.value = value
+
     def _compose_section_tab(self, section):
         fields = self.SECTIONS[section]
         tab_id = f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"
@@ -1589,7 +1677,22 @@ class TuneApp(App):
                     with Vertical(classes="field-row"):
                         with Horizontal():
                             yield Static(label, classes="field-label")
-                            if typ is bool:
+                            if key == "groove":
+                                # bool, but rendered as a dropdown (not a
+                                # Switch) per explicit request - "Rib" vs
+                                # "No rib" reads clearer than an on/off
+                                # toggle for a mutually-exclusive assembly
+                                # choice. _collect_values/_load_current
+                                # already handle bool-typed Select widgets
+                                # generically via .value, same as the
+                                # "mode"/"orientation" str-typed cases
+                                # below - no further changes needed there.
+                                val = bool(current)
+                                sel = Select([("Rib", False), ("No Rib (Groove)", True)],
+                                             value=val, id=f"field-{key}", allow_blank=False)
+                                self.inputs[key] = sel
+                                yield sel
+                            elif typ is bool:
                                 sw = Switch(value=bool(current), id=f"field-{key}")
                                 self.inputs[key] = sw
                                 yield sw
@@ -1946,6 +2049,18 @@ class TuneApp(App):
             layout_select = self.query_one("#layout-select", Select)
             if layout_select.value is not Select.NULL:
                 text = patch_yaml_rows(text, self.LAYOUT_PRESETS[layout_select.value])
+                # Only Hammond's presets vary in ROW COUNT (Math Universal
+                # is 4 rows, everything else is 3) - when the selected
+                # preset has its own paired baseline_row, overwrite
+                # baseline_row/cutout_row wholesale (not just the per-
+                # index BASELINE_CUTOUT_KEYS writes above, which are sized
+                # for whatever row count was on disk at compose() time and
+                # can't add/remove a 4th entry themselves).
+                preset_baseline = LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE.get(
+                    self.machine, {}).get(layout_select.value)
+                if preset_baseline is not None:
+                    text = patch_yaml_inline_list(text, "baseline_row", preset_baseline)
+                    text = patch_yaml_inline_list(text, "cutout_row", preset_baseline)
         type_test_text = self.query_one("#type-test-text", TextArea).text
         text = patch_yaml_text_block(text, "text", type_test_text)
         with open(self.config_path, "w") as f:
@@ -1991,17 +2106,22 @@ class TuneApp(App):
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
         display_rows = self._display_rows_for_preset()
         for i in range(len(display_rows)):
-            self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
+            self._update_row_widget("layout-original-row", i, display_rows[i])
         modify_glyphs = bool(self.cfg["layout"]["modify_glyphs"])
         self.query_one("#layout-modify-glyphs", Switch).value = modify_glyphs
         self.query_one("#layout-custom-rows").display = modify_glyphs
         current_rows = self.cfg["layout"]["rows"]
         for i in range(len(current_rows)):
-            self.query_one(f"#layout-custom-row-{i}", Input).value = current_rows[i]
+            self._update_row_widget("layout-custom-row", i, current_rows[i])
         for arr_key in ("baseline_row", "cutout_row"):
             arr = self.cfg["layout"][arr_key]
             for i in range(len(arr)):
-                self.inputs[f"{arr_key}_{i}"].value = str(arr[i])
+                # self.inputs (a plain dict, not query_one) - same row-
+                # count-mismatch reasoning as _update_row_widget above,
+                # but a dict lookup raises KeyError, not NoMatches.
+                w = self.inputs.get(f"{arr_key}_{i}")
+                if w is not None:
+                    w.value = str(arr[i])
 
     def action_reload(self):
         self._load_current()
@@ -2346,7 +2466,7 @@ class TuneApp(App):
         # kept showing the OLD preset while just browsing the dropdown.
         display_rows = self._rows_for_layout_select_value(event.value)
         for i in range(len(display_rows)):
-            self.query_one(f"#layout-original-row-{i}", Static).update(display_rows[i])
+            self._update_row_widget("layout-original-row", i, display_rows[i])
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         if event.switch.id != "layout-modify-glyphs":
@@ -2361,7 +2481,7 @@ class TuneApp(App):
             layout_select_value = self.query_one("#layout-select", Select).value
             display_rows = self._rows_for_layout_select_value(layout_select_value)
             for i in range(len(display_rows)):
-                self.query_one(f"#layout-custom-row-{i}", Input).value = display_rows[i]
+                self._update_row_widget("layout-custom-row", i, display_rows[i])
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id or ""

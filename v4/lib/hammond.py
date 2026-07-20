@@ -143,7 +143,13 @@ def configure(config_path):
     g["Shuttle_Thickness"] = e["shuttle_thickness"]
     g["Shuttle_Text_Protrusion"] = e["shuttle_text_protrusion"]
     g["Shuttle_Height_Offset"] = e["shuttle_height_offset"]
-    g["Is_Math"] = bool(e["is_math"])
+    # Is_Math (v2:128) is a derived tag lookup on the SELECTED layout
+    # preset in v2 - simplified here to "does the active layout have 4
+    # rows" (the Math Universal preset is the only real 4-row layout;
+    # every other preset has 3), per explicit user direction, rather than
+    # a separate manually-set config toggle that could drift out of sync
+    # with the actual layout.rows content.
+    g["Is_Math"] = len(cfg["layout"]["rows"]) == 4
     g["Shuttle_Height"] = ((e["math_shuttle_height"] if g["Is_Math"] else e["normal_shuttle_height"])
                             + e["shuttle_height_offset"])
     g["Shuttle_Rib_Plane"] = e["shuttle_rib_plane_base"] + e["shuttle_height_offset"]
