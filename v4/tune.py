@@ -469,7 +469,7 @@ LABEL_FIELDS_BENNETT = [
     ("label1a", ["label", "label1a"], str, "Label 1a (top line, right group)", "Shuttle_Label1a - e.g. a first name."),
     ("label1b", ["label", "label1b"], str, "Label 1b (bottom line, right group)", "Shuttle_Label1b - e.g. a last name."),
     ("label2", ["label", "label2"], str, "Label 2 (left group)", "Shuttle_Label2 - e.g. a year."),
-    ("size_mm", ["label", "size_mm"], float, "Label text size (mm)", ""),
+    ("label_size_mm", ["label", "size_mm"], float, "Label text size (mm)", ""),
     ("depth_mm", ["label", "depth_mm"], float, "Label depth offset (mm)", "Added to Bottom_Countersink_Depth for the cut's Z start."),
 ]
 
