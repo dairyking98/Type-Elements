@@ -39,7 +39,14 @@ label:
   label1a: "Leonard"     # Shuttle_Label1a
   label1b: "Chau"        # Shuttle_Label1b
   label2: "2025"         # Shuttle_Label2
-  size_mm: 1.7           # Shuttle_Label_Size
+  label_size_mm: 1.7     # Shuttle_Label_Size - prefixed (unlike font.size_mm)
+  # because tune.py's patch_yaml_value() does a flat, section-unscoped
+  # regex search for the key name across the whole YAML text - two
+  # differently-scoped fields both literally named "size_mm" would
+  # collide there regardless of tune.py's own per-tab bookkeeping (this
+  # is exactly what broke Bennett's Font & Alignment tab: see git log).
+  # Mignon's own label.* keys (label_text_size_mm etc.) already follow
+  # this same convention for the same reason.
   # Z offset added to Bottom_Countersink_Depth for where the (fixed 2mm
   # deep, not itself configurable in v2 - see LabelText()) cut starts.
   depth_mm: 0.2          # Shuttle_Label_Depth
