@@ -276,31 +276,14 @@ def HollowingElement():
     mignon.AlignmentPin() build a real shapely hull before revolving/
     extruding it.
 
-    circle resolution / revolve sections are deliberately LOW and fixed
-    here (not Surface_Fn) - this cavity is entirely internal/invisible
-    once printed (unlike Cylinder/ClipRetainer/WireClip, which genuinely
-    benefit from Surface_Fn's full resolution), so it doesn't need that
-    fidelity, and unioning 5 separate circles (vs. a single-circle hull
-    elsewhere, e.g. WireBite) compounds resolution into profile point
-    count fast. A real, shipped bug caught via user report (see
-    SESSION_LOG.md part 26): at resolution=32/sections=Surface_Fn(360
-    default), this mesh hit ~134 profile points x 360 sections = 95760
-    faces - fine for the actual boolean cut, but generate.py's optional
-    'does any character root reach the hollow cavity' diagnostic
-    (hasattr(bd, 'HollowSpace') - see FullElement()'s caller) calls
-    .contains() per character against this SAME mesh, an O(points x
-    faces) ray-cast with no pyembree installed in this environment - 33
-    SECONDS for that one diagnostic call alone, run AFTER the STL is
-    already written to disk. A user watching the log sees the build
-    finish, assumes it's done, and quits while the subprocess is still
-    grinding through this - killing it before tune.py's `returncode==0`
-    check is ever reached, so f3d never auto-launches (and Python's
-    asyncio subprocess-transport cleanup prints a scary but unrelated
-    'Event loop is closed' warning on exit). Fixed by using a fixed
-    resolution=6/sections=60 here instead - visually indistinguishable
-    for a 1mm fillet nobody ever sees, ~3480 faces (close to
-    Blickensderfer's own ~2682-face HollowSpace), diagnostic now
-    sub-second."""
+    Circle resolution=32 and the revolve's sections=Surface_Fn briefly
+    got dropped to a hardcoded lower value (part 26) to work around
+    generate.py's now-removed HollowSpace() diagnostic being slow against
+    this mesh - reverted (part 27) once the diagnostic itself was deleted
+    instead, since the actual boolean cut was never the bottleneck. See
+    SESSION_LOG.md parts 26-27 for the full story - this function's
+    numbers should never need to be hardcoded to work around something
+    happening elsewhere."""
     from shapely.geometry import Point
     from shapely.ops import unary_union
 
@@ -316,10 +299,10 @@ def HollowingElement():
         ((x_min + x_max) / 2, y_max),  # Top
         (x_max, y_min),               # Bottom Right
     ]
-    circles = [Point(px, py).buffer(r, resolution=6) for px, py in centers]
+    circles = [Point(px, py).buffer(r, resolution=32) for px, py in centers]
     hull_poly = unary_union(circles).convex_hull
     profile = list(hull_poly.exterior.coords)
-    return sp.revolve_polygon(profile, sections=60)
+    return sp.revolve_polygon(profile, sections=Surface_Fn)
 
 
 def MinkCleanup():
@@ -374,15 +357,6 @@ def WireClip():
         ("translate", [0, -Shaft_Diameter / 2 - Element_Wire_Diameter / 2 + Element_Clip_Bite,
                         Element_Height + Element_Wire_Diameter / 2]),
     )
-
-
-def HollowSpace():
-    """Alias for HollowingElement() - exposed under this name too so
-    generate.py's optional 'does any character root reach the hollow
-    cavity' diagnostic (gated by hasattr(bd, 'HollowSpace')) works for
-    Helios the same way it does for Blickensderfer/Postal, even though
-    Helios has no core_shaft.scad-family HollowSpace() of its own."""
-    return HollowingElement()
 
 
 # ---------------------------------------------------------------- Element

@@ -341,18 +341,12 @@ order directly - see its module docstring for the full derivation.
 (matching v2's `hull(){circle(); ...}` exactly, real rounded corners),
 the same hull-then-revolve technique `WireBite()`/Mignon's
 `AlignmentPin()` already use, rather than `cylinder_machine.
-_hollow_space_profile()`'s hand-rounded point-list approximation - though
-its circle resolution/revolve sections are a fixed, deliberately LOW
-`6`/`60` (not `Surface_Fn`), not the `32`/`Surface_Fn` it originally
-shipped with: at the higher values, this entirely-internal/invisible
-cavity's mesh hit ~96k faces, and `generate.py`'s optional "character
-root reaches the hollow cavity" diagnostic (a `.contains()` ray-cast with
-no `pyembree` acceleration in this environment) took 33 SECONDS on it
-alone, running silently AFTER the STL was already written - long enough
-that a user watching the build finish would reasonably quit before it
-returned, which meant `tune.py`'s f3d auto-launch (gated on the
-subprocess's exit code) never fired. Now well under 2 seconds. See
-`SESSION_LOG.md` part 26.
+_hollow_space_profile()`'s hand-rounded point-list approximation - at
+`resolution=32`/`sections=Surface_Fn`, same as every other revolve in
+this file. (This briefly got dropped to a hardcoded lower value to work
+around a slow diagnostic - see `generate.py`'s entry below for why that
+diagnostic is gone entirely now instead, and `SESSION_LOG.md` parts
+26-27 for the full story.)
 
 `Resin_Support`/`Resin_Support_*` are declared in v2 but it never builds
 any actual support geometry with them - `ResinSupport()`/`ResinPrint()`
@@ -734,14 +728,24 @@ the inline YAML list).
 At `separation_mm=2.0`, the character root lands at
 `Element_Diameter/2 + Char_Protrusion - separation_mm = 15.5mm` - which is
 *exactly* `HollowSpace`'s outer wall radius for the rows that fall in its
-wide z-band. Zero real clearance; `generate.py` prints whether any root
-vertex actually lands inside `HollowSpace` for the current settings (it
-flips between `True`/`False` run to run at low `points_per_mm` purely from
-floating-point/mesh-resolution noise at this exact boundary - not a new
-bug, just confirmation of how tight it is). This is exactly why the
-element is built solid-then-hollowed rather than pre-calibrated: the
-boolean handles either case cleanly, precise pre-calculation would be
-fragile here.
+wide z-band. Zero real clearance. This is exactly why the element is
+built solid-then-hollowed rather than pre-calibrated: the boolean handles
+either case cleanly, precise pre-calculation would be fragile here.
+
+`generate.py` used to print whether any root vertex actually lands
+inside `HollowSpace` for the current settings, as a debug diagnostic -
+removed (see `SESSION_LOG.md` part 27) as redundant: it never gated or
+failed the build (purely informational), flipped between `True`/`False`
+run to run at low `points_per_mm` from floating-point/mesh-resolution
+noise at this exact boundary anyway (not actionable), and its `.contains()`
+ray-cast (no `pyembree` acceleration in this environment) could take tens
+of seconds against a large enough `HollowSpace()` mesh, running silently
+AFTER the STL was already written - long enough that a user watching the
+build finish would reasonably quit before it returned, which meant
+`tune.py`'s f3d auto-launch (gated on the subprocess's exit code) never
+fired. Confirmed exactly this way for Helios (part 26 measured 33
+seconds on it alone) before removing the check across every machine
+instead of chasing per-machine mesh-resolution workarounds.
 
 ## Alignment (character centering)
 

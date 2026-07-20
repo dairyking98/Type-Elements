@@ -1862,11 +1862,14 @@ genuinely visible exterior surfaces (`Cylinder`/`ClipRetainer`/
 `WireClip`) but wasted on a cavity that's entirely internal and never
 seen once printed.
 
-**Fix**: `HollowingElement()` now uses a fixed `resolution=6`/
-`sections=60` (not `Surface_Fn`) for its own hull/revolve, chosen
-empirically to land close to Blickensderfer's own face count (3,480 vs.
-2,682) rather than picked arbitrarily. Diagnostic timing:
-33s -> 1.12s (~29x). Full Quick Preview, end-to-end via `generate.py`
+**Fix** (SUPERSEDED - see part 27: hardcoding a resolution/sections
+value to route around a diagnostic's cost, instead of questioning
+whether the diagnostic should exist, was the wrong fix - reverted, the
+diagnostic itself was removed instead): `HollowingElement()` now uses a
+fixed `resolution=6`/`sections=60` (not `Surface_Fn`) for its own
+hull/revolve, chosen empirically to land close to Blickensderfer's own
+face count (3,480 vs. 2,682) rather than picked arbitrarily. Diagnostic
+timing: 33s -> 1.12s (~29x). Full Quick Preview, end-to-end via `generate.py`
 exactly as `tune.py` invokes it: ~4.2s total (previously would have been
 ~2.6s build + 33s diagnostic ~ 36s) - comfortably inside normal
 patience. Full-quality Render also got faster as a side effect (the
@@ -1886,6 +1889,69 @@ web, a fillet nobody will ever see or touch), default to a LOW,
 deliberately-chosen resolution rather than reusing the same high-fidelity
 knob visible exterior surfaces need - and time diagnostic/debug code
 paths too, not just the main build, before considering a port done.
+
+## 27. Removed the HollowSpace() diagnostic entirely instead of working around its cost; undid part 26's hardcoded resolution
+
+User pushback on part 26's fix, and correct: (1) the `HollowSpace()`
+"does any character root reach the hollow cavity" diagnostic in
+`generate.py` is redundant - it never gated or failed a build (purely
+informational), and its value was already known to be noisy/
+non-actionable (the "HollowSpace margin is razor-thin by design" section
+of `README.md` already documented that it flips `True`/`False` run to
+run from floating-point noise at low `points_per_mm` - never a reliable
+signal in the first place). Removing the SLOW THING rather than
+optimizing around it is the right call when the slow thing wasn't
+pulling its weight to begin with. (2) Part 26's fix - hardcoding
+`resolution=6`/`sections=60` directly in `lib/helios.py` - was flagged
+correctly as violating CLAUDE.md's real-numbers-live-in-config rule,
+generalized here to cover facet-count/resolution constants too, not just
+physical dimensions/tolerances/offsets: a magic number invented to route
+around a cost imposed by a DIFFERENT piece of code (the diagnostic) has
+no business being hardcoded into unrelated geometry construction code,
+config or otherwise - the fact that the diagnostic could just be deleted
+proves the resolution never needed to change at all.
+
+**Removed**: the whole `HollowSpace()`-diagnostic block from
+`generate.py`'s `main()` (the `.contains()` per-character ray-cast and
+its print line), plus the now-dead-code comment two branches earlier
+that referenced it. This is shared code, run for every machine - the
+diagnostic is gone for Blickensderfer/Postal too, not just Helios (their
+own `HollowSpace()` GEOMETRY functions are untouched and still load-
+bearing - `cylinder_machine.Subtractive()` still calls them for the real
+cut; only the EXTRA diagnostic call site in `generate.py` is gone).
+
+**Reverted**: `lib/helios.py`'s `HollowingElement()` back to
+`resolution=32`/`sections=Surface_Fn` - the same numbers every other
+revolve in the file uses, no special case. Since the diagnostic that
+motivated the lower values is gone, and the actual boolean cut was NEVER
+the bottleneck (measured at 2.6s in part 26, whether the diagnostic ran
+or not), there was no remaining reason to keep the geometry
+lower-fidelity. Also deleted `HollowSpace()` itself from `lib/helios.py`
+- it existed ONLY as an alias so the (now-removed) diagnostic could find
+it via `hasattr(bd, "HollowSpace")`; with that caller gone, it was dead
+code (Helios's real build calls `HollowingElement()` directly, never
+`HollowSpace()`).
+
+**Verification** (hard gate, since `generate.py` is shared): reran
+`generate.py` for all five machines (Blickensderfer/Postal/Mignon/
+Bennett/Helios) at fast settings - all watertight/single-volume, zero
+errors. Blickensderfer reproduces this file's own documented baseline
+byte-for-byte (`verts=42618 faces=85408 ... volume=5666.804mm3`),
+confirming the diagnostic removal has no effect on any actual build
+output (it only ever printed an extra line after the STL was already
+exported). Helios's own numbers after reverting the resolution exactly
+match what they were immediately after part 24 (before part 26's
+detour) - `verts=109100 faces=218224 volume=4206.382mm3` at the same
+fast-preview-with-core-groove settings - confirming the revert is a
+clean, complete undo with no incidental drift.
+
+**Lesson**: when a diagnostic/debug code path turns out to be
+expensive, the first question should be "does this check still earn its
+cost" before "how do I make it cheaper" - especially for a check that
+was already known to be flaky/non-actionable. Optimizing a check that
+shouldn't exist just entrenches it, and in this case would have meant
+carrying a hardcoded, config-rule-violating magic number indefinitely
+for a problem that had a strictly better fix available.
 
 ## Resuming later
 

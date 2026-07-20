@@ -30,8 +30,19 @@ confirmed, previously-shipped bug (see `README.md`/`SESSION_LOG.md` at
 the cited section for the full incident).
 
 - **Real machine numbers (dimensions, tolerances, offsets) live in config
-  YAML, never hardcoded in code, no matter which machine.** This does
-  NOT mean a new machine is expected to be config-only, though - that
+  YAML, never hardcoded in code, no matter which machine.** This also
+  covers facet-count/resolution constants (circle segments, revolve
+  sections, etc.), not just physical dimensions - a hardcoded
+  `resolution=6`/`sections=60` briefly shipped in Helios's
+  `HollowingElement()` to route around an unrelated diagnostic's cost
+  (see `SESSION_LOG.md` parts 26-27), which is exactly the kind of
+  number this rule means to keep out of code: if a real reason exists to
+  tune a facet count, it belongs in `config/<machine>.yaml`'s `quality:`
+  section like every other `*_fn` knob; if there's no real reason (an
+  invisible/internal feature that doesn't need its own tunable), don't
+  invent a special-cased number for it at all - reuse the machine's
+  existing `Surface_Fn`/`Cyl_Fn`/etc. This does NOT mean a new machine is
+  expected to be config-only, though - that
   was true for Postal-following-Blickensderfer specifically (they share
   everything except the drive-pin trio: `README.md` "Multiple
   machines"), but Mignon diverges from `cylinder_machine.py` "across

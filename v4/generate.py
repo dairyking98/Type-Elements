@@ -174,8 +174,7 @@ def main():
         out_path = os.path.join(out_dir, bd.OUTPUT_STL_NAME)
 
     if args.gauge:
-        # not part of the real element at all - no char placement, no
-        # HollowSpace intersection check (nothing to check it against)
+        # not part of the real element at all - no char placement
         full = bd.GaugeTestSet(render_core_groove=render_core_groove)
         full = _apply_cross_section(full, args.cross_section_angle_deg)
         print(f"GaugeTestSet: verts={len(full.vertices)} faces={len(full.faces)} "
@@ -261,19 +260,6 @@ def main():
 
     full.export(out_path)
     print(f"wrote {out_path}", flush=True)
-
-    # HollowSpace() is a Blickensderfer/Postal-only concept (their real
-    # hollow-out cavity, sized to check character roots against) - not
-    # every machine has one shaped this way (Mignon's own hollow-out,
-    # HollowBody(), is a structurally different, much simpler taper with
-    # no equivalent "does a character reach too far in" diagnostic
-    # question), so this check is skipped rather than forced for machines
-    # that don't define it. Also skipped for --cut-bodies - char_parts is
-    # empty there (no character placement happened at all).
-    if not args.cut_bodies and hasattr(bd, "HollowSpace"):
-        hollow = bd.HollowSpace()
-        any_hit = any(hollow.contains(part.vertices).any() for part in char_parts)
-        print(f"any character root vertex falls inside HollowSpace: {any_hit}", flush=True)
 
 
 if __name__ == "__main__":
