@@ -528,6 +528,11 @@ def _subtractive_parts(render_core_groove):
     return parts
 
 
+def Subtractive(render_core_groove=None):
+    render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
+    return sp.union_all(_subtractive_parts(render_core_groove))
+
+
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
@@ -540,7 +545,7 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      draft_angle_deg=draft_angle_deg)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
-    subtractive = sp.union_all(_subtractive_parts(render_core_groove))
+    subtractive = Subtractive(render_core_groove)
     print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
           f"watertight={subtractive.is_watertight}", flush=True)
     full = additive.difference(subtractive, engine="manifold")
@@ -580,7 +585,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     print(f"CalibrationAdditive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
-    subtractive = sp.union_all(_subtractive_parts(render_core_groove))
+    subtractive = Subtractive(render_core_groove)
     print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
           f"watertight={subtractive.is_watertight}", flush=True)
     full = additive.difference(subtractive, engine="manifold")

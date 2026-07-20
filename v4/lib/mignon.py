@@ -438,12 +438,17 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     return sp.union_all([cleaned, ElementChamfer(), ElementLogo(), ElementLabel()]), char_parts
 
 
+def Subtractive(render_core_groove=None):
+    # render_core_groove: accepted (matching cylinder_machine.Subtractive's
+    # signature/generate.py's uniform build_fn(...) call) but unused -
+    # Mignon has no core grooves at all (no core_shaft.scad family, see
+    # the module docstring).
+    return sp.union_all([CenterShaft(), HollowBody(), AlignmentPin()])
+
+
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
-    # render_core_groove: accepted (matching generate.py's uniform
-    # build_fn(...) call signature) but unused - Mignon has no core
-    # grooves at all (no core_shaft.scad family, see the module docstring)
     _require_configured()
     additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
@@ -452,7 +457,7 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      draft_angle_deg=draft_angle_deg)
     print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
-    subtractive = sp.union_all([CenterShaft(), HollowBody(), AlignmentPin()])
+    subtractive = Subtractive(render_core_groove)
     print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
           f"watertight={subtractive.is_watertight}", flush=True)
     full = additive.difference(subtractive, engine="manifold")
@@ -506,7 +511,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     print(f"CalibrationAdditive: verts={len(additive.vertices)} faces={len(additive.faces)} "
           f"watertight={additive.is_watertight}", flush=True)
-    subtractive = sp.union_all([CenterShaft(), HollowBody(), AlignmentPin()])
+    subtractive = Subtractive(render_core_groove)
     print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
           f"watertight={subtractive.is_watertight}", flush=True)
     full = additive.difference(subtractive, engine="manifold")

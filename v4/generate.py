@@ -11,12 +11,44 @@ config/blickensderfer.yaml for the full parameter set and comments.
 
 import argparse
 import importlib
+import math
 import os
 import sys
 
+import numpy as np
+import trimesh
 import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+
+
+def _apply_cross_section(mesh, angle_deg):
+    """Debug-only: clips mesh to one side of a vertical plane through the
+    machine's central (Z) axis at angle_deg (degrees, measured in the XY
+    plane) - a cutaway view for inspecting internal geometry (hollow
+    space, drive pin, resin supports, ...) without printing/viewing the
+    whole opaque part. angle_deg=None (the default, nothing passed on the
+    CLI) is a no-op - this never changes output for a normal build.
+
+    Uses manifold3d's own Manifold.trim_by_plane rather than
+    trimesh.intersections.slice_mesh_plane - tried that first, but its
+    triangulated cap left FullElement (no resin supports) non-watertight/
+    non-volume after the cut even off-axis, while manifold3d's native
+    half-space trim (the same engine scad_primitives.union_all() already
+    uses for real assembly booleans, per CLAUDE.md) produced a clean
+    watertight result in the same case."""
+    if angle_deg is None:
+        return mesh
+    from manifold3d import Manifold, Mesh as ManifoldMesh
+
+    angle_rad = math.radians(angle_deg)
+    normal = (math.cos(angle_rad), math.sin(angle_rad), 0.0)
+    manifold = Manifold(mesh=ManifoldMesh(
+        vert_properties=np.array(mesh.vertices, dtype=np.float32),
+        tri_verts=np.array(mesh.faces, dtype=np.uint32)))
+    trimmed = manifold.trim_by_plane(normal, 0.0)
+    result = trimmed.to_mesh()
+    return trimesh.Trimesh(vertices=result.vert_properties, faces=result.tri_verts, process=False)
 
 
 def _load_machine(config_path):
@@ -109,6 +141,18 @@ def main():
     parser.add_argument("--out", default=None,
                          help="override output.directory/output.stl_name from the config "
                               "(full path to the .stl to write)")
+    parser.add_argument("--cross-section-angle-deg", type=float, default=None,
+                         help="debug: clip the final mesh to one side of a vertical plane "
+                              "through the machine's central axis at this angle (degrees) - "
+                              "applies to any build target (element/gauge/calibration); "
+                              "omit to disable (default)")
+    parser.add_argument("--cut-bodies", action="store_true",
+                         help="debug: export the union of Subtractive()'s negative/cutter "
+                              "tool bodies (HollowSpace, DrivePin, core grooves, ...) "
+                              "instead of doing the real additive-subtractive difference - "
+                              "lets you verify what's actually about to be removed. Only "
+                              "applies to the plain Element/Resin build path (ignored with "
+                              "--gauge/--calibrate); composes with --cross-section-angle-deg")
     args = parser.parse_args()
 
     bd = _load_machine(args.config)
@@ -133,6 +177,7 @@ def main():
         # not part of the real element at all - no char placement, no
         # HollowSpace intersection check (nothing to check it against)
         full = bd.GaugeTestSet(render_core_groove=render_core_groove)
+        full = _apply_cross_section(full, args.cross_section_angle_deg)
         print(f"GaugeTestSet: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
@@ -171,6 +216,7 @@ def main():
             minkowski_enabled=args.minkowski_enabled,
             draft_angle_deg=args.draft_angle_deg,
         )
+        full = _apply_cross_section(full, args.cross_section_angle_deg)
         print(f"CalibrationElement: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
@@ -185,21 +231,30 @@ def main():
         print(f"wrote {mapping_path}", flush=True)
         return
 
-    resin_support = args.resin_support if args.resin_support is not None else bd.DEFAULT_RESIN_SUPPORT
+    if args.cut_bodies:
+        # Subtractive() alone is fully independent of Additive()/TextRing
+        # character placement (see cylinder_machine.Subtractive() and its
+        # per-machine equivalents in mignon.py/bennett.py) - skipping the
+        # glyph pipeline entirely also makes this debug view fast.
+        full = bd.Subtractive(render_core_groove)
+        char_parts = []
+        label = "Subtractive (cut bodies)"
+    else:
+        resin_support = args.resin_support if args.resin_support is not None else bd.DEFAULT_RESIN_SUPPORT
+        build_fn = bd.ResinPrint if resin_support else bd.FullElement
+        full, char_parts = build_fn(
+            points_per_mm=args.points_per_mm,
+            separation_mm=args.separation_mm,
+            render_core_groove=render_core_groove,
+            cone_segments=args.cone_segments,
+            simplify_tolerance_mm=args.simplify_tolerance_mm,
+            platen_fn=args.platen_fn,
+            minkowski_enabled=args.minkowski_enabled,
+            draft_angle_deg=args.draft_angle_deg,
+        )
+        label = "ResinPrint" if resin_support else "FullElement"
+    full = _apply_cross_section(full, args.cross_section_angle_deg)
 
-    build_fn = bd.ResinPrint if resin_support else bd.FullElement
-    full, char_parts = build_fn(
-        points_per_mm=args.points_per_mm,
-        separation_mm=args.separation_mm,
-        render_core_groove=render_core_groove,
-        cone_segments=args.cone_segments,
-        simplify_tolerance_mm=args.simplify_tolerance_mm,
-        platen_fn=args.platen_fn,
-        minkowski_enabled=args.minkowski_enabled,
-        draft_angle_deg=args.draft_angle_deg,
-    )
-
-    label = "ResinPrint" if resin_support else "FullElement"
     print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "
           f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
           f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
@@ -213,8 +268,9 @@ def main():
     # HollowBody(), is a structurally different, much simpler taper with
     # no equivalent "does a character reach too far in" diagnostic
     # question), so this check is skipped rather than forced for machines
-    # that don't define it.
-    if hasattr(bd, "HollowSpace"):
+    # that don't define it. Also skipped for --cut-bodies - char_parts is
+    # empty there (no character placement happened at all).
+    if not args.cut_bodies and hasattr(bd, "HollowSpace"):
         hollow = bd.HollowSpace()
         any_hit = any(hollow.contains(part.vertices).any() for part in char_parts)
         print(f"any character root vertex falls inside HollowSpace: {any_hit}", flush=True)

@@ -32,7 +32,7 @@ from glyph_poc import (
 )
 import scad_primitives as sp
 import cylinder_machine
-from cylinder_machine import FullElement, ResinPrint, GaugeTestSet, CalibrationElement  # re-exported for callers
+from cylinder_machine import FullElement, ResinPrint, GaugeTestSet, CalibrationElement, Subtractive  # re-exported for callers
 
 _configured = False
 
