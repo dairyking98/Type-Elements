@@ -42,6 +42,13 @@ logo:
   # label sits flat on the top face; Mignon's sits on an angled chamfer
   # surface, a genuinely different placement geometry).
   height_offset_mm: 0.5
+  # v4-only - v2 has no toggle, its small sphere-minkowski edge-rounding
+  # is unconditional (gated only by the preview-quality Mink_On flag).
+  # off (false): plain flat extrude, both Logo and Label text. on (true):
+  # a real draft-cone taper (build.draft_angle_deg/quality.minkowski_fn/
+  # build.simplify_tolerance_mm - the same knobs struck characters use),
+  # applied to BOTH Logo and Label - one checkbox, not per-feature.
+  minkowski_text: false
 
 # v4-only second engraved-text feature (NOT a v2 concept - v2/mignon.scad
 # has exactly one, Cylinder_Label, ported above as logo.*) - same

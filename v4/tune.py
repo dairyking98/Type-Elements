@@ -366,6 +366,10 @@ LOGO_FIELDS_MIGNON = [
      "Local nudge off the chamfer surface the logo sits on - NOT the "
      "same concept as Blickensderfer/Postal's radial offset (Mignon's "
      "logo/label sit on an angled chamfer surface, not the flat top face)."),
+    ("minkowski_text", ["logo", "minkowski_text"], bool, "Minkowski text",
+     "Draft-cone taper for BOTH Logo and Label text (not a v2 option) - "
+     "uses the same draft_angle_deg/minkowski_fn/simplify_tolerance_mm as "
+     "struck characters. Off: plain flat extrude (fast)."),
 ]
 
 # Label: not a v2 concept - a second engraved-text feature, own tab, same

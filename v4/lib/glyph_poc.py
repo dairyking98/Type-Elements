@@ -563,6 +563,53 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     return join_front_back(front, back, front_outline)
 
 
+def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_path=None,
+                             align_kwargs=None, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
+                             cone_segments=DEFAULT_CONE_SEGMENTS,
+                             simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM):
+    """build_flat_text()'s real-draft-cone counterpart, for machines that
+    want their engraved Logo/Label text tapered rather than a plain flat
+    extrude (Mignon's minkowski_text option - see lib/mignon.py). Same
+    flat, UN-mirrored contour extraction as build_flat_text (this is
+    decorative text read directly off the element, never struck through a
+    platen - the mirror step in build_glyph() below is specific to struck
+    characters and does NOT belong here), Minkowski-summed with a real
+    draft cone using the SAME construction build_glyph() uses (tip sliver
+    + cone, apex at z=depth, wide base at z=0 - see build_glyph's own
+    comment for the derivation), minus its platen-scallop carve, which
+    has no equivalent on a flat engraved label. depth plays separation_mm's
+    role: expansion_width_mm = depth * tan(draft_angle_deg/2) - since
+    depth here is typically small (Logo/Label's own 0.09mm, not a struck
+    character's 0.5-2mm), the resulting taper is a subtle edge round-over,
+    not a big structural draft - the point is a nicer edge, not print
+    release, so no platen/mirror complexity is needed."""
+    fp = font_path or FONT_PATH
+    fs = font_size_mm or FONT_SIZE_MM
+    face = freetype.Face(fp)
+    scale = fs / face.units_per_EM
+    contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
+    contours_mm = [c * scale for c in contours_font_units]
+    if align_kwargs is not None:
+        x_shift = alignment_x_offset(char, advance_mm, **align_kwargs)
+        contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
+    flat = classify_and_triangulate(contours_mm)
+
+    expansion_width_mm = depth * np.tan(np.radians(draft_angle_deg / 2.0))
+    tip_h = min(0.01, depth * 0.01)
+    cone_h = depth - tip_h
+
+    prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces, tip_h)
+    prism.apply_translation([0, 0, depth - tip_h])
+
+    cone = Manifold.cylinder(cone_h, expansion_width_mm, 0.0, circular_segments=cone_segments)
+    cone = cone.translate([0, 0, -cone_h])
+
+    drafted = _to_manifold(prism).minkowski_sum(cone)
+    if simplify_tolerance_mm > 0:
+        drafted = drafted.simplify(simplify_tolerance_mm)
+    return _from_manifold(drafted)
+
+
 def _to_manifold(mesh):
     return Manifold(mesh=ManifoldMesh(
         vert_properties=np.array(mesh.vertices, dtype=np.float32),

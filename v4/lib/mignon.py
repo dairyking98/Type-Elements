@@ -41,6 +41,7 @@ import trimesh
 
 from glyph_poc import (
     build_flat_text,
+    build_flat_text_drafted,
     DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
     DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
@@ -83,6 +84,11 @@ def configure(config_path):
     # chamfer surface, not the flat top face, so their geometry needs a
     # different placement chain entirely, see _render_engraved_text()).
     g["Logo_Height_Offset"] = logo["height_offset_mm"]
+    # v4-only - v2 has no toggle here at all, LetterText()'s small sphere-
+    # minkowski rounding is unconditional there (gated only by the global
+    # Mink_On preview flag). One checkbox covers both Logo and Label - see
+    # _render_engraved_text()'s docstring.
+    g["Minkowski_Text"] = logo.get("minkowski_text", False)
 
     # Label: NOT a v2 concept (v2/mignon.scad has exactly one engraved-text
     # feature, Cylinder_Label, which is what Logo_* above already is - see
@@ -284,18 +290,29 @@ def _render_engraved_text(text, text_size, text_spacing, position_offset, height
     placement chain, not just different parameter values (see the module
     docstring). v2's version gets the same small sphere-minkowski rounding
     LetterText() uses (r=.05, purely a cosmetic edge-softening, not the
-    big draft-cone taper struck characters get) - simplified here to a
-    plain flat extrude, same accepted simplification LogoText() already
-    makes for Blickensderfer/Postal's logo text (see that function's
-    docstring) - fine for a decorative label, not attempted to match
-    exactly."""
+    big draft-cone taper struck characters get) - by default this is
+    simplified to a plain flat extrude, same accepted simplification
+    LogoText() already makes for Blickensderfer/Postal's logo text (see
+    that function's docstring). Minkowski_Text (logo.minkowski_text, a
+    single checkbox covering both Logo and Label - v4-only, not a v2
+    option) opts into a REAL draft-cone taper instead, via
+    build_flat_text_drafted() - the SAME mechanism/DEFAULT_DRAFT_ANGLE_DEG
+    struck characters use, not v2's separate small-sphere rounding (text
+    is thin, 0.09mm, so even the real cone produces a subtle edge
+    round-over here, not a big structural draft)."""
     n_chars = len(text)
     parts = []
     for n, ch in enumerate(text):
         if ch == " ":
             continue
-        mesh = build_flat_text(ch, points_per_mm, 0.09, font_size_mm=text_size,
-                                font_path=font_path)
+        if Minkowski_Text:
+            mesh = build_flat_text_drafted(ch, points_per_mm, 0.09, font_size_mm=text_size,
+                                            font_path=font_path, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
+                                            cone_segments=DEFAULT_CONE_SEGMENTS,
+                                            simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM)
+        else:
+            mesh = build_flat_text(ch, points_per_mm, 0.09, font_size_mm=text_size,
+                                    font_path=font_path)
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
         angle_n = text_spacing * n + position_offset - (n_chars - 1) * text_spacing / 2
