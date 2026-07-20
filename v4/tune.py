@@ -1515,6 +1515,14 @@ class TuneApp(App):
         # consistent with everything else. Skips saving (not quitting)
         # on a bad value - _collect_values() already logs why - since
         # trapping the user in the app over a typo would be worse.
+        #
+        # self.machine is None (never picked a machine, still on the
+        # picker screen - no config loaded, self.FIELDS/self.SECTIONS
+        # never set) means there's nothing to collect/save at all -
+        # quitting from the picker used to crash here with an
+        # AttributeError on self.FIELDS.
+        if self.machine is None:
+            return
         values = self._collect_values()
         if values is not None:
             self._save_to_yaml(values)

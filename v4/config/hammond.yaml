@@ -211,7 +211,8 @@ output:
 type_test:
   cpi: 10.0                         # Test_CPI
   lpi: 6.0
-  text: "The quick brown fox jumps over the lazy dog 1234567890"
+  text: |-
+    The quick brown fox jumps over the lazy dog 1234567890
 
 # Calibration - v2 has no Cutout_Test/Baseline_Test defaults active
 # (Cutout_Test=false at v2:110, Baseline_Test=false at v2:115), same as
