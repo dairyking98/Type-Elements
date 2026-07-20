@@ -363,18 +363,15 @@ LOGO_FIELDS_MIGNON = [
      "The Label tab's own text always sits 180 degrees opposite this "
      "value - moving Logo also moves Label."),
     ("height_offset_mm", ["logo", "height_offset_mm"], float, "Logo height offset (mm)",
-     "Local nudge off the chamfer surface the logo sits on - NOT the "
-     "same concept as Blickensderfer/Postal's radial offset (Mignon's "
-     "logo/label sit on an angled chamfer surface, not the flat top face). "
-     "The chamfer is CURVED and the text is a FLAT panel resting tangent "
-     "to it - a small offset only clears characters near the center of "
-     "the text; characters further out (long text, wide char spacing) "
-     "stay partly embedded/invisible no matter how high this goes unless "
-     "text_depth_mm below is also increased."),
+     "Local nudge off the curved chamfer the logo sits on (not "
+     "Blickensderfer/Postal's flat-face radial offset). Since the text "
+     "panel is flat but the chamfer is curved, characters away from "
+     "center stay partly embedded unless text_depth_mm below is also "
+     "increased."),
     ("text_depth_mm", ["logo", "text_depth_mm"], float, "Logo extrusion depth (mm)",
-     "How far the raised text material extends - thicker makes it both "
-     "more visible and more forgiving of the chamfer's curvature clipping "
-     "part of it away. v2's real value is a thin 0.09mm."),
+     "How far the raised text extends - thicker is more visible and more "
+     "forgiving of the chamfer's curvature clipping it. v2's real value: "
+     "a thin 0.09mm."),
     ("minkowski_text", ["logo", "minkowski_text"], bool, "Minkowski text",
      "Draft-cone taper for BOTH Logo and Label text (not a v2 option) - "
      "uses the same draft_angle_deg/minkowski_fn/simplify_tolerance_mm as "
@@ -397,14 +394,13 @@ LABEL_FIELDS_MIGNON = [
     ("label_text_size_mm", ["label", "label_text_size_mm"], float, "Label text size (mm)", ""),
     ("label_text_spacing", ["label", "label_text_spacing"], float, "Label char spacing (deg)", "Angular spacing between label characters."),
     ("label_height_offset_mm", ["label", "label_height_offset_mm"], float, "Label height offset (mm)",
-     "Local nudge off the chamfer surface the label sits on. The chamfer "
-     "is CURVED and the text is a FLAT panel resting tangent to it - see "
-     "Logo's matching help text; label_text_depth_mm below usually needs "
+     "Local nudge off the curved chamfer the label sits on - see Logo's "
+     "height_offset_mm; label_text_depth_mm below usually needs "
      "increasing together with this."),
     ("label_text_depth_mm", ["label", "label_text_depth_mm"], float, "Label extrusion depth (mm)",
-     "How far the raised text material extends - thicker makes it both "
-     "more visible and more forgiving of the chamfer's curvature clipping "
-     "part of it away. v2's real value is a thin 0.09mm."),
+     "How far the raised text extends - thicker is more visible and more "
+     "forgiving of the chamfer's curvature clipping it. v2's real value: "
+     "a thin 0.09mm."),
 ]
 
 QUALITY_FIELDS_MIGNON = [
