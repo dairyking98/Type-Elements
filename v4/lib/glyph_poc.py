@@ -783,33 +783,50 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     # real cylinder machine-wide per row, not independently approximated
     # per glyph; only the intersection with each glyph's own silhouette
     # differs, which is correct.
-    platen_radius_real_mm = 1.0 / (2.0 * platen_radius_mm)
-
     # Block must be tall enough that its ORIGINAL flat top sits above the
     # cylinder's reach at every Y this glyph actually spans, or the corners
     # farthest from radius_y_offset_mm survive uncut (still flat, not
     # following the real curve) instead of being carved down to it -
     # confirmed by testing with an under-sized margin. Sized per-glyph from
-    # its own Y-extent, not a fixed guess.
-    y_min, y_max = flat.vertices[:, 1].min(), flat.vertices[:, 1].max()
-    dy_max = max(abs(y_min - radius_y_offset_mm), abs(y_max - radius_y_offset_mm))
-    bulge_max = platen_radius_real_mm - np.sqrt(max(platen_radius_real_mm ** 2 - dy_max ** 2, 0.0))
-    block_margin = bulge_max * 1.1 + 0.005
+    # its own Y-extent, not a fixed guess. platen_radius_mm==0 (Skip_
+    # Platen_Cutout, see below) means there's no cutout to clear at all -
+    # block_margin is 0, not a division by zero.
+    if platen_radius_mm > 0:
+        platen_radius_real_mm = 1.0 / (2.0 * platen_radius_mm)
+        y_min, y_max = flat.vertices[:, 1].min(), flat.vertices[:, 1].max()
+        dy_max = max(abs(y_min - radius_y_offset_mm), abs(y_max - radius_y_offset_mm))
+        bulge_max = platen_radius_real_mm - np.sqrt(max(platen_radius_real_mm ** 2 - dy_max ** 2, 0.0))
+        block_margin = bulge_max * 1.1 + 0.005
+    else:
+        block_margin = 0.0
 
     prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces,
                                                      block_h + block_margin)
     prism.apply_translation([0, 0, block_z0])
 
-    x_min, x_max = flat.vertices[:, 0].min(), flat.vertices[:, 0].max()
-    cyl_length = (x_max - x_min) + 2.0
-    cyl_center_x = (x_min + x_max) / 2.0
-    platen_cyl = Manifold.cylinder(cyl_length, platen_radius_real_mm, platen_radius_real_mm,
-                                    circular_segments=platen_fn, center=True)
-    platen_cyl = platen_cyl.rotate([0, 90, 0])
-    platen_cyl = platen_cyl.translate([cyl_center_x, radius_y_offset_mm,
-                                        separation_mm + platen_radius_real_mm])
-
-    scalloped = _to_manifold(prism) - platen_cyl
+    # Skip_Platen_Cutout (v2/lib/glyph_pipeline.scad's real `if
+    # (!_skipPlatenCutout) PlatenCutout(...)` conditional, added for
+    # Hammond - it strikes a flat anvil, not a curved platen). platen_
+    # radius_mm==0 signals this - Rp=1/(2*platen_radius_mm) would divide
+    # by zero (an infinite-radius cylinder is the correct LIMIT of "no
+    # cutout", but not something to actually construct), so build no
+    # cutting cylinder at all and use the flat-topped prism directly
+    # instead. Every existing machine has a real platen (platen_radius_mm
+    # > 0), so this branch is new and additive, not a behavior change for
+    # them.
+    if platen_radius_mm > 0:
+        x_min, x_max = flat.vertices[:, 0].min(), flat.vertices[:, 0].max()
+        cyl_length = (x_max - x_min) + 2.0
+        cyl_center_x = (x_min + x_max) / 2.0
+        platen_radius_real_mm = 1.0 / (2.0 * platen_radius_mm)
+        platen_cyl = Manifold.cylinder(cyl_length, platen_radius_real_mm, platen_radius_real_mm,
+                                        circular_segments=platen_fn, center=True)
+        platen_cyl = platen_cyl.rotate([0, 90, 0])
+        platen_cyl = platen_cyl.translate([cyl_center_x, radius_y_offset_mm,
+                                            separation_mm + platen_radius_real_mm])
+        scalloped = _to_manifold(prism) - platen_cyl
+    else:
+        scalloped = _to_manifold(prism)
 
     if not minkowski_enabled:
         # Fast preview path: skip the Minkowski sweep entirely (the

@@ -1,0 +1,224 @@
+# Hammond type shuttle - real parameters ported from v2/hammond.scad (see
+# that file's header comment for the full v2-internal glyph-pipeline
+# unification derivation this config's layout/element section relies on).
+#
+# Hammond shares the glyph placement pipeline (place_on_cylinder/TextRing/
+# CalibrationTextRing via cylinder_machine.py, plus cylinder_machine.
+# _resin_rod() for the individual resin-support rod shape) with
+# Blickensderfer/Postal/Mignon/Bennett/Helios, confirmed by v2/hammond.scad's
+# own header comment: its arc-placement Theta formula was verified
+# algebraically to reduce exactly to the shared lib's (Angle_Half_Step+
+# latitude)*Latitude_Int, by treating the shuttle arc as a "fake cylinder"
+# of diameter 2*Shuttle_Arc_Radius. Despite that, Hammond is NOT a
+# cylinder-family body: it strikes a flat anvil (no curved platen - see
+# platen_diameter below) and its body geometry (ShuttleCylinder/AnvilShape/
+# Rib/PinSupport/ShuttleTaper/Label) shares nothing with cylinder_machine.py
+# - see lib/hammond.py's module docstring for the full comparison.
+#
+# hammond_split.scad (a completely different two-piece spoke/folder
+# assembly, self-contained with its own inlined glyph placement - see
+# SESSION_LOG.md's Hammond audit chapter) is a SEPARATE machine in
+# everything but name and is NOT covered by this config or lib/hammond.py -
+# deferred to its own future port.
+#
+# Groove=true (v2/hammond.scad:258's alternate snap-fit/groove assembly
+# variant, GroovedShuttle()/Groove()/PinSupport2()) is likewise deferred -
+# Groove=false (the default) is the only variant ResinPrint's real dispatch
+# path (VertResinPrint2->RibbedShuttle) exercises, so it's the one ported
+# here. Cutout_Test/Cutout_Test_Array/Show_Align_Bounds (preview-only
+# debug toggles, already dead/unused per v2's own comments at lines 110-113)
+# are not ported, matching how other machines drop confirmed-dead v2
+# customizer params.
+#
+# Default layout is Normal_U (LAYOUTS[0] in v2/lib/layouts/hammond_layouts.
+# scad, 3 rows x 30 columns, Layout_Selection=0's default) - Hammond's other
+# 7 named presets (Normal Ideal/Math Universal/DVORAK/DHIATENSOR/Comic Mono/
+# Glagolitic/Attic) are real alternate v2 presets, not yet wired into
+# tune.py's named-preset picker (see SESSION_LOG.md).
+#
+# Typeface_2/Type_2_Size/Typeface_2_Chars (v2:167-169 - Hammond's
+# always-on Glagolitic secondary-typeface tier, GalFont/GalFontSize/GalChars
+# renamed) is NOT ported: it only ever matches characters that appear in
+# the Glagolitic layout preset (LAYOUTS[6]), which isn't the default here -
+# confirmed dead for every other layout, same treatment as bennett.yaml's
+# dead-param callouts. Revisit if/when the Glagolitic preset is wired up.
+# Font_Weight_Offset/X_Font_Weight_Adj/Y_Font_Weight_Adj (v2:149-151) are
+# also 0/no-op in the real machine and not ported for the same reason.
+
+machine: hammond
+
+font:
+  # v2's real value is the font family name "Iosevka Fixed Slab"
+  # (Font_Size=3.10) - not installed here; nearest real file on disk.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Iosevka Term Slab.ttf"
+  size_mm: 3.10
+
+label:
+  # v2's real value is "OCR\\-A II" (a real installed font here, unlike
+  # Bennett's substitution).
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  label1: "Leonard Chau"   # Shuttle_Label1
+  label2: "2024"           # Shuttle_Label2
+  label_size_mm: 1.3       # Shuttle_Label_Size
+  depth_mm: 0.2            # Shuttle_Label_Depth
+
+# Real machine dimensions, v2/hammond.scad:198-262 - "shuttle" here is the
+# arc-shaped print body (Anvil_OD/Shuttle_Arc_Radius is the fake-cylinder
+# Element_Diameter the glyph pipeline wraps text onto; Anvil_ID is the
+# printer's real anvil bore the shuttle clips around).
+element:
+  shrinkage_multiplier: 1.00       # Shuttle_Arc_Radius_Shrinkage_Multiplier
+  anvil_od: 73.15                  # Element_Diameter = anvil_od*shrinkage_multiplier
+  anvil_id_raw: 66.0
+  shuttle_thickness: 1.36          # also Letter_Placement_Protrusion (v2:380)
+  shuttle_text_protrusion: 0.9
+  normal_shuttle_height: 13.6
+  math_shuttle_height: 18.24
+  shuttle_height_offset: 3
+  shuttle_rib_plane_base: 6.7      # Shuttle_Rib_Plane = this + shuttle_height_offset
+  shuttle_rib_thickness: 0.24
+  shuttle_rib_width: 2.9
+  shuttle_square_hole_offset: 6.4
+  shuttle_square_hole_width: 2.67
+  shuttle_square_hole_length: 1.60
+  shuttle_square_hole_radius: 0.4
+  shuttle_pin_support_height: 1.5
+  shuttle_pin_support_base_width: 6
+  shuttle_pin_support_base_length: 7.8
+  shuttle_pin_support_height_offset: 1.5
+  shuttle_rib_hump_distance: 9
+  shuttle_rib_circle: 159
+  shuttle_rib_circle_radius: 19
+  shuttle_taper_deg: 2
+  shuttle_taper_step: 0.5
+  # Angle_Pitch = (angular_span_deg/angular_divisions)/shrinkage_multiplier
+  # (v2:203) - the shuttle's real physical arc spans 120 degrees over 32
+  # divisions; Latitude_Int (the glyph pipeline's column-to-angle step)
+  # is this same value, not an independently-tunable one.
+  angular_span_deg: 120
+  angular_divisions: 32
+  # Is_Math (v2:128 - search(LAYOUTS[Layout_Selection][3],"Math")) is a
+  # derived tag lookup in v2; here it's just which real layout preset is
+  # active - Normal_U (default) is not the Math layout, so false.
+  is_math: false
+  # Rib()'s fillet region insets its resin-support-clearance corner by this
+  # much (v2:351 "Cp_1_X=Shuttle_Arc_Radius*cos(Theta_A)-2  //limit of resin
+  # support" - a real, named machine clearance, not a construction sentinel).
+  rib_fillet_resin_clearance: 2.0
+
+# quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
+# comment: "no separate structural-quality tier from Cyl_Fn").
+quality:
+  cyl_fn: 360
+  surface_fn: 360
+  text_fn: 20                      # Text_Fn (also wired to Text_2D_Fn, v2:85)
+  minkowski_fn: 12                 # Mink_Fn
+  resin_fn: 20                     # Resin_Fn
+
+# Baseline (v2:130) is [Lowercase, Uppercase, Figures, Math], measured from
+# the bottom RIB plane (Baseline_Z_Offset=Rib_Bottom_Z, a derived value -
+# see lib/hammond.py's configure()). Default layout (Normal_U) has only 3
+# rows, so only the first 3 entries apply here; the 4th (Math, -9.89) is a
+# real v2 value kept for when the Math layout preset is wired up, not
+# currently read. Cutout (v2:133) is unused (Skip_Platen_Cutout=true, see
+# lib/hammond.py) - cutout_row is set equal to baseline_row as a documented
+# no-op rather than porting the dead [0,0,0,0].
+#
+# Placement_Map (v2:371, col<=14 ? col-16 : col-14) is Hammond's real
+# non-identity physical-column mapping for the arc's seam at column 14/15 -
+# materialized as literal data here (not computed from layout.rows' length
+# at load time) matching how every other machine stores placement_map, per
+# this repo's "pick one convention, don't let it re-fork per machine" rule
+# - tune.py's Layout tab reads layout.placement_map/latitude_columns
+# directly. latitude_columns must stay in sync with placement_map/rows -
+# edit both together if you ever change layout.rows' column count.
+layout:
+  baseline_row: [3.74, -1.21, -5.71]
+  # Cutout (v2:133) is unused - Skip_Platen_Cutout means the (y-offset)^2
+  # scallop term is multiplied by platen_radius_mm=0 regardless of offset,
+  # so cutout_row-baseline_row's value can't affect geometry. Set equal to
+  # baseline_row (offset=0) as a documented no-op rather than porting the
+  # dead v2 Cutout=[0,0,0,0] - stored literally (not derived at load time)
+  # since tune.py's Element tab reads layout.cutout_row directly, same as
+  # baseline_row.
+  cutout_row: [3.74, -1.21, -5.71]
+  baseline_row_math: -9.89
+  latitude_columns: 30
+  placement_map: [-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+  rows:
+    - "-;p.lo,kimjunhybgtvfrcdexswzaq"
+    - "!:P.LO?KIMJUNHYBGTVFRCDEXSWZAQ"
+    - "/=0.)9°(8^'7*&6¢_5£%4+$3×#2@\"1"
+  modify_glyphs: false
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+# mesh-pipeline build settings (v4-specific, not real v2 numbers) - see
+# config/bennett.yaml's matching comment. platen_diameter=0/no cutout
+# (Skip_Platen_Cutout=true, v2:384 - Hammond strikes a flat anvil, not a
+# curved platen) translates to platen_radius_mm=0 in build_glyph's
+# scallop formula z=(y-offset)^2*platen_radius_mm - a real 0 makes the
+# scallop term vanish for every y, i.e. a genuinely flat print face,
+# rather than an undefined 1/0. See lib/hammond.py's configure().
+build:
+  points_per_mm: 15.0
+  separation_mm: 2.0
+  resin_support: true               # Resin_Support (v2:298)
+  target: "element"
+  simplify_tolerance_mm: 0.005
+  minkowski_enabled: false           # Mink_On default (v2:102)
+  draft_angle_deg: 55.0              # Mink_Draft_Angle (v2:106)
+
+# Resin support: individual rod SHAPE reuses cylinder_machine._resin_rod()
+# (same shared primitive Mignon/Bennett already reuse - NOT Hammond's own
+# v2 ResinRod()/RodTip() modules, which are custom one-off variants of the
+# same idea). Placement is Hammond-specific (lib/hammond.py) since the
+# arc-shaped body has no radial-wall/sloped-core topology for cylinder_
+# machine.py's BottomSupports/SpeedHoleSupport/DrivePinSupport placement
+# layer to apply to - v2/lib/resin_support.scad's own header explicitly
+# excludes Hammond/IBM from that placement layer for this reason. The one
+# genuinely new primitive is the angled reinforcement rod between adjacent
+# support rods (gusseting) - sp.connecting_rod(), ported from v2's
+# ConnectingRod() (v2/hammond.scad:419), which doesn't exist for any other
+# machine since none of their resin-support systems brace rods against
+# each other.
+resin:
+  resin_fn: 20
+  rod_od: 0.9                       # Resin_Support_Rod_Thickness
+  tip_od: 0.4                       # Resin_Support_Contact_Diameter
+  tip_l: 1.0                        # RodTip()'s h=1 cylinder section
+  inset: 0.2                        # tip_od/2, same convention as bennett.yaml
+  min_rod_height: 2.0                # Resin_Support_Min_Height
+  raft_thickness: 1.5                # Resin_Support_Base_Thickness
+  raft_od: 1.6                       # 2*Resin_Support_Buildplate_Radius
+  spacing: 3.0                      # Resin_Support_Spacing - real angular
+                                     # rod pitch is spacing/Shuttle_Arc_Radius
+                                     # radians (v2:615's thetaspacing formula)
+
+output:
+  directory: "output"
+  stl_name: "hammond_running.stl"
+
+# tune.py's Type Test tab (v4-specific) - see config/bennett.yaml's
+# matching comment.
+type_test:
+  cpi: 10.0                         # Test_CPI
+  lpi: 6.0
+  text: "The quick brown fox jumps over the lazy dog 1234567890"
+
+# Calibration - v2 has no Cutout_Test/Baseline_Test defaults active
+# (Cutout_Test=false at v2:110, Baseline_Test=false at v2:115), same as
+# Bennett's real defaults.
+calibration:
+  test_char: "H"
+  vary_baseline: false
+  vary_cutout: false
+  start: -0.7
+  interval: 0.05

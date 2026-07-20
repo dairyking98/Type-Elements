@@ -71,11 +71,8 @@ left empty" - confirmed, Blickensderfer/Postal-only, same as Mignon).
 
 import numpy as np
 import trimesh
-import freetype
 
 from glyph_poc import (
-    build_flat_text,
-    get_glyph_contours_and_advance,
     DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
     DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
@@ -437,34 +434,6 @@ def AlignmentHoles():
     return sp.union_all(parts)
 
 
-def _build_text_string(text, size, font_path, depth, points_per_mm=20.0):
-    """v2's text(text=<whole string>, halign="center", valign="center") -
-    ported as build_flat_text() called per character at its natural
-    FreeType pen-origin advance (no align_kwargs), summed left to right,
-    then the WHOLE assembled string shifted by -total_advance/2 - the same
-    "native halign=center centers the ADVANCE box" convention already
-    verified/established elsewhere in this codebase (see lib/
-    glyph_pipeline.scad's AlignedText comment). Vertically, stays at
-    baseline (y=0) rather than attempting true valign=center - the same
-    simplification cylinder_machine.LogoText()/mignon.ElementLabel()
-    already make for their own decorative text (see those functions'
-    docstrings) - fine for an engraved label, not attempted to match
-    exactly."""
-    fp = font_path
-    face = freetype.Face(fp)
-    scale = size / face.units_per_EM
-    parts = []
-    cursor = 0.0
-    for ch in text:
-        _, advance_mm = get_glyph_contours_and_advance(ch, points_per_mm, scale, font_path=fp)
-        if ch != " ":
-            mesh = build_flat_text(ch, points_per_mm, depth, font_size_mm=size, font_path=fp)
-            parts.append(sp.translate(mesh, [cursor, 0, 0]))
-        cursor += advance_mm
-    whole = sp.union_all(parts)
-    return sp.translate(whole, [-cursor / 2.0, 0, 0])
-
-
 def LabelText(points_per_mm=20.0):
     """v2/bennett.scad:418-432 - two independent flat engraved-text groups
     cut into the bottom face near the shaft (SUBTRACTED in Assemble(), not
@@ -474,10 +443,13 @@ def LabelText(points_per_mm=20.0):
     "Chau"/"Leonard" stack, matching v2's own linear_extrude(){text();
     translate([0,2.25,0])text();} nesting exactly). Left group: Shuttle_
     Label2 alone. The 2mm extrude depth is a literal in v2 (never a
-    customizer slider), kept as a code literal here too."""
-    right_1b = _build_text_string(Shuttle_Label1b, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm)
+    customizer slider), kept as a code literal here too. Uses
+    cylinder_machine.build_text_string() (shared with Hammond's Label() -
+    see that function's docstring for the full derivation, originally
+    written here before being promoted to the shared module)."""
+    right_1b = cylinder_machine.build_text_string(Shuttle_Label1b, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm)
     right_1a = sp.translate(
-        _build_text_string(Shuttle_Label1a, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm),
+        cylinder_machine.build_text_string(Shuttle_Label1a, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm),
         [0, 2.25, 0])
     right = sp.union_all([right_1b, right_1a])
     right = sp.scad_transform(
@@ -485,7 +457,7 @@ def LabelText(points_per_mm=20.0):
         ("translate", [Shaft_Diameter / 2 + 1.5 + 0.25, 0, Bottom_Countersink_Depth + Shuttle_Label_Depth]),
         ("rotate", [180, 0, 90]),
     )
-    left = _build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm)
+    left = cylinder_machine.build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm)
     left = sp.scad_transform(
         left,
         ("translate", [-Shaft_Diameter / 2 - 1.75 - 0.5, 0, Bottom_Countersink_Depth + Shuttle_Label_Depth]),

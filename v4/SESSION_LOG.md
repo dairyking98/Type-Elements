@@ -1996,17 +1996,153 @@ for Helios, absent for Blickensderfer.
 `_compose_build_tab` was touched, so machine-neutrality was worth
 reconfirming) - reproduces the documented baseline byte-for-byte.
 
+## 29. Hammond port (hammond.scad only) - audit, config/lib/tune.py, verified
+
+Ported `hammond.scad` (the arc-shaped shuttle body) per the roadmap's next
+item. `hammond_split.scad` deferred - see below, it turned out to be a
+different machine in all but name.
+
+**Audit pass** (per CLAUDE.md's explicit requirement for every machine
+port). Diffed `v2/hammond.scad` (1105 lines) + `v2/hammond_split.scad`
+(771 lines) + their `v2/lib/` includes against `lib/cylinder_machine.py`/
+`lib/scad_primitives.py`/`lib/bennett.py`/`lib/mignon.py` function-by-
+function, per CLAUDE.md's porting checklist, before writing anything.
+Findings:
+
+- **hammond.scad and hammond_split.scad are NOT near-twins** (unlike
+  Blickensderfer/Postal) - `hammond_split.scad` has zero `include`
+  statements (fully self-contained, its own inlined `TextAssemble`/
+  `TextPlacement`/`LetterText`/`TextRing(side)` glyph placement, not
+  wired to the shared `glyph_pipeline.scad` at all) and its own header
+  explicitly calls itself "closer to IBM's spherical geometry" than the
+  cylinder family. It's a completely different two-piece spoke/folder
+  assembly (`Arc`/`Spoke*`/`Tube`/`FolderClearance`/`GlueHoles`), unrelated
+  config variable names, and a third independent resin-support
+  implementation. Deferred to its own future port - `config/hammond.yaml`
+  and `lib/hammond.py` cover `hammond.scad` only, with a header comment
+  saying so explicitly.
+- **hammond.scad DOES genuinely share the glyph-placement pipeline** with
+  the cylinder family, despite being a different form factor - its own
+  v2 header comment (added during v2's OWN internal migration to the
+  shared `lib/glyph_pipeline.scad`) proves the arc's Theta formula
+  reduces algebraically to the shared lib's
+  `(Angle_Half_Step+latitude)*Latitude_Int`, by treating the arc as a
+  "fake cylinder" of diameter `2*Shuttle_Arc_Radius`. So
+  `lib/hammond.py` reuses `cylinder_machine.place_on_cylinder`/
+  `TextRing`/`CalibrationTextRing` (same as Mignon/Bennett/Helios) -
+  confirmed empirically, not just by re-reading the comment: an early
+  smoke test with the real numbers placed 90/90 characters with 0 skips.
+- Body geometry (`ShuttleCylinder`/`AnvilShape`/`Rib`/`PinSupport`/
+  `ShuttleTaper`/`Label`) shares nothing with `cylinder_machine.py` and is
+  new code - `v2/lib/resin_support.scad`'s own header already flagged
+  Hammond (and IBM) as keeping "their own angle-aware rod systems," not
+  the shared placement layer.
+
+**Resin support redesigned, not ported byte-for-byte** - explicit user
+direction: reuse the existing shared rod shape
+(`cylinder_machine._resin_rod()`, the same primitive Mignon/Bennett
+already reuse) rather than porting Hammond's own v2 `ResinRod`/`RodTip`
+(two independently-invented rod primitives), and treat the angled
+reinforcement rod between adjacent support rods (gusseting/bracing) as
+the one genuinely new piece. Added `sp.connecting_rod()` to
+`lib/scad_primitives.py` (a hull of two spheres between arbitrary points,
+ported from v2's `ConnectingRod()` at `v2/hammond.scad:419`) for this.
+Placement itself (`lib/hammond.py`'s `ResinSupport()`) is a from-scratch
+grid+raycast scheme against the real, already print-oriented mesh
+(finds the lowest surface point per (X,Y) grid cell via
+`trimesh`'s ray-mesh intersector, drops a rod there, braces grid
+neighbors together with a gusset) rather than v2's own ~140-line,
+8-tier `VertResinSupport2` - deliberately simpler, real v2 numbers
+(`Resin_Support_Spacing`) still drive the grid pitch. Verified: 132 rods,
+131 braced, on the real 90-character element.
+
+**Shared-code fix required**: `build_glyph()`'s real platen-cutout step
+(`lib/glyph_poc.py`) unconditionally computed
+`platen_radius_real_mm = 1.0/(2.0*platen_radius_mm)` - a real division by
+zero for Hammond, which strikes a flat anvil (`Skip_Platen_Cutout=true`
+in v2) and so has no curved platen at all (`platen_diameter=0`,
+`PLATEN_RADIUS_MM=0.0`, an intentional, not fallback, value - deriving it
+from `1/platen_diameter` like every other machine would ALSO divide by
+zero, so it's set directly in `configure()`). Fixed by adding a real
+`if platen_radius_mm > 0` branch (skip building/subtracting the platen
+cutting cylinder entirely, and skip the now-unnecessary block-margin
+sizing) rather than trying to make 0 a numerically-safe magic value -
+this is the exact v4 equivalent of v2/lib/glyph_pipeline.scad's own
+`if (!_skipPlatenCutout) PlatenCutout(...)` conditional. Every existing
+machine has a real platen (`platen_radius_mm>0`), so this is purely
+additive - confirmed via the full 5-machine regression below.
+
+**Shared-code promotion**: `lib/bennett.py`'s private `_build_text_string`
+helper (whole-string flat text, halign=center/valign=baseline) was needed
+identically for Hammond's `Label()` (two engraved strings,
+`Shuttle_Label1`/`Shuttle_Label2`), so promoted it to
+`cylinder_machine.build_text_string()` per CLAUDE.md's "extract shared
+derivations instead of hand-copying" rule, and switched `lib/bennett.py`'s
+`LabelText()` to call the shared version (removing the now-dead private
+copy and its now-unused `freetype`/`build_flat_text`/
+`get_glyph_contours_and_advance` imports).
+
+**tune.py wiring**: added the `MACHINES` picker entry, `SECTIONS_BY_MACHINE
+["hammond"]` (`Label` tab - matching Bennett's whole-string-label
+convention, not `Logo` - plus `Quality`/`Resin`/`Element`, no `Gauge` -
+Hammond has no Shaft Gauge Test either), and the matching `LABEL_FIELDS_
+HAMMOND`/`QUALITY_FIELDS_HAMMOND`/`RESIN_FIELDS_HAMMOND`/`ELEMENT_FIELDS_
+HAMMOND` tuples. Row-count handling in the Layout tab is already generic
+(`n_rows = len(self.cfg["layout"]["baseline_row"])`, not a hardcoded `3`
+anywhere), so no literal-count fixes were needed for Hammond's 3-row/
+30-column layout, unlike Mignon's 7-row port. Found via a headless
+`TuneApp(...).run_test()` smoke test (scratch config copy, per CLAUDE.md's
+standing warning) that `layout.placement_map`/`latitude_columns`/
+`cutout_row`/`modify_glyphs` are read unconditionally by tune.py even
+though `lib/hammond.py` itself doesn't need them stored (it could compute
+`PLACEMENT_MAP` from column count, and `CUTOUT_ROW` is dead/unused) -
+added all four as literal YAML keys instead, matching how every other
+machine stores them, per CLAUDE.md's "pick one convention" rule. Named
+layout presets (`LAYOUT_PRESETS_BY_MACHINE`) not wired for Hammond - falls
+back to `{}` (no crash, just no picker options) - Hammond's other 7 real
+v2 layout presets (Normal Ideal/Math Universal/DVORAK/DHIATENSOR/Comic
+Mono/Glagolitic/Attic) are listed in `config/hammond.yaml`'s header
+comment but not yet selectable from the TUI.
+
+**Verification**: ran the CLAUDE.md hard-gate command for all 5 existing
+machines (blickensderfer/postal/mignon/bennett/helios) before and after -
+byte-for-byte identical to the documented baselines (blickensderfer:
+`verts=42618 faces=85408 ... volume=5666.804mm3`, matching the example in
+CLAUDE.md itself). Hammond's own `ResinPrint`: `verts=47945 faces=96858
+watertight=True winding_consistent=True is_volume=True volume=4292.355mm3`
+(90/90 characters placed, 0 skipped), reproduced identically across two
+separate runs.
+
+**Deferred / open questions**:
+
+- **Physical relief depth not visually verified.** Working through the
+  real v2 numbers algebraically, Hammond's character front face
+  (`Element_Diameter/2+placement_protrusion` =
+  `Shuttle_Arc_Radius+Shuttle_Thickness`) lands at exactly the same radius
+  as `ShuttleCylinder`'s own blank outer surface - i.e. characters appear
+  flush with the surrounding shell rather than protruding past it the way
+  Blickensderfer/Postal's `Char_Protrusion` does (their bare `Cylinder()`
+  has NO `+Char_Protrusion` term, so characters genuinely stand proud of
+  it). This matches v2's own real source exactly (confirmed line-by-line,
+  not a port artifact), so it's not a new bug, but it's worth checking
+  against a real f3d render/photo of the actual machine before trusting
+  it for a production print - flagged the same way Bennett/Helios's own
+  `placement_protrusion` derivations were flagged for later verification.
+- **`Groove=true`** (v2's alternate snap-fit/groove assembly variant -
+  `GroovedShuttle()`/`Groove()`/`PinSupport2()`) is deferred entirely -
+  `Groove=false` (the default, and the only variant `ResinPrint`'s real v2
+  dispatch path exercises) is the only one ported.
+- **`hammond_split.scad`** - a separate future port, per the audit above.
+- No dedicated `Calibration`/named-layout-preset support in the TUI yet
+  (see tune.py wiring note above).
+
 ## Resuming later
 
-1. **Hammond/Hammond_split and IBM are next** - the last two machines on
-   the original roadmap, and the first two that are NOT cylindrical in
-   form at all (shuttle mechanism and spherical, respectively). Per
-   CLAUDE.md's machine-taxonomy note, do not reach for
-   `lib/cylinder_machine.py` as a starting point for either - they need
-   their own from-scratch "what, if anything, is genuinely shared with an
-   existing machine vs. `glyph_poc.py`/`scad_primitives.py`-level
-   primitives only" exercise, the same one Mignon/Bennett/Helios each
-   went through for the cylindrical family.
+1. **Hammond_split.scad and IBM are next** - `hammond.scad` itself is
+   done (part 29). `hammond_split.scad` turned out to share almost
+   nothing with `hammond.scad` (see part 29's audit) - treat it as its
+   own from-scratch port, not a quick follow-on. IBM (spherical) is still
+   fully unstarted.
 2. Bennett's port (between Mignon and Helios) has no `SESSION_LOG.md`
    chapter of its own - per CLAUDE.md, that's flagged as correlating with
    Bennett having more small undocumented inconsistencies than Mignon.

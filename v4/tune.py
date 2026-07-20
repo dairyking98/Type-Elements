@@ -188,6 +188,7 @@ MACHINES = {
     "mignon": ("Mignon", os.path.join(REPO_ROOT, "config", "mignon.yaml")),
     "bennett": ("Bennett", os.path.join(REPO_ROOT, "config", "bennett.yaml")),
     "helios": ("Helios Klimax", os.path.join(REPO_ROOT, "config", "helios.yaml")),
+    "hammond": ("Hammond", os.path.join(REPO_ROOT, "config", "hammond.yaml")),
 }
 
 FONT_FILE_FILTERS = Filters(
@@ -667,6 +668,68 @@ ELEMENT_FIELDS_POSTAL = [
                      "drive_pin_support_height", "drive_pin_style", "drive_pin_width_offset")
 ]
 
+LABEL_FIELDS_HAMMOND = [
+    ("font_path", ["label", "font_path"], str, "Label font path", "Font for the two engraved Shuttle_Label strings."),
+    ("label1", ["label", "label1"], str, "Label 1", "Shuttle_Label1 - e.g. a name."),
+    ("label2", ["label", "label2"], str, "Label 2", "Shuttle_Label2 - e.g. a year."),
+    ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", ""),
+    ("depth_mm", ["label", "depth_mm"], float, "Label depth (mm)", "Shuttle_Label_Depth."),
+]
+
+QUALITY_FIELDS_HAMMOND = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shuttle arc body (ShuttleCylinder/Rib/PinSupport)."),
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
+    ("text_fn", ["quality", "text_fn"], int, "Text fn", "Glyph curve smoothness."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+]
+
+RESIN_FIELDS_HAMMOND = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
+    ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
+    ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
+    ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
+    ("inset", ["resin", "inset"], float, "Inset (mm)", ""),
+    ("min_rod_height", ["resin", "min_rod_height"], float, "Min rod height (mm)", ""),
+    ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
+    ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
+    ("spacing", ["resin", "spacing"], float, "Support grid spacing (mm)",
+     "Pitch of the resin-support rod grid and its gusseting bracing - see lib/hammond.py's ResinSupport()."),
+]
+
+ELEMENT_FIELDS_HAMMOND = [
+    ("shrinkage_multiplier", ["element", "shrinkage_multiplier"], float, "Arc shrinkage multiplier", "Shuttle_Arc_Radius_Shrinkage_Multiplier."),
+    ("anvil_od", ["element", "anvil_od"], float, "Anvil OD (mm)", "Element_Diameter = this * shrinkage_multiplier."),
+    ("anvil_id_raw", ["element", "anvil_id_raw"], float, "Anvil ID raw (mm)", ""),
+    ("shuttle_thickness", ["element", "shuttle_thickness"], float, "Shuttle thickness (mm)", "Also the glyph placement protrusion."),
+    ("shuttle_text_protrusion", ["element", "shuttle_text_protrusion"], float, "Text protrusion (mm)", ""),
+    ("normal_shuttle_height", ["element", "normal_shuttle_height"], float, "Normal shuttle height (mm)", ""),
+    ("math_shuttle_height", ["element", "math_shuttle_height"], float, "Math shuttle height (mm)", "Used when is_math=true."),
+    ("shuttle_height_offset", ["element", "shuttle_height_offset"], float, "Shuttle height offset (mm)", ""),
+    ("shuttle_rib_plane_base", ["element", "shuttle_rib_plane_base"], float, "Rib plane base (mm)", ""),
+    ("shuttle_rib_thickness", ["element", "shuttle_rib_thickness"], float, "Rib thickness (mm)", ""),
+    ("shuttle_rib_width", ["element", "shuttle_rib_width"], float, "Rib width (mm)", ""),
+    ("shuttle_square_hole_offset", ["element", "shuttle_square_hole_offset"], float, "Square hole offset (mm)", ""),
+    ("shuttle_square_hole_width", ["element", "shuttle_square_hole_width"], float, "Square hole width (mm)", ""),
+    ("shuttle_square_hole_length", ["element", "shuttle_square_hole_length"], float, "Square hole length (mm)", ""),
+    ("shuttle_square_hole_radius", ["element", "shuttle_square_hole_radius"], float, "Square hole radius (mm)", ""),
+    ("shuttle_pin_support_height", ["element", "shuttle_pin_support_height"], float, "Pin support height (mm)", ""),
+    ("shuttle_pin_support_base_width", ["element", "shuttle_pin_support_base_width"], float, "Pin support base width (mm)", ""),
+    ("shuttle_pin_support_base_length", ["element", "shuttle_pin_support_base_length"], float, "Pin support base length (mm)", ""),
+    ("shuttle_pin_support_height_offset", ["element", "shuttle_pin_support_height_offset"], float, "Pin support height offset (mm)", ""),
+    ("shuttle_rib_hump_distance", ["element", "shuttle_rib_hump_distance"], float, "Rib hump distance (mm)", ""),
+    ("shuttle_rib_circle", ["element", "shuttle_rib_circle"], float, "Rib circle radius (mm)", ""),
+    ("shuttle_rib_circle_radius", ["element", "shuttle_rib_circle_radius"], float, "Rib circle fillet radius (mm)", ""),
+    ("shuttle_taper_deg", ["element", "shuttle_taper_deg"], float, "Taper angle (deg)", ""),
+    ("shuttle_taper_step", ["element", "shuttle_taper_step"], float, "Taper step (mm)", ""),
+    ("angular_span_deg", ["element", "angular_span_deg"], float, "Angular span (deg)", "Angle_Pitch = (this/angular_divisions)/shrinkage_multiplier."),
+    ("angular_divisions", ["element", "angular_divisions"], int, "Angular divisions", ""),
+    ("is_math", ["element", "is_math"], bool, "Math layout", "Whether the active layout preset is the Math one (selects math_shuttle_height/the 4th baseline row)."),
+    ("rib_fillet_resin_clearance", ["element", "rib_fillet_resin_clearance"], float, "Rib fillet clearance (mm)", ""),
+]
+
 SECTIONS_BY_MACHINE = {
     "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
@@ -695,6 +758,12 @@ SECTIONS_BY_MACHINE = {
     # either - same header, no engraved-text feature at all.
     "helios": {**SECTIONS_COMMON, "Quality": QUALITY_FIELDS_HELIOS, "Resin": RESIN_FIELDS_HELIOS,
                "Element": ELEMENT_FIELDS_HELIOS},
+    # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
+    # module docstring) - its two whole-string engraved labels are the
+    # "Label" tab instead, same convention as Bennett.
+    "hammond": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_HAMMOND,
+                "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
+                "Element": ELEMENT_FIELDS_HAMMOND},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section

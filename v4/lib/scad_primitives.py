@@ -218,6 +218,21 @@ def resin_rod(h, tip_od, tip_l, rod_od, inset, min_rod_height, raft_thickness,
     return union_all([rod, raft])
 
 
+def connecting_rod(p1, p2, diameter, subdivisions=2):
+    """ConnectingRod(p1, p2, t) from v2/hammond.scad:419 - hull() of two
+    equal-diameter spheres at arbitrary points p1/p2 (a capsule strut, not
+    tied to any single axis the way resin_rod's tip/rod/raft stack is).
+    Ported for Hammond's angled reinforcement rods between adjacent
+    vertical resin-support rods (gusseting) - this doesn't exist anywhere
+    else in the codebase yet since no other machine's resin-support system
+    braces rods against each other, only against the part/buildplate."""
+    s1 = trimesh.creation.icosphere(subdivisions=subdivisions, radius=diameter / 2.0)
+    s1.apply_translation(p1)
+    s2 = trimesh.creation.icosphere(subdivisions=subdivisions, radius=diameter / 2.0)
+    s2.apply_translation(p2)
+    return trimesh.util.concatenate([s1, s2]).convex_hull
+
+
 def union_all(meshes, engine="manifold"):
     """Unions all meshes into one solid. Uses manifold3d's Manifold.
     batch_boolean directly rather than trimesh's mesh.union() folded

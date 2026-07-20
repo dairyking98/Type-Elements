@@ -1,0 +1,595 @@
+"""
+v4 full-fidelity Hammond shuttle body - ports v2/hammond.scad's
+RibbedShuttle()/VertResinPrint2() structure. All real-machine numbers live
+in config/hammond.yaml, not here - call configure(path) once before using
+anything else in this module (see generate.py).
+
+Hammond is a different form factor from the cylinder-machine family
+(Blickensderfer/Postal/Mignon/Bennett/Helios) - it's a thin arc-shaped
+shuttle, not a cylinder - but it DOES genuinely share the glyph-placement
+pipeline with them: v2/hammond.scad's own header comment proves its arc-
+placement Theta formula reduces algebraically to the shared lib's
+(Angle_Half_Step+latitude)*Latitude_Int, by treating the arc as a "fake
+cylinder" of diameter 2*Shuttle_Arc_Radius. So this module reuses
+cylinder_machine.place_on_cylinder/TextRing/CalibrationTextRing (same as
+Mignon/Bennett/Helios) and cylinder_machine._resin_rod() for the
+individual resin-support rod shape (same as Mignon/Bennett) - but builds
+its own body geometry from scratch (ShuttleCylinder/AnvilShape/Rib/
+PinSupport/ShuttleTaper/Label), since v2/lib/resin_support.scad's own
+header explicitly excludes Hammond (along with IBM) from the cylinder
+family's placement-layer/body assumptions, and Hammond's real body has no
+cylinder wall/core/shaft topology at all.
+
+placement_protrusion=Shuttle_Thickness (NOT the default Char_Protrusion,
+which is 0/unused here - see configure()) - v2's real
+Letter_Placement_Protrusion (v2:380). angle_half_step is left at the
+shared lib's default 0.5 - v2's own header comment already verified its
+Theta formula reduces to (Angle_Half_Step+latitude)*Latitude_Int with the
+lib's own default half-step, no override needed.
+
+Skip_Platen_Cutout (v2:384, Hammond strikes a flat anvil, not a curved
+platen) translates to PLATEN_RADIUS_MM=0 - build_glyph's scallop formula
+z=(y-offset)^2*platen_radius_mm vanishes identically for every y when
+platen_radius_mm=0, the exact v4 equivalent, not an approximation. See
+configure().
+
+hammond_split.scad (a completely different two-piece spoke/folder
+assembly, self-contained with its own inlined glyph placement) is a
+SEPARATE machine in everything but name and is NOT covered here - see
+config/hammond.yaml's header comment and SESSION_LOG.md's Hammond audit
+chapter. Groove=true (v2's alternate snap-fit/groove assembly variant) is
+also deferred - Groove=false (the default, and the only variant
+ResinPrint's real v2 dispatch path exercises) is the only one ported.
+
+Resin support is NOT a port of v2's VertResinSupport2 (~140 lines, 8
+separate placement tiers using 3 independently-invented rod primitives -
+RodTip/ResinRod/ConnectingRod) - per explicit direction, individual rod
+SHAPE reuses cylinder_machine._resin_rod() (the same shared primitive
+Mignon/Bennett already reuse), and placement is a single grid+raycast
+scheme built directly against the real oriented print-frame mesh (see
+ResinSupport() below) rather than hand-porting v2's own chain of rotated-
+frame coordinate formulas. The one deliberately NEW piece is the angled
+reinforcement rod between adjacent grid rods (gusseting/bracing) -
+sp.connecting_rod() (lib/scad_primitives.py), ported from v2's
+ConnectingRod() (v2/hammond.scad:419) - which doesn't exist for any other
+machine's resin-support system since none of them brace rods against each
+other.
+"""
+
+import numpy as np
+import trimesh
+from shapely.geometry import Point, Polygon as ShapelyPolygon
+from shapely.ops import unary_union
+
+import scad_primitives as sp
+import cylinder_machine
+
+_configured = False
+
+
+def _require_configured():
+    if not _configured:
+        raise RuntimeError("call hammond.configure(config_path) before using this module")
+
+
+def _circ_res(fn):
+    """Shapely's Point.buffer(resolution=) is points-per-quarter-circle;
+    OpenSCAD's $fn is total segments for a full circle."""
+    return max(1, round(fn / 4.0))
+
+
+def _wedge_complement_poly(p1, apex, p3, far=100.0):
+    """v2's recurring hexagon-shaped polygon(p1, apex, p3, (0,far),
+    (-far,0), (0,-far)) construction (AnvilShape() v2:437, Rib()'s final
+    trim v2:478) - the COMPLEMENT of the wedge between p1 and p3 (as seen
+    from apex), extended far enough (far=100, an arbitrary "big enough"
+    construction sentinel, not a real dimension - same category as
+    cylinder_machine.TopMinkCleanup's inline 15/5 sentinels) to cover the
+    rest of the relevant area regardless of the real part's radius."""
+    return ShapelyPolygon([p1, apex, p3, (0, far), (-far, 0), (0, -far)])
+
+
+def configure(config_path):
+    """Loads config_path (YAML) and sets this module's globals - see
+    blickensderfer.configure()'s docstring for the general scheme."""
+    global _configured
+    import yaml
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+
+    g = globals()
+    g["CONFIG"] = cfg
+    # Blickensderfer/Postal use z=0.01; Mignon/Bennett/Helios use 0.001 -
+    # matching that more recent convention here too (also matches v2's own
+    # z=.001 at v2/hammond.scad:77).
+    g["z"] = 0.001
+
+    font = cfg["font"]
+    g["FONT_PATH"] = font["path"]
+    g["FONT_SIZE_MM"] = font["size_mm"]
+
+    label = cfg["label"]
+    g["LABEL_FONT_PATH"] = label["font_path"]
+    g["Shuttle_Label1"] = label["label1"]
+    g["Shuttle_Label2"] = label["label2"]
+    g["Shuttle_Label_Size"] = label["label_size_mm"]
+    g["Shuttle_Label_Depth"] = label["depth_mm"]
+
+    e = cfg["element"]
+    g["Shuttle_Arc_Radius_Shrinkage_Multiplier"] = e["shrinkage_multiplier"]
+    g["Anvil_OD"] = e["anvil_od"]
+    g["Shuttle_Arc_Radius"] = (e["anvil_od"] / 2.0) * e["shrinkage_multiplier"]
+    g["Shuttle_Thickness"] = e["shuttle_thickness"]
+    g["Shuttle_Text_Protrusion"] = e["shuttle_text_protrusion"]
+    g["Shuttle_Height_Offset"] = e["shuttle_height_offset"]
+    g["Is_Math"] = bool(e["is_math"])
+    g["Shuttle_Height"] = ((e["math_shuttle_height"] if g["Is_Math"] else e["normal_shuttle_height"])
+                            + e["shuttle_height_offset"])
+    g["Shuttle_Rib_Plane"] = e["shuttle_rib_plane_base"] + e["shuttle_height_offset"]
+    g["Shuttle_Rib_Thickness"] = e["shuttle_rib_thickness"]
+    g["Shuttle_Rib_Width"] = e["shuttle_rib_width"]
+    g["Shuttle_Square_Hole_Offset"] = e["shuttle_square_hole_offset"]
+    g["Shuttle_Square_Hole_Width"] = e["shuttle_square_hole_width"]
+    g["Shuttle_Square_Hole_Length"] = e["shuttle_square_hole_length"]
+    g["Shuttle_Square_Hole_Radius"] = e["shuttle_square_hole_radius"]
+    g["Shuttle_Pin_Support_Height"] = e["shuttle_pin_support_height"]
+    g["Shuttle_Pin_Support_Base_Width"] = e["shuttle_pin_support_base_width"]
+    g["Shuttle_Pin_Support_Base_Length"] = e["shuttle_pin_support_base_length"]
+    g["Shuttle_Pin_Support_Height_Offset"] = e["shuttle_pin_support_height_offset"]
+    g["Shuttle_Rib_Hump_Distance"] = e["shuttle_rib_hump_distance"]
+    g["Shuttle_Rib_Circle"] = e["shuttle_rib_circle"]
+    g["Shuttle_Rib_Circle_Radius"] = e["shuttle_rib_circle_radius"]
+    g["Shuttle_Taper"] = e["shuttle_taper_deg"]
+    g["Shuttle_Taper_Step"] = e["shuttle_taper_step"]
+    g["Anvil_ID_Raw"] = e["anvil_id_raw"]
+    g["Anvil_IR_Offset"] = g["Shuttle_Arc_Radius"] - e["anvil_od"] / 2.0
+    g["Anvil_ID"] = e["anvil_id_raw"] + 2 * g["Anvil_IR_Offset"]
+    g["Rib_Fillet_Resin_Clearance"] = e["rib_fillet_resin_clearance"]
+    # Angle_Pitch (v2:203) = (angular_span_deg/angular_divisions)/
+    # shrinkage_multiplier - the shuttle's real 120deg/32-division arc.
+    g["Angle_Pitch"] = (e["angular_span_deg"] / float(e["angular_divisions"])) / e["shrinkage_multiplier"]
+
+    q = cfg["quality"]
+    g["Cyl_Fn"] = q["cyl_fn"]
+    g["Surface_Fn"] = q["surface_fn"]
+    g["Text_Fn"] = q["text_fn"]
+    g["Text_2D_Fn"] = q["text_fn"]
+
+    # ---- glyph placement wiring (shared cylinder_machine.py reuse) ----
+    g["Element_Diameter"] = 2.0 * g["Shuttle_Arc_Radius"]
+    g["Char_Protrusion"] = 0.0  # unused - no curved platen, see PLATEN_RADIUS_MM
+    g["Platen_Diameter"] = 0.0  # unused, same reason
+    # Skip_Platen_Cutout (v2:384) == platen_radius_mm=0 (see module docstring).
+    # NOT derived as 1/Platen_Diameter like every other machine (would divide
+    # by zero) - explicitly 0 here.
+    g["PLATEN_RADIUS_MM"] = 0.0
+
+    layout = cfg["layout"]
+    n_cols = len(layout["rows"][0])
+    g["DHIATENSOR"] = layout["rows"]
+    g["BASELINE_ROW"] = layout["baseline_row"]
+    # Cutout_Row - see config/hammond.yaml's matching comment (dead, since
+    # Skip_Platen_Cutout means the scallop term is always multiplied by
+    # PLATEN_RADIUS_MM=0 regardless of this value).
+    g["CUTOUT_ROW"] = layout["cutout_row"]
+    g["LATITUDE_INT"] = g["Angle_Pitch"]
+    g["BASELINE_Z_OFFSET"] = (g["Shuttle_Height"] - g["Shuttle_Rib_Plane"]
+                               - g["Shuttle_Rib_Thickness"])  # Rib_Bottom_Z, v2:337
+    # Placement_Map (v2:371) - col<=14 ? col-16 : col-14, the arc's real
+    # non-identity physical-column seam mapping. Stored literally in YAML
+    # (like every other machine's placement_map) rather than computed from
+    # n_cols here, so tune.py's Layout tab (which reads layout.
+    # placement_map/latitude_columns directly) works unmodified.
+    g["PLACEMENT_MAP"] = layout["placement_map"]
+    assert len(g["PLACEMENT_MAP"]) == n_cols, "layout.placement_map/rows column count mismatch"
+
+    align = cfg["alignment"]
+    g["ALIGN_KWARGS"] = {
+        "mode": align["mode"],
+        "center_offset_mm": align["center_offset_mm"],
+        "left_offset_mm": align["left_offset_mm"],
+        "modified_left_chars": align["modified_left_chars"],
+        "modified_left_offset_mm": align["modified_left_offset_mm"],
+        "modified_right_chars": align["modified_right_chars"],
+        "modified_right_offset_mm": align["modified_right_offset_mm"],
+    }
+
+    b = cfg["build"]
+    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
+    g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
+    g["DEFAULT_RENDER_CORE_GROOVE"] = False  # no core groove concept at all
+    g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
+    g["Resin_Support"] = g["DEFAULT_RESIN_SUPPORT"]  # v2's Resin_Support (v2:298)
+    g["DEFAULT_CONE_SEGMENTS"] = q["minkowski_fn"]
+    g["DEFAULT_SIMPLIFY_TOLERANCE_MM"] = b.get("simplify_tolerance_mm", 0.005)
+    g["DEFAULT_MINKOWSKI_ENABLED"] = b.get("minkowski_enabled", False)
+    g["DEFAULT_DRAFT_ANGLE_DEG"] = b.get("draft_angle_deg", 55.0)
+    g["Platen_Fn"] = q["cyl_fn"]  # no separate platen surface (no platen at all)
+
+    r = cfg["resin"]
+    g["Resin_Fn"] = r["resin_fn"]
+    g["Resin_Rod_OD"] = r["rod_od"]
+    g["Resin_Tip_OD"] = r["tip_od"]
+    g["Resin_Tip_L"] = r["tip_l"]
+    g["Resin_Inset"] = r["inset"]
+    g["Resin_Min_Rod_Height"] = r["min_rod_height"]
+    g["Resin_Raft_Thickness"] = r["raft_thickness"]
+    g["Resin_Raft_OD"] = r["raft_od"]
+    g["Resin_Rod_Raft"] = True  # each rod grows its own small raft (no shared raft ring here)
+    g["Resin_Support_Spacing"] = r["spacing"]
+
+    g["OUTPUT_DIR"] = cfg["output"]["directory"]
+    g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
+
+    calibration = cfg.get("calibration", {})
+    g["Calibration_Test_Char"] = calibration.get("test_char", "H")
+    g["Calibration_Vary_Baseline"] = calibration.get("vary_baseline", False)
+    g["Calibration_Vary_Cutout"] = calibration.get("vary_cutout", False)
+    g["Calibration_Start"] = calibration.get("start", -0.7)
+    g["Calibration_Interval"] = calibration.get("interval", 0.05)
+
+    # ---- Rib() derived geometry (v2:333-354) ----
+    R = g["Shuttle_Arc_Radius"]
+    half_ang_deg = g["Angle_Pitch"] * 16.0
+    g["Z_Offset"] = R * np.cos(np.radians(half_ang_deg))
+    g["X_Max"] = g["Shuttle_Height"] - g["Shuttle_Rib_Plane"] - g["Shuttle_Rib_Thickness"] / 2.0
+    g["X_Min"] = g["Shuttle_Height"] - g["X_Max"]
+    g["Shuttle_Rib_Circle_Offset"] = g["Z_Offset"] + g["Shuttle_Rib_Circle"] + g["Shuttle_Rib_Hump_Distance"]
+    y_prime = (1.0 / (2 * g["Shuttle_Rib_Circle_Offset"])) * (
+        g["Shuttle_Rib_Circle_Offset"] ** 2
+        + (R - g["Shuttle_Rib_Circle_Radius"] - g["Shuttle_Rib_Width"]) ** 2
+        - (g["Shuttle_Rib_Circle_Radius"] + g["Shuttle_Rib_Circle"]) ** 2)
+    x_prime = np.sqrt((R - g["Shuttle_Rib_Circle_Radius"] - g["Shuttle_Rib_Width"]) ** 2 - y_prime ** 2)
+    g["Y_Prime"] = y_prime
+    g["X_Prime"] = x_prime
+    theta_a = np.degrees(np.arctan(y_prime / x_prime))
+    theta_2 = np.degrees(np.arctan((g["Shuttle_Rib_Circle_Offset"] - y_prime) / x_prime))
+    g["Cp_1_X"] = R * np.cos(np.radians(theta_a)) - g["Rib_Fillet_Resin_Clearance"]
+    g["Cp_1_Y"] = R * np.sin(np.radians(theta_a))
+    g["Cp_2_X"] = x_prime - g["Shuttle_Rib_Circle_Radius"] * np.cos(np.radians(theta_2))
+    g["Cp_2_Y"] = y_prime + g["Shuttle_Rib_Circle_Radius"] * np.sin(np.radians(theta_2))
+
+    # ---- ShuttleTaper() derived geometry (v2:326-330) ----
+    g["Taper_Inset_X"] = (R - g["z"]) * np.cos(np.radians(half_ang_deg - g["Shuttle_Taper"]))
+    g["Taper_Inset_Y"] = (R - g["z"]) * np.sin(np.radians(half_ang_deg - g["Shuttle_Taper"]))
+    g["Taper_Outset_X"] = np.cos(np.radians(half_ang_deg + g["z"])) * (R + g["Shuttle_Taper_Step"])
+    g["Taper_Outset_Y"] = np.sin(np.radians(half_ang_deg + g["z"])) * (R + g["Shuttle_Taper_Step"])
+
+    _configured = True
+    cylinder_machine._receive_config(g, "hammond")
+
+
+# --------------------------------------------------------------- Body shell
+
+def ShuttleCylinder():
+    return sp.cylinder_z(2 * (Shuttle_Arc_Radius + Shuttle_Thickness), Shuttle_Height + 2 * z,
+                          sections=Cyl_Fn, base_z=-z)
+
+
+def AnvilShape():
+    """v2:434-440 - union(wedge-complement polygon, circle(r=Shuttle_Arc_
+    Radius)), extruded. Subtracting this from ShuttleCylinder() keeps only
+    the annular arc segment within +-16*Angle_Pitch (the shuttle's real
+    angular half-extent) between radius Shuttle_Arc_Radius and Shuttle_
+    Arc_Radius+Shuttle_Thickness."""
+    R = Shuttle_Arc_Radius
+    half_ang_rad = np.radians(Angle_Pitch * 16.0)
+    reach = R * 3.0
+    p1 = (reach * np.cos(half_ang_rad), -reach * np.sin(half_ang_rad))
+    p3 = (reach * np.cos(half_ang_rad), reach * np.sin(half_ang_rad))
+    wedge_complement = _wedge_complement_poly(p1, (0.0, 0.0), p3)
+    circle = Point(0, 0).buffer(R, resolution=_circ_res(Cyl_Fn))
+    poly2d = unary_union([wedge_complement, circle])
+    shape = trimesh.creation.extrude_polygon(poly2d, Shuttle_Height + 10)
+    return sp.translate(shape, [0, 0, -5])
+
+
+def MinkCleanup():
+    R = Shuttle_Arc_Radius
+    bottom = sp.cylinder_z(2 * (R + 5), 5, sections=Cyl_Fn, base_z=-5)
+    top = sp.cylinder_z(2 * (R + 5), 5, sections=Cyl_Fn, base_z=Shuttle_Height)
+    return sp.union_all([bottom, top])
+
+
+def Rib():
+    """v2:451-482. Faithful transliteration of the 2D polygon/circle
+    boolean sequence (not a from-scratch re-derivation) - see this
+    module's docstring for why."""
+    R = Shuttle_Arc_Radius
+    res = _circ_res(Cyl_Fn)
+    half_ang_rad = np.radians(Angle_Pitch * 16.0)
+
+    outer = Point(0, 0).buffer(R + z, resolution=res)
+    inner = Point(0, 0).buffer(R - Shuttle_Rib_Width, resolution=res)
+    tri = ShapelyPolygon([(0, 0),
+                           (R * np.cos(half_ang_rad), R * np.sin(half_ang_rad)),
+                           (R * np.cos(half_ang_rad), -R * np.sin(half_ang_rad))])
+    main_band = outer.difference(inner).difference(tri)
+
+    rib_circle_full = Point(Shuttle_Rib_Circle_Offset, 0).buffer(Shuttle_Rib_Circle, resolution=res)
+    main_circle = Point(0, 0).buffer(R, resolution=res)
+    rib_circle_region = rib_circle_full.intersection(main_circle)
+
+    fillets = []
+    for n in (-1, 1):
+        pts = [
+            (Y_Prime, n * X_Prime),
+            (Cp_1_Y, n * Cp_1_X),
+            (30, n * 20),
+            (np.sqrt(R ** 2 - (n * Cp_2_X) ** 2), n * Cp_2_X),
+            (Cp_2_Y, n * Cp_2_X),
+        ]
+        poly = ShapelyPolygon(pts)
+        hole = Point(Y_Prime, n * X_Prime).buffer(Shuttle_Rib_Circle_Radius, resolution=res)
+        fillets.append(poly.difference(hole))
+
+    unioned = unary_union([main_band, rib_circle_region] + fillets)
+
+    p1 = (R * np.cos(half_ang_rad), -R * np.sin(half_ang_rad))
+    p3 = (R * np.cos(half_ang_rad), R * np.sin(half_ang_rad))
+    trim = _wedge_complement_poly(p1, (Z_Offset, 0.0), p3)
+    final_2d = unioned.difference(trim)
+
+    shape = trimesh.creation.extrude_polygon(final_2d, Shuttle_Rib_Thickness)
+    return sp.translate(shape, [0, 0, BASELINE_Z_OFFSET])  # Rib_Bottom_Z
+
+
+def _radius_square(x, y, r, fn):
+    """RadiusSquare(x,y,r,fn) (v2:405-417) - hull() of 4 circles at the
+    inset corners, exactly a rounded rectangle for r>0."""
+    res = _circ_res(fn)
+    centers = [(r, r), (x - r, r), (r, y - r), (x - r, y - r)]
+    circles = [Point(cx, cy).buffer(r, resolution=res) for cx, cy in centers]
+    return unary_union(circles).convex_hull
+
+
+def PinSupportHull():
+    top_2d = _radius_square(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width,
+                             Shuttle_Square_Hole_Radius, Cyl_Fn)
+    top_3d = trimesh.creation.extrude_polygon(top_2d, z)
+    top_3d = sp.translate(top_3d, [0, -Shuttle_Square_Hole_Width / 2.0, Shuttle_Pin_Support_Height])
+
+    base_2d = _radius_square(Shuttle_Pin_Support_Base_Length, Shuttle_Pin_Support_Base_Width,
+                              Shuttle_Square_Hole_Radius, Cyl_Fn)
+    base_3d = trimesh.creation.extrude_polygon(base_2d, z)
+    base_3d = sp.translate(base_3d, [
+        -Shuttle_Pin_Support_Base_Length / 2.0 + Shuttle_Square_Hole_Length / 2.0 + Shuttle_Pin_Support_Height_Offset,
+        -Shuttle_Pin_Support_Base_Width / 2.0, 0])
+
+    return trimesh.util.concatenate([top_3d, base_3d]).convex_hull
+
+
+def PinSupport():
+    top = sp.translate(PinSupportHull(),
+                        [Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset, 0,
+                         Shuttle_Height - Shuttle_Rib_Plane - z])
+    bottom = sp.scad_transform(PinSupportHull(), ("rotate", [180, 0, 0]))
+    bottom = sp.translate(bottom,
+                           [Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset, 0,
+                            Shuttle_Height - Shuttle_Rib_Plane - Shuttle_Rib_Thickness + z])
+    boss = sp.union_all([top, bottom])
+
+    outer_disk = sp.cylinder_z(Anvil_ID + 10, 40, sections=Cyl_Fn, base_z=-20)
+    inner_disk = sp.cylinder_z(2 * (Anvil_ID / 2.0 + 0.3), 41, sections=Cyl_Fn, base_z=-20.5)
+    clearance_ring = outer_disk.difference(inner_disk, engine="manifold")
+
+    return boss.difference(clearance_ring, engine="manifold")
+
+
+def PinSupportHole():
+    poly2d = _radius_square(Shuttle_Square_Hole_Length, Shuttle_Square_Hole_Width,
+                             Shuttle_Square_Hole_Radius, Cyl_Fn)
+    shape = trimesh.creation.extrude_polygon(poly2d, Shuttle_Height + z)
+    return sp.translate(shape, [Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset,
+                                 -Shuttle_Square_Hole_Width / 2.0, -z])
+
+
+def RibAssembled():
+    combined = sp.union_all([Rib(), PinSupport()])
+    return combined.difference(PinSupportHole(), engine="manifold")
+
+
+def ShuttleTaper():
+    parts = []
+    b = [-z, Shuttle_Height - Shuttle_Rib_Plane]
+    c = [BASELINE_Z_OFFSET + z, 10.0]  # BASELINE_Z_OFFSET is Rib_Bottom_Z; Groove=false (no +2)
+    half_ang_rad = np.radians(Angle_Pitch * 16.0 + z)
+    p3x = (Shuttle_Arc_Radius - z) * np.cos(half_ang_rad)
+    p3y = (Shuttle_Arc_Radius - z) * np.sin(half_ang_rad)
+    for a in range(2):
+        for sign in (1, -1):
+            poly = ShapelyPolygon([
+                (Taper_Inset_X, sign * Taper_Inset_Y),
+                (Taper_Outset_X, sign * Taper_Outset_Y),
+                (p3x, sign * p3y),
+            ])
+            shape = trimesh.creation.extrude_polygon(poly, c[a])
+            parts.append(sp.translate(shape, [0, 0, b[a]]))
+    return sp.union_all(parts)
+
+
+def Label():
+    """v2:582-593 - two flat text() calls (halign=center, valign=baseline
+    - matching cylinder_machine.build_text_string()'s own baseline
+    convention exactly, no approximation needed here)."""
+    depth = 2.0
+    right = cylinder_machine.build_text_string(Shuttle_Label1, Shuttle_Label_Size, LABEL_FONT_PATH, depth)
+    right = sp.scad_transform(
+        right,
+        ("rotate", [0, 0, Angle_Pitch * 0.25]),
+        ("translate", [Shuttle_Arc_Radius + Shuttle_Thickness - Shuttle_Label_Depth, 0,
+                        (Shuttle_Height - Shuttle_Height_Offset) / 2.0]),
+        ("rotate", [0, 90, 0]),
+    )
+    left = cylinder_machine.build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, depth)
+    left = sp.scad_transform(
+        left,
+        ("rotate", [0, 0, -Angle_Pitch + Angle_Pitch * 0.25]),
+        ("translate", [Shuttle_Arc_Radius + Shuttle_Thickness - Shuttle_Label_Depth, 0,
+                        (Shuttle_Height - Shuttle_Height_Offset) / 2.0]),
+        ("rotate", [0, 90, 0]),
+    )
+    return sp.union_all([right, left])
+
+
+# ---------------------------------------------------------------- Element
+
+def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+             draft_angle_deg=None):
+    text_ring, char_parts = cylinder_machine.TextRing(
+        points_per_mm=points_per_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
+        cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
+        platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+        placement_protrusion=Shuttle_Thickness)
+    shell = sp.union_all([text_ring, ShuttleCylinder()])
+    shell = shell.difference(AnvilShape(), engine="manifold")
+    shell = shell.difference(MinkCleanup(), engine="manifold")
+    return sp.union_all([shell, RibAssembled()]), char_parts
+
+
+def Subtractive(render_core_groove=None):
+    # render_core_groove: accepted (matching cylinder_machine.Subtractive's
+    # signature/generate.py's uniform build_fn(...) call) but unused -
+    # Hammond has no core groove concept at all (see module docstring).
+    return sp.union_all([ShuttleTaper(), Label()])
+
+
+def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+                cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+                draft_angle_deg=None):
+    _require_configured()
+    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+                                     cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
+                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                     draft_angle_deg=draft_angle_deg)
+    print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
+          f"watertight={additive.is_watertight}", flush=True)
+    subtractive = Subtractive(render_core_groove)
+    print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
+          f"watertight={subtractive.is_watertight}", flush=True)
+    full = additive.difference(subtractive, engine="manifold")
+    full, _, _, _ = sp.check_and_repair(full, label="FullElement")
+    return full, char_parts
+
+
+# ------------------------------------------------------------- Calibration
+
+def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                         reference_baseline_row=None, reference_cutout_row=None,
+                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
+                         minkowski_enabled=None, draft_angle_deg=None):
+    text_ring, mapping_lines = cylinder_machine.CalibrationTextRing(
+        test_char, vary_baseline, vary_cutout, start, interval,
+        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        align_kwargs=align_kwargs, cone_segments=cone_segments,
+        simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+        placement_protrusion=Shuttle_Thickness)
+    shell = sp.union_all([text_ring, ShuttleCylinder()])
+    shell = shell.difference(AnvilShape(), engine="manifold")
+    shell = shell.difference(MinkCleanup(), engine="manifold")
+    return sp.union_all([shell, RibAssembled()]), mapping_lines
+
+
+def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                        reference_baseline_row=None, reference_cutout_row=None,
+                        points_per_mm=None, separation_mm=None, render_core_groove=None,
+                        align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
+                        platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
+    _require_configured()
+    additive, mapping_lines = CalibrationAdditive(
+        test_char, vary_baseline, vary_cutout, start, interval,
+        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        align_kwargs=align_kwargs, cone_segments=cone_segments,
+        simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+    subtractive = Subtractive(render_core_groove)
+    full = additive.difference(subtractive, engine="manifold")
+    full, _, _, _ = sp.check_and_repair(full, label="CalibrationElement")
+    return full, mapping_lines
+
+
+# ------------------------------------------------------------- Resin support
+
+def ResinSupport(body):
+    """See module docstring for why this is NOT a port of v2's
+    VertResinSupport2. Numerically finds the real lowest-surface-point on
+    a grid of (X,Y) positions (ray-casting straight down against the
+    actual built, already print-oriented mesh) and drops a resin-support
+    rod (cylinder_machine._resin_rod - the shared rod primitive Mignon/
+    Bennett also reuse) at each hit, bracing adjacent grid rods together
+    with an angled reinforcement strut (sp.connecting_rod - the one
+    genuinely new primitive, v2/hammond.scad:419's ConnectingRod ported).
+    Grid pitch is the real v2 Resin_Support_Spacing value."""
+    _require_configured()
+    spacing = Resin_Support_Spacing
+    bounds = body.bounds
+    xs = np.arange(bounds[0][0] + spacing / 2.0, bounds[1][0], spacing)
+    ys = np.arange(bounds[0][1] + spacing / 2.0, bounds[1][1], spacing)
+    ray_top = bounds[1][2] + 1.0
+
+    origins, directions, keys = [], [], []
+    for i, xi in enumerate(xs):
+        for j, yi in enumerate(ys):
+            origins.append([xi, yi, ray_top])
+            directions.append([0, 0, -1])
+            keys.append((i, j))
+
+    locations, index_ray, _ = body.ray.intersects_location(np.array(origins), np.array(directions))
+    tips = {}
+    for loc, ray_i in zip(locations, index_ray):
+        key = keys[ray_i]
+        if key not in tips or loc[2] < tips[key][2]:
+            tips[key] = loc
+
+    parts = [body]
+    live_tips = {}
+    for key, loc in tips.items():
+        if loc[2] <= Resin_Min_Rod_Height:
+            continue  # already resting at/near the buildplate, no support needed
+        rod = cylinder_machine._resin_rod(loc[2])
+        parts.append(sp.translate(rod, [loc[0], loc[1], 0]))
+        live_tips[key] = loc
+
+    for (i, j), loc in live_tips.items():
+        for ni, nj in ((i + 1, j), (i, j + 1)):
+            nloc = live_tips.get((ni, nj))
+            if nloc is None:
+                continue
+            parts.append(sp.connecting_rod([loc[0], loc[1], loc[2]],
+                                            [nloc[0], nloc[1], nloc[2]],
+                                            Resin_Rod_OD))
+    print(f"ResinSupport: {len(live_tips)} rods, "
+          f"{sum(1 for (i, j) in live_tips if (i + 1, j) in live_tips or (i, j + 1) in live_tips)} "
+          f"braced", flush=True)
+    return sp.union_all(parts)
+
+
+def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+               cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+               draft_angle_deg=None):
+    """v2/hammond.scad:811-822 VertResinPrint2's real print orientation -
+    rotate([0,-90,0]) then translate(-Z_Offset,0,-X_Max) - stands the arc
+    up on one end for vertical printing, kept faithful (a real, deliberate
+    orientation choice, not something the resin-support redesign touches).
+    The whole oriented body is then shifted so its lowest point sits at
+    Resin_Min_Rod_Height above a true Z=0 buildplate, matching
+    cylinder_machine._resin_rod()'s own h-is-buildplate-relative
+    convention."""
+    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
+                                    cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
+                                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                    draft_angle_deg=draft_angle_deg)
+    oriented = sp.scad_transform(full, ("rotate", [0, -90, 0]), ("translate", [-Z_Offset, 0, -X_Max]))
+    lowest_z = oriented.bounds[0][2]
+    oriented = sp.translate(oriented, [0, 0, Resin_Min_Rod_Height - lowest_z])
+
+    if not Resin_Support:
+        combined, _, _, _ = sp.check_and_repair(oriented, label="ResinPrint")
+        return combined, char_parts
+
+    combined = ResinSupport(oriented)
+    combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
+    return combined, char_parts

@@ -636,6 +636,37 @@ def LogoText(points_per_mm=20.0):
     return sp.union_all(parts)
 
 
+def build_text_string(text, size, font_path, depth, points_per_mm=20.0):
+    """Whole-string flat text, e.g. v2's text(text=<whole string>,
+    halign="center", valign="center") called directly on a multi-character
+    string rather than a ring of individually angle-placed characters
+    (LogoText's own model). Ported as build_flat_text() called per
+    character at its natural FreeType pen-origin advance (no align_kwargs),
+    summed left to right, then the WHOLE assembled string shifted by
+    -total_advance/2 - the same "native halign=center centers the ADVANCE
+    box" convention already verified/established elsewhere (see lib/
+    glyph_pipeline.scad's AlignedText comment). Vertically, stays at
+    baseline (y=0) rather than attempting true valign=center - the same
+    simplification LogoText()/mignon.ElementLabel() already make for their
+    own decorative text - fine for an engraved label, not attempted to
+    match exactly. Originally Bennett-only (bennett.py's private
+    _build_text_string); promoted here once Hammond's Label() needed the
+    identical derivation, per this repo's "extract shared derivations
+    instead of hand-copying them" convention."""
+    face = freetype.Face(font_path)
+    scale = size / face.units_per_EM
+    parts = []
+    cursor = 0.0
+    for ch in text:
+        _, advance_mm = get_glyph_contours_and_advance(ch, points_per_mm, scale, font_path=font_path)
+        if ch != " ":
+            mesh = build_flat_text(ch, points_per_mm, depth, font_size_mm=size, font_path=font_path)
+            parts.append(sp.translate(mesh, [cursor, 0, 0]))
+        cursor += advance_mm
+    whole = sp.union_all(parts)
+    return sp.translate(whole, [-cursor / 2.0, 0, 0])
+
+
 # ------------------------------------------------------------------ Element
 
 def Subtractive(render_core_groove=None):
