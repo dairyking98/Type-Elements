@@ -18,6 +18,25 @@ def revolve_polygon(profile, sections=128):
     profile touches r=0 (the ring at that angle degenerates to a shared
     point, same harmless artifact as a UV-sphere's poles)."""
     profile = np.asarray(profile, dtype=float)
+    # Drop consecutive coincident (r,z) points (e.g. a caller-supplied
+    # profile with a zero-height "wall" segment, like Core_Taper_Top_Z==
+    # Core_Top_Z's repeated point in cylinder_machine.SecondaryCore/
+    # CoreEllipses when a machine has no clip - see this function's
+    # module-level test/SESSION_LOG for the discovery). Left in, the swept
+    # quad between them has zero width, but the two vertex RINGS at that
+    # (r,z) stay numerically distinct (indexed by different profile
+    # positions) - each only stitches to its OTHER neighbor, leaving a
+    # real crack rather than a harmless zero-area face (confirmed:
+    # SecondaryCore was not watertight for Bennett, the first machine to
+    # hit this). Deduplicating here removes the extra ring entirely so
+    # there's nothing to leave unstitched.
+    r_tol = 1e-9
+    keep = np.ones(len(profile), dtype=bool)
+    for j in range(len(profile)):
+        j_prev = j - 1
+        if np.hypot(*(profile[j] - profile[j_prev])) <= r_tol:
+            keep[j] = False
+    profile = profile[keep]
     n = len(profile)
     theta = np.linspace(0, 2 * np.pi, sections, endpoint=False)
     r = profile[:, 0][None, :]
@@ -32,7 +51,6 @@ def revolve_polygon(profile, sections=128):
     def idx(i_theta, j_profile):
         return (i_theta % sections) * n + (j_profile % n)
 
-    r_tol = 1e-9
     faces = []
     for i in range(sections):
         i_next = i + 1
