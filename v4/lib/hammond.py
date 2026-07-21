@@ -1020,8 +1020,15 @@ def ResinSupport():
         # Missing this shape entirely was the reported bug ("the theta of
         # the tip") - see resin_support.rod_tip()'s docstring for the
         # full v2 source derivation and coordinate-frame explanation.
+        # inset=Resin_Inset+Resin_Tip_OD/2 (same convention _rod()/
+        # resin_rod() already applies) - without it the tip sphere's own
+        # center lands exactly ON the nominal arc surface (only ~half
+        # embeds); reported as "meshing at the base of the tip, not the
+        # tip of the tip" - see rod_tip()'s own docstring for the full
+        # derivation/verification.
         return resin_support.rod_tip(x, theta_deg, s, Z_Offset, Shuttle_Arc_Radius,
-                                      Resin_Rod_OD, Resin_Tip_OD, sections=Cyl_Fn)
+                                      Resin_Rod_OD, Resin_Tip_OD, sections=Cyl_Fn,
+                                      inset=Resin_Inset + Resin_Tip_OD / 2.0)
 
     parts = []
 

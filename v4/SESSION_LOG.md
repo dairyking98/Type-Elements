@@ -3021,6 +3021,79 @@ Hammond vertical/horizontal+Rib and Blickensderfer/Postal/Mignon/
 Bennett (only `lib/hammond.py`'s `HorizRibResinSupport()` changed this
 session).
 
+## 43. Hammond: vertical resin support's rod_tip() needle was only ~50% embedded (sphere centered exactly on the nominal arc surface) - found the real root cause of the earlier "4207 fragments/crashing f3d" concern
+
+Follow-up to part 42's "no defect found" on the vertical outer-edge
+tier - user corrected the diagnosis: "vertical outer edge: along arc
+circumference not wedge cut. resin rods are meshing at the base of the
+tip, not the tip of the tip." Two things wrong with the previous pass:
+(a) investigated the wrong feature (`ShuttleTaper()`'s end-cap wedge,
+not a defect along the arc's actual circumference), and (b) used the
+wrong metric (whole-needle volume-overlap %, which is misleading since
+the needle's cone SHAFT is deliberately meant to stay mostly exposed -
+only the tip sphere is supposed to be solidly embedded).
+
+Re-measured with the right metric (tip-sphere-only intersection volume)
+at a plain mid-arc position (theta=0, nothing taper-related): only
+~50% of the sphere's own volume was inside the body, CONSISTENTLY
+across every theta tested (0, 30, thetamax/2) - i.e. a real, general
+defect along the whole arc, exactly matching "along arc circumference,"
+not a taper-specific one. Root cause: `resin_support.rod_tip()`'s
+placement puts the tip sphere's CENTER at exactly `arc_radius` (the
+nominal wall radius) with no interference term at all - since the real
+wall surface IS at that radius, the sphere sits bisected by it: the
+half facing the cone/rod shaft (the "base of the tip") embeds, the
+outer/pointed half (the actual "tip of the tip") sits in open air.
+Every OTHER rod-placement convention in this codebase (`_rod()`/
+`resin_rod()`'s `tip_z=-tip_od/2+inset+h`, horizontal's `_rod2()`/
+`Tip_Interference`) has some such term; `rod_tip()` never did. Checked
+whether this was a dropped v2 term first (v2's own `translate([0,0,
+Shuttle_Arc_Radius-1]) RodTip()` looked like a candidate) - it isn't:
+that "-1" is exactly what `tip_l` already represents in the ported
+formula (arc_radius-tip_l), already faithfully reproduced. So this is a
+genuine v4-only gap, not a v2 divergence.
+
+Added a new `inset` parameter to `resin_support.rod_tip()` (default 0.0
+- unchanged behavior for any future caller that doesn't opt in),
+wired from Hammond's `_rod_tip()` closure as `Resin_Inset+Resin_Tip_OD/2`
+- the same `inset` convention `_rod()` already uses, just applied along
+the needle's own radial placement axis instead of a fixed Z axis.
+Re-verified: tip sphere now 100% embedded at every theta tested, cone
+shaft still ~75% exposed (whole-needle ratio 25%, confirmed) - a proper
+breakable support point, not a buried rod.
+
+Side effect, found while re-running the vertical hard-gate check: the
+STL-round-trip fragmentation flagged in part 41 as "physically inert,
+probably just a viewer/float32 artifact" (4207 disconnected components
+on reload vs. 1 in memory) dropped to 6 components (5 of which are
+2-face numerical noise, not real geometry) once this fix landed - face
+count also dropped by ~37% (946726->593246), consistent with far fewer
+razor-thin/marginal boolean seams needing extra triangulation to
+resolve. This strongly suggests the marginal ~50%-embedded tip contacts
+WERE the real mechanism behind the "1468 parts...crashing f3d" report
+part 41 investigated and couldn't confirm - not a viewer quirk after
+all, a real (if subtle) geometry defect whose symptom only showed up
+after STL export, which is why the in-memory single-connected-component
+check in part 41 didn't catch it.
+
+`HorizWallRodSupport()`'s "still going too far into the shuttle" report
+remains unresolved - `_rod2()`/`cylinder_machine._resin_rod()` is a
+different, shared primitive (also used by Mignon/Bennett with no
+similar report), and the raycast check in part 41 already confirmed its
+z=0 target lands on the real wall surface with the intended
+Tip_Interference overlap. No fix attempted this session for lack of a
+confirmed root cause - same standing ask as part 41's close: need more
+specific reproduction detail to avoid guessing again.
+
+**Verified**: hard gate re-run for Hammond vertical (new baseline:
+`verts=295799 faces=593246 ... volume=4813.141mm3` - volume increased
+~0.4% from the extra embedded material, expected) and horizontal+Rib
+(unchanged from part 42's own baseline, confirming the fix is isolated
+to the vertical-only `rod_tip()` call site); Blickensderfer/Postal/
+Mignon/Bennett unaffected (exact baseline match - `rod_tip()`'s new
+`inset` parameter defaults to 0.0/previous behavior for any caller that
+doesn't pass it, and Hammond is its only caller).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
