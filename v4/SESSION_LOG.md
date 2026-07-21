@@ -2670,6 +2670,79 @@ headless `TuneApp` cycle (manual 4th-row edit persists across save;
 switching to Math Universal live-seeds all 4 baseline/cutout widgets;
 "Shuttle"/"Calibration Shuttle" labels present) all pass.
 
+## 38. Hammond vertical resin support: real RodTip() implemented; all vertical-support geometry moved into resin_support.py
+
+Two rounds in one session.
+
+**"Did you fix the theta of the tip"** - no. `ResinSupport()`'s
+`_crod()` (the connecting rod between the shuttle body and each support
+point) was standing in for v2's own separate `RodTip()` shape
+(v2/hammond.scad:596-600) at every contact point - wrong diameter
+(`_crod`'s capsule end is a plain sphere at the full `Resin_Rod_OD`,
+not the narrower `Resin_Tip_OD`), and, the actual reported bug, no
+orientation dependence on `theta` at all. `RodTip()` is a small needle
+(a cone from `Resin_Rod_OD` down to `Resin_Tip_OD` over 1mm, then a
+`Resin_Tip_OD` sphere) that v2 ROTATES about the X axis by `theta*s`
+before translating into position (v2:621-624/632-635), so the pointed
+tip tilts to follow the arc surface's own curvature/normal at that
+angular position rather than pointing in a fixed direction. Implemented
+faithfully and wired into both theta-dependent tiers of `ResinSupport()`
+("at the taper" and "Under Shuttle Arc Radius"). One self-caught
+arithmetic slip along the way: the placement's translate needs v2's own
+`Z0'` value already reduced by the same shift `_rod()`/`_crod()`
+rebase by (`Resin_Min_Rod_Height+Resin_Raft_Thickness`) - an early draft
+used the raw, un-rebased `Z0'` and placed every tip 3.5mm too high;
+caught by re-deriving the cancellation algebraically before testing.
+
+**"All that resin tip should go in the new resin library... make it a
+module"**, followed by a broader **"all the resin related stuff should
+go in the new resin_support file including the placement and rotation
+logic, following the pattern of cylinders"** - i.e. don't just move the
+new `RodTip` shape, move the *whole* vertical-support placement layer
+(shape-building AND the transform/rotation math) the same way
+`cylinder_machine.place_on_cylinder()` owns both a shape's construction
+context and its full placement in one function, rather than splitting
+shape-building into a shared module and leaving positioning as a local
+closure. `ResinSupport()`'s three local closures (`_rod`, `_crod`,
+`_rod_tip`) were doing exactly that split - each called into
+`resin_support.py`/`cylinder_machine.py` for the raw shape, then applied
+Hammond-specific rebasing/rotation locally. Moved all three placement
+functions into `lib/resin_support.py` itself, taking every needed value
+as an explicit parameter (no closures, no globals):
+
+- `resin_support.vertical_rod(h1, shift, ...)` - rebases `h1` by `shift`
+  (the same `Resin_Min_Rod_Height+Resin_Raft_Thickness` v2:611 wraps the
+  whole union in) before delegating to `resin_rod()`.
+- `resin_support.vertical_connecting_rod(p1, p2, diameter, shift)` -
+  rebases both endpoints by `shift` before delegating to
+  `connecting_rod()`.
+- `resin_support.rod_tip(x, theta_deg, s, z_offset, arc_radius, rod_od,
+  tip_od, tip_l=1.0, sections=128)` - builds the needle shape AND applies
+  its full placement transform (translate/rotate/translate), returning
+  the final positioned mesh directly.
+
+`hammond.py`'s `ResinSupport()` closures are now thin one-line
+wrappers supplying Hammond's own config globals (`Resin_Tip_OD`,
+`Resin_Rod_OD`, `Z_Offset`, `Shuttle_Arc_Radius`, etc.) to these three
+calls - all the actual shape-building and coordinate-frame math lives in
+`resin_support.py`, consistent with the file's existing
+`resin_rod()`/`connecting_rod()` functions.
+
+**Verified**: standalone `ResinSupport()` build
+(`verts=425503 faces=851858 watertight=True volume=2845.034mm3`), then
+full `generate.py` runs for vertical orientation with both `groove:
+false` (`ResinPrint: verts=478551 faces=958750 ... volume=4802.476mm3`)
+and `groove: true` (`verts=455026 faces=911368 ... volume=4303.119mm3`)
+- both watertight/winding-consistent/is_volume all `True`. Horizontal
+orientation (a separate code path, `_rod2`/`HorizRibbedResinSupport`,
+untouched by this refactor) re-checked and still valid
+(`verts=36310 faces=72864 ... volume=2961.561mm3`). All 4 sibling
+machines that share `resin_support.py` (blickensderfer/postal/mignon/
+bennett) reproduce their exact prior baselines
+(`5666.804mm3`/`5497.237mm3`/`4644.658mm3`/`3627.360mm3` respectively) -
+confirming the refactor is scoped correctly and introduces zero
+behavior change anywhere except the intended vertical-support tip fix.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

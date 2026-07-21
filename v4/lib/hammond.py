@@ -858,6 +858,15 @@ def ResinSupport():
     matching v2's own VertResinPrint2 - RibbedShuttle() and
     VertResinSupport2() are siblings in one union(), not nested."""
     _require_configured()
+    # v2:611 wraps the whole VertResinSupport2 union in translate([0,0,
+    # -Resin_Support_Min_Height-Resin_Support_Base_Thickness]) - shift is
+    # that same rebasing constant, shared by all three resin_support.py
+    # placement helpers below (vertical_rod/vertical_connecting_rod/
+    # rod_tip) so they stay in one consistent coordinate frame. All the
+    # actual shape-building AND placement/rotation logic for these three
+    # lives in lib/resin_support.py now (see each function's own
+    # docstring there) - this function only supplies Hammond's own
+    # config values and the per-part coordinates.
     shift = Resin_Min_Rod_Height + Resin_Raft_Thickness
 
     def _rod(h1, add_raft=True):
@@ -868,16 +877,23 @@ def ResinSupport():
         # Thickness giving h=-Resin_Min_Rod_Height=-2.0 with default
         # values) stays well above the actual degenerate threshold (where
         # the tip sphere would invert past the base sphere, around -2.58
-        # with default values - see cylinder_machine._resin_rod's tip_z/
+        # with default values - see resin_support.resin_rod's tip_z/
         # lower_z formulas) - the floor was clamping an already-VALID
         # value to the wrong height for no reason, not preventing a real
         # defect. v2 itself has no such guard on ResinRod() either.
-        h = h1 - shift
-        return cylinder_machine._resin_rod(h, add_raft=add_raft)
+        return resin_support.vertical_rod(h1, shift, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD,
+                                           Resin_Inset, Resin_Min_Rod_Height, Resin_Raft_Thickness,
+                                           Resin_Raft_OD, add_raft=add_raft, resin_fn=Resin_Fn)
 
     def _crod(p1, p2):
-        return resin_support.connecting_rod([p1[0], p1[1], p1[2] - shift],
-                                             [p2[0], p2[1], p2[2] - shift], Resin_Rod_OD)
+        return resin_support.vertical_connecting_rod(p1, p2, Resin_Rod_OD, shift)
+
+    def _rod_tip(x, theta_deg, s):
+        # Missing this shape entirely was the reported bug ("the theta of
+        # the tip") - see resin_support.rod_tip()'s docstring for the
+        # full v2 source derivation and coordinate-frame explanation.
+        return resin_support.rod_tip(x, theta_deg, s, Z_Offset, Shuttle_Arc_Radius,
+                                      Resin_Rod_OD, Resin_Tip_OD, sections=Cyl_Fn)
 
     parts = []
 
@@ -909,6 +925,7 @@ def ResinSupport():
             p_a = [x, y1, z1 - Z_Offset + Resin_Raft_Thickness + Resin_Min_Rod_Height]
             p_b = [x, y1 - 0.5 * (-s), Resin_Rod_OD]
             parts.append(_crod(p_a, p_b))
+            parts.append(_rod_tip(x, np.degrees(theta_t), s))
 
             for theta in thetas:
                 y = (Shuttle_Arc_Radius - 1) * np.cos(np.pi / 2.0 + theta * s)
@@ -916,6 +933,7 @@ def ResinSupport():
                 z_common = za - Z_Offset + Resin_Raft_Thickness + Resin_Min_Rod_Height
 
                 # Under Shuttle Arc Radius (v2:619-630)
+                parts.append(_rod_tip(x, np.degrees(theta), s))
                 parts.append(_crod([x, y, z_common], [x, y, Resin_Rod_OD]))
                 parts.append(sp.translate(_rod(Resin_Min_Rod_Height), [x, y, 0]))
 

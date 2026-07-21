@@ -65,6 +65,62 @@ def connecting_rod(p1, p2, diameter, subdivisions=2):
     return trimesh.util.concatenate([s1, s2]).convex_hull
 
 
+def vertical_rod(h1, shift, tip_od, tip_l, rod_od, inset, min_rod_height, raft_thickness,
+                  raft_od, add_raft=True, resin_fn=20):
+    """ResinRod(h1) rebased into a vertical-print-orientation frame, for
+    machines (currently only Hammond) whose v2 source wraps the WHOLE
+    resin-support union in its own translate([0,0,-shift]) (v2/hammond.scad:
+    611's VertResinSupport2, shift=Resin_Support_Min_Height+Resin_Support_
+    Base_Thickness). v2's own ResinRod(h1) convention has the raft sit at
+    z=0 and the tip at z=h1; this shared resin_rod() (this module's own
+    function above) instead has the raft fixed at
+    z=-min_rod_height-raft_thickness with the tip at h - subtracting shift
+    from h1 here is exactly what reconciles the two conventions, matching
+    what every point/height in the caller's v2-faithful coordinate frame
+    already assumes. Kept alongside vertical_connecting_rod/rod_tip below
+    since all three need the same shift to stay in one consistent frame -
+    see hammond.ResinSupport()'s own docstring for the full derivation."""
+    return resin_rod(h1 - shift, tip_od, tip_l, rod_od, inset, min_rod_height, raft_thickness,
+                      raft_od, add_raft=add_raft, resin_fn=resin_fn)
+
+
+def vertical_connecting_rod(p1, p2, diameter, shift):
+    """connecting_rod(), with both endpoints rebased by the same shift as
+    vertical_rod() above - see that function's docstring."""
+    return connecting_rod([p1[0], p1[1], p1[2] - shift], [p2[0], p2[1], p2[2] - shift], diameter)
+
+
+def rod_tip(x, theta_deg, s, z_offset, arc_radius, rod_od, tip_od, tip_l=1.0, sections=128):
+    """RodTip() from v2/hammond.scad:596-600 plus its own placement
+    (v2:621-624/632-635) - a small oriented needle-point (a cone tapering
+    from rod_od down to the narrower tip_od over tip_l, then a tip_od-
+    radius sphere) used as the vertical resin support's actual contact
+    point against the arc surface - a real, separate shape from
+    connecting_rod's own capsule end (which is a plain sphere at the full
+    rod_od diameter, with no directional dependence on theta at all).
+    The whole needle ROTATES about the X axis by theta_deg*s before being
+    translated into position, so its pointed end tilts to follow the arc
+    surface's own curvature/normal at that angular position rather than
+    pointing in a fixed direction. Op order matches v2 source top-to-
+    bottom: translate to the caller's rebased Z0' (z_offset - the same
+    shift-cancelled value vertical_rod/vertical_connecting_rod already
+    assume - v2's own Z0'=-Z_Offset+Resin_Support_Min_Height+Resin_
+    Support_Base_Thickness minus shift reduces to exactly -z_offset),
+    rotate by theta_deg*s, THEN translate the raw shape to
+    (0,0,arc_radius-tip_l), so the needle's own point reaches exactly
+    radius arc_radius before anything else moves it."""
+    cone = sp.frustum_z(rod_od, tip_od, tip_l, sections=sections)
+    tip_sphere = trimesh.creation.icosphere(subdivisions=2, radius=tip_od / 2.0)
+    tip_sphere.apply_translation([0, 0, tip_l])
+    shape = sp.union_all([cone, tip_sphere])
+    return sp.scad_transform(
+        shape,
+        ("translate", [x, 0, -z_offset]),
+        ("rotate", [theta_deg * s, 0, 0]),
+        ("translate", [0, 0, arc_radius - tip_l]),
+    )
+
+
 def raft_config(element_diameter, wall_min_thickness, raft_enabled):
     """Derives (Resin_Rod_Raft, Cut_Groove_Inner_X) from the single
     resin.raft config toggle - called from both Blickensderfer's and
