@@ -2885,6 +2885,88 @@ volume=5666.804mm3` matched exactly) - confirms zero cross-machine side
 effects, as expected since only `lib/hammond.py`/`config/hammond.yaml`/
 Hammond-scoped `tune.py` blocks were touched.
 
+## 41. Hammond: horizontal rib-support height gap fixed, chamfer decoupled from Rib, orientation/method moved to Build tab, vertical support investigated (no bug found)
+
+User bug report covering several distinct issues in one pass, worked
+through methodically with empirical bounds/render checks rather than
+by inspection alone (this codebase has already been burned twice by
+"looks like it should be right" transform bugs - see README.md's
+platen-cutout history):
+
+1. **Horizontal rib-support rods fell short of the rib by 0.34mm** -
+   `HorizRibResinSupport()`'s `rib_h` reused v2's
+   `Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness` formula
+   verbatim from `VertResinSupport2`'s own "Under Rib" tier, where it's
+   correct because vertical orientation never flips the body (a rod
+   built to local height h directly reaches local z=h - confirmed old
+   `rib_h`, 6.66 by default, exactly equals `Rib()`'s own local bottom
+   z). Horizontal's body DOES get `rotate([180,0,0])` before the resin
+   support (built in the same fixed, unrotated frame either way) is
+   added as a sibling - so h needs to target the FLIPPED surface's
+   global z instead. Measured directly: `RibAssembled()`'s flipped
+   local-max maps to global z=8.20 (`Shuttle_Height - ((Shuttle_Height-
+   Shuttle_Rib_Plane) + Shuttle_Pin_Support_Height)` = `Shuttle_Rib_Plane
+   - Shuttle_Pin_Support_Height`), but the old formula's rods only
+   reached z=7.86. Corrected `rib_h` to `Shuttle_Rib_Plane -
+   Shuttle_Pin_Support_Height` (same "h=<surface's own z>" convention
+   the wall tier's h=0 already uses, letting `_rod2`'s own
+   `Tip_Interference` supply the same ~1.2mm overlap either tier gets) -
+   re-verified empirically: rods now penetrate the rib by exactly
+   `Tip_Interference` (1.2mm), matching the wall tier's own convention,
+   confirmed visually (rendered screenshots before/after - the "floating
+   pillar" look is gone, tips now visibly merge into the body's
+   underside). v2 reuses the same formula 1:1 for both orientations and
+   never corrects this - a deliberate v4 divergence, not a port
+   artifact, per explicit user confirmation.
+2. **`ResinChamfer()` decoupled from Rib/Groove** - real v2 only ever
+   calls it from `GroovedShuttle()` (`RibbedShuttle()` never does), so
+   toggling the Build tab's Rib checkbox on (element.groove=False)
+   silently dropped the chamfer. Per explicit request ("that should be
+   independent of Rib selection"), `Additive()`/`CalibrationAdditive()`
+   now apply it unconditionally before the Rib/Groove branch - another
+   deliberate v4 divergence, documented at both call sites and on
+   `ResinChamfer()`'s own docstring.
+3. **Print Orientation + Horizontal Support Method moved from the Resin
+   tab to the Build tab**, above the Debug section, per explicit
+   request - same bespoke-widget pattern as Rib/target/resin_support
+   (`#build-orientation`/`#build-horizontal-method`, handled directly in
+   `_collect_values`/`_refresh_widgets_from_cfg`, removed from
+   `RESIN_FIELDS_HAMMOND`/the generic Select-branch dispatch in
+   `_compose_section_tab` since nothing else used those `elif key==`
+   branches).
+4. **Vertical resin support's ~1468 parts - investigated, no bug
+   found.** User's intuition ("something is deeply wrong... are they
+   overlapping? its crashing f3d") was reasonable to check given how
+   large the file is (~950k faces/~48MB, ~13x any other machine's resin
+   print output), but every concrete check came back clean:
+   reconstructed the part-count arithmetic tier-by-tier (found only a
+   trivial ~6-position duplicate at theta=0 across the s=-1/s=+1 loop -
+   present in v2's own source too, and negligible against 1468); the
+   in-memory mesh is ONE connected component (not overlapping, not
+   floating - `check_and_repair` already confirms watertight/is_volume);
+   a real windowed `f3d --watch` on this machine loaded and rendered it
+   correctly within seconds, no crash, memory usage unremarkable. One
+   real (but practically inert) finding: reloading the EXPORTED stl
+   shows 4207 connected components via trimesh's default vertex-merge
+   tolerance, vs. 1 in memory - an STL round-trip/float32-precision
+   artifact (gaps are far below print resolution, physically
+   meaningless for manufacturing) that could plausibly explain per-object
+   viewer overhead on a lower-spec machine than this one, but is not a
+   geometry defect and wasn't touched - no fix applied pending the user
+   confirming whether it's still reproducing and what f3d actually shows
+   when it does (blank/frozen/error/OOM - the earlier part 40 session
+   also chased a similar report that turned out to be transient).
+
+**Verified**: hard gate re-run for Hammond default (vertical,
+`verts=472539 faces=946726 ... volume=4795.951mm3`) and horizontal+Rib+
+resin_rod (regression check on item 1's fix path); Blickensderfer/
+Postal/Mignon/Bennett unaffected (exact baseline match, as expected -
+only `lib/hammond.py`/`tune.py`'s Hammond-scoped blocks touched).
+Headless `TuneApp` against a scratch config (per the standing warning):
+Build tab's new orientation/method Selects compose, collect, and
+round-trip through save+reload correctly alongside Rib/target/resin
+supports.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

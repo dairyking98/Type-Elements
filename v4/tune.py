@@ -699,13 +699,14 @@ RESIN_FIELDS_HAMMOND = [
     ("spacing", ["resin", "spacing"], float, "Support grid spacing (mm)",
      "Rod pitch (vertical: real theta step along the arc; horizontal: raycast grid pitch)."),
     ("edge_gap", ["resin", "edge_gap"], float, "Edge gap (mm)", "Resin_Support_Edge_Gap - only used for vertical orientation."),
-    ("orientation", ["resin", "orientation"], str, "Print orientation",
-     '"vertical" (stands the shuttle up on end) or "horizontal" (prints flat, as-built).'),
-    ("horizontal_method", ["resin", "horizontal_method"], str, "Horizontal support method",
-     'Only used for horizontal orientation. "Cut Groove": a swept perforated breakaway-groove '
-     'ring around the outer wall. "Resin Rod": individual rods along the outer wall instead. '
-     'Independent of the Build tab\'s Rib checkbox - whenever Rib is on, its own resin-rod '
-     'supports are always added too, regardless of this setting.'),
+    # "orientation"/"horizontal_method" used to live here as generic FIELDS
+    # Selects - moved to the Build tab (see _compose_build_tab), above the
+    # Debug section, per explicit user request ("maybe Print Orientation
+    # and Horizontal Support Method should be moved to Build"). Handled
+    # like target/resin_support/groove there - _collect_values/
+    # _refresh_widgets_from_cfg read/write #build-orientation/
+    # #build-horizontal-method directly instead of going through the
+    # generic self.FIELDS loop.
 ]
 
 ELEMENT_FIELDS_HAMMOND = [
@@ -1724,18 +1725,6 @@ class TuneApp(App):
                                              value=val, id=f"field-{key}", allow_blank=False)
                                 self.inputs[key] = sel
                                 yield sel
-                            elif key == "orientation":
-                                val = str(current) if str(current) in ("vertical", "horizontal") else "vertical"
-                                sel = Select([("Vertical", "vertical"), ("Horizontal", "horizontal")],
-                                             value=val, id=f"field-{key}", allow_blank=False)
-                                self.inputs[key] = sel
-                                yield sel
-                            elif key == "horizontal_method":
-                                val = str(current) if str(current) in ("cut_groove", "resin_rod") else "resin_rod"
-                                sel = Select([("Cut Groove", "cut_groove"), ("Resin Rod", "resin_rod")],
-                                             value=val, id=f"field-{key}", allow_blank=False)
-                                self.inputs[key] = sel
-                                yield sel
                             else:
                                 inp = Input(value=str(current), id=f"field-{key}")
                                 self.inputs[key] = inp
@@ -1945,6 +1934,34 @@ class TuneApp(App):
                     f"{resin_unavailable}",
                     classes="picker-help")
 
+                if is_hammond:
+                    orientation_now = str(self.cfg.get("resin", {}).get("orientation", "vertical"))
+                    if orientation_now not in ("vertical", "horizontal"):
+                        orientation_now = "vertical"
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Print orientation", classes="field-label")
+                        yield Select([("Vertical", "vertical"), ("Horizontal", "horizontal")],
+                                     value=orientation_now, id="build-orientation", allow_blank=False)
+                    yield Static(
+                        '"Vertical" stands the shuttle up on end. "Horizontal" prints it flat, '
+                        "as-built. Only matters while Resin supports is on.",
+                        classes="field-help")
+
+                    hm_now = str(self.cfg.get("resin", {}).get("horizontal_method", "resin_rod"))
+                    if hm_now not in ("cut_groove", "resin_rod"):
+                        hm_now = "resin_rod"
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Horizontal support method", classes="field-label")
+                        yield Select([("Cut Groove", "cut_groove"), ("Resin Rod", "resin_rod")],
+                                     value=hm_now, id="build-horizontal-method", allow_blank=False)
+                    yield Static(
+                        'Only used for horizontal orientation. "Cut Groove": a swept perforated '
+                        'breakaway-groove ring around the outer wall. "Resin Rod": individual rods '
+                        "along the outer wall instead. Independent of the Rib checkbox above - "
+                        "whenever Rib is on, its own resin-rod supports are always added too, "
+                        "regardless of this setting.",
+                        classes="field-help")
+
                 yield Static("Debug", classes="field-label")
                 with Horizontal(classes="picker-row"):
                     yield Static("Cross section", classes="field-label")
@@ -2083,6 +2100,11 @@ class TuneApp(App):
             # False - see _compose_build_tab) - not in self.FIELDS since it
             # moved off the Element tab onto the Build tab.
             values["groove"] = not self.query_one("#build-rib", Switch).value
+            # orientation/horizontal_method - moved off the Resin tab onto
+            # the Build tab (see _compose_build_tab) - not in self.FIELDS
+            # for the same reason as groove above.
+            values["orientation"] = self.query_one("#build-orientation", Select).value
+            values["horizontal_method"] = self.query_one("#build-horizontal-method", Select).value
         # Type Test's own cpi/lpi - bespoke widgets, not in self.FIELDS, but
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
@@ -2195,6 +2217,12 @@ class TuneApp(App):
         self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])
         if self.machine == "hammond":
             self.query_one("#build-rib", Switch).value = not bool(self.cfg["element"]["groove"])
+            orientation_now = str(self.cfg.get("resin", {}).get("orientation", "vertical"))
+            self.query_one("#build-orientation", Select).value = (
+                orientation_now if orientation_now in ("vertical", "horizontal") else "vertical")
+            hm_now = str(self.cfg.get("resin", {}).get("horizontal_method", "resin_rod"))
+            self.query_one("#build-horizontal-method", Select).value = (
+                hm_now if hm_now in ("cut_groove", "resin_rod") else "resin_rod")
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]

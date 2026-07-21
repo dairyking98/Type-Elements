@@ -529,8 +529,11 @@ def GrooveShape():
 def ResinChamfer():
     """v2:789-792 - cone frustum subtracted from the shell's bottom-inner
     edge (r1=Anvil_OD/2+Support_Groove_R at z=0, tapering to r2=Anvil_OD/2
-    at z=Support_Groove_R) - a small chamfer at the shell's bottom face,
-    part of the Groove=true assembly path only."""
+    at z=Support_Groove_R) - a small chamfer at the shell's bottom face.
+    Real v2 only ever calls this from GroovedShuttle() (RibbedShuttle()
+    never does) - applied unconditionally here instead, independent of
+    Groove/the Rib checkbox, per explicit user request. A deliberate v4
+    divergence, not a port artifact - see Additive()'s call site."""
     return sp.frustum_z(2 * (Anvil_OD / 2.0 + Support_Groove_R), Anvil_OD,
                          Support_Groove_R, sections=Cyl_Fn, base_z=0.0)
 
@@ -598,6 +601,13 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
+    # ResinChamfer() (v2:789-792) is only ever called from GroovedShuttle()
+    # in real v2 - RibbedShuttle() never applies it at all. Applied here
+    # unconditionally instead, independent of Groove/the Rib checkbox, per
+    # explicit user request ("checking Rib in Build removes a chamfer,
+    # that should be independent of Rib selection") - a deliberate v4
+    # divergence from v2, not a port artifact.
+    shell = shell.difference(ResinChamfer(), engine="manifold")
     # Groove (config/hammond.yaml's element.groove) picks between v2's two
     # real, mutually-exclusive assembly mechanisms - GroovedShuttle()
     # (snap-fit groove, no separate rib piece) vs. RibbedShuttle() (rib +
@@ -610,7 +620,6 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     use_groove = Groove if force_groove is None else force_groove
     if use_groove:
         shell = shell.difference(GrooveShape(), engine="manifold")
-        shell = shell.difference(ResinChamfer(), engine="manifold")
         return shell, char_parts
     return sp.union_all([shell, RibAssembled()]), char_parts
 
@@ -657,9 +666,10 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
+    # ResinChamfer() applied unconditionally - see Additive()'s matching comment.
+    shell = shell.difference(ResinChamfer(), engine="manifold")
     if Groove:
         shell = shell.difference(GrooveShape(), engine="manifold")
-        shell = shell.difference(ResinChamfer(), engine="manifold")
         return shell, mapping_lines
     return sp.union_all([shell, RibAssembled()]), mapping_lines
 
@@ -809,13 +819,47 @@ def HorizRibResinSupport():
     Pinhole" block nor the three dense fan patterns actually depend on
     the outer loop's y/theta - theta gets shadowed by an inner loop of
     the same name) - hoisted out and built once here, the same harmless
-    optimization as ResinSupport()'s "at the taper" block."""
+    optimization as ResinSupport()'s "at the taper" block.
+
+    rib_h: v2 reuses Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness
+    verbatim from VertResinSupport2's own "Under Rib" tier (v2:662-686) -
+    correct THERE because vertical orientation never flips the body, so a
+    rod built with h=<surface's own local z> directly reaches that
+    surface (with _rod2's own Tip_Interference then adding the usual
+    small overlap PAST it, exactly like the outer-wall tier's h=0 reaches
+    the wall's own z=0 edge plus Tip_Interference - confirmed old rib_h
+    (6.66 by default) is itself exactly Rib()'s own local bottom z, i.e.
+    h=<surface z> directly, same convention). Horizontal's body DOES get
+    flipped (rotate([180,0,0]), see ResinPrint()) before HorizResinSupport2's
+    rods (built in the same fixed, unrotated frame as always) are added as
+    a sibling - so a rod reaching to h no longer lands on the feature that
+    was originally AT local z=h; it needs h=<surface's own GLOBAL z after
+    the flip> instead, i.e. Shuttle_Height - RibAssembled()'s own local
+    top. RibAssembled()'s local top is PinSupport()'s "top" piece's own
+    top - (Shuttle_Height-Shuttle_Rib_Plane) + Shuttle_Pin_Support_Height
+    (see PinSupport()) - so the corrected h is Shuttle_Rib_Plane -
+    Shuttle_Pin_Support_Height (same h=<surface z> convention as above,
+    just for the flipped surface; _rod2's own Tip_Interference still
+    supplies the same small overlap on top of it, unchanged).
+    Reported as "resin rods for the rib support ... do not go to the
+    right height of the rib, contacting the rib" - confirmed with default
+    config values: v2's raw formula gave rods a max reach of z=7.86 while
+    RibAssembled()'s actual flipped-bottom surface starts at z=8.20, a
+    0.34mm gap. This wasn't visible from the overall assembly's own
+    watertight/is_volume checks - a separate, disjoint solid still
+    reports those as True (they're per-component checks); the whole
+    ResinPrint() union still comes out as a single connected component
+    regardless, because the WALL-support tier happens to independently
+    touch nearby geometry either way, masking the rib tier's own gap. v2
+    reuses the SAME rib_h 1:1 for both orientations and never corrects
+    this - a deliberate v4 divergence, not a port artifact, per explicit
+    user confirmation."""
     _require_configured()
     parts = []
 
     thetamax = np.radians(Angle_Pitch * 32.0) - 2.0 * np.radians(Shuttle_Taper)
     thetaspacing = Resin_Support_Spacing / Shuttle_Arc_Radius
-    rib_h = Shuttle_Height - Shuttle_Rib_Plane - Shuttle_Rib_Thickness
+    rib_h = Shuttle_Rib_Plane - Shuttle_Pin_Support_Height  # RibAssembled()'s flipped-bottom global z
 
     # Inner_Arc_Intercept supports (v2:886-889)
     for s in (-1, 1):
