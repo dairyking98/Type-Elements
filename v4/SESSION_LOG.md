@@ -3321,6 +3321,43 @@ cleanly with the new widget. Screenshot confirms layout/legibility -
 "95% 7.3s" reads cleanly where the old "62% --:--:--" (or a frozen,
 wrong countdown) used to sit.
 
+## 50. tune.py: console (RichLog) now reflows its scrollback on resize instead of staying wrapped at whatever width it was written at
+
+User: "if i resize the window, the console text history gets... right
+now if i expand it, it stays constricted. and if its wide and i shrink
+it, it goes off page." Traced to a real, confirmed `RichLog` behavior
+(read its source directly, not assumed): `write()` computes the render
+width ONCE per call - from the widget's CURRENT scrollable width at
+that moment, via its own default `expand=False`/`shrink=True` logic -
+and bakes it permanently into the stored `Strip` objects. Nothing
+re-wraps already-written lines on resize; `RichLog.on_resize()` only
+flushes deferred first-render writes, confirmed by reading it directly.
+So every line stays wrapped at whichever width was current when it was
+originally written, exactly matching both halves of the report
+(expanding leaves old narrow-wrapped lines narrow; shrinking leaves old
+wide-wrapped lines wide enough to overflow).
+
+Added `ReflowingRichLog(RichLog)`: keeps its own plain-text history
+list (via an overridden `write()` that appends before delegating), and
+on `on_resize()`, if the widget's own width actually changed AFTER its
+first known size (guarded to avoid duplicating the base class's
+deferred-render flush on the very first resize), clears and re-writes
+every stored line at the new width. Swapped both `compose()`'s
+`RichLog(...)` call and `log_line()`'s `query_one` over to the new
+class - one-line surface change, all the actual behavior lives in the
+new subclass.
+
+**Verified**: headless `TuneApp` with real `pilot.resize_terminal()`
+calls (not just size guesses) - 5 long lines written at 180 cols
+rendered as 20 wrapped display-lines; shrinking to 60 cols reflowed the
+SAME 5 logical lines into 955 display-lines; expanding back to 180
+returned to exactly 20 - and the underlying history stayed at 5 entries
+throughout (confirms no duplication across repeated resizes, the real
+risk with a re-write-everything approach). Screenshots at 140 cols and
+90 cols confirm the visual wrap point actually moves with the window
+and no horizontal overflow occurs. Hammond and Blickensderfer both
+compose and resize cleanly with the new widget.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

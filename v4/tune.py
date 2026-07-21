@@ -171,6 +171,7 @@ import yaml
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.css.query import NoMatches
+from textual.events import Resize
 from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select, Static, Switch,
                               RichLog, TabbedContent, TabPane, TextArea)
 from textual_fspicker import FileOpen, FileSave, Filters
@@ -1410,6 +1411,49 @@ def patch_yaml_text_block(text, key, value):
     return text[:m.start()] + f"{indent}{key}: |-\n{new_block}" + text[m.end():]
 
 
+class ReflowingRichLog(RichLog):
+    """RichLog only wraps text at write()-time - the width used for each
+    line is computed once (from the widget's CURRENT scrollable width,
+    per RichLog.write()'s own default expand=False/shrink=True logic)
+    and baked permanently into the stored Strip objects. It is NOT
+    recomputed on resize (confirmed by reading RichLog's own source -
+    its on_resize() only flushes deferred first-render writes, nothing
+    else touches already-written lines). Reported: "if i expand it, the
+    console text history stays constricted... if its wide and i shrink
+    it, it goes off page" - both are exactly this: old lines stay
+    wrapped at whatever width was current when they were written.
+
+    Keeps its own plain-text history and fully re-writes it (clear() +
+    write() every stored line) whenever this widget's OWN width actually
+    changes after its first known size, so resizing genuinely reflows
+    the existing scrollback instead of leaving it wrapped stale. Skips
+    the very first resize (before `_size_known` was already true) since
+    that's RichLog's own initial-size-becomes-known event, already
+    handled by the base class's deferred-render flush - re-writing there
+    too would duplicate every line written before the widget was first
+    sized."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._history: list[str] = []
+        self._reflow_width: int | None = None
+
+    def write(self, content, *args, **kwargs):
+        if isinstance(content, str):
+            self._history.append(content)
+        return super().write(content, *args, **kwargs)
+
+    def on_resize(self, event: Resize) -> None:
+        had_known_size = self._size_known
+        super().on_resize(event)
+        new_width = event.size.width
+        if had_known_size and new_width and new_width != self._reflow_width and self._history:
+            super().clear()
+            for line in self._history:
+                super().write(line)
+        self._reflow_width = new_width
+
+
 class TuneApp(App):
     CSS = """
     Screen { layout: horizontal; }
@@ -2073,7 +2117,7 @@ class TuneApp(App):
                     yield Static("f3d preview", classes="field-label")
                     yield Switch(value=True, id="f3d-preview-checkbox")
         with Vertical(id="log-pane"):
-            yield RichLog(id="log", wrap=True, markup=True, min_width=1)
+            yield ReflowingRichLog(id="log", wrap=True, markup=True, min_width=1)
             with Horizontal(id="progress-row"):
                 # show_eta=False - see _stream_subprocess's own comment:
                 # Textual's built-in ETA only recomputes on update(), and
@@ -2089,7 +2133,7 @@ class TuneApp(App):
                 yield Static("", id="build-elapsed")
 
     def log_line(self, text):
-        self.query_one("#log", RichLog).write(text)
+        self.query_one("#log", ReflowingRichLog).write(text)
 
     def _collect_values(self):
         values = {}
