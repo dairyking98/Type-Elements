@@ -821,45 +821,88 @@ def HorizRibResinSupport():
     the same name) - hoisted out and built once here, the same harmless
     optimization as ResinSupport()'s "at the taper" block.
 
-    rib_h: v2 reuses Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness
-    verbatim from VertResinSupport2's own "Under Rib" tier (v2:662-686) -
-    correct THERE because vertical orientation never flips the body, so a
-    rod built with h=<surface's own local z> directly reaches that
-    surface (with _rod2's own Tip_Interference then adding the usual
-    small overlap PAST it, exactly like the outer-wall tier's h=0 reaches
-    the wall's own z=0 edge plus Tip_Interference - confirmed old rib_h
-    (6.66 by default) is itself exactly Rib()'s own local bottom z, i.e.
-    h=<surface z> directly, same convention). Horizontal's body DOES get
-    flipped (rotate([180,0,0]), see ResinPrint()) before HorizResinSupport2's
-    rods (built in the same fixed, unrotated frame as always) are added as
-    a sibling - so a rod reaching to h no longer lands on the feature that
-    was originally AT local z=h; it needs h=<surface's own GLOBAL z after
-    the flip> instead, i.e. Shuttle_Height - RibAssembled()'s own local
-    top. RibAssembled()'s local top is PinSupport()'s "top" piece's own
-    top - (Shuttle_Height-Shuttle_Rib_Plane) + Shuttle_Pin_Support_Height
-    (see PinSupport()) - so the corrected h is Shuttle_Rib_Plane -
-    Shuttle_Pin_Support_Height (same h=<surface z> convention as above,
-    just for the flipped surface; _rod2's own Tip_Interference still
-    supplies the same small overlap on top of it, unchanged).
+    rib_h/pin_boss_h: v2's real HorizResinSupport2 gives every tier here
+    (Inner_Arc_Intercept, the 3 fan patterns, Under Rib Outer/Radius/
+    Center) the SAME height, Shuttle_Height-Shuttle_Rib_Plane-Shuttle_
+    Rib_Thickness, EXCEPT "under Pinhole" which subtracts a further
+    (Shuttle_Pin_Support_Height2-1) - confirmed by reading v2:886-946
+    directly (this is NOT shared with VertResinSupport2's OWN "Under Rib"
+    tier, v2:662-686, which uses a completely different, position-
+    dependent sqrt formula - the two aren't related the way an earlier
+    version of this fix assumed).
+
+    That constant is Rib()'s own local BOTTOM z (confirmed: default value
+    6.66 exactly equals Rib()'s local z-min) - correct as a target for
+    UNFLIPPED vertical printing (a rod growing up from z=0 meets the
+    rib's bottom face first). Horizontal's body DOES get flipped
+    (rotate([180,0,0]), see ResinPrint()) before HorizResinSupport2's
+    rods (built in the same fixed, unrotated frame either way) are added
+    as a sibling - flipping REVERSES which local extreme is nearest the
+    support: a rod growing up now meets whichever local z is LARGEST
+    first, not smallest. Rib() is a uniform-thickness extrusion (its
+    local z is the exact same range everywhere in its footprint, not
+    just at one point) - the rib's OWN target is Shuttle_Height minus its
+    local max, i.e. Shuttle_Rib_Plane (algebraically: Shuttle_Height -
+    (Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness+Shuttle_Rib_
+    Thickness)). "under Pinhole" specifically targets the pin-boss area,
+    where PinSupport()'s OWN "top" piece (local max (Shuttle_Height-
+    Shuttle_Rib_Plane)+Shuttle_Pin_Support_Height, taller than the plain
+    rib slab - see PinSupport()) becomes the feature nearest the support
+    after the flip (the flip reverses "nearest", so the TALLER-locally
+    piece becomes the SHORTER-reach one) - giving pin_boss_h =
+    Shuttle_Rib_Plane - Shuttle_Pin_Support_Height. v2's own
+    (Shuttle_Pin_Support_Height2-1) offset was calibrated to reach into
+    PinSupport's OTHER ("bottom", downward-hanging) piece - the one that
+    matters pre-flip, not post-flip - so it's dropped here rather than
+    reapplied to the wrong base.
+
     Reported as "resin rods for the rib support ... do not go to the
-    right height of the rib, contacting the rib" - confirmed with default
-    config values: v2's raw formula gave rods a max reach of z=7.86 while
-    RibAssembled()'s actual flipped-bottom surface starts at z=8.20, a
-    0.34mm gap. This wasn't visible from the overall assembly's own
-    watertight/is_volume checks - a separate, disjoint solid still
-    reports those as True (they're per-component checks); the whole
-    ResinPrint() union still comes out as a single connected component
-    regardless, because the WALL-support tier happens to independently
-    touch nearby geometry either way, masking the rib tier's own gap. v2
-    reuses the SAME rib_h 1:1 for both orientations and never corrects
-    this - a deliberate v4 divergence, not a port artifact, per explicit
-    user confirmation."""
+    right height of the rib, contacting the rib" (twice - an earlier
+    single-constant fix used pin_boss_h's value, 8.2, for EVERY tier
+    including the plain rib ones, which need the taller 9.7 target;
+    still confirmed short afterward). Both constants verified directly:
+    Rib()'s own local z range is [6.66, 6.90] everywhere in its
+    footprint (confirming rib_h=Shuttle_Rib_Plane=9.7 as its flipped
+    target), and RibAssembled()'s (Rib+PinSupport unioned) local max is
+    8.40 - exactly Rib()'s own max (6.90) plus Shuttle_Pin_Support_Height
+    (1.5), confirming PinSupport() is the taller feature driving
+    pin_boss_h. Not visible from the overall assembly's watertight/
+    is_volume checks (per-component, not per-contact) - see
+    HorizWallRodSupport()'s docstring for why the assembly still unions
+    into one connected component regardless. v2 never corrects any of
+    this (this function isn't wired into v2's own ResinPrint() dispatcher
+    at all - see this module's docstring) - a deliberate v4 divergence,
+    not a port artifact, per explicit user confirmation."""
     _require_configured()
     parts = []
 
     thetamax = np.radians(Angle_Pitch * 32.0) - 2.0 * np.radians(Shuttle_Taper)
     thetaspacing = Resin_Support_Spacing / Shuttle_Arc_Radius
-    rib_h = Shuttle_Rib_Plane - Shuttle_Pin_Support_Height  # RibAssembled()'s flipped-bottom global z
+    # rib_h targets Rib()'s own flat slab (a UNIFORM-thickness extrusion -
+    # local z is [BASELINE_Z_OFFSET, BASELINE_Z_OFFSET+Shuttle_Rib_Thickness]
+    # everywhere in its footprint, confirmed - so its flipped-bottom global z
+    # is the same constant, Shuttle_Height - (BASELINE_Z_OFFSET+Shuttle_Rib_
+    # Thickness) = Shuttle_Rib_Plane, for every tier below EXCEPT "under
+    # Pinhole"). "under Pinhole" needs a DIFFERENT, shorter target: it's
+    # meant to support the pin-boss area specifically, where PinSupport()'s
+    # own "top" piece (local z up to (Shuttle_Height-Shuttle_Rib_Plane)+
+    # Shuttle_Pin_Support_Height, i.e. taller than the plain rib slab) is
+    # the feature actually closest to the support AFTER the flip (flip
+    # reverses which side is "nearest" - the piece with the LARGER local z
+    # becomes the one with the SMALLER, nearer, global z) - so pin_boss_h
+    # is Shuttle_Rib_Plane - Shuttle_Pin_Support_Height, not the plain rib_h.
+    # v2's own pin_h (rib_h - (Shuttle_Pin_Support_Height2-1)) was
+    # calibrated to reach partway into PinSupport's OTHER ("bottom",
+    # downward-hanging) piece - the one that matters in VertResinSupport2's
+    # UNFLIPPED context, not this one - reusing that same offset here (as
+    # the previous fix did, applying one constant height everywhere) still
+    # left every non-pinhole tier short. Reported as "still not touching
+    # the rib" - both rib_h (was 8.2, wrong for the plain slab) and
+    # pin_boss_h (needed to target PinSupport's TOP piece, not compute an
+    # offset from the wrong base) are corrected below; a deliberate v4
+    # divergence, not a port artifact, per explicit user confirmation.
+    rib_h = Shuttle_Rib_Plane
+    pin_boss_h = Shuttle_Rib_Plane - Shuttle_Pin_Support_Height
 
     # Inner_Arc_Intercept supports (v2:886-889)
     for s in (-1, 1):
@@ -868,10 +911,9 @@ def HorizRibResinSupport():
     # under Pinhole (v2:921-929) - loop-invariant, built once. base_x
     # matches PinSupportHole()'s own pin-hole center X.
     base_x = Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset
-    pin_h = rib_h - (Shuttle_Pin_Support_Height2 - 1.0)
     for r_deg in (0.0, 180.0):
-        p_a = sp.rotate_z(sp.translate(_rod2(pin_h), [0, -Shuttle_Square_Hole_Width / 2.0 - Resin_Tip_OD / 2.0, 0]), r_deg)
-        p_b = sp.rotate_z(sp.translate(_rod2(pin_h), [Shuttle_Square_Hole_Length / 2.0 + Resin_Tip_OD / 2.0, 0, 0]), r_deg)
+        p_a = sp.rotate_z(sp.translate(_rod2(pin_boss_h), [0, -Shuttle_Square_Hole_Width / 2.0 - Resin_Tip_OD / 2.0, 0]), r_deg)
+        p_b = sp.rotate_z(sp.translate(_rod2(pin_boss_h), [Shuttle_Square_Hole_Length / 2.0 + Resin_Tip_OD / 2.0, 0, 0]), r_deg)
         parts.append(sp.translate(p_a, [base_x, 0, 0]))
         parts.append(sp.translate(p_b, [base_x, 0, 0]))
 

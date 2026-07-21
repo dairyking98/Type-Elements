@@ -2967,6 +2967,60 @@ Build tab's new orientation/method Selects compose, collect, and
 round-trip through save+reload correctly alongside Rib/target/resin
 supports.
 
+## 42. Hammond: horizontal rib-support height was only half-fixed - split into rib-band vs. pin-boss targets; vertical/horizontal "too far/still short" claims investigated further
+
+Follow-up bug report after part 41: "for horizontal on the rib, it is
+still not touching the rib" - part 41's fix used ONE corrected height
+(`Shuttle_Rib_Plane - Shuttle_Pin_Support_Height`, 8.2 by default) for
+EVERY tier in `HorizRibResinSupport()`, but re-reading v2:886-946
+directly (not from memory) shows only the "under Pinhole" tier ever
+subtracted anything - Inner_Arc_Intercept, the 3 fan patterns, and
+Under Rib Outer/Radius/Center all use the PLAIN
+`Shuttle_Height-Shuttle_Rib_Plane-Shuttle_Rib_Thickness` unmodified.
+Confirmed empirically: `Rib()` alone (no `PinSupport()`) is a uniform-
+thickness extrusion, so its flipped-bottom target is the same constant
+everywhere in its footprint - `Shuttle_Height - Rib()_local_max` =
+`Shuttle_Rib_Plane` (9.7 by default), not 8.2. 8.2 IS still correct, but
+only for "under Pinhole" specifically, which targets `PinSupport()`'s
+taller "top" piece (the feature that becomes nearest the support after
+the flip, since flipping reverses which local extreme is closest). Part
+41's single-constant fix left every non-pinhole tier 1.5mm
+(`Shuttle_Pin_Support_Height`) short - re-verified with per-tier ray/
+bounds checks this time (`Rib()`'s own flipped z-min = 9.7 matches the
+corrected `rib_h`; `RibAssembled()`'s flipped z-min = 8.2 matches
+`pin_boss_h`; overall `HorizRibResinSupport()` max reach is now 10.9 =
+9.7+Tip_Interference, confirmed visually - full row of rods, including
+the ones under the pin boss, now merge cleanly into the body's
+underside with no gap).
+
+Also investigated, per this same report, whether "the horizontal resin
+rods on shuttle are still wrong, still going too far into the shuttle"
+and the earlier request to account for chamfer/taper at the vertical
+outer-edge rods point to a shared root cause (`ShuttleTaper()`'s
+triangular wedge cut, which removes material at the arc's tapered
+corners) - concretely confirmed the wedge DOES remove material at the
+extreme horizontal wall-support thetas (raycast: inner-radius surface
+hit jumps from z~0 to z~9.7, i.e. the Rib itself, right at
+theta=+-58/60), but a deeper empirical check on the VERTICAL "at the
+taper" needle-tip tier (using tip-SPHERE-only intersection volume, not
+whole-needle volume - the cone shaft is deliberately mostly exposed, so
+whole-needle-volume percentage is the wrong metric and was giving a
+false positive) showed comparable ~45-50% sphere embedding at the taper
+corner AND at a normal flat theta=0 position - i.e., no actual taper-
+specific defect found there once measured correctly. Given the mixed/
+inconclusive signal (one real, confirmed geometric gap at the extreme
+horizontal wall-edge thetas; no confirmed defect in the vertical
+tier this pass), no additional code change was made for either the
+vertical chamfer-awareness request or the horizontal wall "too far"
+report this session - flagged to get more specific reproduction detail
+(screenshot or exact coordinates) before attempting another fix, rather
+than guess again the way part 41's incomplete rib fix did.
+
+**Verified**: hard gate matches part 41's own baseline exactly for
+Hammond vertical/horizontal+Rib and Blickensderfer/Postal/Mignon/
+Bennett (only `lib/hammond.py`'s `HorizRibResinSupport()` changed this
+session).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
