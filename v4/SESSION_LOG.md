@@ -2448,6 +2448,79 @@ tune.py-written config reproduces the same `volume=5765.334mm3`
 byte-for-byte; groove dropdown save round-trips correctly
 (`groove: true` written and read back).
 
+## 35. Hammond: real HorizGroovedResin3 port; fixed a wrong rod-height clamp
+
+Two bugs reported after visual inspection of an actual render - neither
+was visible from the numbers alone (both builds were watertight/valid
+throughout).
+
+**"The resin rods in horizontal position are totally fucked up, need to
+use cut groove."** Re-read v2's real `ResinPrint()` dispatcher (v2:1060-
+1073) precisely for the first time - it only ever calls two functions:
+`VertResinPrint2()` for `Resin_Support_Orientation==0` and
+`HorizGroovedResin3()` for `==1`. `HorizResinPrint`/`HorizResinSupport2`/
+`HorizGroovedResin`/`HorizGroovedResin2` (the functions parts 29-32's
+raycast fallback was modeled loosely on/named after) are ALL
+unreferenced legacy code in v2, never actually called by anything. The
+real horizontal support (`HorizGroovedResin3`, v2:1006-1021) is a
+completely different architecture from `VertResinSupport2` - not
+individual rods at all, but a single swept, perforated breakaway-groove
+RING (`Resin2Profile()`, a wall-hugging trough cross-section with two
+circular "cut groove" perforations at its top corners, revolved +-60
+degrees around the shuttle's real angular extent). Ported faithfully:
+added `sp.revolve_polygon_partial(profile, start_deg, end_deg, sections)`
+to `scad_primitives.py` (a real `rotate_extrude(angle=)` equivalent -
+built as a full `revolve_polygon()` intersected with a wedge solid
+spanning the angle range, reusing the already-tested full-revolve code
+and a real manifold boolean instead of hand-triangulating two end caps),
+then `HorizGroovedResinSupport()` (the swept ring minus the two
+perforation cuts minus a shifted `ShuttleTaper()`, matching v2 exactly).
+
+Also discovered while re-reading the dispatcher: `HorizGroovedResin3`
+**always** calls `GroovedShuttle()` regardless of the `Groove` config
+value (v2:1006-1021 never checks `Groove` at all, unlike
+`VertResinPrint2` which does) - a real, deliberate v2 restriction: this
+orientation is only ever paired with the snap-fit groove body. Added
+`force_groove` to `Additive()`/`FullElement()`/`Subtractive()`/
+`ShuttleTaper()` (threaded all the way through, since `ShuttleTaper()`'s
+own Groove-conditional taper depth needs to match the forced body too -
+found this by comparing `Subtractive` vertex counts between a
+`groove: false` config and a `groove: true` config with orientation
+forced to horizontal, which should be identical and initially weren't).
+Also fixed: when resin support is off, v2 returns the plain body for
+EITHER orientation with NO reorientation at all (v2:1067-1072) - `Resin
+Print()` previously still applied the vertical rotate/translate in that
+case; now matches v2 exactly.
+
+**"There's a broken resin rod in the vertical direction... missing the
+base of the rod."** Traced to a defensive clamp in part 33's port
+(`_rod()`'s `h = max(h, -Resin_Raft_Thickness + 0.05)`), added out of
+caution without checking whether it was ever actually needed. Computed
+the real degenerate threshold (where `cylinder_machine._resin_rod`'s tip
+sphere would invert past its base sphere) directly from its own tip_z/
+lower_z formulas: around h=-2.58 with this config's default values. The
+smallest real h1 anywhere in the port (`Outer Edge Supports`' `h_edge2 =
+Resin_Raft_Thickness`, giving `h=-Resin_Min_Rod_Height=-2.0`) is well
+above that threshold - already valid, non-degenerate - but the clamp's
+own floor (-1.45) was HIGHER than -2.0, so it silently pulled that one
+rod 0.55mm out of its correct position every time. v2 itself has no such
+guard on `ResinRod()` either. Removed the clamp entirely rather than
+tightening the threshold - checked all constant-h1 call sites
+algebraically first to confirm none of them actually need one.
+
+**Verified**: all 4 groove x orientation combinations rebuilt and
+watertight/valid. Horizontal now correctly forces the grooved body
+regardless of config (`groove: false` and `groove: true` configs produce
+byte-identical `verts=21040 faces=42080 volume=2339.334mm3` when
+orientation is horizontal - confirming the force_groove fix). Vertical
+groove=false with the clamp removed: `volume=4765.334mm3` (topologically
+different vert/face count from before the fix - 85096/171184 vs.
+85097/171186 - confirming the affected rod's geometry actually changed,
+not just cosmetically identical). Math Universal layout regression
+unchanged (`volume=5765.334mm3`). Spot-checked Blickensderfer (the only
+other machine using `scad_primitives.py`, which gained the new
+`revolve_polygon_partial` function) - unaffected, exact baseline match.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

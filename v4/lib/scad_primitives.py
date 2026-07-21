@@ -82,6 +82,34 @@ def revolve_polygon(profile, sections=128):
     return mesh
 
 
+def revolve_polygon_partial(profile, start_deg, end_deg, sections=128):
+    """rotate_extrude(angle=) equivalent - a PARTIAL sweep of profile
+    around the Z axis, from start_deg to end_deg (degrees), unlike
+    revolve_polygon's always-360-degree sweep. A partial sweep needs two
+    flat end-cap faces the full version doesn't (the swept surface
+    doesn't close on itself) - built here as a full 360-degree
+    revolve_polygon(), intersected with a wedge solid spanning [start_deg,
+    end_deg]. This is mathematically identical to a true partial
+    rotate_extrude (sweeping only through that angular range IS the same
+    shape as sweeping the full circle then keeping just that wedge), and
+    reuses the already-correct/tested full revolve plus a real manifold3d
+    boolean instead of hand-triangulating two N-gon (possibly non-convex)
+    end caps."""
+    profile_arr = np.asarray(profile, dtype=float)
+    full = revolve_polygon(profile_arr, sections=sections)
+    max_r = np.abs(profile_arr[:, 0]).max() + 1.0
+    min_z = profile_arr[:, 1].min() - 1.0
+    max_z = profile_arr[:, 1].max() + 1.0
+    n_arc = max(2, sections)
+    thetas = np.linspace(np.radians(start_deg), np.radians(end_deg), n_arc)
+    arc_pts = [(max_r * np.cos(t), max_r * np.sin(t)) for t in thetas]
+    from shapely.geometry import Polygon as _ShapelyPolygon
+    wedge_poly = _ShapelyPolygon([(0.0, 0.0)] + arc_pts)
+    wedge = trimesh.creation.extrude_polygon(wedge_poly, max_z - min_z)
+    wedge.apply_translation([0, 0, min_z])
+    return full.intersection(wedge, engine="manifold")
+
+
 def linear_extrude_twist(profile_2d, height, twist_degrees, z_steps=64, base_z=0.0):
     """linear_extrude(height=, twist=) equivalent for an arbitrary closed 2D
     profile (list of (x,y) points, e.g. a discretized circle already
