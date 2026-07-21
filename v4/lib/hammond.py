@@ -294,6 +294,12 @@ def configure(config_path):
     g["Resin_Rod_Raft"] = True  # each rod grows its own small raft (no shared raft ring here)
     g["Resin_Support_Spacing"] = r["spacing"]
     g["Resin_Support_Edge_Gap"] = r.get("edge_gap", 0.1)
+    # No longer consulted by any geometry function - _rod2()'s real v2
+    # interference depth didn't transfer to the substituted shared rod
+    # shape (see _rod2()'s own docstring for the full derivation) and was
+    # replaced there with a different, deliberately-computed value. Kept
+    # as a real, documented v2 machine value (still real data, just not
+    # currently wired to anything) rather than deleted.
     g["Tip_Interference"] = r.get("tip_interference", 1.2)
     g["Resin_Support_Orientation"] = r.get("orientation", "vertical")
     # horizontal_method - v4-specific, independent of Groove/the Build tab's
@@ -755,13 +761,43 @@ def _rod2(h):
     for one number is far more likely to be an unreferenced-literal
     shortcut in the original than a deliberate second value) - this
     already matches cylinder_machine._resin_rod()'s own fixed raft
-    position with NO re-basing needed. Its tip lands at h -
-    Resin_Tip_OD/2 + Tip_Interference (Tip_Interference, v2:324 - a real,
-    deliberate ~1.2mm tip overlap/interference fit depth, not
-    negligible), unlike ResinRod()'s tip landing at h directly - the one
-    offset this DOES need."""
-    h_shared = h - Resin_Tip_OD / 2.0 + Tip_Interference
-    return cylinder_machine._resin_rod(h_shared)
+    position with NO re-basing needed.
+
+    Tip_Interference (v2:324, ~1.2mm) does NOT transfer to this port:
+    v2's real ResinRod2 cone section is a literal `cylinder(...,h=2)` -
+    hardcoded 2mm, unrelated to any of our config's Resin_Tip_L. Applying
+    v2's own 1.2mm interference to that real 2mm cone buries 60% of it,
+    leaving a reasonable 40% exposed. But this function's SHAPE was
+    already substituted with the shared resin_rod() primitive
+    (Resin_Tip_L=1.0mm default - see this module's own docstring: "rod
+    SHAPE reuses cylinder_machine._resin_rod()... in place of v2's own
+    bespoke ResinRod2... a minor, explicitly-accepted simplification").
+    The SAME 1.2mm interference against a 1.0mm cone buries 120% - the
+    entire pointed tip section, leaving only the plain cylindrical shaft
+    visible where it meets the surface, no visible point at all.
+    Reported as "the horizontal resin rods on shuttle are still wrong,
+    still going too far into the shuttle" (confirmed via screenshot -
+    exactly this look) - an EARLIER attempt at this same fix only
+    removed cylinder_machine._resin_rod()'s own additional Resin_Inset
+    stacking on top of Tip_Interference (a real, separate double-count,
+    also fixed here), but that alone still left h=0's tip section
+    spanning z=[-0.2,0.8] against a real z=0 surface - 80% embedded,
+    still visibly too deep.
+
+    Given the real Tip_Interference value doesn't scale to this
+    substituted shape at all, this uses the SAME successful convention
+    rod_tip() was fixed with instead (see that function's own docstring)
+    - Resin_Inset+Resin_Tip_OD pushes the sphere solidly past the target
+    (not straddling it 50/50, which is resin_rod()'s own unadorned
+    default) while leaving most of the cone exposed (~60% at defaults,
+    confirmed: h=0's tip section now spans z=[-0.6,0.4] against a real
+    z=0 surface). A deliberate v4 correction, not a port artifact -
+    Tip_Interference's real v2 value stays real v2 data, it just isn't
+    the right constant for this particular substituted shape."""
+    return resin_support.resin_rod(h, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD,
+                                    Resin_Inset + Resin_Tip_OD, Resin_Min_Rod_Height,
+                                    Resin_Raft_Thickness, Resin_Raft_OD,
+                                    add_raft=Resin_Rod_Raft, resin_fn=Resin_Fn)
 
 
 def HorizWallRodSupport():
