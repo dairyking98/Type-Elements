@@ -731,8 +731,14 @@ ELEMENT_FIELDS_HAMMOND = [
     ("angular_span_deg", ["element", "angular_span_deg"], float, "Angular span (deg)", "Angle_Pitch = (this/angular_divisions)/shrinkage_multiplier."),
     ("angular_divisions", ["element", "angular_divisions"], int, "Angular divisions", ""),
     ("rib_fillet_resin_clearance", ["element", "rib_fillet_resin_clearance"], float, "Rib fillet clearance (mm)", ""),
-    ("groove", ["element", "groove"], bool, "Snap-fit groove (no rib)",
-     "Off (default): internal rib + drive-pin boss. On: snap-fit groove cut into the shell instead - no separate rib piece."),
+    # "groove" (element.groove, bool) used to live here as a Select ("Rib"/
+    # "No Rib (Groove)") - moved to the Build tab as a plain "Rib" checkbox
+    # instead (see _compose_build_tab), since that's where the Build
+    # target dropdown's None/Shuttle/Calibration Shuttle choice already
+    # needs it (None+Rib=on is how you export just the rib alone). Kept
+    # out of ELEMENT_FIELDS_HAMMOND/self.FIELDS entirely now - _collect_
+    # values/_refresh_widgets_from_cfg handle it explicitly, same as
+    # target/resin_support below it.
     ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used when groove is on."),
     ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used when groove is on."),
     ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used when groove is on."),
@@ -1703,22 +1709,7 @@ class TuneApp(App):
                     with Vertical(classes="field-row"):
                         with Horizontal():
                             yield Static(label, classes="field-label")
-                            if key == "groove":
-                                # bool, but rendered as a dropdown (not a
-                                # Switch) per explicit request - "Rib" vs
-                                # "No rib" reads clearer than an on/off
-                                # toggle for a mutually-exclusive assembly
-                                # choice. _collect_values/_load_current
-                                # already handle bool-typed Select widgets
-                                # generically via .value, same as the
-                                # "mode"/"orientation" str-typed cases
-                                # below - no further changes needed there.
-                                val = bool(current)
-                                sel = Select([("Rib", False), ("No Rib (Groove)", True)],
-                                             value=val, id=f"field-{key}", allow_blank=False)
-                                self.inputs[key] = sel
-                                yield sel
-                            elif typ is bool:
+                            if typ is bool:
                                 sw = Switch(value=bool(current), id=f"field-{key}")
                                 self.inputs[key] = sw
                                 yield sw
@@ -1869,7 +1860,7 @@ class TuneApp(App):
     def _compose_build_tab(self):
         has_gauge = "Gauge" in self.SECTIONS
         is_hammond = self.machine == "hammond"
-        hammond_parts = ("shuttle_minus_rib", "shuttle_plus_rib", "rib_only") if is_hammond else ()
+        hammond_parts = ("none",) if is_hammond else ()
         valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ()) + hammond_parts
         with TabPane("Build", id="tab-build"):
             with VerticalScroll():
@@ -1889,17 +1880,35 @@ class TuneApp(App):
                         options.append(("Shaft Gauge", "gauge"))
                     options.append((f"Calibration {element_label}", "calibration"))
                     if is_hammond:
-                        options.append(("Shuttle - Rib (FDM)", "shuttle_minus_rib"))
-                        options.append(("Shuttle + Rib (FDM)", "shuttle_plus_rib"))
-                        options.append(("Rib only (FDM)", "rib_only"))
+                        # "None" - no main shuttle/calibration body at all,
+                        # just RibOnly() (hammond.RibOnly(), a plain FDM
+                        # part export - no resin supports). Combined with
+                        # the Rib checkbox below, this replaces the 3
+                        # separate FDM-target dropdown entries this used to
+                        # be split across ("Shuttle - Rib"/"Shuttle + Rib"/
+                        # "Rib only") - Shuttle+Rib-off/Shuttle+Rib-on now
+                        # cover the first two (the Rib checkbox IS
+                        # element.groove, inverted, so toggling it before a
+                        # normal Shuttle build with Resin supports off
+                        # reproduces them exactly), and None+Rib-on covers
+                        # the third.
+                        options.append(("None", "none"))
                     build_select = Select(options, value=target_now, id="build-select", allow_blank=False)
                     yield build_select
-                    if is_hammond:
-                        yield Static(
-                            "Shuttle/Rib targets are plain FDM part exports - no resin "
-                            "supports either way, the shell orientation/groove toggle above "
-                            "doesn't apply, and Resin supports below is ignored.",
-                            classes="field-help")
+                if is_hammond:
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Rib", classes="field-label")
+                        rib_now = not bool(self.cfg.get("element", {}).get("groove"))
+                        yield Switch(value=rib_now, id="build-rib")
+                    yield Static(
+                        "On (default): internal rib + drive-pin boss. Off: snap-fit "
+                        "groove cut into the shell instead - no separate rib piece "
+                        "(element.groove, inverted). For Build target None (no "
+                        "shuttle body), Rib on exports just the rib+pin-support "
+                        "assembly alone (hammond.RibOnly(), a plain FDM part - no "
+                        "resin supports either way); Rib off with None isn't a real "
+                        "combination (nothing to export).",
+                        classes="field-help")
                 with Horizontal(classes="picker-row"):
                     yield Static("Resin supports", classes="field-label")
                     resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
@@ -2053,6 +2062,11 @@ class TuneApp(App):
         # supports regardless, see _run_build)
         values["target"] = self.query_one("#build-select", Select).value
         values["resin_support"] = self.query_one("#build-resin-support", Switch).value
+        if self.machine == "hammond":
+            # Rib checkbox is element.groove, inverted (Rib on -> groove
+            # False - see _compose_build_tab) - not in self.FIELDS since it
+            # moved off the Element tab onto the Build tab.
+            values["groove"] = not self.query_one("#build-rib", Switch).value
         # Type Test's own cpi/lpi - bespoke widgets, not in self.FIELDS, but
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
@@ -2149,7 +2163,7 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
-        hammond_parts = ("shuttle_minus_rib", "shuttle_plus_rib", "rib_only") if self.machine == "hammond" else ()
+        hammond_parts = ("none",) if self.machine == "hammond" else ()
         valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ()) + hammond_parts
         if target_now not in valid_targets:
             # "resin" was a valid target value before the Build tab's
@@ -2157,10 +2171,14 @@ class TuneApp(App):
             # checkbox - a running copy saved before that change could
             # still have it on disk; map it back to plain "element" (the
             # checkbox itself carries whether resin support is on now).
-            # Also catches "gauge" for a machine with no Gauge tab.
+            # Also catches "gauge" for a machine with no Gauge tab, and
+            # "shuttle_minus_rib"/"shuttle_plus_rib"/"rib_only" from before
+            # those 3 FDM targets were folded into None + the Rib checkbox.
             target_now = "element"
         self.query_one("#build-select", Select).value = target_now
         self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])
+        if self.machine == "hammond":
+            self.query_one("#build-rib", Switch).value = not bool(self.cfg["element"]["groove"])
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
@@ -2307,22 +2325,15 @@ class TuneApp(App):
             cmd += ["--cross-section-angle-deg", str(angle)]
         if self.query_one("#build-cut-bodies", Switch).value:
             cmd += ["--cut-bodies"]
-        if values["target"] in ("shuttle_minus_rib", "shuttle_plus_rib", "rib_only"):
-            # Plain FDM part exports (Hammond only) - no resin supports
-            # either way (generate.py's --hammond-part branch runs before
-            # the resin dispatch, so build-resin-support's checkbox value
-            # is simply never consulted), no orientation/groove-toggle
-            # logic. rib_only skips TextRing/build_glyph entirely (no
-            # characters at all), same reasoning as --gauge below, so
-            # Minkowski doesn't apply there; shuttle_minus_rib/
-            # shuttle_plus_rib DO go through the real glyph pipeline, so
-            # Minkowski is forced the same way as a normal element build.
-            cmd += ["--hammond-part", values["target"]]
-            if values["target"] != "rib_only":
-                if fast:
-                    cmd += ["--no-minkowski", "--no-minkowski-text"]
-                else:
-                    cmd += ["--minkowski"]
+        if values["target"] == "none":
+            # Hammond only: no main shuttle/calibration body, just
+            # hammond.RibOnly() - a plain FDM part export, no resin
+            # supports either way (generate.py's --hammond-part branch
+            # runs before the resin dispatch, so build-resin-support's
+            # checkbox value is simply never consulted). RibOnly() skips
+            # TextRing/build_glyph entirely (no characters at all), same
+            # reasoning as --gauge below, so Minkowski doesn't apply here.
+            cmd += ["--hammond-part", "rib_only"]
         elif values["target"] == "gauge":
             # GaugeTestSet() doesn't touch TextRing/build_glyph at all, so
             # the Minkowski/points-per-mm knobs don't apply here.

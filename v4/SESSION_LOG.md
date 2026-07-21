@@ -2743,6 +2743,48 @@ bennett) reproduce their exact prior baselines
 confirming the refactor is scoped correctly and introduces zero
 behavior change anywhere except the intended vertical-support tip fix.
 
+## 39. Hammond Build tab simplified: target dropdown down to Shuttle/Calibration Shuttle/None, Rib is now its own checkbox
+
+"change the build menu for hammond to be dropdown: Shuttle, Calibration
+Shuttle, None. Checkbox: Rib yes or no." Reduced part 36's 6-entry Build
+target dropdown (Shuttle, Calibration Shuttle, Shuttle-Rib (FDM),
+Shuttle+Rib (FDM), Rib only (FDM)) down to 3 (Shuttle, Calibration
+Shuttle, None), and moved `element.groove` off the Element tab (where it
+lived as a 2-item Select, "Rib"/"No Rib (Groove)", since part 32) onto
+the Build tab as a plain Rib on/off checkbox (`build-rib`, inverted:
+Rib on -> `groove=False`).
+
+The 3 FDM-specific dropdown entries turned out to be fully redundant
+once Rib became its own checkbox: "Shuttle - Rib"/"Shuttle + Rib" were
+`FullElement(force_groove=True/False)` - exactly what a normal Shuttle
+build already does once the Rib checkbox directly sets `element.groove`
+and Resin supports is turned off (confirmed: both groove values still
+build clean, distinct, watertight `FullElement`s,
+`1810.082mm3`/`1960.471mm3`). Only "Rib only" (`hammond.RibOnly()` - no
+main body at all) had no equivalent, so it became the dropdown's new
+"None" entry - `generate.py --hammond-part` is now a single-choice flag
+(`rib_only` only; the `shuttle_minus_rib`/`shuttle_plus_rib`
+choices and their `force_groove` plumbing were removed from the CLI,
+though `FullElement`/`ShuttleTaper`/`Subtractive`'s own `force_groove`
+parameter stays - it's still real internal machinery, just no longer
+invoked from this particular dispatch).
+
+`element.groove`'s config KEY is unchanged - `_collect_values`/
+`_refresh_widgets_from_cfg` read/write the Build tab's Rib switch
+directly (inverted) instead of going through the generic `self.FIELDS`
+loop, the same pattern `target`/`resin_support` already used.
+
+**Verified**: headless `TuneApp` against a scratch config only (per the
+standing warning) - Build tab composes with exactly the 3 target options
+and a working Rib switch; `_collect_values()` produces the right
+inverted `groove` value; a save+reload round-trip (`Rib=off`,
+`target=none`) persists and reloads correctly; a non-Hammond machine
+(Blickensderfer) still composes/saves with no `groove` key and no
+crash. CLI: `--hammond-part rib_only` still exports a valid RibOnly()
+(`volume=128.927mm3`); a normal Shuttle build with `groove` flipped both
+ways (Resin supports off, no Minkowski) produces the same two distinct
+valid meshes the old FDM targets used to.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
