@@ -68,7 +68,7 @@ re-derived from the built mesh's own surface) repeatedly didn't match
 v2's real connecting-rod pattern. Individual rod SHAPE still reuses
 cylinder_machine._resin_rod() (the shared primitive Mignon/Bennett also
 reuse) in place of v2's own bespoke ResinRod(); ConnectingRod is
-sp.connecting_rod() (lib/scad_primitives.py, ported literally from
+resin_support.connecting_rod() (ported literally from
 v2/hammond.scad:419's hull-of-two-spheres) - the one primitive that
 doesn't exist for any other machine's resin-support system, since none
 of them brace rods against each other.
@@ -103,6 +103,7 @@ from shapely.ops import unary_union
 
 import scad_primitives as sp
 import cylinder_machine
+import resin_support
 
 _configured = False
 
@@ -841,8 +842,8 @@ def ResinSupport():
     simplified to the single configured Resin_Tip_OD rather than v2's
     two-tier Resin_Support_Contact_Diameter/_Rib distinction - a minor,
     explicitly-accepted simplification (this is NOT the thing reported as
-    wrong). ConnectingRod is sp.connecting_rod() (v2:419, ported
-    literally as a hull of two spheres).
+    wrong). ConnectingRod is resin_support.connecting_rod() (v2:419,
+    ported literally as a hull of two spheres).
 
     Coordinate frame: v2 wraps the WHOLE union in
     translate([0,0,-Resin_Support_Min_Height-Resin_Support_Base_Thickness])
@@ -875,8 +876,8 @@ def ResinSupport():
         return cylinder_machine._resin_rod(h, add_raft=add_raft)
 
     def _crod(p1, p2):
-        return sp.connecting_rod([p1[0], p1[1], p1[2] - shift],
-                                  [p2[0], p2[1], p2[2] - shift], Resin_Rod_OD)
+        return resin_support.connecting_rod([p1[0], p1[1], p1[2] - shift],
+                                             [p2[0], p2[1], p2[2] - shift], Resin_Rod_OD)
 
     parts = []
 
@@ -959,22 +960,31 @@ def ResinSupport():
 
     if not Groove:
         h1 = Resin_Min_Rod_Height + Resin_Raft_Thickness
+        # v2:704,710 pass h2=0 (no raft) for the two Inner_Arc_Intercept
+        # rods here - reported as "a single resin rod on either side is
+        # missing the raft to the buildplate, that shouldn't happen."
+        # Every resin rod needs its own real connection to the buildplate
+        # to be printable at all, so this is always add_raft=True now,
+        # not a faithful port of v2's h2=0 - a deliberate correction, not
+        # a port artifact.
         parts.append(sp.translate(_rod(h1, add_raft=True),
                                    [0, -Outer_Arc_Intercept + Resin_Support_Edge_Gap, 0]))
-        parts.append(sp.translate(_rod(h1, add_raft=False),
+        parts.append(sp.translate(_rod(h1, add_raft=True),
                                    [0, -Inner_Arc_Intercept - Resin_Support_Edge_Gap, 0]))
         parts.append(sp.translate(_rod(h1, add_raft=True),
                                    [0, Outer_Arc_Intercept - Resin_Support_Edge_Gap, 0]))
-        parts.append(sp.translate(_rod(h1, add_raft=False),
+        parts.append(sp.translate(_rod(h1, add_raft=True),
                                    [0, Inner_Arc_Intercept + Resin_Support_Edge_Gap, 0]))
 
     # ---- Outer Edge Supports (v2:713-732) - regardless of Groove ----
+    # Same correction as above - v2:716,721 pass h2=0 for this first pair
+    # of loops; always add_raft=True here too, every rod gets a real raft.
     h_edge1 = Resin_Min_Rod_Height + z_component + Resin_Raft_Thickness
     h_edge2 = Resin_Raft_Thickness
     for x in Xx:
-        parts.append(sp.translate(_rod(h_edge1, add_raft=False), [x, y_component_taper, 0]))
+        parts.append(sp.translate(_rod(h_edge1, add_raft=True), [x, y_component_taper, 0]))
     for x in Xx:
-        parts.append(sp.translate(_rod(h_edge1, add_raft=False), [x, -y_component_taper, 0]))
+        parts.append(sp.translate(_rod(h_edge1, add_raft=True), [x, -y_component_taper, 0]))
     for x in Xx:
         parts.append(sp.translate(_rod(h_edge2, add_raft=True), [x, y_component_taper, 0]))
     for x in Xx:

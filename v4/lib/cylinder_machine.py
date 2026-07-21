@@ -46,6 +46,7 @@ import trimesh
 
 from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance
 import scad_primitives as sp
+import resin_support
 
 _active_machine = None
 
@@ -67,31 +68,11 @@ def _receive_config(source_globals, machine_name):
 
 
 def resin_raft_config(element_diameter, wall_min_thickness, raft_enabled):
-    """Derives (Resin_Rod_Raft, Cut_Groove_Inner_X) from the single
-    resin.raft config toggle - called from both machines' configure(), so
-    the two behaviors stay exactly in sync rather than risking drift
-    between two independently hand-set YAML values.
-
-    raft_enabled=False (Blickensderfer's original v2 default): each
-    resin support rod grows its own small individual raft cone
-    (Resin_Rod_Raft=True), and CutGroove()'s ring sits right at the wall
-    (Cut_Groove_Inner_X=0.0) - many small rafts, no big plate.
-
-    raft_enabled=True (Postal's original v2 default): CutGroove()'s inner
-    profile point is pushed all the way to the element's center axis
-    (Cut_Groove_Inner_X = -(element_diameter/2 - wall_min_thickness), so
-    radius+inner_x lands exactly at X=0), forming ONE continuous raft
-    plate shared by every rod - so the rods themselves grow no individual
-    raft of their own (Resin_Rod_Raft=False).
-
-    Was two separate, independently-set per-machine config values
-    (resin.rod_raft/resin.cut_groove_inner_x) that happened to only ever
-    ship in these two combinations - collapsed into one shared toggle
-    since Postal's "continuous raft" is a legitimate option for either
-    machine, not something inherently Postal-only."""
-    if raft_enabled:
-        return False, -(element_diameter / 2 - wall_min_thickness)
-    return True, 0.0
+    """Thin pass-through to resin_support.raft_config() - see that
+    function's docstring for the real derivation. Kept here (rather than
+    updating blickensderfer.py/postal.py to call resin_support directly)
+    so those two call sites don't need to change."""
+    return resin_support.raft_config(element_diameter, wall_min_thickness, raft_enabled)
 
 
 def _require_configured():
@@ -718,10 +699,16 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
 # in blickensderfer.py/postal.py; everything it's built from lives here.
 
 def _resin_rod(h, add_raft=None):
+    """Thin pass-through to resin_support.resin_rod(), reading this
+    module's own config-derived globals (populated by _receive_config) -
+    kept here (rather than having mignon.py/bennett.py/hammond.py call
+    resin_support.resin_rod() directly with their own globals) so those
+    call sites don't need to change; the actual shape-building logic
+    lives in lib/resin_support.py."""
     add_raft = Resin_Rod_Raft if add_raft is None else add_raft
-    return sp.resin_rod(h, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD, Resin_Inset,
-                         Resin_Min_Rod_Height, Resin_Raft_Thickness, Resin_Raft_OD,
-                         add_raft=add_raft, resin_fn=Resin_Fn)
+    return resin_support.resin_rod(h, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD, Resin_Inset,
+                                    Resin_Min_Rod_Height, Resin_Raft_Thickness, Resin_Raft_OD,
+                                    add_raft=add_raft, resin_fn=Resin_Fn)
 
 
 def _bottom_z(xval):

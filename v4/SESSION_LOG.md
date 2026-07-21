@@ -2595,6 +2595,81 @@ targets individually (watertight/valid: `rib_only` `volume=128.927mm3`,
 `generate.py ... --hammond-part rib_only`, then actually ran that exact
 command).
 
+## 37. Hammond "Element"->"Shuttle" label, editable 4th baseline row, missing-raft fix, resin_support.py extraction
+
+Four requests in one message.
+
+**"Element" renamed to "Shuttle" for Hammond's Build target dropdown.**
+Same underlying `"element"` target value (`generate.py`'s dispatch is
+unchanged) - just the displayed label, computed per-machine
+(`element_label = "Shuttle" if is_hammond else "Element"`), also applied
+to "Calibration Element" -> "Calibration Shuttle" for consistency (only
+the plain one was explicitly requested, but leaving one renamed and the
+other not would've read as an oversight).
+
+**Math layout's 4th row is now always editable, not just after a
+recompose.** `BASELINE_CUTOUT_KEYS` (the per-row baseline/cutout Input
+widgets) used to be sized from the CURRENT config's own row count -
+correct for every other machine (fixed per-machine), wrong for Hammond
+specifically (the first machine whose own presets vary in row count -
+part 34/36). Now sized from the MAX row count across every real preset
+for the machine, so a 4th field always exists and is editable regardless
+of which preset is currently active - missing values default to `0.0`
+("not set yet"). `patch_yaml_list_item()` gained the ability to APPEND a
+new array element (`index==len(items)`) instead of only patching
+existing ones, so saving that 4th field can actually grow `baseline_row`/
+`cutout_row` from 3 to 4 entries.
+
+**Found and fixed a real bug while testing the above**: part 34's
+`LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE` override in `_save_to_yaml` was
+reapplying the PRESET's own fixed baseline defaults on **every save**
+whenever any preset remained selected (which is effectively always,
+since "custom" requires unlocking Modify glyphs) - silently discarding
+any manual edit to `baseline_row`/`cutout_row` the moment the very next
+save happened. Confirmed by testing "type a value into the new 4th
+field, save" and watching it get reverted. Removed the recurring
+override entirely; replaced with a one-time live seed in
+`on_select_changed` (fires only when the dropdown value actually
+changes, matching the existing "freshly unlocked - seed the editable
+copy" convention `on_switch_changed` already uses for Modify glyphs) -
+switching to Math Universal now pre-fills all 4 baseline/cutout widgets
+with the preset's real values, which the user can still hand-edit before
+saving, without a later save silently clobbering that edit.
+
+**Missing-raft bug**: "a single resin rod on either side is missing the
+raft to the buildplate, that shouldn't happen." Traced to v2 itself -
+`ResinRod`'s `h2=0` parameter (no raft) on 4 specific calls in
+`VertResinSupport2` (the `Inner_Arc_Intercept` pair in "Under Rib - Rib
+Thickness on Edges," matching "on either side" exactly, plus the first
+`Xx`-looped pair in "Outer Edge Supports"). Every resin rod needs a real
+buildplate connection to actually print, so all 4 are now `add_raft=True`
+unconditionally - a deliberate correction of a real v2 characteristic,
+not a faithfulness gap in the port. Volume rose slightly as a result
+(`4765.334mm3` -> `4775.582mm3`, matching the added raft material).
+
+**Resin code consolidated into `lib/resin_support.py`** - "used in all
+elements, share from a single file." `resin_rod()`/`connecting_rod()`
+moved out of `scad_primitives.py` (pure resin-specific shapes, not
+generic CAD ops); `raft_config()` moved out of `cylinder_machine.py`
+(renamed from `resin_raft_config` in its new home, since the "resin_"
+prefix is redundant inside a module already named for resin support).
+`cylinder_machine._resin_rod()`/`resin_raft_config()` are kept as thin
+pass-throughs (reading `cylinder_machine`'s own config-populated
+globals, then delegating) so `blickensderfer.py`/`postal.py`/`mignon.py`/
+`bennett.py`'s existing call sites don't need to change at all - only
+`hammond.py`'s direct `sp.connecting_rod()` calls moved to
+`resin_support.connecting_rod()` (it never went through
+`cylinder_machine`). Net effect: the actual geometry-building logic now
+lives in exactly one file, regardless of which machine or entry point
+reaches it.
+
+**Verified**: all 6 machines (blickensderfer/postal/mignon/bennett/
+helios/hammond) reproduce their exact prior `generate.py` baselines after
+the extraction - a pure refactor, confirmed zero behavior change. Full
+headless `TuneApp` cycle (manual 4th-row edit persists across save;
+switching to Math Universal live-seeds all 4 baseline/cutout widgets;
+"Shuttle"/"Calibration Shuttle" labels present) all pass.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

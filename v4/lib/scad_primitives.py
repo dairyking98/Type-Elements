@@ -216,51 +216,6 @@ def translate(mesh, offset):
     return m
 
 
-def resin_rod(h, tip_od, tip_l, rod_od, inset, min_rod_height, raft_thickness,
-              raft_od, add_raft=True, resin_fn=20, eps=0.01):
-    """ResinRod(h) from lib/resin_rod.scad: hull() of a small tapered tip
-    (tip_od sphere hulled down to a rod_od sphere, offset tip_l below the
-    attachment point h) continued down to a second rod_od sphere near the
-    print bed, plus an optional small raft frustum at the very bottom.
-    h is the Z height (in the caller's frame) where the rod's tip attaches
-    to the model - everything below is fixed (bed-relative), only the tip
-    end moves with h."""
-    tip_z = -tip_od / 2 + inset + h
-    upper_small_z = tip_z - tip_l
-    lower_z = -min_rod_height - raft_thickness + rod_od / 2 + eps
-
-    tip_sphere = trimesh.creation.icosphere(subdivisions=2, radius=tip_od / 2)
-    tip_sphere.apply_translation([0, 0, tip_z])
-    upper_small = trimesh.creation.icosphere(subdivisions=2, radius=rod_od / 2)
-    upper_small.apply_translation([0, 0, upper_small_z])
-    lower_sphere = trimesh.creation.icosphere(subdivisions=2, radius=rod_od / 2)
-    lower_sphere.apply_translation([0, 0, lower_z])
-
-    rod = trimesh.util.concatenate([tip_sphere, upper_small, lower_sphere]).convex_hull
-
-    if not add_raft:
-        return rod
-
-    raft = frustum_z(raft_od, raft_od + 1 * raft_thickness, raft_thickness, sections=resin_fn,
-                      base_z=-min_rod_height - raft_thickness)
-    return union_all([rod, raft])
-
-
-def connecting_rod(p1, p2, diameter, subdivisions=2):
-    """ConnectingRod(p1, p2, t) from v2/hammond.scad:419 - hull() of two
-    equal-diameter spheres at arbitrary points p1/p2 (a capsule strut, not
-    tied to any single axis the way resin_rod's tip/rod/raft stack is).
-    Ported for Hammond's angled reinforcement rods between adjacent
-    vertical resin-support rods (gusseting) - this doesn't exist anywhere
-    else in the codebase yet since no other machine's resin-support system
-    braces rods against each other, only against the part/buildplate."""
-    s1 = trimesh.creation.icosphere(subdivisions=subdivisions, radius=diameter / 2.0)
-    s1.apply_translation(p1)
-    s2 = trimesh.creation.icosphere(subdivisions=subdivisions, radius=diameter / 2.0)
-    s2.apply_translation(p2)
-    return trimesh.util.concatenate([s1, s2]).convex_hull
-
-
 def union_all(meshes, engine="manifold"):
     """Unions all meshes into one solid. Uses manifold3d's Manifold.
     batch_boolean directly rather than trimesh's mesh.union() folded

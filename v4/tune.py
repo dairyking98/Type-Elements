@@ -1310,18 +1310,32 @@ def patch_yaml_list_item(text, key, index, value):
     patch_yaml_value's one-token regex nor patch_yaml_rows' block-list
     regex applies. Only float values needed so far (baseline_row/
     cutout_row), so that's all this formats - extend if a bool/str list
-    item is ever exposed the same way."""
+    item is ever exposed the same way.
+
+    index==len(items) APPENDS a new item instead of raising - needed for
+    Hammond, the first machine whose own presets vary in row count
+    (Math Universal is 4 rows, everything else 3): the Element tab
+    always composes an editable field for every row any real preset
+    could need (see _compose_baseline_cutout_fields), even ones the
+    CURRENTLY selected preset doesn't use yet, so the underlying array
+    must be able to grow when that field is saved - TextRing iterates
+    len(DHIATENSOR)/the active layout's own row count, not len(
+    baseline_row), so an unused extra trailing entry is harmless.
+    index>len(items) (skipping entries) is still a real error."""
     pattern = re.compile(rf'^(\s*{re.escape(key)}:\s*\[)([^\]]*)(\])', re.MULTILINE)
     m = pattern.search(text)
     if not m:
         raise ValueError(f"key {key!r} not found in config text - was it renamed/removed?")
     items = [x.strip() for x in m.group(2).split(",")]
-    if index >= len(items):
+    if index > len(items):
         raise ValueError(f"{key!r} has only {len(items)} items, index {index} out of range")
     val_str = f"{value:.6f}".rstrip("0").rstrip(".")
     if "." not in val_str and "e" not in val_str.lower():
         val_str += ".0"
-    items[index] = val_str
+    if index == len(items):
+        items.append(val_str)
+    else:
+        items[index] = val_str
     return text[:m.start()] + m.group(1) + ", ".join(items) + m.group(3) + text[m.end():]
 
 
@@ -1488,8 +1502,20 @@ class TuneApp(App):
         self.FIELDS = [field for fields in self.SECTIONS.values() for field in fields]
         self.LAYOUT_PRESETS = LAYOUT_PRESETS_BY_MACHINE.get(self.machine, {})
         # row count varies per machine (3 for Blickensderfer/Postal, 7 for
-        # Mignon) - see BASELINE_CUTOUT_KEYS' module comment
-        n_rows = len(self.cfg["layout"]["baseline_row"])
+        # Mignon) - see BASELINE_CUTOUT_KEYS' module comment. Hammond's
+        # own presets additionally vary in row count from EACH OTHER
+        # (Math Universal is 4 rows, everything else is 3) - using just
+        # the CURRENT config's row count here would only ever show 3
+        # editable baseline/cutout fields, with no way to reach/edit a
+        # 4th row until some other action (switching machine and back,
+        # restarting) happened to recompose the form with 4 rows on disk.
+        # Using the max across every real preset for this machine (falling
+        # back to the current config if there are no presets, or it
+        # somehow exceeds all of them) means the 4th row field always
+        # exists and is editable, even when the 3-row preset is currently
+        # selected (it's just not consulted by TextRing in that case).
+        n_rows = max([len(self.cfg["layout"]["baseline_row"])]
+                     + [len(rows) for rows in self.LAYOUT_PRESETS.values()])
         self.BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(n_rows)]
 
     @staticmethod
@@ -1743,15 +1769,25 @@ class TuneApp(App):
             "Per-row baseline/platen-cutout (mm). See the Calibration tab "
             "to find these empirically.",
             classes="picker-help")
+        # n_rows is the max across every real preset for this machine
+        # (see BASELINE_CUTOUT_KEYS' own comment) - may exceed the
+        # CURRENTLY selected preset/config's own row count (e.g. Hammond's
+        # 3-row Normal Universal vs. its 4-row Math Universal), so every
+        # row up to n_rows is always composed/editable here, even ones
+        # not used by the layout that's active right now - missing values
+        # (not yet present in self.cfg) default to 0.0, a "not set yet"
+        # placeholder the user can just type over.
+        n_rows = len(self.BASELINE_CUTOUT_KEYS) // 2
         for arr_key, label in (("baseline_row", "Baseline"), ("cutout_row", "Cutout")):
             values = self.cfg["layout"][arr_key]
-            for i in range(len(values)):
+            for i in range(n_rows):
                 key = f"{arr_key}_{i}"
                 row_label = f" ({self.ROW_LABELS[i]})" if i < len(self.ROW_LABELS) else ""
+                current = values[i] if i < len(values) else 0.0
                 with Vertical(classes="field-row"):
                     with Horizontal():
                         yield Static(f"{label} row {i}{row_label}", classes="field-label")
-                        inp = Input(value=str(values[i]), id=f"field-{key}")
+                        inp = Input(value=str(current), id=f"field-{key}")
                         self.inputs[key] = inp
                         yield inp
 
@@ -1842,10 +1878,16 @@ class TuneApp(App):
                     target_now = self.cfg.get("build", {}).get("target", "element")
                     if target_now not in valid_targets:
                         target_now = "element"
-                    options = [("Element", "element")]
+                    # "Element" is the generic cross-machine term (v2/v3's
+                    # own docs use it too), but Hammond's real part is a
+                    # "Shuttle" - relabeled per explicit request, same
+                    # "element" target VALUE underneath (generate.py's
+                    # dispatch doesn't change).
+                    element_label = "Shuttle" if is_hammond else "Element"
+                    options = [(element_label, "element")]
                     if has_gauge:
                         options.append(("Shaft Gauge", "gauge"))
-                    options.append(("Calibration Element", "calibration"))
+                    options.append((f"Calibration {element_label}", "calibration"))
                     if is_hammond:
                         options.append(("Shuttle - Rib (FDM)", "shuttle_minus_rib"))
                         options.append(("Shuttle + Rib (FDM)", "shuttle_plus_rib"))
@@ -2061,18 +2103,23 @@ class TuneApp(App):
             layout_select = self.query_one("#layout-select", Select)
             if layout_select.value is not Select.NULL:
                 text = patch_yaml_rows(text, self.LAYOUT_PRESETS[layout_select.value])
-                # Only Hammond's presets vary in ROW COUNT (Math Universal
-                # is 4 rows, everything else is 3) - when the selected
-                # preset has its own paired baseline_row, overwrite
-                # baseline_row/cutout_row wholesale (not just the per-
-                # index BASELINE_CUTOUT_KEYS writes above, which are sized
-                # for whatever row count was on disk at compose() time and
-                # can't add/remove a 4th entry themselves).
-                preset_baseline = LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE.get(
-                    self.machine, {}).get(layout_select.value)
-                if preset_baseline is not None:
-                    text = patch_yaml_inline_list(text, "baseline_row", preset_baseline)
-                    text = patch_yaml_inline_list(text, "cutout_row", preset_baseline)
+                # baseline_row/cutout_row themselves are NOT force-
+                # overwritten here from LAYOUT_PRESET_BASELINE_ROW_BY_
+                # MACHINE on every save - an earlier version of this did
+                # that unconditionally, which silently discarded any
+                # manual edit to those fields every time a save happened
+                # while a preset remained selected (i.e. essentially
+                # always, since "custom" requires Modify glyphs). The
+                # BASELINE_CUTOUT_KEYS loop above already saves whatever
+                # is actually showing in the (now always-4-rows-wide,
+                # see _compose_baseline_cutout_fields) widgets, appending
+                # a 4th entry via patch_yaml_list_item if needed - that's
+                # the real, editable, save-preserving value. The preset's
+                # own real defaults are instead pre-filled into those
+                # SAME widgets live, the moment the dropdown selection
+                # changes (see on_select_changed) - a one-time seed the
+                # user can still hand-edit before saving, not a
+                # recurring overwrite.
         type_test_text = self.query_one("#type-test-text", TextArea).text
         text = patch_yaml_text_block(text, "text", type_test_text)
         with open(self.config_path, "w") as f:
@@ -2496,6 +2543,22 @@ class TuneApp(App):
         display_rows = self._rows_for_layout_select_value(event.value)
         for i in range(len(display_rows)):
             self._update_row_widget("layout-original-row", i, display_rows[i])
+        # Live-seed baseline_row/cutout_row's own editable widgets from
+        # the newly-selected preset's real defaults (Hammond's Math
+        # Universal needs a real 4th value, -9.89, that a freshly-
+        # switched-to preset wouldn't otherwise show) - a one-time seed
+        # on the dropdown changing, same convention as on_switch_changed's
+        # "freshly unlocked" seeding below, NOT a recurring overwrite
+        # (unlike an earlier version of this that re-applied on every
+        # save regardless of whether the preset had actually changed,
+        # silently discarding hand edits - see _save_to_yaml's comment).
+        preset_baseline = LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE.get(self.machine, {}).get(event.value)
+        if preset_baseline is not None:
+            for i, val in enumerate(preset_baseline):
+                for arr_key in ("baseline_row", "cutout_row"):
+                    key = f"{arr_key}_{i}"
+                    if key in self.inputs:
+                        self.inputs[key].value = str(val)
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         if event.switch.id != "layout-modify-glyphs":
