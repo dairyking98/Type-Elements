@@ -90,7 +90,7 @@ def vertical_connecting_rod(p1, p2, diameter, shift):
     return connecting_rod([p1[0], p1[1], p1[2] - shift], [p2[0], p2[1], p2[2] - shift], diameter)
 
 
-def rod_tip(x, theta_deg, s, z_offset, arc_radius, rod_od, tip_od, tip_l=1.0, sections=128, inset=0.0):
+def rod_tip(x, theta_deg, s, z_offset, arc_radius, rod_od, tip_od, tip_l=1.0, sections=128):
     """RodTip() from v2/hammond.scad:596-600 plus its own placement
     (v2:621-624/632-635) - a small oriented needle-point (a cone tapering
     from rod_od down to the narrower tip_od over tip_l, then a tip_od-
@@ -111,30 +111,26 @@ def rod_tip(x, theta_deg, s, z_offset, arc_radius, rod_od, tip_od, tip_l=1.0, se
     radius arc_radius before anything else moves it (v2's own literal
     "-1" in translate([0,0,Shuttle_Arc_Radius-1]) is this same tip_l
     subtraction, not a separate/extra term - already faithfully ported,
-    confirmed by re-reading v2:621-624 directly).
-
-    inset (v4-specific, NOT itself a v2 term - default 0.0 reproduces
-    the original faithful-port placement above): with inset=0, the tip
-    SPHERE's own CENTER lands at exactly radius arc_radius - since the
-    real arc surface is AT that same radius, the sphere is bisected by
-    it (roughly half embeds, half sticks out into open air), confirmed
-    empirically (~45-50% of the sphere's volume inside the body,
-    consistently across theta - not a taper/chamfer-specific defect,
-    reproduces the same way at a plain mid-arc position too). Reported
-    as "resin rods are meshing at the base of the tip, not the tip of
-    the tip" - i.e. contact was happening where the CONE (facing the rod
-    shaft) meets the sphere, not at the sphere's own pointed apex, which
-    is exactly what a center-on-the-surface sphere looks like. inset
-    pushes the needle further out along its own placement radius before
-    the final rotate/translate, using the same Resin_Inset convention
-    _rod()/resin_rod() already applies (inset+tip_od/2, matching that
-    function's own tip_z=-tip_od/2+inset+h formula) - re-verified this
-    makes the tip sphere's volume 100% embedded (not just centered on
-    the surface) at every theta tested, while the cone shaft stays
-    mostly exposed (~75% of the whole needle's own volume, confirmed -
-    a proper breakable support point, not a buried rod). A deliberate
-    v4 correction, not a port artifact - RodTip()'s real v2 placement
-    has no equivalent inset term at all, this is new."""
+    confirmed by re-reading v2:621-624 directly). The tip sphere's own
+    CENTER therefore lands at exactly radius arc_radius, same as
+    _rod2()/resin_rod()'s own tip_z=-tip_od/2+inset+h landing at exactly
+    h when inset=tip_od/2 (this config's own Resin_Inset convention,
+    documented in config/hammond.yaml as "tip_od/2") - both put the
+    sphere's CENTER, not its outer surface, at the real target surface.
+    An earlier session pushed this placement outward by an invented
+    extra amount (reasoning the sphere needed to be more solidly
+    embedded than a center-on-the-surface split) - reverted per explicit
+    correction: this needle shares its (x,theta) position with a SEPARATE
+    straight rod/connecting-rod pair (see ResinSupport()'s "Under Shuttle
+    Arc Radius"/"at the taper" tiers, which place _rod()/_crod() at
+    y=(Shuttle_Arc_Radius-1)*cos(...) - a DIFFERENT, independent radius
+    reference) - pushing ONLY this needle's own radius outward, while
+    that accompanying rod/crod pair never moved, grew a visible gap
+    between the needle tip and the rod shaft it's meant to sit on
+    (reported as "the rod tips have been fucked up on vertical, they are
+    offset from the resin rods without tips now", confirmed via
+    screenshot). Restoring the original, un-pushed placement here
+    restores that alignment."""
     cone = sp.frustum_z(rod_od, tip_od, tip_l, sections=sections)
     tip_sphere = trimesh.creation.icosphere(subdivisions=2, radius=tip_od / 2.0)
     tip_sphere.apply_translation([0, 0, tip_l])
@@ -143,7 +139,7 @@ def rod_tip(x, theta_deg, s, z_offset, arc_radius, rod_od, tip_od, tip_l=1.0, se
         shape,
         ("translate", [x, 0, -z_offset]),
         ("rotate", [theta_deg * s, 0, 0]),
-        ("translate", [0, 0, arc_radius + inset - tip_l]),
+        ("translate", [0, 0, arc_radius - tip_l]),
     )
 
 

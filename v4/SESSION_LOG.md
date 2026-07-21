@@ -3106,6 +3106,75 @@ Went deeper than just removing the double-count: checked v2's real `ResinRod2(h)
 
 **Verified**: hard gate re-run for Hammond vertical/horizontal+Rib/horizontal+cut_groove and Blickensderfer/Postal/Mignon/Bennett - all exact baseline matches except Hammond horizontal+Rib (`verts=39411 faces=79306 volume=3036.524mm3` - new baseline, expected given the rod-shape formula change). STL round-trip component check: horizontal's reloaded component count is now 1 (was already 1 before this session - the double-counted-but-still-positive overlap wasn't marginal enough to fragment the way vertical's rod_tip bug did); vertical still 6 (unchanged, already fixed in part 43).
 
+## 45. Hammond: parts 43-44's resin-tip pushes were both wrong - reverted to the real, un-hardcoded convention per explicit correction
+
+User rejected both of the previous two sessions' fixes directly:
+"nothing should be hardcoded. the resin tips are still not correct for
+horizontal shuttle edge, its protruding too far. with inset half of tip
+diameter, the center of the sphere tip is at the surface of the shuttle
+edge. same with the horizontal rib resin rods." Plus a screenshot
+showing the wall-support tips now visibly poking OUT (part 44 pushed
+too far the OTHER way, past a clean 60%-exposed cone into looking like
+excess protrusion) and, separately: "also the rod tips have been fucked
+up on vertical, they are offset from the resin rods without tips now" -
+another screenshot showing part 43's `rod_tip()` needles visibly
+floating apart from the straight rod shafts they're supposed to sit on.
+
+Root mistake in both parts 43 and 44: `resin_rod()`'s own formula
+(`tip_z=-tip_od/2+inset+h`) ALREADY does exactly what the user
+specified - `config/hammond.yaml`'s own `resin.inset` is documented as
+"tip_od/2, same convention as bennett.yaml", and with inset=tip_od/2
+those two terms cancel exactly, landing the tip sphere's CENTER at h
+precisely - "the center of the sphere tip is at the surface." This was
+the correct, already-existing, ALREADY-CONFIGURED behavior the whole
+time; parts 43 and 44 both misdiagnosed it as a defect (a "50/50 split"
+that needed fixing) and each invented a NEW extra offset (rod_tip's
+`inset=Resin_Inset+Resin_Tip_OD/2`, then _rod2's `Tip_Interference`
+double-count and later `Resin_Inset+Resin_Tip_OD`) - neither of which
+existed as any real, named geometric relationship; both were guesses
+dressed up as fixes.
+
+- `_rod2(h)` (horizontal wall+rib tiers): reverted to a plain
+  `cylinder_machine._resin_rod(h)` call - IDENTICAL to what `_rod()`
+  (every other straight-rod tier in this file) already does, no extra
+  term. `Tip_Interference` remains unused (as already noted in part 44 -
+  its real v2 value was calibrated against ResinRod2's own hardcoded
+  2mm cone, not this port's substituted 1mm one, so it was never
+  applicable here to begin with).
+- `resin_support.rod_tip()` (vertical arc-sweep needle): the `inset`
+  parameter added in part 43 is removed entirely - back to the
+  original, faithfully-ported placement (sphere center at `arc_radius`
+  exactly). This ALSO fixes the alignment complaint: the needle shares
+  its (x,theta) position with a SEPARATE `_rod()`/`_crod()` pair placed
+  at `y=(Shuttle_Arc_Radius-1)*cos(...)` (a real v2 constant, a
+  different radius reference) - part 43 pushed ONLY the needle further
+  out along its own axis while that accompanying rod/crod never moved,
+  growing a visible gap between them. Reverting removes that gap too.
+
+One real, disclosed tradeoff: this reintroduces the STL-export
+fragmentation part 43 fixed as a side effect (4207 components on reload
+vs. 1 in memory, same as originally found in part 41) - since a sphere
+CENTERED exactly on a boundary is inherently a razor-edge case for
+float32 STL export, regardless of whether that's the geometrically
+"correct" placement. Per the same reasoning established in part 41,
+this is physically inert for actual printing (the resulting gaps are
+far below print resolution) - not reverted or worked around again here,
+since the user's correction was explicit and specific about the exact
+sphere-center placement; flagging it rather than silently
+re-introducing another invented push to paper over it.
+
+**Verified**: hard gate re-run for Hammond vertical (exact match to the
+part-40 pre-fix baseline: `verts=472539 faces=946726 volume=
+4795.951mm3` - a full, clean revert, as expected) and horizontal+Rib
+(`verts=35313 faces=71110 volume=3015.464mm3` - new baseline, sphere-
+center-at-target as specified); Blickensderfer/Postal/Mignon/Bennett
+unaffected (exact baseline match). Rib-support target re-confirmed:
+sphere center lands at exactly 9.7 (Rib()'s own flipped-bottom, computed
+in part 42), matching "center of the sphere tip is at the surface"
+precisely, no residual offset. Horizontal's reloaded STL component
+count stays at 1 (unaffected by this session's changes); vertical's
+reverts to 4207 (the disclosed tradeoff above).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

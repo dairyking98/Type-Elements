@@ -765,39 +765,34 @@ def _rod2(h):
 
     Tip_Interference (v2:324, ~1.2mm) does NOT transfer to this port:
     v2's real ResinRod2 cone section is a literal `cylinder(...,h=2)` -
-    hardcoded 2mm, unrelated to any of our config's Resin_Tip_L. Applying
-    v2's own 1.2mm interference to that real 2mm cone buries 60% of it,
-    leaving a reasonable 40% exposed. But this function's SHAPE was
-    already substituted with the shared resin_rod() primitive
-    (Resin_Tip_L=1.0mm default - see this module's own docstring: "rod
-    SHAPE reuses cylinder_machine._resin_rod()... in place of v2's own
-    bespoke ResinRod2... a minor, explicitly-accepted simplification").
-    The SAME 1.2mm interference against a 1.0mm cone buries 120% - the
-    entire pointed tip section, leaving only the plain cylindrical shaft
-    visible where it meets the surface, no visible point at all.
-    Reported as "the horizontal resin rods on shuttle are still wrong,
-    still going too far into the shuttle" (confirmed via screenshot -
-    exactly this look) - an EARLIER attempt at this same fix only
-    removed cylinder_machine._resin_rod()'s own additional Resin_Inset
-    stacking on top of Tip_Interference (a real, separate double-count,
-    also fixed here), but that alone still left h=0's tip section
-    spanning z=[-0.2,0.8] against a real z=0 surface - 80% embedded,
-    still visibly too deep.
+    hardcoded 2mm, unrelated to any of our config's Resin_Tip_L. v2's
+    own author calibrated Tip_Interference against THAT real 2mm cone.
+    This function's SHAPE was already substituted with the shared
+    resin_rod() primitive (Resin_Tip_L=1.0mm default - see this module's
+    own docstring: "rod SHAPE reuses cylinder_machine._resin_rod()...
+    in place of v2's own bespoke ResinRod2... a minor,
+    explicitly-accepted simplification"), so Tip_Interference no longer
+    has a real cone to be calibrated against here and is not used.
 
-    Given the real Tip_Interference value doesn't scale to this
-    substituted shape at all, this uses the SAME successful convention
-    rod_tip() was fixed with instead (see that function's own docstring)
-    - Resin_Inset+Resin_Tip_OD pushes the sphere solidly past the target
-    (not straddling it 50/50, which is resin_rod()'s own unadorned
-    default) while leaving most of the cone exposed (~60% at defaults,
-    confirmed: h=0's tip section now spans z=[-0.6,0.4] against a real
-    z=0 surface). A deliberate v4 correction, not a port artifact -
-    Tip_Interference's real v2 value stays real v2 data, it just isn't
-    the right constant for this particular substituted shape."""
-    return resin_support.resin_rod(h, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD,
-                                    Resin_Inset + Resin_Tip_OD, Resin_Min_Rod_Height,
-                                    Resin_Raft_Thickness, Resin_Raft_OD,
-                                    add_raft=Resin_Rod_Raft, resin_fn=Resin_Fn)
+    Simply delegates to cylinder_machine._resin_rod(h) - the exact same
+    call _rod() (this file's OTHER straight-rod helper, used throughout
+    ResinSupport()) already makes, with NO extra offset of any kind.
+    _resin_rod() already applies this config's own Resin_Inset
+    (documented in config/hammond.yaml as "tip_od/2, same convention as
+    bennett.yaml") via resin_support.resin_rod()'s own tip_z=-tip_od/2+
+    inset+h formula - with inset=tip_od/2 those two terms cancel exactly,
+    landing the tip sphere's own CENTER precisely at h, i.e. right at
+    the target surface itself. Per explicit correction: "with inset half
+    of tip diameter, the center of the sphere tip is at the surface of
+    the shuttle edge" - this is that exact, already-existing behavior;
+    no new formula, no new constant, nothing hardcoded beyond what
+    Resin_Inset/Resin_Tip_OD already are. Two earlier attempts both
+    invented extra push terms (first stacking Tip_Interference on top of
+    the automatic Resin_Inset - a double-count; then replacing that with
+    a different invented constant, Resin_Inset+Resin_Tip_OD) chasing a
+    "too far into the shuttle" report - both wrong; the fix was to
+    subtract, not add: stop applying Tip_Interference at all."""
+    return cylinder_machine._resin_rod(h)
 
 
 def HorizWallRodSupport():
@@ -1055,16 +1050,12 @@ def ResinSupport():
     def _rod_tip(x, theta_deg, s):
         # Missing this shape entirely was the reported bug ("the theta of
         # the tip") - see resin_support.rod_tip()'s docstring for the
-        # full v2 source derivation and coordinate-frame explanation.
-        # inset=Resin_Inset+Resin_Tip_OD/2 (same convention _rod()/
-        # resin_rod() already applies) - without it the tip sphere's own
-        # center lands exactly ON the nominal arc surface (only ~half
-        # embeds); reported as "meshing at the base of the tip, not the
-        # tip of the tip" - see rod_tip()'s own docstring for the full
-        # derivation/verification.
+        # full v2 source derivation and coordinate-frame explanation, and
+        # for why its placement is NOT pushed by any extra offset here -
+        # this needle's (x,theta) position must stay aligned with the
+        # separate _rod()/_crod() pair placed at the same (x,theta) below.
         return resin_support.rod_tip(x, theta_deg, s, Z_Offset, Shuttle_Arc_Radius,
-                                      Resin_Rod_OD, Resin_Tip_OD, sections=Cyl_Fn,
-                                      inset=Resin_Inset + Resin_Tip_OD / 2.0)
+                                      Resin_Rod_OD, Resin_Tip_OD, sections=Cyl_Fn)
 
     parts = []
 
