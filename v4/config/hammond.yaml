@@ -86,6 +86,11 @@ element:
   shuttle_pin_support_base_width: 6
   shuttle_pin_support_base_length: 7.8
   shuttle_pin_support_height_offset: 1.5
+  # Shuttle_Pin_Support_Height2 (v2:236) - PinSupport2()'s own dimension
+  # (that module is dead/unused - see element.groove's comment), but this
+  # SAME value is also used by HorizResinSupport2's "under Pinhole" tier
+  # (lib/hammond.py's HorizRibbedResinSupport()), so it's real/needed.
+  shuttle_pin_support_height2: 2.0
   shuttle_rib_hump_distance: 9
   shuttle_rib_circle: 159
   shuttle_rib_circle_radius: 19
@@ -223,13 +228,21 @@ resin:
                                      # rod pitch is spacing/Shuttle_Arc_Radius
                                      # radians (v2:615's thetaspacing formula)
   edge_gap: 0.1                     # Resin_Support_Edge_Gap (v2:314)
+  tip_interference: 1.2             # Tip_Interference (v2:324) - ResinRod2()'s
+                                     # real tip overlap-fit depth (horizontal,
+                                     # non-grooved support only)
   # Resin_Support_Orientation (v2:300) - "vertical" stands the shuttle up
   # on one end (v2's VertResinPrint2, rotate([0,-90,0])) and reuses v2's
   # real VertResinSupport2() placement math (lib/hammond.py's
-  # ResinSupport()); "horizontal" prints it flat in its natural as-built
-  # frame (v2's HorizResinPrint - no rotation, just recentered) and still
-  # uses the simpler grid+raycast fallback (v2's own HorizResinSupport2
-  # is a separate ~90-line scheme, not ported - see lib/hammond.py).
+  # ResinSupport()). "horizontal" prints it flat in its natural as-built
+  # frame - which of v2's two real horizontal support schemes gets used
+  # depends on element.groove (same as vertical): groove=true is
+  # HorizGroovedResin3's swept perforated breakaway-groove ring
+  # (HorizGroovedResinSupport()); groove=false is HorizResinPrint2/
+  # HorizResinSupport2's real per-rod scheme (HorizRibbedResinSupport())
+  # supporting along the rib's back edge and around the center pin hole -
+  # v2:1006-1021/864-950 respectively. Both are real, faithfully-ported
+  # v2 schemes, not a simplified stand-in.
   orientation: vertical              # [vertical, horizontal]
 
 output:

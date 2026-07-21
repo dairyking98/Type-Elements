@@ -146,6 +146,17 @@ def main():
                               "through the machine's central axis at this angle (degrees) - "
                               "applies to any build target (element/gauge/calibration); "
                               "omit to disable (default)")
+    parser.add_argument("--hammond-part", default=None,
+                         choices=["shuttle_minus_rib", "shuttle_plus_rib", "rib_only"],
+                         help="Hammond only: export a single FDM-printable part instead of a "
+                              "resin-oriented build - no resin supports either way (FDM's own "
+                              "slicer handles that). 'shuttle_minus_rib' is the snap-fit groove "
+                              "shell alone (FullElement(force_groove=True)); 'shuttle_plus_rib' "
+                              "is the rib assembled onto the shell in one piece "
+                              "(FullElement(force_groove=False)); 'rib_only' is just the "
+                              "rib+pin-support assembly by itself, meant to be printed "
+                              "separately and glued to a 'shuttle_minus_rib' shell afterward "
+                              "(hammond.RibOnly()).")
     parser.add_argument("--cut-bodies", action="store_true",
                          help="debug: export the union of Subtractive()'s negative/cutter "
                               "tool bodies (HollowSpace, DrivePin, core grooves, ...) "
@@ -228,6 +239,35 @@ def main():
         with open(mapping_path, "w") as f:
             f.write("\n".join(mapping_lines) + "\n")
         print(f"wrote {mapping_path}", flush=True)
+        return
+
+    if args.hammond_part:
+        if not hasattr(bd, "RibOnly"):
+            print(f"--hammond-part is only meaningful for hammond (got machine={bd.__name__!r})",
+                  file=sys.stderr, flush=True)
+            sys.exit(1)
+        if args.hammond_part == "rib_only":
+            full = bd.RibOnly()
+            char_parts = []
+        else:
+            full, char_parts = bd.FullElement(
+                points_per_mm=args.points_per_mm,
+                separation_mm=args.separation_mm,
+                render_core_groove=render_core_groove,
+                cone_segments=args.cone_segments,
+                simplify_tolerance_mm=args.simplify_tolerance_mm,
+                platen_fn=args.platen_fn,
+                minkowski_enabled=args.minkowski_enabled,
+                draft_angle_deg=args.draft_angle_deg,
+                force_groove=(args.hammond_part == "shuttle_minus_rib"),
+            )
+        label = f"hammond --hammond-part {args.hammond_part}"
+        full = _apply_cross_section(full, args.cross_section_angle_deg)
+        print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "
+              f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
+              f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+        full.export(out_path)
+        print(f"wrote {out_path}", flush=True)
         return
 
     if args.cut_bodies:

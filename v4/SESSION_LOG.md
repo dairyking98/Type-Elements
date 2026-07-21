@@ -2521,6 +2521,80 @@ unchanged (`volume=5765.334mm3`). Spot-checked Blickensderfer (the only
 other machine using `scad_primitives.py`, which gained the new
 `revolve_polygon_partial` function) - unaffected, exact baseline match.
 
+## 36. Hammond: horizontal-ribbed support (real HorizResinSupport2 port) + FDM part export targets
+
+Two more requests: horizontal orientation shouldn't be forced to the
+grooved body if the ribbed one can be "properly supported" instead, and
+a Build-tab dropdown for exporting the shuttle and rib as separate FDM
+parts (no resin supports needed for those).
+
+**Un-forced Groove for horizontal, ported the real ribbed-horizontal
+support.** Part 35 found `HorizGroovedResin3` always uses
+`GroovedShuttle()` and concluded (wrongly) that horizontal orientation
+was ONLY ever paired with the groove body in v2. The user pointed at
+`HorizResinPrint2()`/`HorizResinSupport2()` (v2:952-963, 864-950) -
+confirmed identical in `v1/Hammond/HammondShuttle.scad` too (only
+casing/whitespace differ from v2, no logic changes) - real, complete,
+carefully-built functions supporting the RIBBED body horizontally: along
+the rib's own back edge and around the center drive-pin hole, exactly
+matching the user's own description before I'd re-read the source. v2's
+`ResinPrint()` dispatcher (v2:1060-1073) only calls `VertResinPrint2`/
+`HorizGroovedResin3` directly, but that doesn't mean the other Horiz*
+functions are dead - `HorizResinPrint2`/`HorizResinSupport2` are just not
+wired into that particular dispatcher's two `Resin_Support_Orientation`
+values in the exported customizer, unlike the genuinely-unreferenced
+`HorizResinPrint`/`HorizGroovedResin`/`HorizGroovedResin2`.
+
+`ResinPrint()`'s horizontal branch now dispatches on `Groove` (same as
+vertical, no longer forced): `Groove=true` -> `HorizGroovedResinSupport()`
+(part 35, unchanged); `Groove=false` -> new `HorizRibbedResinSupport()`.
+Ported the real tiers faithfully: Outer Supports (23 angular positions
+around both wall-adjacent radii), thetamax/taper-step edge supports,
+`Inner_Arc_Intercept` supports, the "under Pinhole" 4-rod cross pattern,
+three dense angular fan patterns, and the theta-dependent Under Rib -
+Outer/Radius/Center tiers (the only ones that actually vary per
+iteration - the rest are loop-invariant in v2 itself, since neither the
+pinhole block nor the fans reference the outer loop's `y`/`theta` at
+all, just shadow the name - hoisted out and built once here, same
+optimization as part 33's "at the taper" block). Rod shape is a NEW
+`_rod2()` helper wrapping the shared `cylinder_machine._resin_rod()` -
+`ResinRod2(h)` is a THIRD bespoke v2 rod primitive (distinct from both
+`ResinRod`/part 29's `RodTip`), with its own tip-position convention
+(`h - Resin_Tip_OD/2 + Tip_Interference`, not `h` directly) - added the
+real `Tip_Interference` (v2:324, 1.2mm - a genuine tip overlap/
+interference-fit depth, not negligible) and `Shuttle_Pin_Support_
+Height2` (v2:236 - otherwise only used by the dead `PinSupport2()`, but
+real and needed here) to `config/hammond.yaml`.
+
+Verified: `HorizRibbedResinSupport()` standalone (watertight,
+`volume=1015.11mm3`); full `generate.py` build, horizontal+groove=false
+(`verts=36310 faces=72864 volume=2961.561mm3`, watertight/valid,
+`Additive: verts=13820` confirming the RIBBED body is used, not forced-
+groove); horizontal+groove=true and vertical both reproduce their exact
+pre-this-part baselines unchanged.
+
+**FDM part-export targets** ("it does not have to be grooved if
+properly supported... will be printed with FDM so no need for supports
+here" - a separate, simpler ask on top of the above). Added `--hammond-
+part {shuttle_minus_rib,shuttle_plus_rib,rib_only}` to `generate.py` -
+plain geometry exports, no resin-print orientation/support machinery at
+all (FDM's own slicer handles supports). `shuttle_minus_rib`/
+`shuttle_plus_rib` are `FullElement(force_groove=True/False)` (already
+existed via part 35's `force_groove` param); `rib_only` is a new
+`hammond.RibOnly()` (just `RibAssembled()` alone, meant to be printed
+separately and glued to a `shuttle_minus_rib` shell afterward). Wired
+into `tune.py`'s Build tab as 3 more `build.target` dropdown options,
+gated on `self.machine == "hammond"` (matching the existing `has_gauge`
+pattern) - selecting one of these ignores the Resin supports checkbox
+entirely (documented in a new help `Static`), since `generate.py`'s
+`--hammond-part` branch runs before the resin dispatch. Verified all 3
+targets individually (watertight/valid: `rib_only` `volume=128.927mm3`,
+`shuttle_minus_rib` `volume=1810.135mm3`, `shuttle_plus_rib`
+`volume=1960.523mm3`) and via a full headless `TuneApp` cycle
+(select `rib_only`, save, confirm the constructed subprocess command is
+`generate.py ... --hammond-part rib_only`, then actually ran that exact
+command).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

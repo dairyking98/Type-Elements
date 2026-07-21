@@ -1832,7 +1832,9 @@ class TuneApp(App):
 
     def _compose_build_tab(self):
         has_gauge = "Gauge" in self.SECTIONS
-        valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ())
+        is_hammond = self.machine == "hammond"
+        hammond_parts = ("shuttle_minus_rib", "shuttle_plus_rib", "rib_only") if is_hammond else ()
+        valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ()) + hammond_parts
         with TabPane("Build", id="tab-build"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
@@ -1844,8 +1846,18 @@ class TuneApp(App):
                     if has_gauge:
                         options.append(("Shaft Gauge", "gauge"))
                     options.append(("Calibration Element", "calibration"))
+                    if is_hammond:
+                        options.append(("Shuttle - Rib (FDM)", "shuttle_minus_rib"))
+                        options.append(("Shuttle + Rib (FDM)", "shuttle_plus_rib"))
+                        options.append(("Rib only (FDM)", "rib_only"))
                     build_select = Select(options, value=target_now, id="build-select", allow_blank=False)
                     yield build_select
+                    if is_hammond:
+                        yield Static(
+                            "Shuttle/Rib targets are plain FDM part exports - no resin "
+                            "supports either way, the shell orientation/groove toggle above "
+                            "doesn't apply, and Resin supports below is ignored.",
+                            classes="field-help")
                 with Horizontal(classes="picker-row"):
                     yield Static("Resin supports", classes="field-label")
                     resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
@@ -2090,7 +2102,8 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
-        valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ())
+        hammond_parts = ("shuttle_minus_rib", "shuttle_plus_rib", "rib_only") if self.machine == "hammond" else ()
+        valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ()) + hammond_parts
         if target_now not in valid_targets:
             # "resin" was a valid target value before the Build tab's
             # dropdown was split into target + a separate Resin supports
@@ -2247,7 +2260,23 @@ class TuneApp(App):
             cmd += ["--cross-section-angle-deg", str(angle)]
         if self.query_one("#build-cut-bodies", Switch).value:
             cmd += ["--cut-bodies"]
-        if values["target"] == "gauge":
+        if values["target"] in ("shuttle_minus_rib", "shuttle_plus_rib", "rib_only"):
+            # Plain FDM part exports (Hammond only) - no resin supports
+            # either way (generate.py's --hammond-part branch runs before
+            # the resin dispatch, so build-resin-support's checkbox value
+            # is simply never consulted), no orientation/groove-toggle
+            # logic. rib_only skips TextRing/build_glyph entirely (no
+            # characters at all), same reasoning as --gauge below, so
+            # Minkowski doesn't apply there; shuttle_minus_rib/
+            # shuttle_plus_rib DO go through the real glyph pipeline, so
+            # Minkowski is forced the same way as a normal element build.
+            cmd += ["--hammond-part", values["target"]]
+            if values["target"] != "rib_only":
+                if fast:
+                    cmd += ["--no-minkowski", "--no-minkowski-text"]
+                else:
+                    cmd += ["--minkowski"]
+        elif values["target"] == "gauge":
             # GaugeTestSet() doesn't touch TextRing/build_glyph at all, so
             # the Minkowski/points-per-mm knobs don't apply here.
             cmd += ["--gauge"]

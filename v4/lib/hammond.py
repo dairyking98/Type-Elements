@@ -73,24 +73,27 @@ v2/hammond.scad:419's hull-of-two-spheres) - the one primitive that
 doesn't exist for any other machine's resin-support system, since none
 of them brace rods against each other.
 
-"horizontal" print orientation (HorizGroovedResinSupport()) is a
-faithful port of v2's real HorizGroovedResin3() - a swept, perforated
-breakaway-groove support RING (Resin2Profile(), revolved +-60 degrees
-via sp.revolve_polygon_partial()), not individual rods at all. v2's own
-ResinPrint() dispatcher (v2:1060-1073) confirms this is the actual
-target for Resin_Support_Orientation==1 - HorizResinPrint/
-HorizResinSupport2/HorizGroovedResin/HorizGroovedResin2 (the OTHER
-Horiz* variants defined earlier in the file) are unreferenced/legacy,
-never actually called. A from-scratch grid+raycast redesign was used
-here initially (rod SHAPE reused, placement re-derived from the built
-mesh) - reported as "totally fucked up," since it doesn't resemble v2's
-real support architecture for this orientation at all; replaced with the
-real port. HorizGroovedResin3 also ALWAYS uses GroovedShuttle()
-regardless of the Groove config value (v2:1006-1021 never checks
-Groove, unlike VertResinPrint2 which does) - reproduced via Additive()'s
-force_groove parameter, threaded through ShuttleTaper() too (its own
-Groove-conditional taper depth needs to match the forced body, not the
-config's independent Groove setting - see ShuttleTaper()'s docstring).
+"horizontal" print orientation has TWO real v2 support schemes,
+dispatched by Groove (same as vertical - NOT forced to one or the other):
+Groove=true is HorizGroovedResinSupport(), a faithful port of
+HorizGroovedResin3() - a swept, perforated breakaway-groove support RING
+(Resin2Profile(), revolved +-60 degrees via sp.revolve_polygon_partial()),
+not individual rods. Groove=false is HorizRibbedResinSupport(), a
+faithful port of HorizResinSupport2() - the real, "carefully curated"
+per-rod scheme (_rod2(), a THIRD bespoke rod primitive after ResinRod/
+ResinRod2) supporting along the rib's own back edge and around the
+center drive-pin hole. v2's own ResinPrint() dispatcher (v2:1060-1073)
+only calls VertResinPrint2()/HorizGroovedResin3() directly, but
+HorizResinPrint2()/HorizResinSupport2() are real, complete, carefully-
+built functions in the source (confirmed identical in v1's pre-migration
+original too) - just not wired into that particular dispatcher's two
+Resin_Support_Orientation values in the exported customizer. An earlier
+version of this port (a) used a from-scratch grid+raycast redesign for
+ALL of "horizontal" (reported as "totally fucked up") and (b) then
+force-used GroovedShuttle()/HorizGroovedResin3 unconditionally for
+"horizontal" after finding v2:1006-1021 never checks Groove - both
+corrected once the user confirmed the ribbed body can print horizontally
+too, with its own proper (if different) support scheme.
 """
 
 import numpy as np
@@ -179,6 +182,7 @@ def configure(config_path):
     g["Shuttle_Pin_Support_Base_Width"] = e["shuttle_pin_support_base_width"]
     g["Shuttle_Pin_Support_Base_Length"] = e["shuttle_pin_support_base_length"]
     g["Shuttle_Pin_Support_Height_Offset"] = e["shuttle_pin_support_height_offset"]
+    g["Shuttle_Pin_Support_Height2"] = e["shuttle_pin_support_height2"]
     g["Shuttle_Rib_Hump_Distance"] = e["shuttle_rib_hump_distance"]
     g["Shuttle_Rib_Circle"] = e["shuttle_rib_circle"]
     g["Shuttle_Rib_Circle_Radius"] = e["shuttle_rib_circle_radius"]
@@ -273,6 +277,7 @@ def configure(config_path):
     g["Resin_Rod_Raft"] = True  # each rod grows its own small raft (no shared raft ring here)
     g["Resin_Support_Spacing"] = r["spacing"]
     g["Resin_Support_Edge_Gap"] = r.get("edge_gap", 0.1)
+    g["Tip_Interference"] = r.get("tip_interference", 1.2)
     g["Resin_Support_Orientation"] = r.get("orientation", "vertical")
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
@@ -448,6 +453,20 @@ def PinSupportHole():
 def RibAssembled():
     combined = sp.union_all([Rib(), PinSupport()])
     return combined.difference(PinSupportHole(), engine="manifold")
+
+
+def RibOnly():
+    """Not a v2 function - a v4-specific FDM export target. Just the rib
+    +pin-support assembly (RibAssembled()) alone, as its own separate
+    printable part, for printing the shuttle shell and rib as two
+    separate FDM pieces (glued together afterward) instead of one fused
+    resin print - see generate.py's --hammond-part=rib_only and
+    tune.py's Build tab. No resin supports at all (FDM's own slicer
+    handles that, not Hammond's resin-print machinery)."""
+    _require_configured()
+    rib = RibAssembled()
+    rib, _, _, _ = sp.check_and_repair(rib, label="RibOnly")
+    return rib
 
 
 def GrooveShape():
@@ -694,6 +713,118 @@ def HorizGroovedResinSupport():
     return ring
 
 
+def _rod2(h):
+    """v2's ResinRod2(h) (v2:850-861) - Hammond's OTHER bespoke rod
+    primitive (distinct from ResinRod(h1,r1,r2,h2,r3), used only by
+    HorizResinSupport2/HorizGroovedResin/HorizGroovedResin2 - the last
+    two are unreferenced legacy, only HorizResinSupport2 is real). Its
+    raft always sits at a FIXED z (built from a literal "2" in v2 that
+    numerically matches Resin_Support_Min_Height - treated as the same
+    value, not an independent constant, since using two different names
+    for one number is far more likely to be an unreferenced-literal
+    shortcut in the original than a deliberate second value) - this
+    already matches cylinder_machine._resin_rod()'s own fixed raft
+    position with NO re-basing needed. Its tip lands at h -
+    Resin_Tip_OD/2 + Tip_Interference (Tip_Interference, v2:324 - a real,
+    deliberate ~1.2mm tip overlap/interference fit depth, not
+    negligible), unlike ResinRod()'s tip landing at h directly - the one
+    offset this DOES need."""
+    h_shared = h - Resin_Tip_OD / 2.0 + Tip_Interference
+    return cylinder_machine._resin_rod(h_shared)
+
+
+def HorizRibbedResinSupport():
+    """v2:864-950 HorizResinSupport2() - the real, "carefully curated" v2
+    support scheme for the RIBBED (Groove=false) horizontal print
+    orientation - individual rods (_rod2(), not HorizGroovedResinSupport's
+    swept ring) along the outer wall, the tapered ends, and (in the
+    flipped print frame) along the rib's own back/bottom plane and around
+    the square drive-pin hole.
+
+    Several v2 tiers here are loop-invariant (rebuilt identically on
+    every outer theta/s iteration in v2, since neither the "under
+    Pinhole" block nor the three dense fan patterns actually depend on
+    the outer loop's y/theta - theta gets shadowed by an inner loop of
+    the same name) - hoisted out and built once here, the same harmless
+    optimization as ResinSupport()'s "at the taper" block."""
+    _require_configured()
+    r0 = Anvil_OD / 2.0
+    parts = []
+
+    thetamax = np.radians(Angle_Pitch * 32.0) - 2.0 * np.radians(Shuttle_Taper)
+    thetaspacing = Resin_Support_Spacing / Shuttle_Arc_Radius
+    rib_h = Shuttle_Height - Shuttle_Rib_Plane - Shuttle_Rib_Thickness
+
+    # Outer Supports (v2:868-874) - 23 positions from -60 to 60deg (step
+    # 120/22), both wall-adjacent radii, EXCLUDING the exact +-60
+    # endpoints (v2's own "abs(theta)<59.9 || x==Anvil_OD/2+Shuttle_
+    # Thickness" condition - the x== disjunct never actually fires since
+    # neither radius equals that exactly, so the real effect is just
+    # "skip the two endpoints").
+    outer_thetas = np.linspace(-60.0, 60.0, 23)
+    for theta_deg in outer_thetas[1:-1]:
+        for x in (r0 + Resin_Tip_OD / 2.0, r0 + Shuttle_Thickness - Resin_Tip_OD / 2.0):
+            parts.append(sp.rotate_z(sp.translate(_rod2(0.0), [x, 0, 0]), theta_deg))
+
+    # thetamax edge supports (v2:876-879)
+    for theta_deg in (np.degrees(thetamax / 2.0), -np.degrees(thetamax / 2.0)):
+        parts.append(sp.rotate_z(sp.translate(_rod2(0.0), [r0, 0, 0]), theta_deg))
+
+    # taper-step edge supports (v2:881-884)
+    for theta_deg in (60.0, -60.0):
+        parts.append(sp.rotate_z(sp.translate(_rod2(0.0), [r0 + Shuttle_Taper_Step, 0, 0]), theta_deg))
+
+    # Inner_Arc_Intercept supports (v2:886-889)
+    for s in (-1, 1):
+        parts.append(sp.translate(_rod2(rib_h), [Z_Offset, s * Inner_Arc_Intercept, 0]))
+
+    # under Pinhole (v2:921-929) - loop-invariant, built once. base_x
+    # matches PinSupportHole()'s own pin-hole center X.
+    base_x = Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset
+    pin_h = rib_h - (Shuttle_Pin_Support_Height2 - 1.0)
+    for r_deg in (0.0, 180.0):
+        p_a = sp.rotate_z(sp.translate(_rod2(pin_h), [0, -Shuttle_Square_Hole_Width / 2.0 - Resin_Tip_OD / 2.0, 0]), r_deg)
+        p_b = sp.rotate_z(sp.translate(_rod2(pin_h), [Shuttle_Square_Hole_Length / 2.0 + Resin_Tip_OD / 2.0, 0, 0]), r_deg)
+        parts.append(sp.translate(p_a, [base_x, 0, 0]))
+        parts.append(sp.translate(p_b, [base_x, 0, 0]))
+
+    # three dense fan patterns (v2:931-946) - loop-invariant, built once.
+    for theta_deg in np.arange(-40.0, 40.0 + 1e-9, 5.0):
+        parts.append(sp.rotate_z(sp.translate(_rod2(rib_h), [Shuttle_Arc_Radius - 2.5, 0, 0]), theta_deg))
+    for s in (-1, 1):
+        for theta_deg in np.arange(5.0, 25.0 + 1e-9, 5.0):
+            parts.append(sp.rotate_z(sp.translate(_rod2(rib_h), [Shuttle_Arc_Radius - 5.0, 0, 0]), s * theta_deg))
+        for theta_deg in np.arange(3.0, 15.0 + 1e-9, 6.0):
+            parts.append(sp.rotate_z(sp.translate(_rod2(rib_h), [Shuttle_Arc_Radius - 7.5, 0, 0]), s * theta_deg))
+
+    # Under Rib - Outer/Radius/Center (v2:894-919) - the only tiers that
+    # actually depend on the outer loop's y (via theta/s), so these stay
+    # in the loop.
+    for s in (-1, 1):
+        theta = 0.0
+        while theta <= thetamax / 2.0 + 1e-9:
+            y = (Shuttle_Arc_Radius - 1) * np.cos(np.pi / 2.0 + theta * s)
+            ay = abs(y)
+            if Cp_1_X < ay <= Inner_Arc_Intercept:
+                x = np.sqrt(max((Shuttle_Arc_Radius - Shuttle_Rib_Width) ** 2 - y ** 2, 0.0))
+                parts.append(sp.translate(_rod2(rib_h), [x, y, 0]))
+            elif Cp_2_X < ay <= Cp_1_X:
+                x = np.sqrt(max(Shuttle_Rib_Circle_Radius ** 2 - (ay - X_Prime) ** 2, 0.0)) + Y_Prime
+                parts.append(sp.translate(_rod2(rib_h), [x, y, 0]))
+            elif ay <= Cp_2_X:
+                x = Shuttle_Rib_Circle_Offset - np.sqrt(max(Shuttle_Rib_Circle ** 2 - y ** 2, 0.0)) + z
+                parts.append(sp.translate(_rod2(rib_h), [x, y, 0]))
+            theta += thetaspacing
+
+    # NOTE: does NOT apply v2's own translate([-Z_Offset,0,0]) (v2:866) -
+    # left to the caller (ResinPrint()), which applies the same shift to
+    # the body+support union as a whole, matching HorizGroovedResinSupport()'s
+    # convention for consistency (both real v2 functions DO each wrap
+    # themselves in that translate independently, but the net effect on
+    # the final union is identical either way, since translate is linear).
+    return sp.union_all(parts)
+
+
 def ResinSupport():
     """Faithful port of v2's VertResinSupport2() (v2:609-735) - only used
     for the "vertical" print orientation (v2's own real, matching
@@ -880,20 +1011,36 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
     real Z_Offset/X_Max constants to land in the right place relative to
     each other, no extra normalization step exists in v2 or here.
 
-    "horizontal" (Resin_Support_Orientation==1) - v2:1006-1021
-    HorizGroovedResin3's real orientation: rotate([180,0,0]) then
-    translate(0,0,-Shuttle_Height) (flips the body so the character-
-    bearing face points down), ALWAYS using GroovedShuttle() regardless
-    of Groove (v2:1006-1021 never checks the Groove variable at all,
-    unlike VertResinPrint2 - a real, deliberate v2 restriction: this
-    orientation is only ever paired with the snap-fit groove body, never
-    the ribbed one - force_groove=True reproduces that). Support is
-    HorizGroovedResinSupport() - a swept perforated breakaway-groove ring
-    (v2's real "cut groove" support), NOT individual rods - an earlier
-    grid+raycast redesign used a rod grid here, reported as "totally
-    fucked up," since it doesn't resemble v2's real support architecture
-    for this orientation at all. Whole assembly (body+support) gets one
-    final translate(-Z_Offset,0,0), matching v2's own outer wrapper."""
+    "horizontal" (Resin_Support_Orientation==1) - v2 actually has TWO real
+    horizontal-print functions, dispatched by Groove (same flag
+    VertResinPrint2 respects, NOT forced - an earlier version of this
+    port forced GroovedShuttle() here unconditionally, misreading
+    HorizGroovedResin3 as the only real option; corrected after the user
+    pointed out the ribbed body can print horizontally too, if properly
+    supported):
+
+    - Groove=true: v2:1006-1021 HorizGroovedResin3 - rotate([180,0,0])
+      then translate(0,0,-Shuttle_Height) (flips the body so the
+      character-bearing face points down), body is GroovedShuttle().
+      Support is HorizGroovedResinSupport() - a swept perforated
+      breakaway-groove ring (v2's real "cut groove" support), NOT
+      individual rods.
+    - Groove=false: v2:952-963 HorizResinPrint2 - the SAME flip
+      (mathematically identical transform, just written in the opposite
+      nesting order in v2 - verified algebraically), body is
+      RibbedShuttle(). Support is HorizRibbedResinSupport() - v2:864-950
+      HorizResinSupport2, the real "carefully curated" per-rod scheme
+      supporting along the rib's own back edge and around the center
+      drive-pin hole - a completely different real v2 support
+      architecture from the groove case's swept ring.
+
+    Both bodies use the same flip transform (rotate then translate by
+    -Shuttle_Height - proven algebraically equivalent to v2:952-957's
+    reversed-order translate/rotate for HorizResinPrint2). Whole assembly
+    (body+support) gets one final translate(-Z_Offset,0,0), matching v2's
+    own outer wrapper (present in both real functions, just also
+    independently duplicated inside HorizResinSupport2 itself in v2 -
+    applying it once to the union has the same net effect)."""
     if not Resin_Support:
         full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
                                         cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
@@ -903,13 +1050,18 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
         return combined, char_parts
 
     if Resin_Support_Orientation == "horizontal":
-        full_groove, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
-                                               cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
-                                               platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
-                                               draft_angle_deg=draft_angle_deg, force_groove=True)
-        body = sp.scad_transform(full_groove, ("rotate", [180, 0, 0]), ("translate", [0, 0, -Shuttle_Height]))
-        support = HorizGroovedResinSupport()
-        print(f"HorizGroovedResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
+        full_body, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
+                                             cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
+                                             platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                             draft_angle_deg=draft_angle_deg)
+        body = sp.scad_transform(full_body, ("rotate", [180, 0, 0]), ("translate", [0, 0, -Shuttle_Height]))
+        if Groove:
+            support = HorizGroovedResinSupport()
+            label = "HorizGroovedResinSupport"
+        else:
+            support = HorizRibbedResinSupport()
+            label = "HorizRibbedResinSupport"
+        print(f"{label}: verts={len(support.vertices)} faces={len(support.faces)} "
               f"watertight={support.is_watertight}", flush=True)
         combined = sp.translate(sp.union_all([body, support]), [-Z_Offset, 0, 0])
         combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
