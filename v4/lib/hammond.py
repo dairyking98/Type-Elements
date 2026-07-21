@@ -51,14 +51,19 @@ config/hammond.yaml's header comment and SESSION_LOG.md's Hammond audit
 chapter.
 
 Groove (config/hammond.yaml's element.groove) picks between v2's two
-real, mutually-exclusive assembly mechanisms: false (default) is the
+real, mutually-exclusive BODY ASSEMBLY mechanisms: false (default) is the
 internal rib + square drive-pin boss (Rib()/PinSupport()/
 PinSupportHole(), unioned onto the shell); true is a snap-fit groove cut
 directly into the shell (GrooveShape()/ResinChamfer(), subtracted -
 see GrooveShape()'s docstring). Note the module-level function is named
 GrooveShape(), not Groove() - Python has one namespace for module
 globals, unlike OpenSCAD's separate module/variable namespaces, so it
-can't share the name with the Groove config boolean.
+can't share the name with the Groove config boolean. tune.py's Build tab
+shows this as the "Rib" checkbox (inverted) - user-facing wording is
+"Without Rib" for Groove=true, to keep it distinct from the UNRELATED
+resin.horizontal_method "Cut Groove" support scheme below (both used to
+just be called "groove", with no way to tell them apart by name alone -
+see config/hammond.yaml's matching comment).
 
 Resin support for the "vertical" print orientation (ResinSupport()) is a
 faithful port of v2's real VertResinSupport2() - same tiers, same
@@ -73,27 +78,38 @@ v2/hammond.scad:419's hull-of-two-spheres) - the one primitive that
 doesn't exist for any other machine's resin-support system, since none
 of them brace rods against each other.
 
-"horizontal" print orientation has TWO real v2 support schemes,
-dispatched by Groove (same as vertical - NOT forced to one or the other):
-Groove=true is HorizGroovedResinSupport(), a faithful port of
-HorizGroovedResin3() - a swept, perforated breakaway-groove support RING
-(Resin2Profile(), revolved +-60 degrees via sp.revolve_polygon_partial()),
-not individual rods. Groove=false is HorizRibbedResinSupport(), a
-faithful port of HorizResinSupport2() - the real, "carefully curated"
+"horizontal" print orientation has TWO real v2 outer-wall support
+schemes, picked by resin.horizontal_method (v4-specific, independent of
+Groove/the Rib checkbox - see config/hammond.yaml's matching comment and
+ResinPrint()'s own docstring for the full derivation): "cut_groove" is
+HorizGroovedResinSupport(), a faithful port of HorizGroovedResin3() - a
+swept, perforated breakaway-groove support RING (Resin2Profile(),
+revolved +-60 degrees via sp.revolve_polygon_partial()), not individual
+rods - v2's real "Cut Groove" support, distinct from the Groove config
+boolean above despite the shared word. "resin_rod" is
+HorizWallRodSupport(), the outer-wall tier of HorizResinSupport2's real
 per-rod scheme (_rod2(), a THIRD bespoke rod primitive after ResinRod/
-ResinRod2) supporting along the rib's own back edge and around the
-center drive-pin hole. v2's own ResinPrint() dispatcher (v2:1060-1073)
-only calls VertResinPrint2()/HorizGroovedResin3() directly, but
+ResinRod2). Whenever the body actually has a rib (Groove=false),
+HorizRibResinSupport() - the REST of that same HorizResinSupport2 port,
+supporting along the rib's own back edge and around the center
+drive-pin hole - is always added too, regardless of horizontal_method
+(no cut-groove equivalent exists for that geometry). v2's own
+ResinPrint() dispatcher (v2:1060-1073) only calls
+VertResinPrint2()/HorizGroovedResin3() directly, but
 HorizResinPrint2()/HorizResinSupport2() are real, complete, carefully-
 built functions in the source (confirmed identical in v1's pre-migration
 original too) - just not wired into that particular dispatcher's two
 Resin_Support_Orientation values in the exported customizer. An earlier
 version of this port (a) used a from-scratch grid+raycast redesign for
-ALL of "horizontal" (reported as "totally fucked up") and (b) then
+ALL of "horizontal" (reported as "totally fucked up"), (b) then
 force-used GroovedShuttle()/HorizGroovedResin3 unconditionally for
-"horizontal" after finding v2:1006-1021 never checks Groove - both
-corrected once the user confirmed the ribbed body can print horizontally
-too, with its own proper (if different) support scheme.
+"horizontal" after finding v2:1006-1021 never checks Groove, and (c)
+then coupled the wall-support choice 1:1 to Groove (matching v2's own
+per-scheme body pairing) - corrected across those three: first once the
+user confirmed the ribbed body can print horizontally too with its own
+proper support scheme, then again once the user pointed out the wall
+method should be a genuinely independent choice from whether the body
+has a rib, since the ring never touches the rib either way.
 """
 
 import numpy as np
@@ -280,6 +296,10 @@ def configure(config_path):
     g["Resin_Support_Edge_Gap"] = r.get("edge_gap", 0.1)
     g["Tip_Interference"] = r.get("tip_interference", 1.2)
     g["Resin_Support_Orientation"] = r.get("orientation", "vertical")
+    # horizontal_method - v4-specific, independent of Groove/the Build tab's
+    # Rib checkbox. See config/hammond.yaml's matching comment and
+    # ResinPrint()'s docstring below for the full derivation.
+    g["Horizontal_Support_Method"] = r.get("horizontal_method", "resin_rod")
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
     g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
@@ -734,27 +754,22 @@ def _rod2(h):
     return cylinder_machine._resin_rod(h_shared)
 
 
-def HorizRibbedResinSupport():
-    """v2:864-950 HorizResinSupport2() - the real, "carefully curated" v2
-    support scheme for the RIBBED (Groove=false) horizontal print
-    orientation - individual rods (_rod2(), not HorizGroovedResinSupport's
-    swept ring) along the outer wall, the tapered ends, and (in the
-    flipped print frame) along the rib's own back/bottom plane and around
-    the square drive-pin hole.
-
-    Several v2 tiers here are loop-invariant (rebuilt identically on
-    every outer theta/s iteration in v2, since neither the "under
-    Pinhole" block nor the three dense fan patterns actually depend on
-    the outer loop's y/theta - theta gets shadowed by an inner loop of
-    the same name) - hoisted out and built once here, the same harmless
-    optimization as ResinSupport()'s "at the taper" block."""
+def HorizWallRodSupport():
+    """v2:864-950 HorizResinSupport2()'s OUTER-WALL tier only (v2:868-884) -
+    individual rods (_rod2(0.0), not HorizGroovedResinSupport's swept
+    ring) along the outer wall and the tapered ends, at the same radial
+    band (r0..r0+Shuttle_Thickness) HorizGroovedResinSupport's ring
+    covers. This is the "resin_rod" alternative to that ring for
+    resin.horizontal_method - independent of Groove/element.groove/the
+    Rib checkbox, since this tier never touches the rib feature either
+    way (split out of the original HorizRibbedResinSupport() - see
+    HorizRibResinSupport() below for the rest of that function, the part
+    that DOES depend on the rib existing)."""
     _require_configured()
     r0 = Anvil_OD / 2.0
     parts = []
 
     thetamax = np.radians(Angle_Pitch * 32.0) - 2.0 * np.radians(Shuttle_Taper)
-    thetaspacing = Resin_Support_Spacing / Shuttle_Arc_Radius
-    rib_h = Shuttle_Height - Shuttle_Rib_Plane - Shuttle_Rib_Thickness
 
     # Outer Supports (v2:868-874) - 23 positions from -60 to 60deg (step
     # 120/22), both wall-adjacent radii, EXCLUDING the exact +-60
@@ -774,6 +789,33 @@ def HorizRibbedResinSupport():
     # taper-step edge supports (v2:881-884)
     for theta_deg in (60.0, -60.0):
         parts.append(sp.rotate_z(sp.translate(_rod2(0.0), [r0 + Shuttle_Taper_Step, 0, 0]), theta_deg))
+
+    return sp.union_all(parts)
+
+
+def HorizRibResinSupport():
+    """v2:864-950 HorizResinSupport2()'s RIB-specific tiers (v2:886-946) -
+    individual rods (_rod2()) along the rib's own back/bottom plane and
+    around the square drive-pin hole, in the flipped print frame. Only
+    meaningful when the body actually HAS a rib (element.groove=false,
+    the Build tab's Rib checkbox on) - there's no cut-groove equivalent
+    for this geometry, so ResinPrint() adds this unconditionally
+    whenever Groove is false, regardless of resin.horizontal_method
+    (which only picks the OUTER-WALL scheme - see HorizWallRodSupport()/
+    HorizGroovedResinSupport() and ResinPrint()'s docstring).
+
+    Several v2 tiers here are loop-invariant (rebuilt identically on
+    every outer theta/s iteration in v2, since neither the "under
+    Pinhole" block nor the three dense fan patterns actually depend on
+    the outer loop's y/theta - theta gets shadowed by an inner loop of
+    the same name) - hoisted out and built once here, the same harmless
+    optimization as ResinSupport()'s "at the taper" block."""
+    _require_configured()
+    parts = []
+
+    thetamax = np.radians(Angle_Pitch * 32.0) - 2.0 * np.radians(Shuttle_Taper)
+    thetaspacing = Resin_Support_Spacing / Shuttle_Arc_Radius
+    rib_h = Shuttle_Height - Shuttle_Rib_Plane - Shuttle_Rib_Thickness
 
     # Inner_Arc_Intercept supports (v2:886-889)
     for s in (-1, 1):
@@ -1040,34 +1082,51 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
     each other, no extra normalization step exists in v2 or here.
 
     "horizontal" (Resin_Support_Orientation==1) - v2 actually has TWO real
-    horizontal-print functions, dispatched by Groove (same flag
-    VertResinPrint2 respects, NOT forced - an earlier version of this
-    port forced GroovedShuttle() here unconditionally, misreading
-    HorizGroovedResin3 as the only real option; corrected after the user
-    pointed out the ribbed body can print horizontally too, if properly
-    supported):
+    horizontal-print functions, HorizGroovedResin3 (v2:1006-1021) and
+    HorizResinPrint2 (v2:952-963). Both apply the same flip transform
+    (rotate([180,0,0]) then translate(0,0,-Shuttle_Height) - proven
+    algebraically equivalent to v2:952-957's reversed-order translate/
+    rotate for HorizResinPrint2) to whatever body Groove/element.groove
+    (the Build tab's Rib checkbox, inverted) already selected -
+    GroovedShuttle() or RibbedShuttle(), same as FullElement() always
+    builds. What used to be forced 1:1 with that same Groove flag is
+    just the OUTER-WALL support scheme, now resin.horizontal_method
+    (v4-specific, independent selector - not itself a v2 customizer
+    field, see config/hammond.yaml's comment) instead:
 
-    - Groove=true: v2:1006-1021 HorizGroovedResin3 - rotate([180,0,0])
-      then translate(0,0,-Shuttle_Height) (flips the body so the
-      character-bearing face points down), body is GroovedShuttle().
-      Support is HorizGroovedResinSupport() - a swept perforated
-      breakaway-groove ring (v2's real "cut groove" support), NOT
-      individual rods.
-    - Groove=false: v2:952-963 HorizResinPrint2 - the SAME flip
-      (mathematically identical transform, just written in the opposite
-      nesting order in v2 - verified algebraically), body is
-      RibbedShuttle(). Support is HorizRibbedResinSupport() - v2:864-950
-      HorizResinSupport2, the real "carefully curated" per-rod scheme
-      supporting along the rib's own back edge and around the center
-      drive-pin hole - a completely different real v2 support
-      architecture from the groove case's swept ring.
+    - horizontal_method="cut_groove": HorizGroovedResinSupport() - v2's
+      real HorizGroovedResin3 support, a swept perforated breakaway-
+      groove ring (v2's real "Cut Groove" support) hugging the outer
+      wall band only (r0..r0+Shuttle_Thickness) - never touches the rib
+      feature either way.
+    - horizontal_method="resin_rod": HorizWallRodSupport() - the outer-
+      wall tier of v2's real HorizResinPrint2/HorizResinSupport2 rod
+      scheme (v2:868-884), covering that same wall band with individual
+      rods instead of a ring.
 
-    Both bodies use the same flip transform (rotate then translate by
-    -Shuttle_Height - proven algebraically equivalent to v2:952-957's
-    reversed-order translate/rotate for HorizResinPrint2). Whole assembly
-    (body+support) gets one final translate(-Z_Offset,0,0), matching v2's
-    own outer wrapper (present in both real functions, just also
-    independently duplicated inside HorizResinSupport2 itself in v2 -
+    Independent of Groove because the ring/wall-rod choice above never
+    interacts with the rib feature - but whenever the body actually HAS
+    a rib (Groove=false), the rib's own back/bottom plane and the
+    square drive-pin hole (v2:886-946) still always need their own
+    resin-rod supports regardless of horizontal_method - there's no
+    cut-groove equivalent for that geometry (HorizGroovedResinSupport's
+    ring doesn't reach it) - so HorizRibResinSupport() (the rest of the
+    original HorizResinSupport2 port) is added unconditionally whenever
+    Groove is false. An earlier version of this port forced
+    GroovedShuttle()/the ring unconditionally for ALL of "horizontal",
+    misreading HorizGroovedResin3 as the only real option; corrected
+    after the user pointed out the ribbed body can print horizontally
+    too, if properly supported - then, once the ribbed-body case was
+    ported as a real Groove-coupled dispatch, further split so the wall
+    method (ring vs rod) is a genuinely independent choice from the
+    body/rib-support question, per explicit user request (the two
+    "groove" concepts - the body's snap-fit assembly groove and the
+    resin support's cut-breakaway groove - were sharing one confusing
+    name/dispatch flag with no way to combine them).
+
+    Whole assembly (body+support) gets one final translate(-Z_Offset,0,0),
+    matching v2's own outer wrapper (present in both real functions, just
+    also independently duplicated inside HorizResinSupport2 itself in v2 -
     applying it once to the union has the same net effect)."""
     if not Resin_Support:
         full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
@@ -1083,12 +1142,19 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
                                              platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                              draft_angle_deg=draft_angle_deg)
         body = sp.scad_transform(full_body, ("rotate", [180, 0, 0]), ("translate", [0, 0, -Shuttle_Height]))
-        if Groove:
-            support = HorizGroovedResinSupport()
+        if Horizontal_Support_Method == "cut_groove":
+            support_parts = [HorizGroovedResinSupport()]
             label = "HorizGroovedResinSupport"
         else:
-            support = HorizRibbedResinSupport()
-            label = "HorizRibbedResinSupport"
+            support_parts = [HorizWallRodSupport()]
+            label = "HorizWallRodSupport"
+        if not Groove:
+            # Rib is present - always needs its own resin-rod supports
+            # regardless of Horizontal_Support_Method, see ResinPrint()'s
+            # docstring.
+            support_parts.append(HorizRibResinSupport())
+            label += "+HorizRibResinSupport"
+        support = sp.union_all(support_parts)
         print(f"{label}: verts={len(support.vertices)} faces={len(support.faces)} "
               f"watertight={support.is_watertight}", flush=True)
         combined = sp.translate(sp.union_all([body, support]), [-Z_Offset, 0, 0])

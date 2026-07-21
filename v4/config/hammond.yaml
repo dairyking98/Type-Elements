@@ -111,23 +111,31 @@ element:
   # much (v2:351 "Cp_1_X=Shuttle_Arc_Radius*cos(Theta_A)-2  //limit of resin
   # support" - a real, named machine clearance, not a construction sentinel).
   rib_fillet_resin_clearance: 2.0
-  # Groove (v2:258) - the shuttle's two real, mutually-exclusive assembly
-  # mechanisms: false (default) is the internal rib + square drive-pin
-  # boss (Rib()/PinSupport()/PinSupportHole(), assembled separately and
-  # glued/pinned to the shuttle body); true is a snap-fit groove cut
-  # directly into the shell (Groove()/ResinChamfer(), no separate rib
-  # piece at all) - see lib/hammond.py's GroovedShuttle()-equivalent path
-  # for the full derivation. v2's PinSupport2()/Groove_Retaining_Pin_
-  # Diameter are declared but never actually called/referenced anywhere
-  # in v2/hammond.scad - confirmed dead code, not ported (same convention
-  # as bennett.yaml's dead-param callouts).
+  # Groove (v2:258) - the shuttle's two real, mutually-exclusive BODY
+  # ASSEMBLY mechanisms: false (default) is the internal rib + square
+  # drive-pin boss (Rib()/PinSupport()/PinSupportHole(), assembled
+  # separately and glued/pinned to the shuttle body); true is a snap-fit
+  # groove cut directly into the shell (Groove()/ResinChamfer(), no
+  # separate rib piece at all) - see lib/hammond.py's GroovedShuttle()-
+  # equivalent path for the full derivation. tune.py's Build tab shows
+  # this as the "Rib" checkbox (inverted) - user-facing wording is
+  # "Without Rib" for groove=true, to avoid confusion with the
+  # UNRELATED resin.horizontal_method "Cut Groove" option below (a
+  # resin-support scheme, not a body-assembly choice - the two used to
+  # share the word "groove" with no way to tell them apart by name).
+  # v2's PinSupport2()/Groove_Retaining_Pin_Diameter are declared but
+  # never actually called/referenced anywhere in v2/hammond.scad -
+  # confirmed dead code, not ported (same convention as bennett.yaml's
+  # dead-param callouts).
   groove: false
   shuttle_groove_nub_angle: 29           # Shuttle_Groove_Nub_Angle (deg)
   groove_tab_width: 3.15                 # Groove_Tab_Width (3+.15 in v2)
   groove_opening_offset: 0.5             # Groove_Opening_Offset
   support_groove_thickness: 0.5          # Support_Groove_Thickness - also
-                                          # derives Support_Groove_R for
-                                          # ResinChamfer() (v2:322)
+                                          # derives Support_Groove_R,
+                                          # shared with resin.horizontal_
+                                          # method's Cut Groove ring (v2:322
+                                          # uses the same constant for both)
 
 # quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
 # comment: "no separate structural-quality tier from Cyl_Fn").
@@ -235,15 +243,29 @@ resin:
   # on one end (v2's VertResinPrint2, rotate([0,-90,0])) and reuses v2's
   # real VertResinSupport2() placement math (lib/hammond.py's
   # ResinSupport()). "horizontal" prints it flat in its natural as-built
-  # frame - which of v2's two real horizontal support schemes gets used
-  # depends on element.groove (same as vertical): groove=true is
-  # HorizGroovedResin3's swept perforated breakaway-groove ring
-  # (HorizGroovedResinSupport()); groove=false is HorizResinPrint2/
-  # HorizResinSupport2's real per-rod scheme (HorizRibbedResinSupport())
-  # supporting along the rib's back edge and around the center pin hole -
-  # v2:1006-1021/864-950 respectively. Both are real, faithfully-ported
-  # v2 schemes, not a simplified stand-in.
+  # frame, outer-wall support scheme picked by horizontal_method below.
   orientation: vertical              # [vertical, horizontal]
+  # horizontal_method - v4-specific, NOT a direct v2 customizer field
+  # (v2:1060-1073's real ResinPrint() dispatcher only ever wires up
+  # HorizGroovedResin3 for Resin_Support_Orientation==1 - HorizResinPrint2/
+  # HorizResinSupport2, the rod scheme, are real complete v2 functions but
+  # never called from there; see lib/hammond.py's ResinPrint() docstring
+  # for the full derivation of why both are ported and exposed anyway).
+  # Picks which OUTER-WALL horizontal support scheme is used, independent
+  # of element.groove/the Build tab's Rib checkbox: "cut_groove" is
+  # HorizGroovedResin3's swept perforated breakaway-groove ring
+  # (HorizGroovedResinSupport()); "resin_rod" is HorizResinPrint2/
+  # HorizResinSupport2's real per-rod scheme for the outer wall
+  # (HorizWallRodSupport()). v2:1006-1021/864-950 respectively - both
+  # real, faithfully-ported v2 schemes, not a simplified stand-in.
+  # Independent of body assembly because the ring only spans the outer
+  # wall band (r0..r0+Shuttle_Thickness) and never touches the rib
+  # feature either way - but whenever the body actually HAS a rib
+  # (element.groove=false), the rib's own back-plane/pin-hole area still
+  # always needs its own resin-rod supports regardless of this setting
+  # (HorizRibResinSupport() - there's no cut-groove equivalent for that
+  # geometry), added on top of whichever outer-wall method is chosen here.
+  horizontal_method: resin_rod       # [cut_groove, resin_rod]
 
 output:
   directory: "output"

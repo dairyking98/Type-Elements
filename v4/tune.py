@@ -701,6 +701,11 @@ RESIN_FIELDS_HAMMOND = [
     ("edge_gap", ["resin", "edge_gap"], float, "Edge gap (mm)", "Resin_Support_Edge_Gap - only used for vertical orientation."),
     ("orientation", ["resin", "orientation"], str, "Print orientation",
      '"vertical" (stands the shuttle up on end) or "horizontal" (prints flat, as-built).'),
+    ("horizontal_method", ["resin", "horizontal_method"], str, "Horizontal support method",
+     'Only used for horizontal orientation. "Cut Groove": a swept perforated breakaway-groove '
+     'ring around the outer wall. "Resin Rod": individual rods along the outer wall instead. '
+     'Independent of the Build tab\'s Rib checkbox - whenever Rib is on, its own resin-rod '
+     'supports are always added too, regardless of this setting.'),
 ]
 
 ELEMENT_FIELDS_HAMMOND = [
@@ -739,10 +744,10 @@ ELEMENT_FIELDS_HAMMOND = [
     # out of ELEMENT_FIELDS_HAMMOND/self.FIELDS entirely now - _collect_
     # values/_refresh_widgets_from_cfg handle it explicitly, same as
     # target/resin_support below it.
-    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used when groove is on."),
-    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used when groove is on."),
-    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used when groove is on."),
-    ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Only used when groove is on."),
+    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used when Without Rib is on."),
+    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used when Without Rib is on."),
+    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used when Without Rib is on."),
+    ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Only used when Without Rib is on. Also shared with the Resin tab's Cut Groove support method (unrelated feature, same constant - see config comment)."),
 ]
 
 SECTIONS_BY_MACHINE = {
@@ -1725,6 +1730,12 @@ class TuneApp(App):
                                              value=val, id=f"field-{key}", allow_blank=False)
                                 self.inputs[key] = sel
                                 yield sel
+                            elif key == "horizontal_method":
+                                val = str(current) if str(current) in ("cut_groove", "resin_rod") else "resin_rod"
+                                sel = Select([("Cut Groove", "cut_groove"), ("Resin Rod", "resin_rod")],
+                                             value=val, id=f"field-{key}", allow_blank=False)
+                                self.inputs[key] = sel
+                                yield sel
                             else:
                                 inp = Input(value=str(current), id=f"field-{key}")
                                 self.inputs[key] = inp
@@ -1901,13 +1912,18 @@ class TuneApp(App):
                         rib_now = not bool(self.cfg.get("element", {}).get("groove"))
                         yield Switch(value=rib_now, id="build-rib")
                     yield Static(
-                        "On (default): internal rib + drive-pin boss. Off: snap-fit "
-                        "groove cut into the shell instead - no separate rib piece "
-                        "(element.groove, inverted). For Build target None (no "
-                        "shuttle body), Rib on exports just the rib+pin-support "
-                        "assembly alone (hammond.RibOnly(), a plain FDM part - no "
-                        "resin supports either way); Rib off with None isn't a real "
-                        "combination (nothing to export).",
+                        "On (default): internal rib + drive-pin boss. Off (\"Without "
+                        "Rib\"): snap-fit groove cut into the shell instead - no "
+                        "separate rib piece (element.groove, inverted). This is the "
+                        "physical BODY assembly only - it no longer picks the "
+                        "horizontal resin support scheme (see the Resin tab's "
+                        "Horizontal support method), though Rib on always adds its "
+                        "own resin-rod supports for the rib regardless of that "
+                        "setting. For Build target None (no shuttle body), Rib on "
+                        "exports just the rib+pin-support assembly alone "
+                        "(hammond.RibOnly(), a plain FDM part - no resin supports "
+                        "either way); Rib off with None isn't a real combination "
+                        "(nothing to export).",
                         classes="field-help")
                 with Horizontal(classes="picker-row"):
                     yield Static("Resin supports", classes="field-label")

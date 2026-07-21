@@ -2785,17 +2785,120 @@ crash. CLI: `--hammond-part rib_only` still exports a valid RibOnly()
 ways (Resin supports off, no Minkowski) produces the same two distinct
 valid meshes the old FDM targets used to.
 
+## 40. Hammond: horizontal resin support method decoupled from Rib/Groove body assembly ("Cut Groove" vs "Resin Rod"), naming cleanup
+
+Started from a false alarm: user reported vertical-orientation resin
+support "doesn't correctly open" in f3d. Investigation (headless render
+via `f3d --output`, comparing vertical's ~959k faces/48MB output against
+horizontal's ~73k faces/3.6MB) found no actual defect - the file opens
+fine, just far larger than other configs. A live screenshot of the
+user's own running f3d window looked blank/flat, but turned out to be
+transient ("now it seems to be working") - no fix needed. Flagged as a
+latent risk for later: `generate.py`'s `full.export(out_path)` is not
+atomic (no temp-file+rename), and `tune.py`'s f3d `--watch` reload has
+no explicit write-finished handoff - worth revisiting if this recurs
+with a concrete repro.
+
+The real ask that followed: part 36 ported BOTH of v2's real horizontal
+resin-support schemes (`HorizGroovedResinSupport` - the swept "cut
+groove" breakaway ring, v2's real `HorizGroovedResin3`; and
+`HorizRibbedResinSupport` - the per-rod scheme, v2's real
+`HorizResinPrint2`/`HorizResinSupport2`, never actually wired into v2's
+own `ResinPrint()` dispatcher but real and complete in the source), but
+wired the choice 1:1 to `element.groove` (part 31's Rib/Groove body
+toggle, since part 39 the Build tab's "Rib" checkbox) - matching v2's
+own per-scheme body pairing, but with no way to pick, say, the ring
+support for a Rib body. User wants them independently selectable on the
+Resin tab: "the resin support should have multiple options in the resin
+support tab for horizontal. theres a cut groove method, then theres a
+resin rod method."
+
+Before implementing, checked whether full independence was even
+geometrically sound - `HorizRibbedResinSupport()` turned out to bundle
+TWO different tiers: an outer-wall rod band (v2:868-884, same radial
+band `HorizGroovedResinSupport`'s ring covers, r0..r0+Shuttle_Thickness)
+and a rib-specific tier (v2:886-946, rods along the rib's own back
+plane and around the drive-pin hole - only meaningful if a rib actually
+exists). User confirmed by inspection: "the supports for the rib are
+independent of whether its [cut] groove or resin rods. rib supports are
+always resin rods" - i.e. the ring/rod CHOICE only ever applies to the
+outer wall (which the ring never conflicts with, rib or no rib); the
+rib's own supports have no cut-groove equivalent and are always added
+whenever `element.groove=False`, regardless of which outer-wall method
+is picked.
+
+Implemented exactly that split:
+- `HorizRibbedResinSupport()` -> two functions: `HorizWallRodSupport()`
+  (outer-wall tier only, the v2:868-884 rods - the "resin_rod"
+  alternative to the ring) and `HorizRibResinSupport()` (rib-specific
+  tier, v2:886-946 - added unconditionally whenever `Groove=False`,
+  independent of the new selector).
+- New config key `resin.horizontal_method` (`cut_groove`/`resin_rod`),
+  read in `configure()` as `Horizontal_Support_Method`, fully
+  independent of `element.groove` - `ResinPrint()`'s horizontal branch
+  now picks the outer-wall scheme from this, then separately appends
+  `HorizRibResinSupport()` iff `not Groove`.
+- New Resin tab dropdown ("Horizontal support method": Cut Groove/Resin
+  Rod), same `Select`-widget pattern `orientation` already uses.
+- Default (`resin_rod`) matches the master config's existing
+  `element.groove=false` default's old implicit behavior exactly - but
+  since one flat default can't simultaneously match BOTH old pairings
+  (`groove=false`->resin_rod, `groove=true`->cut_groove), and the
+  user's own `hammond.running.yaml` currently has `groove=true` (was
+  implicitly getting the ring), its `horizontal_method` was explicitly
+  set to `cut_groove` rather than the new key's own default, so nothing
+  changes underfoot for that session. Any OTHER pre-existing saved
+  config with `groove=true` would see its horizontal method silently
+  default to `resin_rod` on first load unless it's also fixed up the
+  same way - not currently believed to exist elsewhere, but worth
+  checking if a groove=true config surfaces with the "wrong" support
+  style after this change.
+
+Naming cleanup requested alongside this, since "groove" was being used
+for two unrelated things with no way to tell them apart by name:
+`element.groove` (body assembly: internal rib+pin boss vs. snap-fit
+groove cut into the shell) is now called "Without Rib" in user-facing
+text (Element tab's `shuttle_groove_nub_angle`/`groove_tab_width`/
+`groove_opening_offset`/`support_groove_thickness` help text, Build
+tab's Rib checkbox help); the resin-support ring scheme is "Cut Groove"
+(matches the label Bennett's own resin tab already uses for its
+unrelated cut-groove field - existing precedent, not a new coined
+term). Internal Python identifiers (`Groove`, `GrooveShape()`) were
+NOT renamed - they still trace 1:1 to v2's own `Groove` variable for
+auditability; only user-facing labels/help text and new code changed.
+
+**Verified**: headless `TuneApp` against a scratch config (per the
+standing warning) - Resin tab's new dropdown composes, defaults to
+`resin_rod`, round-trips through `_collect_values()`. CLI: all 4
+`(groove, horizontal_method)` combinations build valid watertight
+`is_volume=True` meshes. The one combination that existed before this
+change (`groove=False` + horizontal, i.e. what used to be
+`HorizRibbedResinSupport`'s only real path) reproduces the exact same
+volume (`2961.561mm3`) as pre-change, with a few dozen fewer verts/faces
+from the union now being grouped into two sub-unions instead of one
+flat `parts` list - a harmless triangulation-order artifact (same class
+already noted as harmless in `ResinSupport()`'s own docstring), not a
+geometry difference. Hard gate re-run for Blickensderfer/Postal/Mignon/
+Bennett: exact same verts/faces/volume as CLAUDE.md's own cited
+baseline (Blickensderfer's `verts=42618 faces=85408 ...
+volume=5666.804mm3` matched exactly) - confirms zero cross-machine side
+effects, as expected since only `lib/hammond.py`/`config/hammond.yaml`/
+Hammond-scoped `tune.py` blocks were touched.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
    orientation` (vertical/horizontal print); (b) DONE - `element.groove`
-   (rib vs. snap-fit assembly, part 31); (c) the groove+horizontal
-   combination's sparse resin-support grid (8 rods, 0 braced) is worth
-   revisiting if that combination is actually used for a real print -
-   may need a finer grid pitch for very flat/low-relief footprints;
-   (d) go through `tune.py`'s Hammond tabs field-by-field against
-   `config/hammond.yaml` for anything still missing (named layout
-   presets, Calibration wiring - see part 29's open items).
+   (rib vs. snap-fit assembly, part 31); (c) STALE, already superseded -
+   this used to flag the groove+horizontal combination's sparse
+   placeholder resin-support grid as worth revisiting; part 35 replaced
+   that placeholder with the real ported `HorizGroovedResin3`
+   (`HorizGroovedResinSupport()`) and part 40 made the choice between it
+   and the rod scheme independently selectable, so this item no longer
+   applies as written; (d) go through `tune.py`'s Hammond tabs
+   field-by-field against `config/hammond.yaml` for anything still
+   missing (named layout presets, Calibration wiring - see part 29's
+   open items).
 2. **Hammond_split.scad and IBM are next** - `hammond.scad` itself is
    done (part 29). `hammond_split.scad` turned out to share almost
    nothing with `hammond.scad` (see part 29's audit) - treat it as its
