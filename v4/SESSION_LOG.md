@@ -3289,6 +3289,38 @@ the two panels are similar widths at a typical window size, so the
 stretching concern may be smaller in practice than expected - no code
 change made pending the user's decision.
 
+## 49. tune.py: replaced the progress bar's ETA countdown with a plain elapsed-time counter
+
+User: "the counting timer not working right." Traced the mechanism:
+Textual's built-in ProgressBar ETA only recomputes inside `.update()`,
+and `.update()` is only called from `_update_progress()` when a new
+`[n/total]` line arrives. Character placement (0-95%) is cheap and
+finishes in well under a second for most builds; the actual slow part
+(Additive/Subtractive booleans, resin supports - part 48's own "last 5%,
+no per-item signal" design) never calls `.update()` at all. Confirmed by
+inspecting `textual.eta.ETA` directly: `speed` needs >=1 second of real
+span between samples to compute anything, and once no new samples
+arrive, `_display_eta` simply never gets recomputed - the countdown
+freezes at a stale value for the entire slow phase, then jumps straight
+to done. Not just imprecise - actively misleading (implies "almost
+done" while the build still has most of its real wall-clock time left).
+
+Replaced with a plain elapsed-time `Static` (`#build-elapsed`), ticking
+every 0.2s via `self.set_interval()` for the lifetime of
+`_stream_subprocess`'s subprocess call, alongside the existing
+`ProgressBar` (now `show_eta=False`, keeping just the percentage).
+Elapsed time needs no speed extrapolation and can't go stale the same
+way - it's just wall-clock counting, always correct by construction.
+
+**Verified**: headless `TuneApp` against scratch configs (per the
+standing warning) - confirmed the elapsed counter keeps ticking through
+the "stuck at 95%" phase where the old ETA would have frozen (`0.6s ->
+1.0s -> 1.2s -> 1.6s -> 1.8s -> 2.2s -> 2.5s` while progress sat at
+95%, then jumped to 100%); both Blickensderfer and Hammond compose
+cleanly with the new widget. Screenshot confirms layout/legibility -
+"95% 7.3s" reads cleanly where the old "62% --:--:--" (or a frozen,
+wrong countdown) used to sit.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

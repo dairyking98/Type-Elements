@@ -1416,8 +1416,10 @@ class TuneApp(App):
     #form { width: 58; height: 100%; border: solid $accent; }
     #log-pane { width: 1fr; height: 100%; border: solid $accent; padding: 0 1; }
     #log { height: 1fr; }
-    #build-progress { height: 1; margin-top: 1; }
+    #progress-row { height: 1; margin-top: 1; }
+    #build-progress { width: 1fr; }
     #build-progress Bar { width: 1fr; }
+    #build-elapsed { width: auto; margin-left: 1; color: $text-muted; }
     TabbedContent { height: 1fr; }
     TabPane { padding: 0 1; }
     .field-row { height: auto; margin-bottom: 1; }
@@ -2072,7 +2074,19 @@ class TuneApp(App):
                     yield Switch(value=True, id="f3d-preview-checkbox")
         with Vertical(id="log-pane"):
             yield RichLog(id="log", wrap=True, markup=True, min_width=1)
-            yield ProgressBar(total=100, id="build-progress")
+            with Horizontal(id="progress-row"):
+                # show_eta=False - see _stream_subprocess's own comment:
+                # Textual's built-in ETA only recomputes on update(), and
+                # character placement (0-95%) finishes almost instantly
+                # while the actual slow part (resin supports etc., no
+                # per-item signal) never calls update() at all - the
+                # countdown would freeze at a stale value the moment
+                # characters finish, not visibly broken so much as
+                # actively misleading. A plain elapsed-time counter
+                # (#build-elapsed) needs no speed extrapolation and can't
+                # go stale the same way.
+                yield ProgressBar(total=100, id="build-progress", show_eta=False)
+                yield Static("", id="build-elapsed")
 
     def log_line(self, text):
         self.query_one("#log", RichLog).write(text)
@@ -2603,15 +2617,28 @@ class TuneApp(App):
     async def _stream_subprocess(self, cmd):
         t0 = time.time()
         self.query_one("#build-progress", ProgressBar).update(progress=0)
-        proc = await asyncio.create_subprocess_exec(
-            *cmd, cwd=REPO_ROOT,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
-        async for line in proc.stdout:
-            text = line.decode(errors="replace").rstrip()
-            self.log_line(text)
-            self._update_progress(text)
-        await proc.wait()
+        elapsed = self.query_one("#build-elapsed", Static)
+        elapsed.update("0.0s")
+        # Plain wall-clock counter, ticking independently of any progress
+        # signal - see the "show_eta=False" comment at this widget's
+        # compose() call site for why a speed-extrapolated ETA can't work
+        # here (it'd freeze stale for most of the build, not just look
+        # imprecise) - always accurate since it doesn't extrapolate
+        # anything, just counts real elapsed time.
+        timer = self.set_interval(0.2, lambda: elapsed.update(f"{time.time() - t0:.1f}s"))
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd, cwd=REPO_ROOT,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+            async for line in proc.stdout:
+                text = line.decode(errors="replace").rstrip()
+                self.log_line(text)
+                self._update_progress(text)
+            await proc.wait()
+        finally:
+            timer.stop()
         dt = time.time() - t0
+        elapsed.update(f"{dt:.1f}s")
         if proc.returncode == 0:
             self.query_one("#build-progress", ProgressBar).update(progress=100)
             self.log_line(f"[green]done in {dt:.1f}s[/green] - f3d (if running with --watch) should refresh")
