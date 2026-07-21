@@ -3358,6 +3358,43 @@ risk with a re-write-everything approach). Screenshots at 140 cols and
 and no horizontal overflow occurs. Hammond and Blickensderfer both
 compose and resize cleanly with the new widget.
 
+## 51. tune.py: "Change Machine" now closes any open f3d window
+
+User: "if f3d is open and i change machine, it closes the dialog...
+otherwise... hammond_running i just refreshed [when it should have been
+blickensderfer]." Real bug: f3d is launched with `--watch <path>` for
+whichever machine was active at the time (e.g.
+`output/hammond_running.stl`); switching to a different machine and
+rendering writes to a DIFFERENT path (`output/blickensderfer_running.stl`
+etc.) that the already-running f3d was never told about.
+`_ensure_f3d_after_build`'s "already running, just raise the window"
+branch has no way to know the watched file is now for the wrong
+machine, so the old model just sits there unrefreshed while the new
+one silently never appears.
+
+Fixed at the source: `_change_machine()` (the "Change Machine" button
+handler) now calls `_kill_f3d()` before returning to the machine
+picker, so whichever machine gets picked next always starts from "no
+f3d running" and `_ensure_f3d_after_build` launches a fresh instance
+pointed at ITS real output path. Also hardened `_kill_f3d()` itself to
+reset `self._f3d_proc = None` immediately after calling `.terminate()`,
+rather than leaving it set until the OS reaps the process - the
+existing callers (atexit/quit) never cared since the app was exiting
+anyway, but `_change_machine()` keeps running afterward and needs
+`_ensure_f3d_after_build`'s "is one already running" check to see "no"
+right away, not race against SIGTERM's asynchronous delivery.
+
+**Verified** with a REAL f3d process (this machine has a live display -
+not mocked): launched actual `f3d --watch .../hammond*.stl -g -x`,
+confirmed it alive via `.poll()`, called `_change_machine()`, confirmed
+the real OS process was dead afterward and `_f3d_proc` was `None`.
+Full end-to-end: killed old f3d, switched to Blickensderfer, ran a
+Preview with the f3d-preview checkbox on - confirmed a NEW f3d process
+launched with cmdline `f3d --watch .../blickensderfer_running.stl -g
+-x`, the correct new machine's real path. Confirmed the user's own
+actual live f3d session (watching the real `hammond_running.stl`, not a
+scratch file) was untouched by any of this testing.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

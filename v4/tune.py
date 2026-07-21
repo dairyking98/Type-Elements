@@ -1667,6 +1667,14 @@ class TuneApp(App):
     def _kill_f3d(self):
         if self._f3d_proc is not None and self._f3d_proc.poll() is None:
             self._f3d_proc.terminate()
+        # Reset immediately (don't wait for the OS to reap the terminated
+        # process) - _ensure_f3d_after_build's "is it already running"
+        # check uses this same attribute, and the app keeps running after
+        # a call here (unlike the atexit/quit callers), so the NEXT build
+        # must see "not running" right away and launch fresh, not race
+        # against .poll() still returning None for a moment after
+        # .terminate() (SIGTERM is asynchronous).
+        self._f3d_proc = None
 
     def _save_before_exit(self):
         # Every build action (Preview/Render/Render Test Text) already
@@ -2370,7 +2378,22 @@ class TuneApp(App):
         """"Change Machine" button - saves the current form first (same
         courtesy as quitting - see _save_before_exit), then goes back to
         the machine picker. self.machine=None + recompose() is exactly
-        what shows the picker (see compose())."""
+        what shows the picker (see compose()).
+
+        Also closes any f3d window left open from the machine being left
+        behind - otherwise it keeps --watch-ing that machine's own STL
+        path (e.g. output/hammond_running.stl) forever, since a
+        Render/Preview on whichever machine gets picked next writes to a
+        DIFFERENT path (output/blickensderfer_running.stl, etc.) that
+        f3d was never told about. Without this, _ensure_f3d_after_build's
+        own "already running, just raise the window" branch would keep
+        reusing that stale watch, so the old machine's model just sits
+        there unrefreshed while the new one silently never appears -
+        reported as "hammond_running i just refreshed [instead of
+        blickensderfer showing]". Killing it here means the next
+        Preview/Render always launches a fresh f3d pointed at the
+        newly-picked machine's own real output path."""
+        self._kill_f3d()
         self._save_before_exit()
         self.machine = None
         await self.recompose()
