@@ -3207,6 +3207,34 @@ be ResinChamfer's ONLY real consumer, confirmed still builds a clean
 watertight mesh with it removed); Blickensderfer/Postal unaffected
 (exact baseline match).
 
+## 47. Hammond: removed the theta==0 s=-1/s=+1 redundant pass in ResinSupport() (pure performance fix, zero geometry change)
+
+User asked to fix the small redundancy flagged while auditing why the
+vertical build's part count looked high ("1468 parts... seems
+excessive"). Confirmed: at theta=0, `y=(Shuttle_Arc_Radius-1)*cos(pi/2+
+theta*s)` and every downstream value derived from it (za, z_common, the
+needle's rotation angle `theta_deg*s`) are exactly `s`-independent
+(0*s==0 regardless of sign) - so the `s=-1` and `s=+1` passes build
+IDENTICAL parts across all three sub-tiers keyed off that iteration
+(Under Shuttle Arc Radius, ConRods, Rib Supports), for every X position.
+v2's own nested s/theta loop has this exact same structural duplication
+(harmless there too - `union()` no-ops on coincident geometry) - not a
+v4-introduced bug, just wasted work in both. Skipped the redundant
+`s=-1, theta==0` iteration entirely (a `continue` at the top of the
+theta loop) - since the `s=1` pass alone already produces this
+iteration's geometry, this cannot change the built shape.
+
+**Verified**: default config (Groove=False) part count 1468->1408 (-60,
+matches the expected per-X-position tier contribution: 3 Under-Arc + 4
+ConRods + up to 6 Rib, times 6 X values, times the sub-conditions that
+actually fire); `Groove=True` config 1092->1050 (-42, matches losing
+just the 3+4=7 non-Rib parts per X value, since the Rib tier doesn't
+fire when Groove=True). Final `ResinPrint` volume identical to the
+pre-fix baseline in both cases (`4802.424mm3`/`4309.592mm3`) - confirms
+zero geometric impact, exactly as expected for removing an exact
+duplicate. Horizontal and all other machines unaffected (`ResinSupport`
+is vertical-only) - exact baseline match.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

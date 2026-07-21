@@ -1100,6 +1100,21 @@ def ResinSupport():
             parts.append(_rod_tip(x, np.degrees(theta_t), s))
 
             for theta in thetas:
+                # theta==0's y/za/rotation are all exactly s-independent
+                # (0*s==0 for either sign) - s=-1 and s=+1 build IDENTICAL
+                # parts here across every sub-tier below (Under Shuttle
+                # Arc Radius/ConRods/Rib Supports all keyed off the same
+                # s-independent y). v2's own nested s/theta loop has this
+                # same exact duplication (union() silently no-ops on the
+                # coincident geometry there); skipping the redundant pass
+                # here is a pure performance fix - the s=1 pass alone
+                # already produces this iteration's geometry, so this
+                # doesn't change the built shape at all, just the part
+                # count feeding the boolean union (confirmed: this was
+                # the "redundancy" flagged when investigating why the
+                # vertical build's part count looked excessive).
+                if s == -1 and theta == 0.0:
+                    continue
                 y = (Shuttle_Arc_Radius - 1) * np.cos(np.pi / 2.0 + theta * s)
                 za = (Shuttle_Arc_Radius - 1) * np.sin(np.pi / 2.0 + theta * s)
                 z_common = za - Z_Offset + Resin_Raft_Thickness + Resin_Min_Rod_Height
