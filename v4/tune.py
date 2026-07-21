@@ -171,7 +171,7 @@ import yaml
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.css.query import NoMatches
-from textual.widgets import (Button, Footer, Header, Input, Select, Static, Switch,
+from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select, Static, Switch,
                               RichLog, TabbedContent, TabPane, TextArea)
 from textual_fspicker import FileOpen, FileSave, Filters
 
@@ -1416,6 +1416,8 @@ class TuneApp(App):
     #form { width: 58; height: 100%; border: solid $accent; }
     #log-pane { width: 1fr; height: 100%; border: solid $accent; padding: 0 1; }
     #log { height: 1fr; }
+    #build-progress { height: 1; margin-top: 1; }
+    #build-progress Bar { width: 1fr; }
     TabbedContent { height: 1fr; }
     TabPane { padding: 0 1; }
     .field-row { height: auto; margin-bottom: 1; }
@@ -2070,6 +2072,7 @@ class TuneApp(App):
                     yield Switch(value=True, id="f3d-preview-checkbox")
         with Vertical(id="log-pane"):
             yield RichLog(id="log", wrap=True, markup=True, min_width=1)
+            yield ProgressBar(total=100, id="build-progress")
 
     def log_line(self, text):
         self.query_one("#log", RichLog).write(text)
@@ -2569,16 +2572,48 @@ class TuneApp(App):
         if result is not None:
             self.inputs[key].value = str(result)
 
+    # Matches generate.py's own "[n/total]" progress markers - both
+    # cylinder_machine.TextRing ("TextRing: [45/90] building ...") and
+    # CalibrationTextRing ("[45/2700] row 1 col 14 (...)") print this same
+    # shape, so one regex covers every machine/build-target that goes
+    # through either (i.e. every real Element/Calibration Element build -
+    # see _update_progress's own docstring for what's NOT covered).
+    _PROGRESS_RE = re.compile(r"\[(\d+)/(\d+)\]")
+
+    def _update_progress(self, line):
+        """Character placement (TextRing/CalibrationTextRing) is mapped to
+        0-95% of the bar - it's the real, fine-grained, per-item work unit
+        generate.py already reports; everything after it (Additive/
+        Subtractive booleans, resin supports, check_and_repair, the STL
+        write) has no comparable per-item signal to report progress
+        against, so it's just "the last 5%, then done" - _stream_subprocess
+        jumps to 100% on a successful exit. Builds with no TextRing/
+        CalibrationTextRing call at all (Shaft Gauge, Hammond's None/
+        RibOnly target) never print a "[n/total]" line, so the bar just
+        sits at 0% until the same jump to 100% on completion - no
+        per-item signal exists to show for those, not a bug."""
+        m = self._PROGRESS_RE.search(line)
+        if not m:
+            return
+        n, total = int(m.group(1)), int(m.group(2))
+        if total <= 0:
+            return
+        self.query_one("#build-progress", ProgressBar).update(progress=min(95.0, 95.0 * n / total))
+
     async def _stream_subprocess(self, cmd):
         t0 = time.time()
+        self.query_one("#build-progress", ProgressBar).update(progress=0)
         proc = await asyncio.create_subprocess_exec(
             *cmd, cwd=REPO_ROOT,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
         async for line in proc.stdout:
-            self.log_line(line.decode(errors="replace").rstrip())
+            text = line.decode(errors="replace").rstrip()
+            self.log_line(text)
+            self._update_progress(text)
         await proc.wait()
         dt = time.time() - t0
         if proc.returncode == 0:
+            self.query_one("#build-progress", ProgressBar).update(progress=100)
             self.log_line(f"[green]done in {dt:.1f}s[/green] - f3d (if running with --watch) should refresh")
         else:
             self.log_line(f"[red]exited {proc.returncode} after {dt:.1f}s[/red]")

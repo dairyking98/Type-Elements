@@ -3235,6 +3235,60 @@ zero geometric impact, exactly as expected for removing an exact
 duplicate. Horizontal and all other machines unaffected (`ResinSupport`
 is vertical-only) - exact baseline match.
 
+## 48. tune.py: added a build progress bar (0-95% character placement, last 5% everything else) - applies to every machine's Preview/Render/Render Test Text
+
+User request: show progress during Preview/Render so it's clear when a
+build isn't finished yet, mapping "divide all the characters from 0-95,
+and the last 5% is anything else... then boom 100%." Implemented as a
+single shared mechanism in `_stream_subprocess()` (the one function
+every build path - `_run_build`'s Preview/Render and
+`action_render_type_test`'s Render Test Text - already funnels its
+subprocess output through), so it automatically covers every machine
+without per-machine wiring:
+
+- `_PROGRESS_RE` matches generate.py's own `[n/total]` progress markers,
+  which BOTH `cylinder_machine.TextRing` ("TextRing: [45/90] building
+  ...") and `CalibrationTextRing` ("[45/2700] row 1 col 14 (...)")
+  already print per-character/per-position - shared by every machine
+  (Blickensderfer/Postal/Mignon/Bennett/Helios/Hammond all route through
+  one or the other for a real Element/Calibration Element build), so no
+  new instrumentation was needed in generate.py itself.
+- Each matched line maps to `95*n/total` on a new `ProgressBar` widget
+  (`#build-progress`, docked to the bottom of the log pane, per explicit
+  placement request) - naturally lands exactly on 95% when n==total, no
+  separate "placement finished" marker needed.
+- `_stream_subprocess` resets the bar to 0% before launching the
+  subprocess and jumps it to 100% on a successful exit (the "boom 100%")
+  - everything after character placement (Additive/Subtractive booleans,
+  resin supports, check_and_repair, the STL write) has no comparable
+  per-item signal to report against, so it's genuinely just "the last
+  5%, then done," matching the request as literally as the available
+  signals allow.
+- Builds with no TextRing/CalibrationTextRing call at all (Shaft Gauge,
+  Hammond's None/RibOnly target) never print a `[n/total]` line, so the
+  bar just sits at 0% until the jump to 100% - documented on
+  `_update_progress`'s own docstring as an accepted gap, not a bug (no
+  per-item signal exists to show for those).
+
+**Verified**: headless `TuneApp` against scratch configs (per the
+standing warning) - `_update_progress` unit-tested against both real
+line formats (`TextRing: [45/90] ...`->47.5%, `[90/90] ...`->95.0%,
+`[1350/2700] row 1 col 14 (...)`->47.5%, unrelated lines no-op); full
+end-to-end Preview build against Blickensderfer showed the bar actually
+climb 0->12.4->36.2->58.8->84.8->95.0->100 during a real subprocess run;
+Hammond composes cleanly with the new widget too. Screenshot confirms
+placement (bottom of the log pane, spanning its width) and legibility.
+
+Also discussed, not yet decided: moving the Preview/Render/Save button
+row from the bottom of the (fixed 58-col) form panel to below the
+(variable 1fr-width) log pane, to free vertical space in the form for
+tab content. Flagged a real tradeoff (button width would vary with
+terminal size on the 1fr side, unlike the form panel's predictable
+sizing) but the screenshot taken while verifying the progress bar showed
+the two panels are similar widths at a typical window size, so the
+stretching concern may be smaller in practice than expected - no code
+change made pending the user's decision.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
