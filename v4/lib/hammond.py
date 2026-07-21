@@ -537,9 +537,14 @@ def ResinChamfer():
     edge (r1=Anvil_OD/2+Support_Groove_R at z=0, tapering to r2=Anvil_OD/2
     at z=Support_Groove_R) - a small chamfer at the shell's bottom face.
     Real v2 only ever calls this from GroovedShuttle() (RibbedShuttle()
-    never does) - applied unconditionally here instead, independent of
-    Groove/the Rib checkbox, per explicit user request. A deliberate v4
-    divergence, not a port artifact - see Additive()'s call site."""
+    never does). Currently UNUSED - both call sites (Additive()/
+    CalibrationAdditive()) are commented out: briefly made unconditional
+    (independent of Groove/the Rib checkbox) per an earlier request, then
+    disabled per explicit follow-up rather than properly conditioning it
+    on which circumferential edge actually needs it (the one without
+    resin supports touching it already) - real work, deferred for now.
+    Kept defined (not deleted) for whenever that per-edge conditional is
+    worth doing."""
     return sp.frustum_z(2 * (Anvil_OD / 2.0 + Support_Groove_R), Anvil_OD,
                          Support_Groove_R, sections=Cyl_Fn, base_z=0.0)
 
@@ -608,12 +613,17 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
     # ResinChamfer() (v2:789-792) is only ever called from GroovedShuttle()
-    # in real v2 - RibbedShuttle() never applies it at all. Applied here
-    # unconditionally instead, independent of Groove/the Rib checkbox, per
-    # explicit user request ("checking Rib in Build removes a chamfer,
-    # that should be independent of Rib selection") - a deliberate v4
-    # divergence from v2, not a port artifact.
-    shell = shell.difference(ResinChamfer(), engine="manifold")
+    # in real v2 - RibbedShuttle() never applies it at all. Briefly made
+    # unconditional here (independent of Groove/the Rib checkbox) per an
+    # earlier request, then reverted per explicit follow-up: the chamfer
+    # should really only apply to the side that doesn't already have
+    # resin supports touching it (the OTHER circumferential edge, per the
+    # Rib/Groove-conditional split that would take real work to do
+    # properly) - rather than leave it unconditional (wrong for the
+    # support-adjacent edge) or half-solve it, commented out entirely for
+    # now. Revisit with the real per-edge conditional if/when it's worth
+    # the effort.
+    # shell = shell.difference(ResinChamfer(), engine="manifold")
     # Groove (config/hammond.yaml's element.groove) picks between v2's two
     # real, mutually-exclusive assembly mechanisms - GroovedShuttle()
     # (snap-fit groove, no separate rib piece) vs. RibbedShuttle() (rib +
@@ -672,8 +682,8 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
     shell = sp.union_all([text_ring, ShuttleCylinder()])
     shell = shell.difference(AnvilShape(), engine="manifold")
     shell = shell.difference(MinkCleanup(), engine="manifold")
-    # ResinChamfer() applied unconditionally - see Additive()'s matching comment.
-    shell = shell.difference(ResinChamfer(), engine="manifold")
+    # ResinChamfer() commented out - see Additive()'s matching comment.
+    # shell = shell.difference(ResinChamfer(), engine="manifold")
     if Groove:
         shell = shell.difference(GrooveShape(), engine="manifold")
         return shell, mapping_lines

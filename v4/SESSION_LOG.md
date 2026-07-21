@@ -3175,6 +3175,38 @@ precisely, no residual offset. Horizontal's reloaded STL component
 count stays at 1 (unaffected by this session's changes); vertical's
 reverts to 4207 (the disclosed tradeoff above).
 
+## 46. Hammond: ResinChamfer() disabled (commented out) - the "apply unconditionally" fix from part 41 was never actually right
+
+Follow-up, user's own words: "i think we remove the chamfer around the
+arc circumfrence. comment it out. i wanted to put it on the otherside
+conditionally, but its more hassle. just comment it out for now." Real
+v2 only ever calls `ResinChamfer()` from `GroovedShuttle()` -
+`RibbedShuttle()` never does. Part 41 made it unconditional (regardless
+of Groove/the Rib checkbox) per a request at the time; the actually-
+correct behavior would be conditional on which of the two circumferential
+edges doesn't already have resin supports touching it (real work,
+requires knowing which edge that is per orientation/method combination)
+- rather than leave the wrong-for-one-edge unconditional version in
+place, disabled entirely for now per explicit instruction.
+
+Commented out both call sites (`Additive()`/`CalibrationAdditive()`),
+left `ResinChamfer()` itself defined (not deleted) for whenever the
+real per-edge conditional gets built. Updated the two places that had
+been describing the (now-incorrect) unconditional/dual-consumer state:
+`config/hammond.yaml`'s `support_groove_thickness` comment and
+`tune.py`'s matching field description both now say `ResinChamfer()`'s
+consumption is disabled - `Support_Groove_R` (derived from this same
+config value) is only actually consumed by `resin.horizontal_method`'s
+Cut Groove ring now.
+
+**Verified**: hard gate re-run for Hammond vertical (`verts=478551
+faces=958750 volume=4802.476mm3`), horizontal+Rib
+(`verts=35191 faces=70866 volume=3022.407mm3`), and Rib-off/Groove body
+(`verts=461028 faces=923372 volume=4309.645mm3` - the body that used to
+be ResinChamfer's ONLY real consumer, confirmed still builds a clean
+watertight mesh with it removed); Blickensderfer/Postal unaffected
+(exact baseline match).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

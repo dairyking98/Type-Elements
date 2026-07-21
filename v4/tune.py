@@ -748,7 +748,7 @@ ELEMENT_FIELDS_HAMMOND = [
     ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used when Without Rib is on."),
     ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used when Without Rib is on."),
     ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used when Without Rib is on."),
-    ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Only used when Without Rib is on. Also shared with the Resin tab's Cut Groove support method (unrelated feature, same constant - see config comment)."),
+    ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Its ResinChamfer() consumer is currently disabled (commented out) - only used by the Resin tab's Cut Groove support method now (unrelated feature, same constant - see config comment)."),
 ]
 
 SECTIONS_BY_MACHINE = {

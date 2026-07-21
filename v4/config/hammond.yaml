@@ -132,10 +132,12 @@ element:
   groove_tab_width: 3.15                 # Groove_Tab_Width (3+.15 in v2)
   groove_opening_offset: 0.5             # Groove_Opening_Offset
   support_groove_thickness: 0.5          # Support_Groove_Thickness - also
-                                          # derives Support_Groove_R,
-                                          # shared with resin.horizontal_
-                                          # method's Cut Groove ring (v2:322
-                                          # uses the same constant for both)
+                                          # derives Support_Groove_R, used by
+                                          # resin.horizontal_method's Cut
+                                          # Groove ring (v2:322 also uses it
+                                          # for ResinChamfer(), currently
+                                          # disabled - see lib/hammond.py's
+                                          # Additive())
 
 # quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
 # comment: "no separate structural-quality tier from Cyl_Fn").
