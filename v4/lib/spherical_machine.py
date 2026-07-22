@@ -51,6 +51,8 @@ console output), CalibrationElement/CalibrationAdditive (deferred to a
 follow-up pass).
 """
 
+import time
+
 import numpy as np
 import trimesh
 import freetype
@@ -59,6 +61,7 @@ from manifold3d import Manifold, Mesh as ManifoldMesh
 from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_x_offset
 import scad_primitives as sp
 import resin_support
+import build_log
 
 _active_machine = None
 
@@ -216,13 +219,27 @@ def AssembleMinkowski(points_per_mm=None, minkowski_enabled=None, draft_angle_de
     the calling machine module's configure() (CASES88_LOWER/CASES88_UPPER/
     LONGITUDE_LATITUDE globals) - see lib/layouts/selectric12_layout.py
     for how these are derived. Selective_Render/Rays not ported (dev-only,
-    default off - see module docstring)."""
+    default off - see module docstring).
+
+    Its own from-scratch per-character loop (this module doesn't reuse
+    cylinder_machine.TextRing - see module docstring), so it doesn't get
+    build_log's "[n/total]" progress instrumentation for free the way
+    Blickensderfer/Postal/Mignon/Bennett/Helios/Hammond do; wired by hand
+    here per CLAUDE.md's "Keep doing this" convention, matching
+    hammond_split.TextAssemble()'s template exactly (per-character
+    progress_start/done/skipped, skip-on-exception instead of aborting
+    the whole build)."""
     _require_configured()
     draft_angle_deg = Mink_Draft_Angle if draft_angle_deg is None else draft_angle_deg
     parts = []
+    skipped = []
+    total = 2 * len(LONGITUDE_LATITUDE)
+    n = 0
+    t_start = time.perf_counter()
     for case_int in (0, 1):
         case_str = CASES88_LOWER if case_int == 0 else CASES88_UPPER
         for longitude_col, latitude_row, _kb_char, kb_index in LONGITUDE_LATITUDE:
+            n += 1
             char = case_str[kb_index]
             longitude = longitude_col * Longitude_Step + case_int * 180
             latitude = Row_Latitudes[latitude_row]
@@ -233,13 +250,23 @@ def AssembleMinkowski(points_per_mm=None, minkowski_enabled=None, draft_angle_de
             font_size = Font2_Size if char in Font2_Chars else Font_Size
             custom_h = CUSTOMHALIGNOFFSET if char in CUSTOMHALIGNCHARS else 0.0
             custom_v = CUSTOMVALIGNOFFSET if char in CUSTOMVALIGNCHARS else 0.0
-            mesh = SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
-                                       minklongoffset, draft_angle_deg, Platen_OD,
-                                       font_path, font_size, custom_h, custom_v,
-                                       points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled)
+            build_log.progress_start("AssembleMinkowski", n, total,
+                                      f"building {char!r} (case={case_int})")
+            t0 = time.perf_counter()
+            try:
+                mesh = SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
+                                           minklongoffset, draft_angle_deg, Platen_OD,
+                                           font_path, font_size, custom_h, custom_v,
+                                           points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled)
+            except Exception as e:
+                skipped.append((case_int, char, str(e)))
+                build_log.progress_skipped(e)
+                continue
+            build_log.progress_done(time.perf_counter() - t0)
             if mesh is not None:
                 parts.append(mesh)
-    print(f"AssembleMinkowski: built {len(parts)} characters", flush=True)
+    build_log.progress_summary("AssembleMinkowski", len(parts), skipped,
+                                time.perf_counter() - t_start)
     return sp.union_all(parts)
 
 
@@ -489,8 +516,7 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
     _require_configured()
     result = SubtractFromFull(points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
                               draft_angle_deg=draft_angle_deg)
-    print(f"FullElement: verts={len(result.vertices)} faces={len(result.faces)} "
-          f"watertight={result.is_watertight}", flush=True)
+    build_log.mesh_report(result, "FullElement")
     return result, []
 
 
@@ -525,8 +551,7 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None,
     # from the ball) before this fix.
     full = sp.translate(full, [0, 0, Floor])
     support = ResinRodAssemble()
-    print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
-          f"watertight={support.is_watertight}", flush=True)
+    build_log.mesh_report(support, "ResinSupport")
     combined = sp.union_all([full, support])
     combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
     return combined, char_parts
