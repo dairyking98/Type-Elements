@@ -3471,6 +3471,35 @@ final Build tab layout and trimmed help text. Full hard gate: Hammond
 vertical/horizontal-Rib-on/Rib-only-CLI and Blickensderfer/Postal all
 match established baselines exactly.
 
+## 53. Hammond: added "Calibration Shuttle with Rib" - part 52's Calibration handling was wrong
+
+User: "will also need Calibration Shuttle with Rib." Part 52 gave
+Calibration only ONE dropdown entry, hardcoded to groove=False (the
+fused/Rib body) regardless of whichever of Shuttle/Rib/Shuttle-with-Rib
+was picked elsewhere - reasoned at the time as "Calibration validates
+the real default variant, not independently-reconstructable state."
+Wrong: Calibration should mirror the SAME Rib/Without-Rib split real
+Shuttle has, not be pinned to one hardcoded choice.
+
+Added a 5th option, "Calibration Shuttle with Rib" -> (calibration,
+groove=False); the existing "Calibration Shuttle" now means
+(calibration, groove=True) instead of the old hardcoded groove=False -
+matching how "Shuttle"/"Shuttle with Rib" already split (groove=True/
+False respectively). `_hammond_build_dropdown_value()`'s calibration
+branch now checks groove the same way its element branch always did,
+instead of returning a fixed value. `_run_build`'s own calibration
+dispatch needed no changes - both new options share build.target=
+"calibration", differing only in the element.groove that's already
+saved to the config before that subprocess launches.
+
+**Verified**: headless `TuneApp` - all 5 dropdown values produce the
+correct (target, groove) pair; save+reload round-trip preserves the
+dropdown's displayed selection for both new calibration options.
+`generate.py --calibrate` for both groove=True/False configs both build
+clean, valid, watertight `CalibrationElement`s with genuinely different
+volumes (1857.061mm3 vs 2000.507mm3), confirming the Rib/Without-Rib
+distinction is real for Calibration too, not a no-op.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

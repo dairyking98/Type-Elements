@@ -1289,24 +1289,26 @@ RESIN_SUPPORT_UNAVAILABLE_NOTE = {
 # directly to a (build.target, element.groove) pair. "Rib"'s groove
 # value doesn't really matter (RibOnly() ignores element.groove
 # entirely - see lib/hammond.py), True just keeps it consistent with
-# "Shuttle"'s own meaning (the without-rib/groove body). "Calibration
-# Shuttle" always uses the fused rib body (groove=False) regardless of
-# whichever of the other 3 options was last picked - Calibration's own
-# purpose is validating the real default/normal print variant, not an
-# independently re-derivable "last known groove state" that would
-# silently change Calibration's own geometry based on an unrelated
-# previous dropdown pick.
+# "Shuttle"'s own meaning (the without-rib/groove body). Calibration
+# mirrors the same Rib/Without-Rib split as the real Shuttle - "will
+# also need Calibration Shuttle with Rib" (an earlier version only had
+# one Calibration option, always forced to groove=False regardless of
+# whichever of the other 3 was picked - wrong, since Calibration should
+# be able to validate EITHER real body variant, not just one hardcoded
+# choice).
 HAMMOND_BUILD_OPTIONS = [
     ("Shuttle", "shuttle"),
     ("Rib", "rib"),
     ("Shuttle with Rib", "shuttle_with_rib"),
     ("Calibration Shuttle", "calibration"),
+    ("Calibration Shuttle with Rib", "calibration_with_rib"),
 ]
 HAMMOND_BUILD_TARGET_GROOVE = {
     "shuttle": ("element", True),
     "rib": ("none", True),
     "shuttle_with_rib": ("element", False),
-    "calibration": ("calibration", False),
+    "calibration": ("calibration", True),
+    "calibration_with_rib": ("calibration", False),
 }
 
 
@@ -1314,12 +1316,14 @@ def _hammond_build_dropdown_value(target, groove):
     """Reverse of HAMMOND_BUILD_TARGET_GROOVE - derives the dropdown's
     displayed value from a loaded config's real (target, groove) pair
     (used by _refresh_widgets_from_cfg). "none" always means "rib" (the
-    only real use for Build target None); any other target with
-    groove=True is "shuttle", groove=False is "shuttle_with_rib"."""
+    only real use for Build target None); any other target picks the
+    with-Rib/without-Rib variant of itself from groove, same rule for
+    both "element" (shuttle/shuttle_with_rib) and "calibration"
+    (calibration/calibration_with_rib)."""
     if target == "none":
         return "rib"
     if target == "calibration":
-        return "calibration"
+        return "calibration" if groove else "calibration_with_rib"
     return "shuttle" if groove else "shuttle_with_rib"
 
 # layout.baseline_row/cutout_row per-row fields (Element tab - see
@@ -1999,8 +2003,8 @@ class TuneApp(App):
                         'Shuttle: groove-cut shell, no rib. Rib: just the rib+pin-boss '
                         'piece, with a flange (Element tab\'s Rib interface offset) to '
                         'snap into a Shuttle. Shuttle with Rib: the fused one-piece '
-                        'default. Calibration Shuttle always uses the fused body. Resin '
-                        f"supports not available for Rib.{resin_unavailable}",
+                        'default. The two Calibration options mirror the same split. '
+                        f"Resin supports not available for Rib.{resin_unavailable}",
                         classes="picker-help")
                 else:
                     gauge_help = (
