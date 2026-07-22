@@ -4416,6 +4416,78 @@ Python exception." Machine-picker flow (`_select_machine`) uses the same
 `_load_machine()` path already covered by this testing, not separately
 exercised.
 
+## 67. IBM/Selectric (parts 65-66) merged to main - build_log wiring, rebase conflict resolution, stale volume note explained
+
+Follow-up to parts 65-66: `worktree-selectric-port` (PR #35) predated
+this session's own CLAUDE.md updates (part 62-64's `lib/build_log.py`
+extraction, plus the "Keep doing this" callout warning that a from-
+scratch glyph loop doesn't inherit `[n/total]` progress instrumentation
+for free) - so the branch needed both a real rebase onto main (29 commits
+ahead, including the entire Hammond Split port and the build_log sweep)
+and a CLAUDE.md-compliance fix before merging, not just a fast-forward.
+
+**build_log wiring**: `spherical_machine.py`'s `AssembleMinkowski()` had
+its own from-scratch per-character loop (doesn't reuse `cylinder_
+machine.TextRing`, see that module's docstring) with only a single
+post-loop summary print - no `[n/total]` progress markers, exactly the
+gap CLAUDE.md now calls out by name. Rewired to match `hammond_split.
+TextAssemble()`'s template exactly: `build_log.progress_start`/`done`/
+`skipped` per character, skip-on-exception instead of aborting the whole
+build, `progress_summary` at the end. Also migrated `FullElement()`'s and
+`ResinPrint()`'s hand-written `verts=.../watertight=...` prints (missing
+`winding_consistent`/`is_volume`/`volume` - the exact drift pattern parts
+62-63 swept out of every other machine) to `build_log.mesh_report()`.
+
+**Rebase conflicts**: `SESSION_LOG.md` collided on part numbers (both
+branches had independently used 40/41) - resolved by renumbering the PR's
+entries to 65/66 and this entry to 67, not by re-deriving content.
+`tune.py` conflicted in `_compose_build_tab()`/`_refresh_widgets_from_cfg()`
+because main had independently added `is_hammond_split`/`hammond_split_
+normal_target` handling (part 64) in the same functions the PR's own
+`has_calibration` gating fix (part 66's "real, previously-latent tune.py
+bugs" writeup) touched. Merged by hand: kept `is_hammond`/`is_hammond_
+split` branching structure from main, added `has_calibration` gating
+into the non-Hammond branch's `valid_targets`/options list/help text
+exactly as part 66 intended. Verified: `python3 -c "import ast; ast.
+parse(...)"` on both files post-merge, then headless `tune.py` still not
+run against master/running configs per the standing warning - deferred to
+whoever next opens the TUI for this machine, same as parts 65-66's own
+verification already covered the field-by-field composition logic this
+merge didn't touch.
+
+**Stale volume note explained, not a rebase regression**: post-rebase
+`selectric3` builds at `volume=8002.442mm3` (`verts=72561 faces=145506`),
+not part 65's reported `~7548.874mm3`. Diffed `resin_support.py`/
+`scad_primitives.py`/`glyph_poc.py`/`cylinder_machine.py` between the
+PR's merge-base and main's tip - real changes exist in all four, but none
+touch anything `spherical_machine.py` actually calls (confirmed by
+reading each diff, not assumed). Ran the ORIGINAL, un-rebased PR commit
+(`24e47c3`) against the same `config/selectric3.yaml` in an isolated
+`git worktree` (`/tmp/.../orig_pr_check`) as a control: produced the
+IDENTICAL `verts=72561 faces=145506 volume=8002.442mm3` - proving the
+rebase changed nothing geometrically. Conclusion: part 65's own
+verification note was written before part 66's later config-key renames/
+additions in the SAME session (`font2.path`->`font2_path`, `alignment.
+h_alignment`->`alignment.mode`, plus the missing `build.target`/
+`type_test.lpi`/`type_test.text` keys `patch_yaml_value` can't insert)
+and was simply never re-run afterward - the CURRENT numbers are the true
+baseline for the final committed config state, not a regression. All 3
+Selectric machines still cluster tightly (`selectric12`=7961.611mm3,
+`selectric_composer`=7969.495mm3, `selectric3`=8002.442mm3, ~0.5% spread)
+- same physical-ball cross-check part 65 already relied on, just at the
+corrected absolute number.
+
+**Regression check**: `blickensderfer` (`verts=42618 faces=85408
+volume=5666.804mm3`) and `hammond_split` (`verts=220665 faces=445362
+volume=13445.375mm3`) both matched their pre-merge baselines exactly,
+run on this session's un-rebased main tip for comparison - the merge has
+no side effects on any existing machine.
+
+**CLAUDE.md updated**: the machine taxonomy's "Ported so far"/"Remaining,
+per the roadmap" list (part of "Porting a new machine") said IBM was
+"still unstarted" - corrected to list IBM/Selectric as done (3 machines,
+`lib/spherical_machine.py`) and note nothing remains on the roadmap.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
