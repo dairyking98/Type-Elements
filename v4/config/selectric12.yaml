@@ -1,0 +1,150 @@
+# Selectric I/II type element (88 chars, 4 rows x 22/row) - ported from
+# v2/ibm.scad's Render_Mode=1 branch (see that file for authoritative
+# source/comments) + v2/lib/layouts/ibm_layouts.scad's S12-specific
+# section. Physically identical typeball to Selectric Composer (same
+# sphere/skirt/boss/shaft dimensions) and near-identical to Selectric III
+# (which reuses S12's font-size/platen/offset values as its OWN starting
+# defaults per v2/ibm.scad:187-190,292-294 - NOT a cross-file reference,
+# each machine gets its own copy here). See lib/spherical_machine.py for
+# the shared geometry pipeline this config drives.
+
+machine: selectric12
+
+font:
+  # FreeSans is the standard metric-compatible substitute for v2's real
+  # value "Arial" (a system font name, not a file path) - same convention
+  # as config/postal.yaml's FreeMono substitution for "FreeMono:style=Bold".
+  path: "/home/lchau/fonts/Library/Sans Text/FreeSans.ttf"
+  size_mm: 2.4          # v2 Font_Size (ibm.scad:184) - S12 uses direct point size, not Composer's cap-height convention
+  name: "Arial"         # v2 Font - used ONLY as the literal engraved typeface-label text (FontName()), not for glyph rendering
+
+font2:
+  # FreeSerif is the standard substitute for v2's real value "Times New Roman"
+  # Keys are font2_-prefixed (not path/size_mm/chars) to avoid colliding
+  # with font:'s own keys - tune.py's patch_yaml_value matches by bare
+  # key text across the whole file, not by section (same reasoning as
+  # lib/mignon.py's LABEL_FIELDS_MIGNON prefixing, see tune.py).
+  font2_path: "/home/lchau/fonts/Library/Serif Text/FreeSerif.ttf"
+  font2_size_mm: 2.4          # v2 Font2_Size (ibm.scad:196)
+  font2_chars: ""             # v2 Font2_Chars (ibm.scad:205) - chars that adopt font2 instead of font
+
+alignment:
+  # "mode" (not h_alignment) - matches tune.py's generic center/left
+  # Select-widget convention (SECTIONS_COMMON's own alignment.mode field).
+  mode: "center"    # v2 All_H_Alignments[1] (ibm.scad:239)
+  x_pos_offset: 0.0        # v2 X_Pos_Offset_S12 (ibm.scad:226)
+  y_pos_offset: -1.5       # v2 Y_Pos_Offset_S12 (ibm.scad:228)
+  custom_h_chars: ""       # v2 CUSTOMHALIGNCHARS (ibm.scad:207)
+  custom_h_offset: 0.2     # v2 CUSTOMHALIGNOFFSET (ibm.scad:209)
+  custom_v_chars: ""       # v2 CUSTOMVALIGNCHARS (ibm.scad:211)
+  custom_v_offset: -0.2    # v2 CUSTOMVALIGNOFFSET (ibm.scad:213)
+
+element:
+  sphere_od: 33.4                 # v2 Sphere_OD (ibm.scad:309)
+  max_od: 34.9                    # v2 Max_OD (ibm.scad:313)
+  top_flat_to_center: 11.0        # v2 Top_Flat_To_Center (ibm.scad:315)
+  top_flat_thickness: 3.5         # v2 Top_Flat_Thickness (ibm.scad:277)
+  top_chamfer: 0.7                # v2 Top_Chamfer (ibm.scad:318)
+  inside_id: 28.15                # v2 Inside_ID (ibm.scad:320)
+  boss_od: 11.6                   # v2 Boss_OD (ibm.scad:283)
+  boss_clearance: 2.5             # v2 Boss_Clearance (ibm.scad:285)
+  boss_step: 0.0                  # v2 Boss_Step (ibm.scad:287)
+  boss_to_center_base: 2.5        # v2 Boss_To_Center_ (ibm.scad:322)
+  snoot_droop_compensation: 0.42  # v2 Snoot_Droop_Compensation (ibm.scad:302) - CRITICAL: measured boss-height calibration value, see v2's own echo() warning
+  shaft_id: 8.8                   # v2 Shaft_ID (ibm.scad:279)
+  skirt_top_od: 32.3              # v2 Skirt_Top_OD (ibm.scad:344)
+  skirt_bottom_od: 30.2           # v2 Skirt_Bottom_OD (ibm.scad:346)
+  platen_diameter: 36.0           # v2 Platen_OD_S12 (ibm.scad:291)
+  drive_notch_width: 1.06         # v2 Drive_Notch_Width (ibm.scad:297)
+  drive_notch_height: 2.2         # v2 Drive_Notch_Height (ibm.scad:299)
+  drive_notch_theta: 131.0        # v2 Drive_Notch_Theta_ (ibm.scad:358)
+  detent_valley_to_center: 6.0    # v2 Detent_Valley_To_Center (ibm.scad:360)
+  detent_skirt_clock_offset: 0.0  # v2 Detent_Skirt_Clock_Offset (ibm.scad:362)
+  # v2 Floor (ibm.scad:326) - "center to detent teeth tips of element";
+  # v2's own comment gives this as a measured reference value
+  # (abs(Top_Flat_To_Center-ELEMENT_OAT)=10.7 for the physical element
+  # Leo measured against - ELEMENT_OAT itself isn't a variable in v2,
+  # baked directly into this literal), not derived from other fields here.
+  floor: 10.7
+
+layout:
+  chars_per_row: 22               # v2 Chars_Per_Row_All[1] (ibm.scad:333)
+  # Reference count Tooth()'s profile was tuned for (v2 Chars_Per_Row_All[1]
+  # specifically, ALWAYS Selectric I/II's own count regardless of which
+  # mode is rendering - ibm.scad:718) - equal to chars_per_row for this
+  # machine itself, but Selectric III's config will set chars_per_row=24
+  # while this stays 22.
+  chars_per_row_reference: 22
+  hemisphere_cols_per_row: 11     # v2 Hemisphere_Cols_Per_Row_All[1] (ibm.scad:338)
+  row_latitudes: [32.8, 16.4, 0, -16.4]                  # v2 Row_Latitudes (ibm.scad:356) - shared physical ball, same for all 3 modes
+  platen_longitude_offsets: [-1.05, -1.05, -1.0, -1.05]  # v2 Platen_Longitude_Offsets (ibm.scad:122)
+  baseline_longitude_offsets: [0.0, 0.0, 0.0, 0.0]       # v2 Baseline_Longitude_Offsets (ibm.scad:398)
+  minkowski_longitudinal_offsets: [0.0, 0.0, 0.0, 0.0]   # v2 Minkowski_Longitudinal_Offsets (ibm.scad:79)
+
+label:
+  enabled: true                # v2 Label (ibm.scad:369)
+  arrow_enabled: true          # v2 Arrow (ibm.scad:371)
+  show_number: true            # v2: `if (Render_Mode!=0)` in Labels() (ibm.scad:988) - true for Selectric I/II and III, false for Composer
+  label_no: "10"                # v2 Label_No (ibm.scad:373)
+  label_text_override: ""       # v2 Label_Text_Override (ibm.scad:375)
+  label_no_font_override: ""    # v2 Label_No_Font_Override (ibm.scad:377)
+  label_font_override: ""       # v2 Label_Font_Override (ibm.scad:379)
+  no_label_size: 2.0            # v2 No_Label_Size (ibm.scad:381)
+  no_label_offset: 0.0          # v2 No_Label_Offset (ibm.scad:383)
+  font_label_size: 2.0          # v2 Font_Label_Size (ibm.scad:385)
+  font_label_offset: 0.0        # v2 Font_Label_Offset (ibm.scad:389)
+  del_base_from_centre: 8.2     # v2 Del_Base_From_Centre (ibm.scad:391)
+  del_depth: 0.6                # v2 Del_Depth (ibm.scad:393)
+
+build:
+  points_per_mm: 8.0
+  draft_angle_deg: 55.0            # v2 Mink_Draft_Angle (ibm.scad:65)
+  minkowski_enabled: true          # v2 Mink_On (ibm.scad:63)
+  # v2's linear_extrude(6) in PositionText's child (ibm.scad:521-524) - a
+  # construction margin (must be taller than any character's real embed
+  # depth), not itself a measured physical dimension, but still a
+  # geometry-affecting constant per CLAUDE.md, so it's config-driven
+  # rather than hardcoded.
+  character_block_height_mm: 6.0
+  # v2's hardcoded cylinder(...,h=2) inside the minkowski draft cone
+  # (ibm.scad:575,581) - same reasoning as character_block_height_mm above.
+  mink_cone_height_mm: 2.0
+  resin_support: true
+  target: "element"
+
+quality:
+  surface_fn: 120       # v2 Surface_Fn (ibm.scad:48)
+  cyl_fn: 360           # v2 Cyl_Fn (ibm.scad:46)
+  minkowski_fn: 20      # v2 Mink_Fn (ibm.scad:42)
+
+resin:
+  # v2's ResinRod()/ResinTip() (ibm.scad:753-787) use a different raft/
+  # base-chamfer shape than v4's shared resin_support.resin_rod() (see
+  # lib/spherical_machine.py's ResinRodAssemble docstring) - resin
+  # supports are removed after printing (not part of the measured
+  # physical part), so this reuses the same shared geometry every other
+  # v4 machine's resin support already does, rather than replicating v2's
+  # exact chamfer ratios. v2's Rod_Base_C (0.5, the base-rod chamfer size)
+  # has no equivalent slot in resin_support.resin_rod() and is dropped -
+  # not silently: this comment is that callout.
+  resin_fn: 20                    # not an explicit v2 variable (IBM relies on the global $fn=44 default for these) - matches the majority resin.resin_fn convention
+  tip_od: 0.9                     # v2 Tip_D (ibm.scad:434)
+  tip_notch_od: 0.4               # v2 Tip_Notch_D (ibm.scad:436)
+  tip_notch_offset: 12.0          # v2 Tip_Notch_Offset (ibm.scad:438)
+  tip_in: 0.4                     # v2 Tip_In (ibm.scad:440)
+  tip_h: 1.0                      # v2 Tip_H (ibm.scad:442)
+  rod_od: 1.2                     # v2 Rod_D (ibm.scad:444)
+  base_od: 4.0                    # v2 Base_D (ibm.scad:450) - mapped to resin_support's raft_od
+  base_h: 2.0                     # v2 Base_H (ibm.scad:452) - mapped to resin_support's raft_thickness
+  min_rod_h: 2.0                  # v2 Min_Rod_H (ibm.scad:454)
+  resin_detent_clock_offset: 0.0  # v2 Resin_Detent_Clock_Offset (ibm.scad:460)
+
+output:
+  directory: "output"
+  stl_name: "selectric12_running.stl"
+
+type_test:
+  cpi: 10.0                                              # v2 Test_CPI (ibm.scad:259)
+  lpi: 6.0                                               # tune.py's generic Type Test tab convention (not a v2/real-element concept - see config/blickensderfer.yaml's matching comment)
+  text: |-
+    Sphinx of black quartz, judge my vow

@@ -190,6 +190,9 @@ MACHINES = {
     "bennett": ("Bennett", os.path.join(REPO_ROOT, "config", "bennett.yaml")),
     "helios": ("Helios Klimax", os.path.join(REPO_ROOT, "config", "helios.yaml")),
     "hammond": ("Hammond", os.path.join(REPO_ROOT, "config", "hammond.yaml")),
+    "selectric12": ("Selectric I/II", os.path.join(REPO_ROOT, "config", "selectric12.yaml")),
+    "selectric3": ("Selectric III", os.path.join(REPO_ROOT, "config", "selectric3.yaml")),
+    "selectric_composer": ("Selectric Composer", os.path.join(REPO_ROOT, "config", "selectric_composer.yaml")),
 }
 
 FONT_FILE_FILTERS = Filters(
@@ -745,6 +748,134 @@ ELEMENT_FIELDS_HAMMOND = [
     ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Only used when groove is on."),
 ]
 
+# Selectric I/II, Selectric III, and Selectric Composer (spherical
+# typeball family, see lib/spherical_machine.py) share the EXACT SAME
+# config schema across all three machines (unlike Bennett/Mignon/Helios,
+# which each diverge structurally) - so one shared field-table set covers
+# all three, except Font & Alignment: Composer sizes type by cap-height
+# (font.composer_cap_height) instead of direct point size (font.size_mm),
+# so it gets its own table. No Logo/Gauge/Layout/Calibration tabs for any
+# of the three - no engraved logo text, no Shaft Gauge Test, no editable
+# keyboard-layout concept (the hemisphere character map is fixed, not a
+# user-selectable preset - see lib/layouts/selectric12_layout.py), and no
+# Calibration entry points implemented yet (CalibrationElement/
+# CalibrationAdditive - see lib/spherical_machine.py's module docstring's
+# "not yet ported" list) - compose()/_compose_build_tab gate the
+# Calibration tab/Build-target option on "Calibration" in self.SECTIONS,
+# and self.HAS_LAYOUT_TAB (set in _load_machine) gates the Layout tab and
+# every baseline_row/cutout_row-style widget, same pattern as the "Gauge"
+# key already used for machines with no Shaft Gauge Test.
+FONT_FIELDS_SELECTRIC12 = [
+    ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters."),
+    ("size_mm", ["font", "size_mm"], float, "Font size (mm)", "Direct point size (v2 Font_Size), not Composer's cap-height convention."),
+    ("font2_path", ["font2", "font2_path"], str, "Font 2 path", "Secondary font for font2_chars below."),
+    ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)", ""),
+    ("font2_chars", ["font2", "font2_chars"], str, "Font 2 chars", "Characters that use font2 instead of font."),
+    ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left" (v2 H_Alignment).'),
+    ("x_pos_offset", ["alignment", "x_pos_offset"], float, "X position offset (mm)", "v2 X_Pos_Offset."),
+    ("y_pos_offset", ["alignment", "y_pos_offset"], float, "Y position offset (mm)", "v2 Y_Pos_Offset."),
+    ("custom_h_chars", ["alignment", "custom_h_chars"], str, "Custom H-align chars", "Get an extra horizontal offset (below)."),
+    ("custom_h_offset", ["alignment", "custom_h_offset"], float, "Custom H-align offset (mm)", ""),
+    ("custom_v_chars", ["alignment", "custom_v_chars"], str, "Custom V-align chars", "Get an extra vertical offset (below)."),
+    ("custom_v_offset", ["alignment", "custom_v_offset"], float, "Custom V-align offset (mm)", ""),
+    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
+     "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
+]
+
+# Composer-only: sizes type by CAP HEIGHT (font.composer_cap_height/2.834
+# = Font_Size_Selected, v2's own fixed conversion, ibm.scad:186,190) - not
+# direct point size like Selectric I/II & III. custom_h_chars is
+# especially print-critical here - see config/selectric_composer.yaml's
+# header comment (explicit user directive on alignment fidelity).
+FONT_FIELDS_SELECTRIC_COMPOSER = [
+    ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters."),
+    ("composer_cap_height", ["font", "composer_cap_height"], float, "Cap height (pt)",
+     "v2 Composer_Cap_Height - Font_Size_Selected = this/2.834, not a direct point size."),
+    ("font2_path", ["font2", "font2_path"], str, "Font 2 path", "Secondary font for font2_chars below."),
+    ("font2_composer_cap_height", ["font2", "font2_composer_cap_height"], float, "Font 2 cap height (pt)", ""),
+    ("font2_chars", ["font2", "font2_chars"], str, "Font 2 chars", "Characters that use font2 instead of font."),
+    ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left" (v2 H_Alignment) - CRITICAL, real value "left".'),
+    ("x_pos_offset", ["alignment", "x_pos_offset"], float, "X position offset (mm)",
+     "v2 X_Pos_Offset_Composer_ - CRITICAL, print-affecting, verified against v2 line-by-line."),
+    ("y_pos_offset", ["alignment", "y_pos_offset"], float, "Y position offset (mm)",
+     "v2 Y_Pos_Offset_Composer - CRITICAL, print-affecting, verified against v2 line-by-line."),
+    ("custom_h_chars", ["alignment", "custom_h_chars"], str, "Custom H-align chars", "Get an extra horizontal offset (below)."),
+    ("custom_h_offset", ["alignment", "custom_h_offset"], float, "Custom H-align offset (mm)", ""),
+    ("custom_v_chars", ["alignment", "custom_v_chars"], str, "Custom V-align chars", "Get an extra vertical offset (below)."),
+    ("custom_v_offset", ["alignment", "custom_v_offset"], float, "Custom V-align offset (mm)", ""),
+    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
+     "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
+]
+
+LABEL_FIELDS_SELECTRIC = [
+    ("enabled", ["label", "enabled"], bool, "Label enabled", "v2 Label - typeface name engraved on the top face."),
+    ("arrow_enabled", ["label", "arrow_enabled"], bool, "Arrow enabled", "v2 Arrow - alignment marker triangle."),
+    ("show_number", ["label", "show_number"], bool, "Show number label", "v2: on for Selectric I/II & III, off for Composer."),
+    ("label_no", ["label", "label_no"], str, "Number label text", "v2 Label_No, e.g. \"10\"."),
+    ("label_text_override", ["label", "label_text_override"], str, "Typeface label override", "Blank adopts the font's own name (font.name)."),
+    ("label_no_font_override", ["label", "label_no_font_override"], str, "Number label font override", "Blank adopts font.path."),
+    ("label_font_override", ["label", "label_font_override"], str, "Typeface label font override", "Blank adopts font.path."),
+    ("no_label_size", ["label", "no_label_size"], float, "Number label size (mm)", ""),
+    ("no_label_offset", ["label", "no_label_offset"], float, "Number label vertical offset (mm)", ""),
+    ("font_label_size", ["label", "font_label_size"], float, "Typeface label size (mm)", ""),
+    ("font_label_offset", ["label", "font_label_offset"], float, "Typeface label vertical offset (mm)", ""),
+    ("del_base_from_centre", ["label", "del_base_from_centre"], float, "Arrow distance from center (mm)", ""),
+    ("del_depth", ["label", "del_depth"], float, "Label/arrow deboss depth (mm)", ""),
+]
+
+QUALITY_FIELDS_SELECTRIC = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft", "Off: fast undrafted preview (correct platen curve/placement, no taper)."),
+    ("character_block_height_mm", ["build", "character_block_height_mm"], float, "Character block height (mm)",
+     "v2's linear_extrude(6) construction margin - must exceed any character's real embed depth."),
+    ("mink_cone_height_mm", ["build", "mink_cone_height_mm"], float, "Minkowski cone height (mm)", "v2's hardcoded cylinder h=2 in the draft cone."),
+    ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Sphere/skirt/roof/boss facet count."),
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shaft bore and the real platen cutout cylinder (v2 shares one Cyl_Fn for both)."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+]
+
+RESIN_FIELDS_SELECTRIC = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
+    ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", "v2 Tip_D."),
+    ("tip_notch_od", ["resin", "tip_notch_od"], float, "Notch tip OD (mm)", "v2 Tip_Notch_D - used for the drive-notch's own supports."),
+    ("tip_notch_offset", ["resin", "tip_notch_offset"], float, "Notch support angle offset (deg)", "v2 Tip_Notch_Offset."),
+    ("tip_in", ["resin", "tip_in"], float, "Tip inset (mm)", "v2 Tip_In."),
+    ("tip_h", ["resin", "tip_h"], float, "Tip height (mm)", "v2 Tip_H."),
+    ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", "v2 Rod_D."),
+    ("base_od", ["resin", "base_od"], float, "Raft OD (mm)", "v2 Base_D - mapped to the shared resin_support.resin_rod()'s raft_od."),
+    ("base_h", ["resin", "base_h"], float, "Raft thickness (mm)", "v2 Base_H - mapped to raft_thickness (v2's own base-chamfer ratio isn't replicated, see the resin: section comment)."),
+    ("min_rod_h", ["resin", "min_rod_h"], float, "Min rod height (mm)", "v2 Min_Rod_H."),
+    ("resin_detent_clock_offset", ["resin", "resin_detent_clock_offset"], float, "Detent support clock offset (deg)", "v2 Resin_Detent_Clock_Offset."),
+]
+
+# element: schema is byte-identical across all 3 Selectric machines (same
+# physical ball) - one shared table.
+ELEMENT_FIELDS_SELECTRIC = [
+    ("sphere_od", ["element", "sphere_od"], float, "Sphere OD (mm)", "v2 Sphere_OD."),
+    ("max_od", ["element", "max_od"], float, "Max character OD (mm)", "v2 Max_OD - character-concave to character-concave diameter."),
+    ("top_flat_to_center", ["element", "top_flat_to_center"], float, "Top flat to center (mm)", "v2 Top_Flat_To_Center."),
+    ("top_flat_thickness", ["element", "top_flat_thickness"], float, "Top flat thickness (mm)", ""),
+    ("top_chamfer", ["element", "top_chamfer"], float, "Top shaft chamfer (mm)", "v2 Top_Chamfer."),
+    ("inside_id", ["element", "inside_id"], float, "Inside ID (mm)", "v2 Inside_ID."),
+    ("boss_od", ["element", "boss_od"], float, "Boss OD (mm)", ""),
+    ("boss_clearance", ["element", "boss_clearance"], float, "Boss clearance (mm)", ""),
+    ("boss_step", ["element", "boss_step"], float, "Boss step thickness (mm)", ""),
+    ("boss_to_center_base", ["element", "boss_to_center_base"], float, "Boss to center, base (mm)", "v2 Boss_To_Center_ - snoot_droop_compensation is added on top."),
+    ("snoot_droop_compensation", ["element", "snoot_droop_compensation"], float, "Snoot droop compensation (mm)",
+     "CRITICAL print-fit value - v2's own echo() warning: adjust until a printed boss measures 8.5mm to the top flat."),
+    ("shaft_id", ["element", "shaft_id"], float, "Shaft ID (mm)", ""),
+    ("skirt_top_od", ["element", "skirt_top_od"], float, "Skirt top OD (mm)", ""),
+    ("skirt_bottom_od", ["element", "skirt_bottom_od"], float, "Skirt bottom OD (mm)", ""),
+    ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", "v2 Platen_OD - 36 for Selectric I/II & III, 43 for Composer."),
+    ("drive_notch_width", ["element", "drive_notch_width"], float, "Drive notch width (mm)", ""),
+    ("drive_notch_height", ["element", "drive_notch_height"], float, "Drive notch height (mm)", ""),
+    ("drive_notch_theta", ["element", "drive_notch_theta"], float, "Drive notch angle (deg)", "v2 Drive_Notch_Theta_."),
+    ("detent_valley_to_center", ["element", "detent_valley_to_center"], float, "Detent valley to center (mm)", ""),
+    ("detent_skirt_clock_offset", ["element", "detent_skirt_clock_offset"], float, "Detent skirt clock offset (deg)", ""),
+    ("floor", ["element", "floor"], float, "Floor - center to detent teeth tips (mm)",
+     "v2's own measured reference value, not derived from other fields here."),
+]
+
 SECTIONS_BY_MACHINE = {
     "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
@@ -779,6 +910,19 @@ SECTIONS_BY_MACHINE = {
     "hammond": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
                 "Element": ELEMENT_FIELDS_HAMMOND},
+    # No SECTIONS_COMMON reuse at all - Selectric's alignment/calibration
+    # schema doesn't match the cylinder family's (see FONT_FIELDS_
+    # SELECTRIC12's own comment above). No "Gauge"/"Logo"/"Calibration"
+    # key - see this dict's own leading comment.
+    "selectric12": {"Font & Alignment": FONT_FIELDS_SELECTRIC12, "Label": LABEL_FIELDS_SELECTRIC,
+                    "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
+                    "Element": ELEMENT_FIELDS_SELECTRIC},
+    "selectric3": {"Font & Alignment": FONT_FIELDS_SELECTRIC12, "Label": LABEL_FIELDS_SELECTRIC,
+                   "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
+                   "Element": ELEMENT_FIELDS_SELECTRIC},
+    "selectric_composer": {"Font & Alignment": FONT_FIELDS_SELECTRIC_COMPOSER, "Label": LABEL_FIELDS_SELECTRIC,
+                           "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
+                           "Element": ELEMENT_FIELDS_SELECTRIC},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -1507,6 +1651,17 @@ class TuneApp(App):
         self.SECTIONS = SECTIONS_BY_MACHINE.get(self.machine, SECTIONS_BY_MACHINE["blickensderfer"])
         self.FIELDS = [field for fields in self.SECTIONS.values() for field in fields]
         self.LAYOUT_PRESETS = LAYOUT_PRESETS_BY_MACHINE.get(self.machine, {})
+        # Selectric machines have no editable keyboard-layout concept at
+        # all (fixed hemisphere character map, not a user-selectable
+        # preset - see lib/layouts/selectric12_layout.py) - gates the
+        # Layout tab and every baseline_row/cutout_row-style widget
+        # (compose()/_save_to_yaml/_refresh_widgets_from_cfg), same
+        # pattern as "Gauge" in self.SECTIONS for machines with no Shaft
+        # Gauge Test.
+        self.HAS_LAYOUT_TAB = "rows" in self.cfg.get("layout", {})
+        if not self.HAS_LAYOUT_TAB:
+            self.BASELINE_CUTOUT_KEYS = []
+            return
         # row count varies per machine (3 for Blickensderfer/Postal, 7 for
         # Mignon) - see BASELINE_CUTOUT_KEYS' module comment. Hammond's
         # own presets additionally vary in row count from EACH OTHER
@@ -1756,6 +1911,11 @@ class TuneApp(App):
     ROW_LABELS = ["lowercase", "uppercase", "figs"]
 
     def _compose_baseline_cutout_fields(self):
+        # No layout.baseline_row/cutout_row concept at all for machines
+        # with no editable keyboard layout (self.HAS_LAYOUT_TAB False,
+        # self.BASELINE_CUTOUT_KEYS empty - see that flag's own comment).
+        if not self.HAS_LAYOUT_TAB:
+            return
         yield Static(
             "Per-row baseline/platen-cutout (mm). See the Calibration tab "
             "to find these empirically.",
@@ -1859,9 +2019,11 @@ class TuneApp(App):
 
     def _compose_build_tab(self):
         has_gauge = "Gauge" in self.SECTIONS
+        has_calibration = "Calibration" in self.SECTIONS
         is_hammond = self.machine == "hammond"
         hammond_parts = ("none",) if is_hammond else ()
-        valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ()) + hammond_parts
+        valid_targets = (("element",) + (("calibration",) if has_calibration else ())
+                          + (("gauge",) if has_gauge else ()) + hammond_parts)
         with TabPane("Build", id="tab-build"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
@@ -1878,7 +2040,8 @@ class TuneApp(App):
                     options = [(element_label, "element")]
                     if has_gauge:
                         options.append(("Shaft Gauge", "gauge"))
-                    options.append((f"Calibration {element_label}", "calibration"))
+                    if has_calibration:
+                        options.append((f"Calibration {element_label}", "calibration"))
                     if is_hammond:
                         # "None" - no main shuttle/calibration body at all,
                         # just RibOnly() (hammond.RibOnly(), a plain FDM
@@ -1919,13 +2082,16 @@ class TuneApp(App):
                     "always includes its own resin supports regardless of this "
                     "checkbox."
                 ) if has_gauge else ""
+                calibration_help = (
+                    f" Calibration {element_label}: strikes the same test "
+                    "character everywhere, sweeping baseline or cutout per column "
+                    "(see the Calibration tab) to find layout.baseline_row/cutout_row."
+                ) if has_calibration else ""
                 resin_unavailable = RESIN_SUPPORT_UNAVAILABLE_NOTE.get(self.machine, "")
                 yield Static(
                     "Element: the real element. Turn on Resin supports to add "
                     "rods/breakaway ring (see the Resin tab for those settings)."
-                    f"{gauge_help} Calibration Element: strikes the same test "
-                    "character everywhere, sweeping baseline or cutout per column "
-                    "(see the Calibration tab) to find layout.baseline_row/cutout_row."
+                    f"{gauge_help}{calibration_help}"
                     f"{resin_unavailable}",
                     classes="picker-help")
 
@@ -2009,9 +2175,16 @@ class TuneApp(App):
                 yield from self._compose_section_tab("Resin")
                 if "Gauge" in self.SECTIONS:
                     yield from self._compose_section_tab("Gauge")
-                yield from self._compose_section_tab("Calibration")
+                # no "Calibration" key for the Selectric family - no
+                # CalibrationElement/CalibrationAdditive implemented yet
+                # (see SECTIONS_BY_MACHINE's Selectric comment).
+                if "Calibration" in self.SECTIONS:
+                    yield from self._compose_section_tab("Calibration")
                 yield from self._compose_build_tab()
-                yield from self._compose_layout_tab()
+                # no editable keyboard-layout concept for the Selectric
+                # family (see self.HAS_LAYOUT_TAB's own comment).
+                if self.HAS_LAYOUT_TAB:
+                    yield from self._compose_layout_tab()
                 yield from self._compose_section_tab("Quality")
                 # no "Logo" key for Bennett - its one engraved-text feature
                 # is the "Label" tab instead (see LABEL_FIELDS_BENNETT).
@@ -2102,38 +2275,39 @@ class TuneApp(App):
         for key in self.BASELINE_CUTOUT_KEYS:
             arr_key, index_str = key.rsplit("_", 1)
             text = patch_yaml_list_item(text, arr_key, int(index_str), values[key])
-        modify_glyphs = self.query_one("#layout-modify-glyphs", Switch).value
-        text = patch_yaml_value(text, "modify_glyphs", modify_glyphs)
-        if modify_glyphs:
-            # the hand-edited copy is authoritative over the preset
-            # dropdown while unlocked - "fix" (defensively re-clamp) each
-            # row to the placement_map cap in case anything bypassed the
-            # Input's own max_length (e.g. a paste)
-            char_cap = len(self.cfg["layout"]["placement_map"])
-            n_rows = len(self.cfg["layout"]["rows"])
-            custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:char_cap] for i in range(n_rows)]
-            text = patch_yaml_rows(text, custom_rows)
-        else:
-            layout_select = self.query_one("#layout-select", Select)
-            if layout_select.value is not Select.NULL:
-                text = patch_yaml_rows(text, self.LAYOUT_PRESETS[layout_select.value])
-                # baseline_row/cutout_row themselves are NOT force-
-                # overwritten here from LAYOUT_PRESET_BASELINE_ROW_BY_
-                # MACHINE on every save - an earlier version of this did
-                # that unconditionally, which silently discarded any
-                # manual edit to those fields every time a save happened
-                # while a preset remained selected (i.e. essentially
-                # always, since "custom" requires Modify glyphs). The
-                # BASELINE_CUTOUT_KEYS loop above already saves whatever
-                # is actually showing in the (now always-4-rows-wide,
-                # see _compose_baseline_cutout_fields) widgets, appending
-                # a 4th entry via patch_yaml_list_item if needed - that's
-                # the real, editable, save-preserving value. The preset's
-                # own real defaults are instead pre-filled into those
-                # SAME widgets live, the moment the dropdown selection
-                # changes (see on_select_changed) - a one-time seed the
-                # user can still hand-edit before saving, not a
-                # recurring overwrite.
+        if self.HAS_LAYOUT_TAB:
+            modify_glyphs = self.query_one("#layout-modify-glyphs", Switch).value
+            text = patch_yaml_value(text, "modify_glyphs", modify_glyphs)
+            if modify_glyphs:
+                # the hand-edited copy is authoritative over the preset
+                # dropdown while unlocked - "fix" (defensively re-clamp) each
+                # row to the placement_map cap in case anything bypassed the
+                # Input's own max_length (e.g. a paste)
+                char_cap = len(self.cfg["layout"]["placement_map"])
+                n_rows = len(self.cfg["layout"]["rows"])
+                custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:char_cap] for i in range(n_rows)]
+                text = patch_yaml_rows(text, custom_rows)
+            else:
+                layout_select = self.query_one("#layout-select", Select)
+                if layout_select.value is not Select.NULL:
+                    text = patch_yaml_rows(text, self.LAYOUT_PRESETS[layout_select.value])
+                    # baseline_row/cutout_row themselves are NOT force-
+                    # overwritten here from LAYOUT_PRESET_BASELINE_ROW_BY_
+                    # MACHINE on every save - an earlier version of this did
+                    # that unconditionally, which silently discarded any
+                    # manual edit to those fields every time a save happened
+                    # while a preset remained selected (i.e. essentially
+                    # always, since "custom" requires Modify glyphs). The
+                    # BASELINE_CUTOUT_KEYS loop above already saves whatever
+                    # is actually showing in the (now always-4-rows-wide,
+                    # see _compose_baseline_cutout_fields) widgets, appending
+                    # a 4th entry via patch_yaml_list_item if needed - that's
+                    # the real, editable, save-preserving value. The preset's
+                    # own real defaults are instead pre-filled into those
+                    # SAME widgets live, the moment the dropdown selection
+                    # changes (see on_select_changed) - a one-time seed the
+                    # user can still hand-edit before saving, not a
+                    # recurring overwrite.
         type_test_text = self.query_one("#type-test-text", TextArea).text
         text = patch_yaml_text_block(text, "text", type_test_text)
         with open(self.config_path, "w") as f:
@@ -2160,11 +2334,14 @@ class TuneApp(App):
                 widget.value = bool(current)
             else:
                 widget.value = str(current)
-        preset_now = self._current_layout_preset()
-        self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
+        if self.HAS_LAYOUT_TAB:
+            preset_now = self._current_layout_preset()
+            self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
         hammond_parts = ("none",) if self.machine == "hammond" else ()
-        valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ()) + hammond_parts
+        has_calibration = "Calibration" in self.SECTIONS
+        valid_targets = (("element",) + (("calibration",) if has_calibration else ())
+                          + (("gauge",) if "Gauge" in self.SECTIONS else ()) + hammond_parts)
         if target_now not in valid_targets:
             # "resin" was a valid target value before the Build tab's
             # dropdown was split into target + a separate Resin supports
@@ -2182,6 +2359,8 @@ class TuneApp(App):
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
+        if not self.HAS_LAYOUT_TAB:
+            return
         display_rows = self._display_rows_for_preset()
         for i in range(len(display_rows)):
             self._update_row_widget("layout-original-row", i, display_rows[i])
@@ -2417,24 +2596,44 @@ class TuneApp(App):
             self.log_line("[red]test text is empty[/red]")
             return
         font_path = self.inputs["path"].value
-        font_size_mm = self.inputs["size_mm"].value
+        # Selectric Composer sizes type by cap-height (font.
+        # composer_cap_height/2.834 = Font_Size_Selected, see lib/
+        # selectric_composer.py's configure()) instead of a direct
+        # font.size_mm - every other machine (including Selectric I/II &
+        # III) has "size_mm" in self.inputs directly.
+        if "size_mm" in self.inputs:
+            font_size_mm = self.inputs["size_mm"].value
+        else:
+            font_size_mm = str(float(self.inputs["composer_cap_height"].value) / 2.834)
         out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], self.cfg["output"]["stl_name"])
         self.log_line(f"[bold]--- Type Test (overwrites {out_path}) ---[/bold]")
         cmd = [sys.executable, os.path.join(REPO_ROOT, "type_test.py"), text,
-               "--cpi", str(cpi), "--lpi", str(lpi), "--font-path", font_path, "--font-size-mm", font_size_mm,
-               # same horizontal-alignment convention as the real element
-               # (advance-box center/left + modified_left/right nudges) -
-               # read live off the Font & Alignment tab's own widgets
-               "--align-mode", self.inputs["mode"].value,
-               "--center-offset-mm", self.inputs["center_offset_mm"].value,
-               "--left-offset-mm", self.inputs["left_offset_mm"].value,
-               # "=" form, not space-separated, in case the chars field
-               # starts with "-" (would otherwise look like another flag)
-               "--modified-left-chars=" + self.inputs["modified_left_chars"].value,
-               "--modified-left-offset-mm", self.inputs["modified_left_offset_mm"].value,
-               "--modified-right-chars=" + self.inputs["modified_right_chars"].value,
-               "--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value,
-               "--out", out_path]
+               "--cpi", str(cpi), "--lpi", str(lpi), "--font-path", font_path, "--font-size-mm", font_size_mm]
+        # same horizontal-alignment convention as the real element
+        # (advance-box center/left + modified_left/right nudges) - read
+        # live off the Font & Alignment tab's own widgets. Selectric
+        # (mode only, no center_offset_mm/left_offset_mm/modified_*
+        # concept - see FONT_FIELDS_SELECTRIC12) just passes --align-mode
+        # and lets type_test.py's own defaults (0/empty) cover the rest -
+        # this is a v4-only flat preview, not required to replicate the
+        # real element's alignment pipeline exactly for any machine.
+        if "mode" in self.inputs:
+            cmd += ["--align-mode", self.inputs["mode"].value]
+        if "center_offset_mm" in self.inputs:
+            cmd += ["--center-offset-mm", self.inputs["center_offset_mm"].value]
+        if "left_offset_mm" in self.inputs:
+            cmd += ["--left-offset-mm", self.inputs["left_offset_mm"].value]
+        if "modified_left_chars" in self.inputs:
+            # "=" form, not space-separated, in case the chars field
+            # starts with "-" (would otherwise look like another flag)
+            cmd += ["--modified-left-chars=" + self.inputs["modified_left_chars"].value]
+        if "modified_left_offset_mm" in self.inputs:
+            cmd += ["--modified-left-offset-mm", self.inputs["modified_left_offset_mm"].value]
+        if "modified_right_chars" in self.inputs:
+            cmd += ["--modified-right-chars=" + self.inputs["modified_right_chars"].value]
+        if "modified_right_offset_mm" in self.inputs:
+            cmd += ["--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value]
+        cmd += ["--out", out_path]
         returncode = await self._stream_subprocess(cmd)
         if returncode == 0:
             self._last_build_info = {
