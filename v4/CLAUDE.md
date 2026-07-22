@@ -18,10 +18,16 @@ the harness's out-of-the-box behavior elsewhere.
 Search `lib/cylinder_machine.py` (shared across cylinder machines) and the
 target machine's own module (`lib/blickensderfer.py`, `lib/postal.py`,
 `lib/mignon.py`, `lib/bennett.py`, `lib/glyph_poc.py`,
-`lib/scad_primitives.py`) for an existing function that already does what
-you're about to write before adding a new one. Duplicated logic is how
-machines drift out of sync silently - see "Porting a new machine" below
-for the same failure mode at the machine-port level.
+`lib/scad_primitives.py`, `lib/resin_support.py`, `lib/build_log.py`) for
+an existing function that already does what you're about to write before
+adding a new one. Duplicated logic is how machines drift out of sync
+silently - see "Porting a new machine" below for the same failure mode at
+the machine-port level. `lib/build_log.py` specifically: if you're about
+to `print(f"...verts=...watertight=...")` or a per-item `"[n/total] ..."`
+progress line by hand, stop - see the "TUI (tune.py)" section below for
+why both are load-bearing conventions, not style choices, and what
+happens when a new machine's code doesn't use them (`SESSION_LOG.md`
+parts 61-63).
 
 ## Geometry invariants
 
@@ -178,6 +184,22 @@ the cited section for the full incident).
   `generate.py`'s uniform `build_fn(...)` call works across machines).
   Keep this consistent for the next machine even when its geometry
   doesn't need every kwarg.
+- **A new machine's `Additive`/`Subtractive`/`ResinSupport`/per-character
+  glyph-building code must use `lib/build_log.py`
+  (`progress_start`/`progress_done`/`progress_skipped`/`progress_line`/
+  `mesh_report`/`atomic_export`) from the very first commit, not as a
+  follow-up fix.** This is not automatic just from importing the module -
+  Hammond Split's own from-scratch `TextAssemble()` shipped without any
+  progress instrumentation at all (no equivalent to `cylinder_machine.
+  TextRing`'s per-character `[n/total]` print to inherit for free), which
+  broke `tune.py`'s Build-tab progress bar for that one machine only,
+  found and fixed in a separate follow-up session (`SESSION_LOG.md` parts
+  60-63). A machine that reuses `cylinder_machine.TextRing`/
+  `CalibrationTextRing` gets this for free; a machine with its own
+  from-scratch glyph loop (the more likely case for a genuinely new form
+  factor like IBM) does not, and needs it wired by hand, the way `lib/
+  hammond_split.py`'s `TextAssemble()`/`CalibrationTextRing()` now are -
+  treat those two functions as the template to copy.
 - **`generate.py` dispatches via `importlib.import_module(cfg["machine"])`
   - the module filename must equal the config's `machine:` value.** This
   convention is load-bearing but not written down anywhere else; a new
