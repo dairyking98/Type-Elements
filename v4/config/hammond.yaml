@@ -138,6 +138,16 @@ element:
                                           # for ResinChamfer(), currently
                                           # disabled - see lib/hammond.py's
                                           # Additive())
+  # v4-specific, not a v2 value - FDM print-fit clearance for the "Rib"
+  # Build target's groove-interface flange (RibOnly(), see its own
+  # docstring and GrooveShape()'s "shrink" parameter). Shrinks the
+  # flange (printed as its own separate FDM part, meant to snap into a
+  # "Shuttle" (groove=true) body's cut slot) rather than growing the
+  # Shuttle's own groove cut - typical FDM practice, printers tend to
+  # oversize solid protrusions more than they undersize cut features.
+  # 0.15mm is a reasonable starting point for a snug slide-fit at
+  # typical 0.4mm-nozzle FDM tolerances - tune per printer/filament.
+  rib_interface_offset_mm: 0.15
 
 # quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
 # comment: "no separate structural-quality tier from Cyl_Fn").

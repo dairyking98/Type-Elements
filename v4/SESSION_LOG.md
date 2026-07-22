@@ -3395,6 +3395,82 @@ launched with cmdline `f3d --watch .../blickensderfer_running.stl -g
 actual live f3d session (watching the real `hammond_running.stl`, not a
 scratch file) was untouched by any of this testing.
 
+## 52. Hammond: RibOnly() gets a groove-interface flange with FDM fit clearance; Build target consolidated to Shuttle/Rib/Shuttle with Rib/Calibration Shuttle
+
+Two related requests: (1) "the rib only should also have the groove
+shape" plus a configurable FDM fit-tolerance offset, and (2) "remove
+Rib checkbox, and just go with dropdown options Shuttle, Rib, Shuttle
+with Rib" - both about the same underlying mechanism (the Rib/Groove
+body split), so handled together. Confirmed the geometry design with
+the user before implementing, given real physical-fit stakes (guessing
+wrong means unprintable parts): "positive space for the slot, negative
+space for the nubs" for the flange, "shrink the Rib's male features"
+for the offset direction.
+
+**Geometry** (`lib/hammond.py`): `GrooveShape()` (the circumferential
+snap-fit slot cutter, real v2, only ever subtracted from a Groove=true
+shell) gained three v4-only parameters, all defaulting to reproduce its
+exact original cutter behavior: `shrink` (shrinks the disk radius/tab
+half-width, for FDM fit clearance), `include_tab` (the tab's x=50
+reach is a real construction sentinel per its own docstring - only
+valid as an oversized CUTTER, would be a literal 50mm spike as positive
+material, so `RibOnly()` passes `include_tab=False`), `trim_to_arc`
+(the disk is a full 360deg circle in its real cutter use, but
+`RibOnly()`'s Rib()+PinSupport() body only spans the real ~120deg arc -
+without this the flange would be mostly floating disk far beyond the
+rib's own footprint; reuses the exact same wedge-complement trim Rib()
+applies to itself, `_wedge_complement_poly(p1, apex, p3)`, just
+re-derived at the flange's own larger radius since the trim is
+angle-defined from a fixed apex, not radius-defined). `RibOnly()` now
+unions `GrooveShape(shrink=Rib_Interface_Offset, include_tab=False,
+trim_to_arc=True)` onto `RibAssembled()`. New config value
+`element.rib_interface_offset_mm` (default 0.15mm) - v4-only, not a v2
+value, exposed on the Element tab.
+
+Caught and fixed two real modeling mistakes before shipping (both via
+direct bounds/volume checks, not assumed): the tab's x=50 overshoot
+initially got included wholesale (RibOnly() bounds showed a literal
+x=50 spike); and before `trim_to_arc`, the flange was a full 360deg
+disk (RibOnly() volume was 1074mm3, mostly empty floating disk far
+past the rib's own ~120deg footprint) - both confirmed visually via f3d
+screenshots after fixing (a properly-bounded ~120deg arc flange with
+visible retention notches, volume 241.9mm3, matching RibAssembled()'s
+128.9mm3 plus a sensible flange addition).
+
+**UI** (`tune.py`): Hammond's Build target dropdown (Shuttle/
+Calibration Shuttle/None) and separate Rib checkbox (`element.groove`,
+inverted) are consolidated into one dropdown - `HAMMOND_BUILD_OPTIONS`/
+`HAMMOND_BUILD_TARGET_GROOVE` map each of the 4 new option labels
+directly to a (build.target, element.groove) pair: "Shuttle"->
+(element, groove=True), "Rib"->(none, groove=True - RibOnly() ignores
+Groove entirely, kept True just for consistency with "Shuttle"'s own
+meaning), "Shuttle with Rib"->(element, groove=False, today's default),
+"Calibration Shuttle"->(calibration, groove=False - always the fused
+body regardless of whichever of the other 3 was last picked, since
+Calibration validates the real default print variant, not
+independently-reconstructable state). `_hammond_build_dropdown_value()`
+is the reverse mapping, for populating the dropdown from a loaded
+config. `_collect_values()`/`_refresh_widgets_from_cfg()` both route
+through this translation for Hammond only; non-Hammond machines'
+`#build-select` handling is untouched. Trimmed the new Build-target
+help text down from an initial ~20-line draft to 5 lines, per CLAUDE.md's
+own "well under 10 rendered lines" tab-banner convention - caught by
+screenshot review, not written short the first time.
+
+**Verified**: geometry - `RibOnly()` watertight/winding_consistent/
+is_volume all True, volume 241.948mm3, confirmed via `--hammond-part
+rib_only` CLI path too; `GrooveShape()`'s default-args shell-cutter path
+confirmed byte-for-byte unaffected (Groove=true body's `ResinPrint`
+volume `4309.645mm3` exactly matches the pre-change baseline). UI -
+headless `TuneApp` (scratch config): all 4 dropdown values produce the
+correct (target, groove) pair; save+reload round-trip preserves the
+dropdown's displayed selection for both "rib" and "shuttle_with_rib";
+non-Hammond machines' `#build-select` unaffected (no `groove` key
+collected, dropdown options/values unchanged). Screenshot confirms the
+final Build tab layout and trimmed help text. Full hard gate: Hammond
+vertical/horizontal-Rib-on/Rib-only-CLI and Blickensderfer/Postal all
+match established baselines exactly.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

@@ -224,6 +224,12 @@ def configure(config_path):
     g["Groove_Opening_Offset"] = e["groove_opening_offset"]
     g["Support_Groove_Thickness"] = e["support_groove_thickness"]
     g["Support_Groove_R"] = 0.5 * (g["Shuttle_Thickness"] - g["Support_Groove_Thickness"])
+    # v4-specific, not a v2 value - FDM print-fit clearance for RibOnly()'s
+    # groove-interface flange (see GrooveShape()'s shrink parameter and
+    # RibOnly()'s own docstring). Shrinks the flange (the "male" piece,
+    # printed separately from the Shuttle) rather than growing the
+    # Shuttle's own groove cut, per explicit request.
+    g["Rib_Interface_Offset"] = e.get("rib_interface_offset_mm", 0.15)
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
@@ -483,20 +489,46 @@ def RibAssembled():
 
 
 def RibOnly():
-    """Not a v2 function - a v4-specific FDM export target. Just the rib
-    +pin-support assembly (RibAssembled()) alone, as its own separate
-    printable part, for printing the shuttle shell and rib as two
-    separate FDM pieces (glued together afterward) instead of one fused
-    resin print - see generate.py's --hammond-part=rib_only and
+    """Not a v2 function - a v4-specific FDM export target. The rib
+    +pin-support assembly (RibAssembled()), PLUS a groove-interface
+    flange, as its own separate printable part, for printing the
+    shuttle shell and rib as two separate FDM pieces instead of one
+    fused resin print - see generate.py's --hammond-part=rib_only and
     tune.py's Build tab. No resin supports at all (FDM's own slicer
-    handles that, not Hammond's resin-print machinery)."""
+    handles that, not Hammond's resin-print machinery).
+
+    The flange is GrooveShape() itself, reused as a POSITIVE addition
+    here instead of the cutter it normally is (see that function's own
+    docstring) - real v2 never does this (v2's Groove assembly REPLACES
+    Rib()/PinSupport() entirely, no separate printed rib piece exists in
+    that path at all), so this is a deliberate v4-only mechanism, added
+    per explicit request: "the rib would have negative space of the
+    nubs, and positive space for the slot" - which is exactly the DISK
+    portion of GrooveShape()'s own shape (disk minus the 4 nub
+    cylinders) - the SAME geometry that cuts the slot's circumferential
+    channel into a Groove=true shell also happens to be the correct
+    shape for a flange that fills that same channel and clears its 4
+    retention ridges, just added instead of subtracted.
+    include_tab=False - the "tab" portion is EXCLUDED here: it only ever
+    makes sense as a cutter (an oversized box reaching to x=50,
+    guaranteeing a clean through-cut regardless of the shell's real
+    wall thickness - see GrooveShape()'s own docstring). Reused as
+    positive material it would just be a 50mm spike sticking out of the
+    printed part - the tab creates the INSERTION OPENING on the shell
+    side; the flange being inserted through that opening doesn't need
+    an equivalent feature of its own. shrink=Rib_Interface_Offset gives
+    the flange (the "male" piece here, since it's the one being
+    test-fit into an already-cut slot) FDM print clearance - shrinking
+    the male side rather than growing the Shuttle's own groove cut, per
+    explicit request."""
     _require_configured()
-    rib = RibAssembled()
+    rib = sp.union_all([RibAssembled(),
+                         GrooveShape(shrink=Rib_Interface_Offset, include_tab=False, trim_to_arc=True)])
     rib, _, _, _ = sp.check_and_repair(rib, label="RibOnly")
     return rib
 
 
-def GrooveShape():
+def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
     """v2:484-500 - circumferential snap-fit slot cut into the shell,
     opening from its INNER surface (a solid disk r=Shuttle_Arc_Radius+
     Shuttle_Groove_Depth, unioned with a radial "tab" box reaching out to
@@ -509,19 +541,61 @@ def GrooveShape():
     two different Z depths, built as separate solids here rather than one
     shared extrusion). Subtracted from the shell in the Groove=true
     assembly path, replacing Rib()/PinSupport()/PinSupportHole() entirely
-    - no separate rib piece in this assembly at all."""
+    - no separate rib piece in this assembly at all.
+
+    shrink (v4-specific, NOT a v2 term - default 0.0 reproduces the
+    original shell-cutter shape exactly): reduces the disk radius and
+    tab half-width by this amount, shrinking the flange's outer/side
+    boundary uniformly for FDM print-fit clearance when this same shape
+    gets reused as a positive addition elsewhere (see RibOnly()) - the 4
+    nub-clearance notches are left at their real size/position, only the
+    outer positive footprint shrinks. Never applied at this function's
+    own original call site (the shell cutter), where shrink stays 0.0 -
+    only RibOnly()'s new flange use passes a nonzero value.
+
+    include_tab (v4-specific - default True reproduces the original
+    shell-cutter shape exactly): set False to omit the tab box entirely
+    - see RibOnly()'s own docstring for why its positive-flange use
+    needs this off (the tab's x=50 overshoot only makes sense as a
+    cutter).
+
+    trim_to_arc (v4-specific - default False reproduces the original
+    shell-cutter shape exactly, a FULL 360deg disk): set True to trim
+    the disk down to the shuttle's real angular span, using the exact
+    same wedge-complement trim Rib() applies to itself (same apex/
+    half_ang_rad, just re-derived at THIS disk's own, larger radius
+    rather than Rib()'s R - the trim is angle-defined from a fixed
+    apex, not radius-defined, so re-deriving p1/p3 at the flange's own
+    radius keeps the trim boundary reaching all the way to its actual
+    edge). Needed because GrooveShape()'s disk is meant to be subtracted
+    from a FULL circular shell in its real cutter use (no trim needed
+    there - the shell itself gets trimmed elsewhere), but RibOnly()'s
+    positive-flange use adds it to Rib(), which is already trimmed to
+    the real ~120deg arc - without this, the flange would be a full
+    360deg disk floating mostly in empty space beyond the rib's own
+    actual angular footprint."""
     res = _circ_res(Cyl_Fn)
-    disk_2d = Point(0, 0).buffer(Shuttle_Arc_Radius + Shuttle_Groove_Depth, resolution=res)
+    disk_2d = Point(0, 0).buffer(Shuttle_Arc_Radius + Shuttle_Groove_Depth - shrink, resolution=res)
+    if trim_to_arc:
+        half_ang_rad = np.radians(Angle_Pitch * 16.0)
+        disk_r = Shuttle_Arc_Radius + Shuttle_Groove_Depth - shrink
+        p1 = (disk_r * np.cos(half_ang_rad), -disk_r * np.sin(half_ang_rad))
+        p3 = (disk_r * np.cos(half_ang_rad), disk_r * np.sin(half_ang_rad))
+        disk_2d = disk_2d.difference(_wedge_complement_poly(p1, (Z_Offset, 0.0), p3))
     disk = trimesh.creation.extrude_polygon(disk_2d, Shuttle_Rib_Thickness)
 
-    tab_2d = ShapelyPolygon([
-        (0, -Groove_Tab_Width / 2.0), (50, -Groove_Tab_Width / 2.0),
-        (50, Groove_Tab_Width / 2.0), (0, Groove_Tab_Width / 2.0),
-    ])
-    tab = trimesh.creation.extrude_polygon(tab_2d, Shuttle_Rib_Thickness + Groove_Opening_Offset)
-    tab = sp.translate(tab, [0, 0, -Groove_Opening_Offset / 2.0])
+    parts = [disk]
+    if include_tab:
+        tab_half_width = Groove_Tab_Width / 2.0 - shrink
+        tab_2d = ShapelyPolygon([
+            (0, -tab_half_width), (50, -tab_half_width),
+            (50, tab_half_width), (0, tab_half_width),
+        ])
+        tab = trimesh.creation.extrude_polygon(tab_2d, Shuttle_Rib_Thickness + Groove_Opening_Offset)
+        tab = sp.translate(tab, [0, 0, -Groove_Opening_Offset / 2.0])
+        parts.append(tab)
 
-    shape = sp.union_all([disk, tab])
+    shape = sp.union_all(parts)
     for n in (-2, -1, 1, 2):
         nub = sp.cylinder_z(2 * Shuttle_Groove_Nub_Size, Shuttle_Rib_Thickness + 2 * z,
                              sections=Cyl_Fn, base_z=-z)

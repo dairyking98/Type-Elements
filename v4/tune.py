@@ -746,10 +746,15 @@ ELEMENT_FIELDS_HAMMOND = [
     # out of ELEMENT_FIELDS_HAMMOND/self.FIELDS entirely now - _collect_
     # values/_refresh_widgets_from_cfg handle it explicitly, same as
     # target/resin_support below it.
-    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used when Without Rib is on."),
-    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used when Without Rib is on."),
-    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used when Without Rib is on."),
+    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used for Build target Shuttle/Rib (the without-rib/groove body and its interface flange)."),
+    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used for Build target Shuttle (the without-rib/groove body's own cut slot - Rib's flange omits the tab, see hammond.py)."),
+    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used for Build target Shuttle (the without-rib/groove body)."),
     ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Its ResinChamfer() consumer is currently disabled (commented out) - only used by the Resin tab's Cut Groove support method now (unrelated feature, same constant - see config comment)."),
+    ("rib_interface_offset_mm", ["element", "rib_interface_offset_mm"], float, "Rib interface offset (mm)",
+     "FDM print-fit clearance for Build target Rib's groove-interface flange - shrinks the "
+     "flange (the piece being test-fit into a Shuttle body's cut slot) so it actually slides "
+     "in after printing. 0 reproduces the exact nominal/uncompensated fit; increase if the "
+     "flange prints too tight for your printer/filament."),
 ]
 
 SECTIONS_BY_MACHINE = {
@@ -1276,6 +1281,46 @@ RESIN_SUPPORT_UNAVAILABLE_NOTE = {
         "geometry is modeled (see ResinPrint() in lib/helios.py)."
     ),
 }
+
+# Hammond's Build target dropdown consolidates the old separate target
+# dropdown (Shuttle/Calibration Shuttle/None) + Rib checkbox into one
+# control, per explicit request ("remove Rib checkbox, and just go with
+# dropdown options Shuttle, Rib, Shuttle with Rib") - each option maps
+# directly to a (build.target, element.groove) pair. "Rib"'s groove
+# value doesn't really matter (RibOnly() ignores element.groove
+# entirely - see lib/hammond.py), True just keeps it consistent with
+# "Shuttle"'s own meaning (the without-rib/groove body). "Calibration
+# Shuttle" always uses the fused rib body (groove=False) regardless of
+# whichever of the other 3 options was last picked - Calibration's own
+# purpose is validating the real default/normal print variant, not an
+# independently re-derivable "last known groove state" that would
+# silently change Calibration's own geometry based on an unrelated
+# previous dropdown pick.
+HAMMOND_BUILD_OPTIONS = [
+    ("Shuttle", "shuttle"),
+    ("Rib", "rib"),
+    ("Shuttle with Rib", "shuttle_with_rib"),
+    ("Calibration Shuttle", "calibration"),
+]
+HAMMOND_BUILD_TARGET_GROOVE = {
+    "shuttle": ("element", True),
+    "rib": ("none", True),
+    "shuttle_with_rib": ("element", False),
+    "calibration": ("calibration", False),
+}
+
+
+def _hammond_build_dropdown_value(target, groove):
+    """Reverse of HAMMOND_BUILD_TARGET_GROOVE - derives the dropdown's
+    displayed value from a loaded config's real (target, groove) pair
+    (used by _refresh_widgets_from_cfg). "none" always means "rib" (the
+    only real use for Build target None); any other target with
+    groove=True is "shuttle", groove=False is "shuttle_with_rib"."""
+    if target == "none":
+        return "rib"
+    if target == "calibration":
+        return "calibration"
+    return "shuttle" if groove else "shuttle_with_rib"
 
 # layout.baseline_row/cutout_row per-row fields (Element tab - see
 # TuneApp._compose_baseline_cutout_fields). Bespoke, not in
@@ -1922,73 +1967,56 @@ class TuneApp(App):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
                     yield Static("Build target", classes="field-label")
-                    target_now = self.cfg.get("build", {}).get("target", "element")
-                    if target_now not in valid_targets:
-                        target_now = "element"
-                    # "Element" is the generic cross-machine term (v2/v3's
-                    # own docs use it too), but Hammond's real part is a
-                    # "Shuttle" - relabeled per explicit request, same
-                    # "element" target VALUE underneath (generate.py's
-                    # dispatch doesn't change).
-                    element_label = "Shuttle" if is_hammond else "Element"
-                    options = [(element_label, "element")]
-                    if has_gauge:
-                        options.append(("Shaft Gauge", "gauge"))
-                    options.append((f"Calibration {element_label}", "calibration"))
                     if is_hammond:
-                        # "None" - no main shuttle/calibration body at all,
-                        # just RibOnly() (hammond.RibOnly(), a plain FDM
-                        # part export - no resin supports). Combined with
-                        # the Rib checkbox below, this replaces the 3
-                        # separate FDM-target dropdown entries this used to
-                        # be split across ("Shuttle - Rib"/"Shuttle + Rib"/
-                        # "Rib only") - Shuttle+Rib-off/Shuttle+Rib-on now
-                        # cover the first two (the Rib checkbox IS
-                        # element.groove, inverted, so toggling it before a
-                        # normal Shuttle build with Resin supports off
-                        # reproduces them exactly), and None+Rib-on covers
-                        # the third.
-                        options.append(("None", "none"))
-                    build_select = Select(options, value=target_now, id="build-select", allow_blank=False)
-                    yield build_select
-                if is_hammond:
-                    with Horizontal(classes="picker-row"):
-                        yield Static("Rib", classes="field-label")
-                        rib_now = not bool(self.cfg.get("element", {}).get("groove"))
-                        yield Switch(value=rib_now, id="build-rib")
-                    yield Static(
-                        "On (default): internal rib + drive-pin boss. Off (\"Without "
-                        "Rib\"): snap-fit groove cut into the shell instead - no "
-                        "separate rib piece (element.groove, inverted). This is the "
-                        "physical BODY assembly only - it no longer picks the "
-                        "horizontal resin support scheme (see the Resin tab's "
-                        "Horizontal support method), though Rib on always adds its "
-                        "own resin-rod supports for the rib regardless of that "
-                        "setting. For Build target None (no shuttle body), Rib on "
-                        "exports just the rib+pin-support assembly alone "
-                        "(hammond.RibOnly(), a plain FDM part - no resin supports "
-                        "either way); Rib off with None isn't a real combination "
-                        "(nothing to export).",
-                        classes="field-help")
+                        # Consolidates the old target dropdown (Shuttle/
+                        # Calibration Shuttle/None) + separate Rib checkbox
+                        # into one control - see HAMMOND_BUILD_TARGET_GROOVE's
+                        # own comment for exactly what (target, groove) pair
+                        # each option maps to.
+                        target_now = self.cfg.get("build", {}).get("target", "element")
+                        groove_now = bool(self.cfg.get("element", {}).get("groove"))
+                        value_now = _hammond_build_dropdown_value(target_now, groove_now)
+                        yield Select(HAMMOND_BUILD_OPTIONS, value=value_now,
+                                     id="build-select", allow_blank=False)
+                    else:
+                        target_now = self.cfg.get("build", {}).get("target", "element")
+                        if target_now not in valid_targets:
+                            target_now = "element"
+                        options = [("Element", "element")]
+                        if has_gauge:
+                            options.append(("Shaft Gauge", "gauge"))
+                        options.append(("Calibration Element", "calibration"))
+                        build_select = Select(options, value=target_now, id="build-select", allow_blank=False)
+                        yield build_select
                 with Horizontal(classes="picker-row"):
                     yield Static("Resin supports", classes="field-label")
                     resin_now = bool(self.cfg.get("build", {}).get("resin_support"))
                     sw = Switch(value=resin_now, id="build-resin-support")
                     yield sw
-                gauge_help = (
-                    " Shaft Gauge: a small calibration print (see the Gauge tab) - "
-                    "always includes its own resin supports regardless of this "
-                    "checkbox."
-                ) if has_gauge else ""
-                resin_unavailable = RESIN_SUPPORT_UNAVAILABLE_NOTE.get(self.machine, "")
-                yield Static(
-                    "Element: the real element. Turn on Resin supports to add "
-                    "rods/breakaway ring (see the Resin tab for those settings)."
-                    f"{gauge_help} Calibration Element: strikes the same test "
-                    "character everywhere, sweeping baseline or cutout per column "
-                    "(see the Calibration tab) to find layout.baseline_row/cutout_row."
-                    f"{resin_unavailable}",
-                    classes="picker-help")
+                if is_hammond:
+                    resin_unavailable = RESIN_SUPPORT_UNAVAILABLE_NOTE.get(self.machine, "")
+                    yield Static(
+                        'Shuttle: groove-cut shell, no rib. Rib: just the rib+pin-boss '
+                        'piece, with a flange (Element tab\'s Rib interface offset) to '
+                        'snap into a Shuttle. Shuttle with Rib: the fused one-piece '
+                        'default. Calibration Shuttle always uses the fused body. Resin '
+                        f"supports not available for Rib.{resin_unavailable}",
+                        classes="picker-help")
+                else:
+                    gauge_help = (
+                        " Shaft Gauge: a small calibration print (see the Gauge tab) - "
+                        "always includes its own resin supports regardless of this "
+                        "checkbox."
+                    ) if has_gauge else ""
+                    resin_unavailable = RESIN_SUPPORT_UNAVAILABLE_NOTE.get(self.machine, "")
+                    yield Static(
+                        "Element: the real element. Turn on Resin supports to add "
+                        "rods/breakaway ring (see the Resin tab for those settings)."
+                        f"{gauge_help} Calibration Element: strikes the same test "
+                        "character everywhere, sweeping baseline or cutout per column "
+                        "(see the Calibration tab) to find layout.baseline_row/cutout_row."
+                        f"{resin_unavailable}",
+                        classes="picker-help")
 
                 if is_hammond:
                     orientation_now = str(self.cfg.get("resin", {}).get("orientation", "vertical"))
@@ -2013,9 +2041,9 @@ class TuneApp(App):
                     yield Static(
                         'Only used for horizontal orientation. "Cut Groove": a swept perforated '
                         'breakaway-groove ring around the outer wall. "Resin Rod": individual rods '
-                        "along the outer wall instead. Independent of the Rib checkbox above - "
-                        "whenever Rib is on, its own resin-rod supports are always added too, "
-                        "regardless of this setting.",
+                        'along the outer wall instead. Independent of Build target above - whenever '
+                        'it builds a body with a rib ("Shuttle with Rib"), its own resin-rod supports '
+                        "are always added too, regardless of this setting.",
                         classes="field-help")
 
                 yield Static("Debug", classes="field-label")
@@ -2162,13 +2190,17 @@ class TuneApp(App):
         # "Resin supports" checkbox - resin_support only actually matters
         # when target is "element" (GaugeTestSet() always builds its own
         # supports regardless, see _run_build)
-        values["target"] = self.query_one("#build-select", Select).value
+        if self.machine == "hammond":
+            # Hammond's dropdown value is one of HAMMOND_BUILD_OPTIONS'
+            # keys (shuttle/rib/shuttle_with_rib/calibration), not a real
+            # build.target value directly - translate via
+            # HAMMOND_BUILD_TARGET_GROOVE (see _compose_build_tab).
+            dropdown_value = self.query_one("#build-select", Select).value
+            values["target"], values["groove"] = HAMMOND_BUILD_TARGET_GROOVE[dropdown_value]
+        else:
+            values["target"] = self.query_one("#build-select", Select).value
         values["resin_support"] = self.query_one("#build-resin-support", Switch).value
         if self.machine == "hammond":
-            # Rib checkbox is element.groove, inverted (Rib on -> groove
-            # False - see _compose_build_tab) - not in self.FIELDS since it
-            # moved off the Element tab onto the Build tab.
-            values["groove"] = not self.query_one("#build-rib", Switch).value
             # orientation/horizontal_method - moved off the Resin tab onto
             # the Build tab (see _compose_build_tab) - not in self.FIELDS
             # for the same reason as groove above.
@@ -2270,22 +2302,26 @@ class TuneApp(App):
         preset_now = self._current_layout_preset()
         self.query_one("#layout-select", Select).value = preset_now if preset_now else Select.NULL
         target_now = self.cfg.get("build", {}).get("target", "element")
-        hammond_parts = ("none",) if self.machine == "hammond" else ()
-        valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ()) + hammond_parts
-        if target_now not in valid_targets:
-            # "resin" was a valid target value before the Build tab's
-            # dropdown was split into target + a separate Resin supports
-            # checkbox - a running copy saved before that change could
-            # still have it on disk; map it back to plain "element" (the
-            # checkbox itself carries whether resin support is on now).
-            # Also catches "gauge" for a machine with no Gauge tab, and
-            # "shuttle_minus_rib"/"shuttle_plus_rib"/"rib_only" from before
-            # those 3 FDM targets were folded into None + the Rib checkbox.
-            target_now = "element"
-        self.query_one("#build-select", Select).value = target_now
+        if self.machine == "hammond":
+            # Hammond's dropdown shows a consolidated Shuttle/Rib/Shuttle
+            # with Rib/Calibration Shuttle value, not a raw build.target -
+            # see HAMMOND_BUILD_OPTIONS/_hammond_build_dropdown_value.
+            groove_now = bool(self.cfg.get("element", {}).get("groove"))
+            self.query_one("#build-select", Select).value = (
+                _hammond_build_dropdown_value(target_now, groove_now))
+        else:
+            valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ())
+            if target_now not in valid_targets:
+                # "resin" was a valid target value before the Build tab's
+                # dropdown was split into target + a separate Resin supports
+                # checkbox - a running copy saved before that change could
+                # still have it on disk; map it back to plain "element" (the
+                # checkbox itself carries whether resin support is on now).
+                # Also catches "gauge" for a machine with no Gauge tab.
+                target_now = "element"
+            self.query_one("#build-select", Select).value = target_now
         self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])
         if self.machine == "hammond":
-            self.query_one("#build-rib", Switch).value = not bool(self.cfg["element"]["groove"])
             orientation_now = str(self.cfg.get("resin", {}).get("orientation", "vertical"))
             self.query_one("#build-orientation", Select).value = (
                 orientation_now if orientation_now in ("vertical", "horizontal") else "vertical")
