@@ -3500,6 +3500,45 @@ clean, valid, watertight `CalibrationElement`s with genuinely different
 volumes (1857.061mm3 vs 2000.507mm3), confirming the Rib/Without-Rib
 distinction is real for Calibration too, not a no-op.
 
+## 54. Hammond: fixed RibOnly()'s misaligned flange trim - part 52's trim_to_arc re-derived p1/p3 at the wrong radius
+
+User: "The Rib only is not the same as when its installed on the
+shuttle together. the two regressed. the Rib only has a flat line,
+should have the same curves." Root cause found by direct numeric check
+(not assumed): part 52's `trim_to_arc` re-derived the flange's wedge-
+trim p1/p3 using Rib()'s own `half_ang_rad`-from-ORIGIN formula, but
+evaluated at the flange's own larger radius (`Shuttle_Arc_Radius+
+Shuttle_Groove_Depth-shrink` instead of Rib()'s plain `Shuttle_Arc_
+Radius`). The trim's apex is `(Z_Offset, 0)` - offset from the origin -
+so a point at the "same angle from origin" but a DIFFERENT radius does
+NOT sit on the same ray from that apex. Confirmed exactly: the angle
+from apex to Rib()'s own p1 is precisely -90deg (apex.x equals p1.x
+exactly, both being Shuttle_Arc_Radius*cos(half_ang)), but the
+re-derived flange p1 (at the larger radius) landed at -89.53deg instead
+- a real, measurable ~0.47deg rotation between the two pieces' trim
+boundaries, which is what showed up as a misaligned seam/flat facet
+where the flange should have smoothly continued Rib()'s own curve.
+
+Fixed by extending the exact SAME p1/p3 points outward along their own
+existing ray from apex (`apex + 3.0*(p1_rib-apex)`, a generous but not
+re-derived scale factor - safe since this disk's radius only exceeds
+Rib()'s R by Shuttle_Groove_Depth, a few tenths of a mm) instead of
+re-deriving new points at a different radius. Guarantees identical trim
+angles regardless of which radius the disk being trimmed actually is.
+
+**Verified**: `RibOnly()`'s bounds X-min now matches `RibAssembled()`'s
+own X-min EXACTLY (`18.28713799` both, to 8 decimal places - was
+measurably off before this fix) and matches the full fused body's own
+X-min too (`FullElement()`'s bounds, same value). Shell-cutter path
+(default args) confirmed byte-for-byte unaffected (`GrooveShape()`
+bounds/volume identical to the established baseline). Full hard gate:
+Groove body `ResinPrint` volume `4309.645mm3` matches baseline exactly;
+`RibOnly()` via `--hammond-part rib_only` CLI still builds a clean,
+valid, watertight mesh (volume `243.599mm3`, up slightly from the
+pre-fix `241.948mm3` as expected - the corrected, non-rotated trim
+boundary keeps marginally more material than the rotated/clipped one
+did).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

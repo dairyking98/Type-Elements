@@ -562,25 +562,46 @@ def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
     trim_to_arc (v4-specific - default False reproduces the original
     shell-cutter shape exactly, a FULL 360deg disk): set True to trim
     the disk down to the shuttle's real angular span, using the exact
-    same wedge-complement trim Rib() applies to itself (same apex/
-    half_ang_rad, just re-derived at THIS disk's own, larger radius
-    rather than Rib()'s R - the trim is angle-defined from a fixed
-    apex, not radius-defined, so re-deriving p1/p3 at the flange's own
-    radius keeps the trim boundary reaching all the way to its actual
-    edge). Needed because GrooveShape()'s disk is meant to be subtracted
-    from a FULL circular shell in its real cutter use (no trim needed
-    there - the shell itself gets trimmed elsewhere), but RibOnly()'s
-    positive-flange use adds it to Rib(), which is already trimmed to
-    the real ~120deg arc - without this, the flange would be a full
-    360deg disk floating mostly in empty space beyond the rib's own
-    actual angular footprint."""
+    same wedge-complement trim Rib() applies to itself (same apex,
+    same p1/p3 RAYS from that apex - NOT re-derived at this disk's own
+    larger radius using Rib()'s half_ang_rad-from-ORIGIN formula, which
+    was an earlier, WRONG version of this: apex=(Z_Offset,0) is offset
+    from the origin, so a point at the "same angle from origin" but a
+    different radius does NOT sit on the same ray from apex - re-
+    deriving p1/p3 that way rotated the flange's trim boundary by
+    ~0.5deg off of Rib()'s own (confirmed: angle-from-apex to Rib()'s
+    p1 is exactly -90deg by construction - apex.x equals p1.x exactly,
+    since both derive from the same Shuttle_Arc_Radius*cos(half_ang) -
+    but recomputing p1 at a different radius broke that exact equality,
+    landing at -89.53deg instead), producing a visibly misaligned
+    seam/flat facet where the flange's edge should smoothly continue
+    Rib()'s own curve - reported as "the two regressed... the Rib only
+    has a flat line, should have the same curves." Fixed by extending
+    the SAME p1/p3 points outward along their own existing ray from
+    apex (scaled by a generous factor, not re-derived), guaranteeing
+    identical trim-boundary angles regardless of this disk's radius.
+    Needed because GrooveShape()'s disk is meant to be subtracted from a
+    FULL circular shell in its real cutter use (no trim needed there -
+    the shell itself gets trimmed elsewhere), but RibOnly()'s positive-
+    flange use adds it to Rib(), which is already trimmed to the real
+    ~120deg arc - without this, the flange would be a full 360deg disk
+    floating mostly in empty space beyond the rib's own actual angular
+    footprint."""
     res = _circ_res(Cyl_Fn)
     disk_2d = Point(0, 0).buffer(Shuttle_Arc_Radius + Shuttle_Groove_Depth - shrink, resolution=res)
     if trim_to_arc:
         half_ang_rad = np.radians(Angle_Pitch * 16.0)
-        disk_r = Shuttle_Arc_Radius + Shuttle_Groove_Depth - shrink
-        p1 = (disk_r * np.cos(half_ang_rad), -disk_r * np.sin(half_ang_rad))
-        p3 = (disk_r * np.cos(half_ang_rad), disk_r * np.sin(half_ang_rad))
+        R = Shuttle_Arc_Radius
+        p1_rib = np.array([R * np.cos(half_ang_rad), -R * np.sin(half_ang_rad)])
+        p3_rib = np.array([R * np.cos(half_ang_rad), R * np.sin(half_ang_rad)])
+        apex = np.array([Z_Offset, 0.0])
+        # Extend along the SAME ray from apex through Rib()'s own p1/p3 -
+        # a generous scale factor (this disk's radius only ever exceeds
+        # R by Shuttle_Groove_Depth, a few tenths of a mm, so 3x is
+        # already far more margin than needed) rather than re-deriving
+        # p1/p3 at a new radius, which is the bug this replaced.
+        p1 = tuple(apex + 3.0 * (p1_rib - apex))
+        p3 = tuple(apex + 3.0 * (p3_rib - apex))
         disk_2d = disk_2d.difference(_wedge_complement_poly(p1, (Z_Offset, 0.0), p3))
     disk = trimesh.creation.extrude_polygon(disk_2d, Shuttle_Rib_Thickness)
 
