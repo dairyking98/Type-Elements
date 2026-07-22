@@ -577,19 +577,52 @@ def RibOnly():
     clearance in the slot") - rather than the tang matching the slot's
     own oversized cut dimension and fitting snugly with no play.
     flat_bottom=Rib_Flat_Bottom: passed straight through to
-    RibAssembled()/PinSupport() - see PinSupport()'s own docstring."""
+    RibAssembled()/PinSupport() - see PinSupport()'s own docstring.
+
+    include_nubs=False, nub cutouts applied last: GrooveShape()'s own
+    internal nub-clearance cut (its default, real-cutter behavior) would
+    get partly re-filled here - Rib()'s own solid band overlaps the same
+    footprint as the flange, so unioning an already-nub-cut flange onto
+    RibAssembled() restores whatever material the cut was missing right
+    there (reported directly: a shallow dent instead of a full cutout in
+    a live f3d view, not a clean hole). Building the full union FIRST,
+    then subtracting _groove_nubs() from that combined solid as its own
+    final step, avoids this - see GrooveShape()'s include_nubs
+    docstring."""
     _require_configured()
     tab_start = Shuttle_Arc_Radius - Shuttle_Rib_Width - 1.0
-    rib = sp.union_all([RibAssembled(flat_bottom=Rib_Flat_Bottom),
-                         GrooveShape(shrink=Rib_Interface_Offset, include_tab=True,
-                                     tab_length=Rib_Tang_Length, tab_start=tab_start,
-                                     tab_z_pad=0.0, nub_grow=Rib_Nub_Growth, trim_to_arc=True)])
+    combined = sp.union_all([RibAssembled(flat_bottom=Rib_Flat_Bottom),
+                              GrooveShape(shrink=Rib_Interface_Offset, include_tab=True,
+                                          tab_length=Rib_Tang_Length, tab_start=tab_start,
+                                          tab_z_pad=0.0, nub_grow=Rib_Nub_Growth,
+                                          include_nubs=False, trim_to_arc=True)])
+    nubs = sp.translate(_groove_nubs(Rib_Nub_Growth), [0, 0, BASELINE_Z_OFFSET])
+    rib = combined.difference(nubs, engine="manifold")
     rib, _, _, _ = sp.check_and_repair(rib, label="RibOnly")
     return rib
 
 
+def _groove_nubs(nub_grow=0.0):
+    """The 4 nub-shaped retention-detent clearance cutters GrooveShape()
+    subtracts (+-29/+-58deg, at radius Shuttle_Arc_Radius+Shuttle_Groove_
+    Depth) - extracted so RibOnly() can subtract the SAME cutters from
+    its own final union (see GrooveShape()'s include_nubs parameter and
+    RibOnly()'s own docstring for why). Returned in GrooveShape()'s local
+    (untranslated) frame - callers needing the real placed position must
+    apply the same +BASELINE_Z_OFFSET translate GrooveShape() itself
+    applies at its own return."""
+    nubs = []
+    for n in (-2, -1, 1, 2):
+        nub = sp.cylinder_z(2 * (Shuttle_Groove_Nub_Size + nub_grow), Shuttle_Rib_Thickness + 2 * z,
+                             sections=Cyl_Fn, base_z=-z)
+        nub = sp.translate(nub, [Shuttle_Arc_Radius + Shuttle_Groove_Depth, 0, 0])
+        nub = sp.rotate_z(nub, Shuttle_Groove_Nub_Angle * n)
+        nubs.append(nub)
+    return sp.union_all(nubs)
+
+
 def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, tab_z_pad=None,
-                 nub_grow=0.0, trim_to_arc=False):
+                 nub_grow=0.0, include_nubs=True, trim_to_arc=False):
     """v2:484-500 - circumferential snap-fit slot cut into the shell,
     opening from its INNER surface (a solid disk r=Shuttle_Arc_Radius+
     Shuttle_Groove_Depth, unioned with a radial "tab" box reaching out to
@@ -656,6 +689,21 @@ def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, ta
     to give its own flange's clearance holes some FDM-fit margin,
     independent of shrink (which only affects the disk/tab's outer
     boundary, not these interior cutouts).
+
+    include_nubs (v4-specific - default True reproduces the original
+    shell-cutter shape exactly, cutting the 4 nub clearances internally
+    before returning): set False to skip that internal cut and return
+    the disk+tab union with nub material still solid. RibOnly() needs
+    this off - subtracting the nubs INSIDE GrooveShape(), before its
+    result gets unioned with RibAssembled(), left the notches re-filled:
+    Rib()'s own solid band overlaps the same footprint the flange
+    occupies, so union() simply restored whatever material the
+    already-cut flange was missing there (visible as a shallow dent
+    instead of a full cutout - reported directly against a live f3d
+    view). RibOnly() instead unions the (nub-uncut) flange with
+    RibAssembled() FIRST, then subtracts _groove_nubs() from that
+    combined solid as its own final step, so nothing downstream can
+    fill the cutouts back in.
 
     trim_to_arc (v4-specific - default False reproduces the original
     shell-cutter shape exactly, a FULL 360deg disk): set True to trim
@@ -736,12 +784,8 @@ def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, ta
         parts.append(tab)
 
     shape = sp.union_all(parts)
-    for n in (-2, -1, 1, 2):
-        nub = sp.cylinder_z(2 * (Shuttle_Groove_Nub_Size + nub_grow), Shuttle_Rib_Thickness + 2 * z,
-                             sections=Cyl_Fn, base_z=-z)
-        nub = sp.translate(nub, [Shuttle_Arc_Radius + Shuttle_Groove_Depth, 0, 0])
-        nub = sp.rotate_z(nub, Shuttle_Groove_Nub_Angle * n)
-        shape = shape.difference(nub, engine="manifold")
+    if include_nubs:
+        shape = shape.difference(_groove_nubs(nub_grow), engine="manifold")
 
     return sp.translate(shape, [0, 0, BASELINE_Z_OFFSET])  # Rib_Bottom_Z
 

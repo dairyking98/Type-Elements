@@ -3739,6 +3739,50 @@ test against a scratch config: the Rib tab's `#field-rib_flat_bottom`
 Switch exists, toggling it and saving writes `rib_flat_bottom: true`
 correctly.
 
+## 59. Hammond: `RibOnly()`'s nub-clearance cutouts were getting re-filled by the union with `RibAssembled()`
+
+User, from a live f3d view of a real build: "the nub cutouts for rib
+only i think you have to subtract them last cus theres something else
+thats protruding into it" (screenshot: a shallow dent along the
+flange's outer edge instead of a clean cutout).
+
+Root cause: `GrooveShape()` subtracts its 4 nub-clearance cylinders
+INTERNALLY, before returning (real cutter behavior, correct there).
+`RibOnly()` built `union_all([RibAssembled(), GrooveShape(...)])` -
+i.e. unioned an ALREADY nub-cut flange onto `RibAssembled()`. But
+`Rib()`'s own solid band occupies the same radial footprint the
+flange's ring does (both span roughly `Shuttle_Arc_Radius-
+Shuttle_Rib_Width` to `Shuttle_Arc_Radius+Shuttle_Groove_Depth`) - so
+wherever they overlap, `union()` just restores whatever material the
+already-cut flange was missing, since `Rib()`'s own material there was
+never cut. The cutout came out as a shallow dent (only the thin sliver
+of flange NOT covered by `Rib()`'s own band actually stayed empty),
+not a real hole through the assembled part.
+
+Fixed by reordering: extracted the nub-cylinder construction into a new
+`_groove_nubs(nub_grow=0.0)` helper (returns the unioned 4-cylinder
+cutter in `GrooveShape()`'s own local/untranslated frame). `GrooveShape()`
+gained `include_nubs=True` (default reproduces the original internal cut
+exactly - the real Shuttle-side cutter call site is unaffected).
+`RibOnly()` now passes `include_nubs=False`, builds the FULL union of
+`RibAssembled()+flange` first, then subtracts `_groove_nubs(Rib_Nub_
+Growth)` (translated by `+BASELINE_Z_OFFSET` to match the combined
+solid's real placed frame) from that combined result as its own final
+step - nothing downstream can re-fill the cutouts afterward, since
+nothing gets unioned after this subtraction.
+
+**Verified**: `RibOnly()` (master defaults) volume `142.362mm3` ->
+`142.270mm3` (small decrease, expected - the cutouts now actually
+remove material from `Rib()`'s band where they previously didn't).
+f3d close-up on the outer edge shows a real cutout at the nub location
+instead of a shallow dent. `flat_bottom=true` combined with the fix
+still builds a clean, valid, watertight mesh (`123.732mm3`, down
+slightly from part 58's `123.825mm3`, same direction/cause). Full hard
+gate: shell-cutter path (`element.groove=true`, stashed `lib/hammond.py`
+before/after) identical `verts=458769 faces=918854 volume=4309.645mm3`
+both times; master-default full `ResinPrint`
+(`verts=474495 faces=950638 volume=4802.476mm3`) unchanged.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
