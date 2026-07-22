@@ -120,6 +120,7 @@ from shapely.ops import unary_union
 import scad_primitives as sp
 import cylinder_machine
 import resin_support
+import build_log
 
 _configured = False
 
@@ -913,11 +914,9 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                      draft_angle_deg=draft_angle_deg, force_groove=force_groove)
-    print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
-          f"watertight={additive.is_watertight}", flush=True)
+    build_log.mesh_report(additive, "Additive")
     subtractive = Subtractive(render_core_groove, force_groove=force_groove)
-    print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
-          f"watertight={subtractive.is_watertight}", flush=True)
+    build_log.mesh_report(subtractive, "Subtractive (unioned)")
     full = additive.difference(subtractive, engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="FullElement")
     return full, char_parts
@@ -1558,8 +1557,7 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
             support_parts.append(HorizRibResinSupport())
             label += "+HorizRibResinSupport"
         support = sp.union_all(support_parts)
-        print(f"{label}: verts={len(support.vertices)} faces={len(support.faces)} "
-              f"watertight={support.is_watertight}", flush=True)
+        build_log.mesh_report(support, label)
         combined = sp.translate(sp.union_all([body, support]), [-Z_Offset, 0, 0])
         combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
         return combined, char_parts

@@ -21,6 +21,7 @@ import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
 from glyph_poc import build_glyph  # noqa: E402
+import build_log  # noqa: E402
 
 
 def _load_machine(config_path):
@@ -75,15 +76,15 @@ def main():
                     simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
                     minkowski_enabled=minkowski_enabled)
             except Exception as e:
-                print(f"[{done}/{total}] row{row}_col{col:02d}_{safe_name(ch)} SKIPPED: {e}")
+                build_log.progress_line("export_glyphs", done, total,
+                                         f"row{row}_col{col:02d}_{safe_name(ch)} SKIPPED: {e}")
                 continue
             fname = f"row{row}_col{col:02d}_{safe_name(ch)}.stl"
-            mesh.export(os.path.join(out_dir, fname))
-            flag = "" if mesh.is_watertight and mesh.is_volume else "  <-- NOT watertight/is_volume!"
-            print(f"[{done}/{total}] {fname}  verts={len(mesh.vertices)} "
-                  f"watertight={mesh.is_watertight} is_volume={mesh.is_volume}{flag}")
+            build_log.atomic_export(mesh, os.path.join(out_dir, fname))
+            flag = "" if mesh.is_watertight and mesh.is_volume else " <-- NOT watertight/is_volume!"
+            build_log.mesh_report(mesh, f"[{done}/{total}] {fname}{flag}")
 
-    print(f"\nwrote {total} files to {out_dir}")
+    print(f"\nwrote {total} files to {out_dir}", flush=True)
 
 
 if __name__ == "__main__":

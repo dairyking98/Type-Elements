@@ -404,11 +404,9 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
-    print(f"CalibrationAdditive: verts={len(additive.vertices)} faces={len(additive.faces)} "
-          f"watertight={additive.is_watertight}", flush=True)
+    build_log.mesh_report(additive, "CalibrationAdditive")
     subtractive = Subtractive(render_core_groove)
-    print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
-          f"watertight={subtractive.is_watertight}", flush=True)
+    build_log.mesh_report(subtractive, "Subtractive (unioned)")
     full = additive.difference(subtractive, engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="CalibrationElement")
     return full, mapping_lines
@@ -674,11 +672,9 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                      draft_angle_deg=draft_angle_deg)
-    print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
-          f"watertight={additive.is_watertight}", flush=True)
+    build_log.mesh_report(additive, "Additive")
     subtractive = Subtractive(render_core_groove)
-    print(f"Subtractive (unioned): verts={len(subtractive.vertices)} faces={len(subtractive.faces)} "
-          f"watertight={subtractive.is_watertight}", flush=True)
+    build_log.mesh_report(subtractive, "Subtractive (unioned)")
     full = additive.difference(subtractive, engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="FullElement")
     return full, char_parts
@@ -806,8 +802,7 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)
     support = ResinSupport()
-    print(f"ResinSupport: verts={len(support.vertices)} faces={len(support.faces)} "
-          f"watertight={support.is_watertight}", flush=True)
+    build_log.mesh_report(support, "ResinSupport")
     combined = sp.union_all([full, support])
     combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
     return combined, char_parts

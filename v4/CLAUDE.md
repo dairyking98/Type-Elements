@@ -303,14 +303,22 @@ the cited section for the full incident).
     single-line content - position/angle/mm detail - that doesn't fit
     that two-part shape) but still satisfies `_PROGRESS_RE` on its own;
     left as a plain `print(..., flush=True)`, not a gap.
-- **`generate.py` writes the output STL via `_atomic_export()` (temp file
-  in the same directory + `os.replace()`), never a bare `mesh.export(out_
-  path)`.** `trimesh`'s own `export()` opens/truncates the destination
-  directly - `tune.py`'s f3d `--watch` window has its own independent
-  filesystem watcher and can fire on that truncate/open event before the
-  write finishes, loading a 0-byte or partial file. Every new call site
-  that writes the final output mesh must go through `_atomic_export()`,
-  not add a new direct `.export()` call.
+  - Every hand-written `verts=.../watertight=...` print across `generate.
+    py`/`cylinder_machine.py`/`mignon.py`/`bennett.py`/`helios.py`/
+    `hammond.py`/`hammond_split.py`/`type_test.py`/`export_glyphs.py` has
+    been migrated to `build_log.mesh_report()` - this was a real, full
+    sweep (`SESSION_LOG.md` part 63), not just the two files that
+    happened to be touched when the module was first extracted. A new
+    print of this shape anywhere is a regression, not a stylistic choice.
+- **`generate.py`/`type_test.py`/`export_glyphs.py` write output meshes
+  via `build_log.atomic_export()` (temp file in the same directory +
+  `os.replace()`), never a bare `mesh.export(out_path)`.** `trimesh`'s
+  own `export()` opens/truncates the destination directly - `tune.py`'s
+  f3d `--watch` window has its own independent filesystem watcher and can
+  fire on that truncate/open event before the write finishes, loading a
+  0-byte or partial file. Every new call site that writes a final output
+  mesh must go through `build_log.atomic_export()`, not add a new direct
+  `.export()` call.
 - **`tune.py` only ever points f3d's `--watch` at a path it has already
   confirmed exists** (`_ensure_f3d_after_build` tracks `self._f3d_
   out_path` and forces a fresh kill+relaunch whenever the requested path
@@ -323,9 +331,9 @@ the cited section for the full incident).
   filesystem watch has no inode to attach to, so it never recovers even
   once the file is later created - reported as f3d's window persistently
   showing `"[EMPTY]"` no matter how many successful builds follow
-  (`SESSION_LOG.md` part 61 - this, not the `_atomic_export()` race
-  above, turned out to be the real cause). Don't add a new f3d-launching
-  call site that skips this tracking.
+  (`SESSION_LOG.md` part 61 - this, not the `atomic_export()` race above,
+  turned out to be the real cause). Don't add a new f3d-launching call
+  site that skips this tracking.
 - **List-valued config keys (`layout.rows`, `baseline_row`/`cutout_row`)
   need their own bespoke patcher (see `patch_yaml_list_item`/the
   block-list patch in `tune.py`), not the generic single-scalar FIELDS

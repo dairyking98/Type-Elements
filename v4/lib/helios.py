@@ -91,6 +91,7 @@ from glyph_poc import (
 )
 import scad_primitives as sp
 import cylinder_machine
+import build_log
 
 _configured = False
 
@@ -435,8 +436,7 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                      draft_angle_deg=draft_angle_deg)
-    print(f"Additive: verts={len(additive.vertices)} faces={len(additive.faces)} "
-          f"watertight={additive.is_watertight}", flush=True)
+    build_log.mesh_report(additive, "Additive")
     full = additive.difference(_final_cut(render_core_groove), engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="FullElement")
     return full, char_parts
@@ -471,8 +471,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
-    print(f"CalibrationAdditive: verts={len(additive.vertices)} faces={len(additive.faces)} "
-          f"watertight={additive.is_watertight}", flush=True)
+    build_log.mesh_report(additive, "CalibrationAdditive")
     full = additive.difference(_final_cut(render_core_groove), engine="manifold")
     full, _, _, _ = sp.check_and_repair(full, label="CalibrationElement")
     return full, mapping_lines

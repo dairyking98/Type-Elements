@@ -4065,6 +4065,65 @@ machines - every one byte-for-byte identical to part 60/61's own numbers.
 `build_log`-routed `TextRing` output confirmed identical in format/
 content to before the refactor (spot-checked Blickensderfer).
 
+## 63. Console logging sweep completed - every remaining hand-written summary print migrated
+
+Direct follow-up to part 62's "left as a follow-up, not touched in this
+pass" - the user asked explicitly to carry every other element to the
+same convention, so this pass finished the sweep rather than leaving it
+open. Found via `grep -rn 'watertight='` across the whole repo (not just
+the two files touched in part 62):
+
+- `lib/mignon.py`, `lib/bennett.py`, `lib/helios.py`, `lib/hammond.py`'s
+  own `Additive()`/`Subtractive()`/`CalibrationAdditive()`/
+  `ResinSupport()` prints (10 sites total) - all previously showed only
+  `watertight=`, a hand-abbreviated subset of `mesh_report()`'s full
+  field set. Migrated via a small regex script (matched the exact
+  `print(f"LABEL: verts=... faces=... "\n f"watertight=...", flush=True)`
+  shape across all 4 files in one pass) rather than hand-editing each -
+  caught and fixed one real bug the regex introduced: `lib/hammond.py`'s
+  one dynamic-label call site (`print(f"{label}: verts=...")`, `label` a
+  real variable built from `HorizWallRodSupport`/`HorizGroovedResin3`+
+  `HorizRibResinSupport` combinations) got literal-quoted as `"{label}"`
+  by the naive text substitution - caught by grepping for `mesh_report(.*
+  "\{` after the fact, fixed to pass `label` unquoted.
+- `lib/cylinder_machine.py` ITSELF had 5 more of the same shape (its own
+  `Additive`/`CalibrationAdditive`/`Subtractive`/`ResinSupport` summary
+  lines, separate from the `TextRing` progress loop part 62 already
+  converted) - missed in part 62 because that pass only grepped the
+  machine-module files, not the shared module they all build on top of.
+- `type_test.py` - genuinely the same class of bug part 61 found in
+  `generate.py`: subprocess-invoked by `tune.py`'s "Render Test Text"
+  action, writing to the SAME `output.stl_name` path `_ensure_f3d_after_
+  build` later watches, via a bare non-atomic `mesh.export()`, with a
+  summary print that had neither the full field set NOR `flush=True`.
+  Since there were now two real callers (`generate.py` and `type_test.
+  py`), `atomic_export()` (part 62's `generate.py`-local `_atomic_
+  export()`) was promoted into `lib/build_log.py` itself - `generate.py`
+  now calls `build_log.atomic_export()` too, removing its own local copy
+  entirely rather than keeping two implementations in sync by hand.
+- `export_glyphs.py` (a standalone "not part of generate.py's normal
+  flow" diagnostic - exports every character as its own STL for visual
+  inspection) - not subprocess-driven by `tune.py` so the f3d race
+  doesn't apply the same way, but had the identical drift (partial field
+  set, no `flush=True`) and is exactly the kind of script a future
+  session might copy the OLD pattern from if left alone. Folded its
+  `[n/total]`+filename+flag reporting into one `mesh_report()` call
+  (label = `f"[{done}/{total}] {fname}{flag}"`) rather than leaving a
+  parallel format.
+- `glyph_poc.report()` deliberately left AS IS (not migrated) - confirmed
+  again it has zero call sites outside its own standalone `__main__` CLI
+  block, and serves a genuinely different purpose (verbose interactive
+  single-glyph inspection, bbox included) - already documented as such in
+  part 62, not re-litigated here.
+
+**Verification**: full `CLAUDE.md` hard-gate re-run for all 7 machines,
+byte-for-byte identical to part 62's numbers. Also spot-checked `type_
+test.py` and `export_glyphs.py` directly (both produce valid watertight
+output with the new `mesh_report()`/`atomic_export()` formatting).
+`CLAUDE.md`'s build-pipeline logging rule updated to name the full list
+of migrated files, so "is this migrated yet" has one answer instead of
+requiring a fresh `grep` every time.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

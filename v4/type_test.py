@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib
 from glyph_poc import build_flat_text, ALIGN_MODE, ALIGN_CENTER_OFFSET_MM, ALIGN_LEFT_OFFSET_MM, \
     ALIGN_MODIFIED_LEFT_CHARS, ALIGN_MODIFIED_LEFT_OFFSET_MM, ALIGN_MODIFIED_RIGHT_CHARS, \
     ALIGN_MODIFIED_RIGHT_OFFSET_MM  # noqa: E402
+import build_log  # noqa: E402 - needs the lib/ sys.path.insert above first
 import scad_primitives as sp  # noqa: E402
 
 
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     )
     mesh = build_type_test_line(args.text, args.cpi, args.font_path, args.font_size_mm, args.points_per_mm,
                                  lpi=args.lpi, align_kwargs=align_kwargs)
-    print(f"TypeTest: verts={len(mesh.vertices)} faces={len(mesh.faces)} watertight={mesh.is_watertight}")
+    build_log.mesh_report(mesh, "TypeTest")
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-    mesh.export(args.out)
-    print(f"wrote {args.out}")
+    build_log.atomic_export(mesh, args.out)
+    print(f"wrote {args.out}", flush=True)

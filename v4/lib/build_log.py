@@ -1,5 +1,6 @@
 """
-Standardized console output for generate.py/tune.py's build pipeline -
+Standardized console output AND safe output-file writes for generate.py/
+tune.py's build pipeline -
 extracted because the pattern was being hand-duplicated with real drift
 (some machines' intermediate prints show only `watertight=`, others the
 full `verts/faces/watertight/winding_consistent/is_volume/volume` set;
@@ -23,7 +24,36 @@ flush=True everywhere - generate.py's stdout is piped (not a TTY) when
 run from tune.py's subprocess, which fully block-buffers without it,
 silently stalling live progress until the buffer fills or the process
 exits (SESSION_LOG.md part 7).
+
+atomic_export() is a third convention living here for the same reason:
+every subprocess tune.py drives (generate.py AND type_test.py) writes its
+final output mesh to a path tune.py's f3d --watch window may be actively
+watching - a plain mesh.export() is not atomic (opens/truncates the
+destination directly, then writes), so f3d's own independent filesystem
+watcher can catch a 0-byte or partial file mid-write (SESSION_LOG.md
+part 61/62).
 """
+
+import os
+import tempfile
+
+
+def atomic_export(mesh, out_path):
+    """Write mesh to out_path via a temp file in the SAME directory +
+    os.replace() (a same-filesystem rename, atomic on POSIX) instead of a
+    direct mesh.export(out_path) - see module docstring. Every call site
+    that writes a final build-pipeline output mesh should use this, not
+    a bare .export()."""
+    out_dir = os.path.dirname(out_path) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=out_dir, prefix=".tmp-", suffix=os.path.splitext(out_path)[1])
+    os.close(fd)
+    try:
+        mesh.export(tmp_path)
+        os.replace(tmp_path, out_path)
+    except BaseException:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise
 
 
 def progress_start(prefix, n, total, detail):
