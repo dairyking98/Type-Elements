@@ -263,41 +263,69 @@ the cited section for the full incident).
 - **Use `Select.NULL`, not `Select.BLANK`.** In the installed `textual`
   version, `Select.BLANK` equals `False`, not a real sentinel.
   (`SESSION_LOG.md` part 7)
-- **All `generate.py`/`tune.py` prints that feed the TUI's log pane need
-  `flush=True`.** Piped subprocess stdout is fully block-buffered
-  otherwise, so live progress silently stalls until the buffer fills.
-  (`SESSION_LOG.md` part 7)
-- **Any per-character glyph-building loop must print a `"[n/total] ..."`
-  line (exact shape, `flush=True`) for every character, matching
-  `cylinder_machine.TextRing`'s convention.** `tune.py`'s Build-tab
-  progress bar (`_update_progress`/`_PROGRESS_RE`) parses this literal
-  `[digits/digits]` pattern from the subprocess's stdout to drive 0-95%;
-  a machine whose glyph pipeline doesn't emit it gets a progress bar
-  that sits at 0% for the entire build, then jumps straight to 100% on
-  completion - not a bug in `tune.py`, a missing print in that machine's
-  lib code. Blickensderfer/Postal/Mignon/Bennett/Helios/Hammond all get
-  this for free by genuinely calling `cylinder_machine.TextRing`/
-  `CalibrationTextRing`; Hammond Split builds its own from-scratch
-  character loop (see `lib/hammond_split.py`'s module docstring) and
-  initially shipped without matching instrumentation, reproducing exactly
-  this symptom - fixed by adding the same `[n/total]` prints (plus
-  `cylinder_machine.TextRing`'s other habit worth copying: catch a
-  per-character exception, print `" SKIPPED (...)"`, and continue rather
-  than aborting the whole build over one bad glyph) directly to
-  `TextAssemble()`/`CalibrationTextRing()`. Any FUTURE machine with its
-  own from-scratch glyph loop (not reusing `cylinder_machine.TextRing`)
-  needs this same instrumentation added by hand - it is not automatic.
+- **All build-pipeline console output goes through `lib/build_log.py`,
+  not a hand-written `print()`.** Extracted after real drift was found:
+  `glyph_poc.py` had its own `report()` that nothing in the actual
+  pipeline called (wrong format, no `flush=True`), while the real,
+  load-bearing pattern - `[n/total]` progress plus the one-line `verts=
+  ... watertight=...` mesh summary - was hand-duplicated across
+  `generate.py`/`cylinder_machine.py`/every machine module, drifting
+  (some intermediate prints showed only `watertight=`, not the full
+  `watertight/winding_consistent/is_volume/volume` set). Two conventions,
+  both load-bearing, not cosmetic:
+  - **`build_log.progress_start`/`progress_done`/`progress_skipped`/
+    `progress_line` print the `"[n/total] ..."` shape `tune.py`'s
+    Build-tab progress bar (`_update_progress`/`_PROGRESS_RE`) parses out
+    of the subprocess's stdout to drive its 0-95% range.** Any per-
+    character glyph-building loop needs to call these for every
+    character or the progress bar just sits at 0% for the whole build,
+    then jumps straight to 100% on completion - not a `tune.py` bug, a
+    missing call in that machine's lib code. Blickensderfer/Postal/
+    Mignon/Bennett/Helios/Hammond all get this for free by genuinely
+    calling `cylinder_machine.TextRing`/`CalibrationTextRing`; Hammond
+    Split builds its own from-scratch character loop (see `lib/hammond_
+    split.py`'s module docstring) and initially shipped without matching
+    instrumentation, reproducing exactly this symptom (`SESSION_LOG.md`
+    part 61) - fixed by wiring `TextAssemble()`/`CalibrationTextRing()`
+    through `build_log`, which also brought along `cylinder_machine.
+    TextRing`'s other habit worth copying for free: catch a per-
+    character exception, print `" SKIPPED (...)"`, and continue rather
+    than aborting the whole build over one bad glyph. Any FUTURE machine
+    with its own from-scratch glyph loop needs this wired by hand too -
+    it is not automatic just from importing the module.
+  - **`build_log.mesh_report(mesh, label)` is the one authoritative
+    `verts=.../watertight=...` summary line format** - always the full
+    field set (matching `generate.py`'s own final-output line, the
+    literal source of truth the CLAUDE.md hard-gate verification below
+    compares against), never a hand-abbreviated subset.
+  - `cylinder_machine.CalibrationTextRing`'s own per-row/col line is
+    intentionally NOT routed through `progress_start`/`done` (richer
+    single-line content - position/angle/mm detail - that doesn't fit
+    that two-part shape) but still satisfies `_PROGRESS_RE` on its own;
+    left as a plain `print(..., flush=True)`, not a gap.
 - **`generate.py` writes the output STL via `_atomic_export()` (temp file
   in the same directory + `os.replace()`), never a bare `mesh.export(out_
   path)`.** `trimesh`'s own `export()` opens/truncates the destination
   directly - `tune.py`'s f3d `--watch` window has its own independent
   filesystem watcher and can fire on that truncate/open event before the
-  write finishes, loading a 0-byte or partial file (reported as f3d
-  showing `"[EMPTY]"` right after a real Preview/Render, not a corrupt
-  build - the STL generate.py finished writing was valid every time this
-  was checked). Every new call site that writes the final output mesh
-  must go through `_atomic_export()`, not add a new direct `.export()`
-  call.
+  write finishes, loading a 0-byte or partial file. Every new call site
+  that writes the final output mesh must go through `_atomic_export()`,
+  not add a new direct `.export()` call.
+- **`tune.py` only ever points f3d's `--watch` at a path it has already
+  confirmed exists** (`_ensure_f3d_after_build` tracks `self._f3d_
+  out_path` and forces a fresh kill+relaunch whenever the requested path
+  differs from what's currently being watched, which includes "first
+  successful build this session"). f3d loads whatever file is current AT
+  LAUNCH and only watches for *changes* after that - if it's ever pointed
+  at a path before that path has a real file on disk (the very first
+  Preview for a brand-new machine/output path, or a manually-started f3d
+  aimed at a not-yet-built path), it shows an empty scene and its
+  filesystem watch has no inode to attach to, so it never recovers even
+  once the file is later created - reported as f3d's window persistently
+  showing `"[EMPTY]"` no matter how many successful builds follow
+  (`SESSION_LOG.md` part 61 - this, not the `_atomic_export()` race
+  above, turned out to be the real cause). Don't add a new f3d-launching
+  call site that skips this tracking.
 - **List-valued config keys (`layout.rows`, `baseline_row`/`cutout_row`)
   need their own bespoke patcher (see `patch_yaml_list_item`/the
   block-list patch in `tune.py`), not the generic single-scalar FIELDS

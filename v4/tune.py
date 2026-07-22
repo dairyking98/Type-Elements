@@ -1709,6 +1709,7 @@ class TuneApp(App):
         self.inputs = {}
         self._last_build_info = None
         self._f3d_proc = None
+        self._f3d_out_path = None  # see _ensure_f3d_after_build's own comment
         self._warned_no_wmctrl = False
         # kill any f3d we launched when this app exits, whether that's a
         # normal 'q' quit (atexit fires once python3 tune.py's process
@@ -1859,6 +1860,7 @@ class TuneApp(App):
         # against .poll() still returning None for a moment after
         # .terminate() (SIGTERM is asynchronous).
         self._f3d_proc = None
+        self._f3d_out_path = None
 
     def _save_before_exit(self):
         # Every build action (Preview/Render/Render Test Text) already
@@ -2613,23 +2615,45 @@ class TuneApp(App):
 
     async def _ensure_f3d_after_build(self, out_path, camera_flags=()):
         """Called after a successful Preview/Render/Render Text. If f3d
-        isn't running (or the process we launched has since exited),
-        launch it fresh - it'll show the just-written STL immediately.
-        camera_flags (only meaningful on a fresh launch - f3d has no way
-        to change an already-running instance's camera from the CLI) let
-        the caller pick a starting view, e.g. top-down for flat text.
-        If f3d is already running, its own --watch reloads the model
-        automatically (keeping whatever camera the user's since set); we
-        just try to raise the window, after a short pause so the reload
-        has actually happened first (raising it to show the STALE model
-        would defeat the point)."""
+        isn't running (or the process we launched has since exited) OR
+        it's currently watching a DIFFERENT path than out_path, launch it
+        fresh - it'll show the just-written STL immediately. camera_flags
+        (only meaningful on a fresh launch - f3d has no way to change an
+        already-running instance's camera from the CLI) let the caller
+        pick a starting view, e.g. top-down for flat text.
+
+        The out_path check (self._f3d_out_path) matters beyond just
+        "switched machines" (already handled by _kill_f3d in that flow) -
+        f3d loads whatever "current file" is AT LAUNCH and then watches it
+        for further changes; if out_path didn't exist yet the moment some
+        earlier f3d instance launched against it (e.g. the very first
+        Preview for a brand new machine/output path, before this session
+        ever wrote it, or the user having started f3d by hand pointed at
+        a not-yet-built path), that instance shows an empty scene and its
+        filesystem watch has no existing inode to attach to - it never
+        recovers on its own even once the file is later created, reported
+        as f3d's window persistently showing "[EMPTY]" no matter how many
+        successful builds follow. Tracking out_path here and forcing a
+        fresh relaunch whenever it changes (which includes "first
+        successful build for this path this session," when self._f3d_
+        out_path is still None) guarantees f3d only ever gets pointed at
+        out_path AFTER a build has already confirmed it exists on disk,
+        never in a state where it could have started empty.
+
+        If f3d is already running and watching the SAME out_path, its own
+        --watch reloads the model automatically (keeping whatever camera
+        the user's since set); we just try to raise the window, after a
+        short pause so the reload has actually happened first (raising it
+        to show the STALE model would defeat the point)."""
         if not self.query_one("#f3d-preview-checkbox", Switch).value:
             return
-        if self._f3d_proc is None or self._f3d_proc.poll() is not None:
+        if self._f3d_proc is None or self._f3d_proc.poll() is not None or self._f3d_out_path != out_path:
+            self._kill_f3d()
             try:
                 self._f3d_proc = subprocess.Popen(
                     ["f3d", "--watch", out_path, "-g", "-x", *camera_flags],
                     cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self._f3d_out_path = out_path
                 self.log_line(f"[cyan]launched f3d --watch on {out_path}[/cyan]")
             except FileNotFoundError:
                 self.log_line("[red]f3d not found on PATH[/red]")

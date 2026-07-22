@@ -84,6 +84,7 @@ import scad_primitives as sp
 import resin_support
 import cylinder_machine
 import glyph_poc
+import build_log
 
 _configured = False
 
@@ -509,11 +510,8 @@ def TextAssemble(side):
             n += 1
             angle = (1 + i) * Char_Theta if side == 0 else (-1 - (14 - i)) * Char_Theta
             char = Layout[baseline][14 - i] if side == 0 else Layout[baseline][29 - i]
-            # flush=True - see cylinder_machine.TextRing's own comment:
-            # generate.py's stdout is piped (not a TTY) under tune.py's
-            # subprocess, which fully block-buffers without this.
-            print(f"TextAssemble: side={side} [{n}/{total}] building {char!r} (row {baseline})...",
-                  end="", flush=True)
+            prefix = f"TextAssemble side={side}"
+            build_log.progress_start(prefix, n, total, f"building {char!r} (row {baseline})")
             t0 = time.perf_counter()
             try:
                 is_mod = char in Char_Mod
@@ -522,16 +520,13 @@ def TextAssemble(side):
                 letter = LetterText(char, font_path, size)
             except Exception as e:
                 skipped.append((baseline, i, char, str(e)))
-                print(f" SKIPPED ({e})", flush=True)
+                build_log.progress_skipped(e)
                 continue
-            print(f" {time.perf_counter() - t0:.2f}s", flush=True)
+            build_log.progress_done(time.perf_counter() - t0)
             letter = sp.scad_transform(letter, *_text_placement_ops(angle, height))
             parts.append(letter)
-    print(f"TextAssemble: side={side} all characters built in {time.perf_counter() - t_start:.1f}s",
-          flush=True)
-    if skipped:
-        print(f"TextAssemble: side={side} placed {len(parts)}, skipped {len(skipped)}: {skipped}",
-              flush=True)
+    build_log.progress_summary(f"TextAssemble side={side}", len(parts), skipped,
+                                time.perf_counter() - t_start)
     return sp.union_all(parts)
 
 
@@ -906,11 +901,8 @@ def CalibrationTextRing(side, test_char, vary_baseline, start, interval):
         for i in range(15):
             n += 1
             angle = (1 + i) * Char_Theta if side == 0 else (-1 - (14 - i)) * Char_Theta
-            # Same "[n/total]" shape as TextAssemble()/cylinder_machine.
-            # TextRing, so tune.py's progress bar tracks Calibration
-            # builds too - see TextAssemble()'s own comment.
-            print(f"CalibrationTextRing: side={side} [{n}/{total}] building {test_char!r} (row {baseline})...",
-                  flush=True)
+            build_log.progress_line(f"CalibrationTextRing side={side}", n, total,
+                                     f"building {test_char!r} (row {baseline})")
             letter = LetterText(test_char, FONT_PATH, Type_Size)
             letter = sp.scad_transform(letter, *_text_placement_ops(angle, height))
             parts.append(letter)

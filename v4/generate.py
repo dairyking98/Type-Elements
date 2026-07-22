@@ -22,6 +22,8 @@ import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
+import build_log  # noqa: E402 - needs the lib/ sys.path.insert above first
+
 
 def _apply_cross_section(mesh, angle_deg):
     """Debug-only: clips mesh to one side of a vertical plane through the
@@ -215,9 +217,7 @@ def main():
         # not part of the real element at all - no char placement
         full = bd.GaugeTestSet(render_core_groove=render_core_groove)
         full = _apply_cross_section(full, args.cross_section_angle_deg)
-        print(f"GaugeTestSet: verts={len(full.vertices)} faces={len(full.faces)} "
-              f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
-              f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+        build_log.mesh_report(full, "GaugeTestSet")
         _atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         return
@@ -254,9 +254,7 @@ def main():
             draft_angle_deg=args.draft_angle_deg,
         )
         full = _apply_cross_section(full, args.cross_section_angle_deg)
-        print(f"CalibrationElement: verts={len(full.vertices)} faces={len(full.faces)} "
-              f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
-              f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+        build_log.mesh_report(full, "CalibrationElement")
         _atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         # .txt sidecar - the user's explicit ask: a durable keyboard-key/
@@ -277,9 +275,7 @@ def main():
         char_parts = []
         label = f"hammond --hammond-part {args.hammond_part}"
         full = _apply_cross_section(full, args.cross_section_angle_deg)
-        print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "
-              f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
-              f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+        build_log.mesh_report(full, label)
         _atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         return
@@ -308,9 +304,7 @@ def main():
         label = "ResinPrint" if resin_support else "FullElement"
     full = _apply_cross_section(full, args.cross_section_angle_deg)
 
-    print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "
-          f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
-          f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
+    build_log.mesh_report(full, label)
 
     _atomic_export(full, out_path)
     print(f"wrote {out_path}", flush=True)

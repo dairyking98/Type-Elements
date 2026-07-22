@@ -3994,6 +3994,77 @@ part 60's own numbers (confirms the atomic-export/progress-print/empty-
 guard changes are purely additive, no behavior change to the actual
 built geometry).
 
+## 62. Console logging standardized into `lib/build_log.py`; f3d "[EMPTY]"'s REAL cause found
+
+Follow-up to part 61, prompted by the user directly diagnosing the actual
+`"[EMPTY]"` mechanism themselves ("its because the *running* stl file
+didnt exist at first... if it DNE and its created, open it") - part 61's
+`_atomic_export()` fix was real and worth keeping, but wasn't the actual
+cause of what was observed.
+
+**Real cause**: f3d loads whatever file is "current" AT LAUNCH, then
+watches it for further changes (confirmed via `f3d --help`'s own text:
+`--watch` "Watch current file and automatically reload it whenever it is
+modified on disk"). `tune.py`'s `_ensure_f3d_after_build` only reuses an
+already-launched `self._f3d_proc` or launches fresh - it never checked
+whether the ALREADY-RUNNING instance it's about to reuse was ever
+actually pointed at THIS `out_path` while that path had real content. If
+f3d is launched (by `tune.py` or by hand) against a path with no file on
+disk yet - the very first Preview for a brand-new machine/output path
+before anything's ever built it, for instance - it shows an empty scene,
+and its filesystem watch has no inode to attach a watch to, so it never
+recovers even once the file is later created by a real, successful
+build - persistently `"[EMPTY]"` no matter how many builds follow.
+Confirmed empirically: `f3d --watch <path>` with `<path>` created only
+AFTER launch, followed by another build to the SAME path, still shows
+empty - the watch never picks up the new file after the fact.
+
+**Fix**: `TuneApp` now tracks `self._f3d_out_path` (the path the
+currently-tracked f3d instance is actually watching). `_ensure_f3d_
+after_build` forces a fresh kill+relaunch (via `_kill_f3d()`, already
+used for the machine-switch case) whenever the requested `out_path`
+differs from `self._f3d_out_path` - which includes "first successful
+build for this path this session" (`self._f3d_out_path` starts `None`).
+Since `_ensure_f3d_after_build` is only ever called after a build's
+`returncode == 0`, this guarantees f3d is only ever pointed at a path
+AFTER a build has already confirmed it exists on disk. Verified headlessly
+(scratch config, no real master/running touched): fresh launch tracks
+the path and stays alive; a second call with the SAME path reuses the
+same process (same pid); a call with a DIFFERENT path force-relaunches
+(new pid) - all three cases behave correctly.
+
+**Console logging standardization** (the user's separate "should we have
+a console output lib" question, prompted by noticing part 61's progress-
+bar fix was itself evidence of undisciplined duplication): new `lib/
+build_log.py` - `progress_start`/`progress_done`/`progress_skipped`/
+`progress_line` (the `"[n/total] ..."` shape `tune.py`'s `_PROGRESS_RE`
+parses) and `mesh_report()` (the one authoritative `verts=.../
+watertight=...` summary line, always the full field set). Found real
+drift while extracting it: `glyph_poc.py` had its own `report()` that
+NOTHING in the actual build pipeline called (wrong format, multi-line,
+no `flush=True`) - confirmed via `grep` it had zero external call sites,
+just its own `__main__` CLI block. Left `report()` in place (a genuinely
+different, more-verbose format suited to interactive single-glyph
+inspection, not the piped-subprocess pipeline) but added a docstring
+making that distinction explicit, so it doesn't look like an abandoned
+duplicate of `build_log.mesh_report()` to a future reader. Wired `build_
+log` into `generate.py` (all 4 of its `verts=.../watertight=...` print
+sites), `cylinder_machine.TextRing` (the canonical progress-printing
+loop every other machine's `TextRing()` call already benefits from), and
+`lib/hammond_split.py`'s `TextAssemble()`/`CalibrationTextRing()` (day-
+one consistency for code that was, itself, only just written last
+session). Left Mignon/Bennett/Helios/Hammond's own `Additive()`/
+`Subtractive()` summary prints as a follow-up, not touched in this pass -
+they already match `mesh_report()`'s shape closely enough to not be
+urgent, and retrofitting four more files' surrounding logic is real
+additional risk for a session already touching shared code in three
+other files.
+
+**Verification**: full `CLAUDE.md` hard-gate command re-run for all 7
+machines - every one byte-for-byte identical to part 60/61's own numbers.
+`build_log`-routed `TextRing` output confirmed identical in format/
+content to before the refactor (spot-checked Blickensderfer).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

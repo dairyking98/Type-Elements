@@ -47,6 +47,7 @@ import trimesh
 from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance
 import scad_primitives as sp
 import resin_support
+import build_log
 
 _active_machine = None
 
@@ -201,13 +202,7 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     for row in range(len(DHIATENSOR)):
         for col, ch in enumerate(DHIATENSOR[row]):
             n += 1
-            # flush=True: generate.py's stdout is piped (not a TTY) when
-            # run from tune.py's subprocess, which defaults to full block
-            # buffering - without an explicit flush every line here would
-            # sit in the buffer and only appear as one dump at exit,
-            # defeating the point of live per-character progress
-            print(f"TextRing: [{n}/{total}] building {ch!r} (row {row}, col {col})...",
-                  end="", flush=True)
+            build_log.progress_start("TextRing", n, total, f"building {ch!r} (row {row}, col {col})")
             t0 = time.perf_counter()
             try:
                 mesh = build_glyph(
@@ -219,14 +214,13 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
                     minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
             except Exception as e:
                 skipped.append((row, col, ch, str(e)))
-                print(f" SKIPPED ({e})", flush=True)
+                build_log.progress_skipped(e)
                 continue
-            print(f" {time.perf_counter() - t0:.2f}s", flush=True)
+            build_log.progress_done(time.perf_counter() - t0)
             parts.append(place_on_cylinder(mesh, row, col, separation_mm,
                                             placement_protrusion=placement_protrusion,
                                             angle_half_step=angle_half_step))
-    print(f"TextRing: all characters built in {time.perf_counter() - t_start:.1f}s", flush=True)
-    print(f"TextRing: placed {len(parts)}, skipped {len(skipped)}: {skipped}", flush=True)
+    build_log.progress_summary("TextRing", len(parts), skipped, time.perf_counter() - t_start)
 
     collisions = _check_inter_character_collisions(parts)
     if collisions:

@@ -851,6 +851,13 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
 
 
 def report(mesh, label):
+    """Standalone-CLI diagnostic format (this file's own `__main__` block,
+    for interactively inspecting one glyph at a time) - deliberately more
+    verbose than lib/build_log.py's mesh_report() (adds bbox, no flush=
+    True needed since this only ever runs interactively, not piped through
+    tune.py's subprocess) rather than the same function reused. Not part
+    of the generate.py/tune.py build pipeline - see build_log.py for that
+    one instead."""
     print(f"--- {label} ---")
     print(f"  vertices={len(mesh.vertices)} faces={len(mesh.faces)}")
     print(f"  volume={mesh.volume:.6f} mm3  watertight={mesh.is_watertight} "
