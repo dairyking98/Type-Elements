@@ -4223,6 +4223,198 @@ warning): dropdown offers the new option, save/reload round-trips
 plus hammond_split's own existing `FullElement`/`ResinPrint` paths run
 directly - every number byte-for-byte identical to part 63's baseline,
 confirming this was purely additive.
+## 65. IBM/Selectric port: Selectric I/II, Selectric III, Selectric Composer (all three, split per user request)
+
+User requested `v2/ibm.scad` be split into 3 separate v4 machines
+(Selectric I/II, Selectric Composer, Selectric III) rather than one
+`ibm.py` with a mode switch, plus a shared lib for the ~80% of the file
+that's byte-identical across the three v2 `Render_Mode` branches. Done
+in a worktree (`.claude/worktrees/selectric-port`, branch
+`worktree-selectric-port`), merged to main as part of part 67 below.
+
+**Audit pass**: diffed `v2/ibm.scad` (1045 lines) + `v2/lib/layouts/
+ibm_layouts.scad` (243 lines) function-by-function before writing
+anything, per CLAUDE.md's port process rule (see conversation - this
+wasn't skipped). Confirmed IBM/Selectric shares nothing structurally with
+`lib/cylinder_machine.py` (a different form factor, per CLAUDE.md's
+taxonomy) - new shared module `lib/spherical_machine.py` was written from
+scratch, not derived from the cylinder family.
+
+**Architecture**: `lib/spherical_machine.py` holds `FullBody`/
+`SolidCleanup`/`Teeth`/`Tooth`/`Notch`/the character-glyph pipeline
+(`SingleMinkowskiChar`/`AssembleMinkowski`)/labels (`Del`/`FontName`/
+`Labels`)/resin supports (`ResinRodAssemble`)/`TextGauge` - all
+byte-identical across the 3 v2 modes, just parametrized instead of
+`Render_Mode`-array-indexed. Three thin machine modules (`lib/
+selectric12.py`, `lib/selectric_composer.py`, `lib/selectric3.py`) each
+carry their own `configure()` + character/hemisphere layout data (`lib/
+layouts/selectric12_layout.py` / `selectric_composer_layout.py` /
+`selectric3_layout.py`) + one config YAML each (`config/selectric12.yaml`
+/ `selectric_composer.yaml` / `selectric3.yaml`), following the standard
+`configure(config_path)`/`_require_configured()`/`FullElement`/
+`ResinPrint`/`Additive` entry-point contract. Dynamic dispatch (
+`spherical_machine._receive_config`) mirrors `cylinder_machine.py`'s own
+mechanism exactly.
+
+**Character-embedding pipeline is a genuine reimplementation, not a
+`build_glyph()` reuse**: `build_glyph()`'s cylinder-family platen-cutout
+model doesn't directly generalize to the sphere - v2's real
+`PlatenCutout()` is built via its own independent rotate/translate stack
+sharing longitude/latitude with the character, not expressed relative to
+the character's own local frame the way `build_glyph()` assumes (worked
+this out by hand-deriving both transform stacks before writing code, see
+conversation). `SingleMinkowskiChar()` is a direct, literal port of v2's
+`Text()`/`PositionText()`/`PlatenCutout()`/`SingleMinkowski()`, reusing
+only `glyph_poc.py`'s low-level 2D contour-extraction helpers
+(`get_glyph_contours_and_advance`/`classify_and_triangulate`/
+`alignment_x_offset`), not its 3D placement/draft logic. Also notably
+different from `build_glyph()`'s order of operations: v2 POSITIONS the
+character in world coordinates FIRST, then Minkowski-sums with a draft
+cone built at the origin (rotated only, never translated) - verified by
+hand that this is still a correct local dilation (a Minkowski operand's
+absolute position doesn't matter, only its own point-set-as-offset-
+vectors), not "fixed" to match `build_glyph()`'s draft-then-place order.
+
+**Hemisphere layout data**: v2's keyboard-layout strings are OpenSCAD
+multi-line string literals indexed character-by-character including
+embedded newlines - not reproducible from the `.scad` source alone
+without a real OpenSCAD interpreter to test the exact indexing semantics
+against. Sidestepped: v2's own `S12_HEMISPHERE_MAP`/`S3_HEMISPHERE_MAP`/
+`COMPOSER_HEMISPHERE_MAP` are already precomputed, hardcoded permutation
+tables (the source comments say so explicitly) - copied verbatim into
+each `lib/layouts/*.py`, paired with the keyboard-order strings stripped
+of whitespace to a clean flat sequence, rather than re-deriving the
+permutation from scratch.
+
+**Resin supports**: per the user's own mid-session suggestion, reused
+`lib/resin_support.py`'s shared `resin_rod()`/`connecting_rod()` for
+every rod/strut in `ResinRodAssemble()`, rather than porting v2's
+`ResinRod`/`ResinTip` as bespoke angle-aware geometry. Turned out v2's
+own `a1` tilt-angle parameter on those two modules is dead code in the
+current file - every real call site in `ResinRodAssemble()` passes
+`a1=0` (the angle-tilted variants are commented out) - so no angle-aware
+system was actually needed; this is a real simplification (accepted,
+since resin supports are removed after printing, not part of the
+measured physical part), not an oversight - v2's `Rod_Base_C`/exact
+raft-chamfer proportions have no equivalent slot in the shared
+`resin_rod()` and are dropped, called out in each config's `resin:`
+comment rather than silently diverging.
+
+**Verified**: all 3 machines via `generate.py` with the REAL Minkowski
+draft (`--cone-segments 12`) and resin supports on (the actual hard-gate
+condition, not just an undrafted preview):
+
+```
+selectric12:         ResinPrint: verts=75003 faces=150214 watertight=True winding_consistent=True is_volume=True volume=7521.792mm3
+selectric3:           ResinPrint: verts=73387 faces=146982 watertight=True winding_consistent=True is_volume=True volume=7548.874mm3
+selectric_composer:   ResinPrint: verts=73923 faces=148062 watertight=True winding_consistent=True is_volume=True volume=7529.368mm3
+```
+
+All three volumes cluster tightly (~7.52-7.55cm3) - expected, since all
+3 modes share the same physical ball, and a useful independent
+cross-check that nothing was silently broken per-machine.
+`selectric_composer`'s build took considerably longer (CPU-bound,
+~15-20min vs ~5min for the other two) - not root-caused (candidates:
+a particularly complex glyph outline among its punctuation-heavy
+character set feeding a larger face count into `manifold3d`'s
+`minkowski_sum`, whose cost scales with the product of face counts; or
+CPU contention with another concurrent build on the same machine) -
+didn't block since it completed successfully, but worth investigating if
+it recurs. Confirmed via `git status` that only new files were added -
+no existing shared module (`cylinder_machine.py`/`scad_primitives.py`/
+`glyph_poc.py`/`resin_support.py`) was touched, so no regression risk to
+any other machine and no need to re-run the cross-machine hard-gate
+comparison.
+
+**Not yet done**: Calibration entry points (`CalibrationElement`/
+`CalibrationAdditive` not implemented - `tune.py`'s Calibration tab and
+Build-target option are correctly gated off rather than exposing a
+button that would crash, see below); drain holes (`Drain`, defaults off
+in v2, so no default-behavior gap); Composer's own pica/units type-test
+system (`TextGaugeComposerLine2`, genuinely different from Selectric I/II
+& III's shared CPI `TextGauge()` - `tune.py`'s generic Type Test tab
+still works for all 3, same "generic flat CPI/LPI preview, not
+machine-specific" convention every other machine already uses); non-US
+language variants (Composer's UK/Nordic/German/Latin, Selectric I/II's
+Custom layout). Composer's alignment offsets (`x_pos_offset`/
+`y_pos_offset`/alignment.mode) were carried over verified line-by-line
+against v2 per explicit user directive (print-critical) - still worth an
+actual rendered visual comparison against v2's own OpenSCAD output
+before calling that fully closed, not just a config-diff check.
+
+## 66. tune.py wired up for all 3 Selectric machines
+
+Follow-up to part 65 - user wanted to drive/inspect the port themselves
+via the TUI rather than through generated renders. Added all 3 machines
+(`selectric12`/`selectric3`/`selectric_composer`) to `tune.py`'s
+`MACHINES` dict plus new shared field tables (`FONT_FIELDS_SELECTRIC12`,
+`FONT_FIELDS_SELECTRIC_COMPOSER` - Composer sizes by cap-height, not
+direct point size, so gets its own Font & Alignment table -
+`ELEMENT_FIELDS_SELECTRIC`/`LABEL_FIELDS_SELECTRIC`/
+`QUALITY_FIELDS_SELECTRIC`/`RESIN_FIELDS_SELECTRIC`, shared across all 3
+since their config schema is byte-identical, unlike Bennett/Mignon/
+Helios which each needed fully separate tables).
+
+**Real, previously-latent `tune.py` bugs found and fixed while doing
+this** - not Selectric-specific hacks, genuine gaps the cylinder-family's
+uniformity had been masking:
+- `_load_machine()` unconditionally computed `len(self.cfg["layout"]
+  ["baseline_row"])` - KeyErrors immediately for any machine with no
+  editable keyboard-layout concept. Added `self.HAS_LAYOUT_TAB = "rows"
+  in self.cfg.get("layout", {})`, now gating the Layout tab
+  (`compose()`), `_compose_baseline_cutout_fields()`, and every
+  layout-touching branch in `_save_to_yaml`/`_refresh_widgets_from_cfg` -
+  same pattern as the existing `"Gauge" in self.SECTIONS` gate for
+  machines with no Shaft Gauge Test.
+- `compose()`/`_compose_build_tab()` treated the "Calibration" tab and
+  Build-target option as unconditional (every machine so far always
+  merged in `SECTIONS_COMMON`, which includes it) - now gated on
+  `"Calibration" in self.SECTIONS`, mirroring the Gauge pattern exactly.
+- `action_render_type_test()` hardcoded the cylinder-family's Font &
+  Alignment field key names (`self.inputs["mode"]`/`"center_offset_mm"`/
+  `"modified_left_chars"`/etc.) directly, and `self.inputs["size_mm"]`
+  for font size - both assumptions break for a machine with a genuinely
+  different alignment schema (Selectric's `custom_h_chars`/`x_pos_offset`
+  convention) or sizing convention (Composer's cap-height). Rewrote to
+  build the `type_test.py` command incrementally, checking `key in
+  self.inputs` before adding each optional flag, and deriving font_size_mm
+  from `composer_cap_height/2.834` when `size_mm` isn't present.
+
+**Config key collision caught before it caused silent data corruption**:
+`tune.py`'s `patch_yaml_value()` matches by bare key TEXT across the
+WHOLE file (not scoped by section), same reasoning as
+`LABEL_FIELDS_MIGNON`'s `label_`-prefixing. `font.path`/`font.size_mm`
+and `font2.path`/`font2.size_mm` would have collided (both literally
+`path:`/`size_mm:`) - renamed `font2:`'s keys to `font2_path`/
+`font2_size_mm`/`font2_chars` (`font2_composer_cap_height` for Composer)
+in all 3 configs and their `configure()` functions. Also renamed
+`alignment.h_alignment` to `alignment.mode` in all 3 configs to match
+`tune.py`'s existing generic center/left Select-widget convention
+(`_compose_section_tab`'s `elif key == "mode":` special case) - gets a
+proper dropdown for free instead of a plain text `Input`, and makes
+`action_render_type_test`'s `self.inputs["mode"]` lookup work unmodified
+for Selectric too.
+
+**Missing config keys found via testing, not inspection**: `build.target`
+(referenced by `_collect_values`/`_save_to_yaml` but absent from all 3
+YAMLs - `patch_yaml_value` only replaces existing keys, never inserts),
+`type_test.lpi` (assumed present by the generic Type Test tab), and
+`type_test.text` needed to be a YAML block scalar (`text: |-` + indented
+line) rather than a quoted string - `patch_yaml_text_block`'s regex
+requires the block form specifically.
+
+**Verified**: headless `TuneApp(...).run_test()` against scratch copies
+only (never the real master/running configs, per the standing warning) -
+for all 3 machines: `compose()` builds cleanly, a full `_collect_values`/
+`_save_to_yaml`/`_refresh_widgets_from_cfg` round-trip succeeds, and -
+critically - the REAL subprocess paths actually run to completion:
+`_run_build(fast=True)` (Quick Preview, calls `generate.py` for real) and
+`action_render_type_test()` (calls `type_test.py` for real, exercising
+Composer's cap-height font-size fallback specifically) both populate
+`_last_build_info`, confirming a real `returncode == 0`, not just "no
+Python exception." Machine-picker flow (`_select_machine`) uses the same
+`_load_machine()` path already covered by this testing, not separately
+exercised.
 
 ## Resuming later
 
@@ -4238,12 +4430,14 @@ confirming this was purely additive.
    field-by-field against `config/hammond.yaml` for anything still
    missing (named layout presets, Calibration wiring - see part 29's
    open items).
-2. **IBM (spherical) is next** - `hammond.scad` (part 29) and now
-   `hammond_split.scad` (part 60) are both done. IBM is still fully
-   unstarted - per CLAUDE.md's machine taxonomy, don't assume it shares
-   anything with either Hammond machine OR the cylinder family; audit its
-   own real v2 source against all of them from scratch, the way part 29
-   and part 60 both did.
+2. **IBM/Selectric (parts 65-67) is now merged to main** - all 3 modes
+   (Selectric I/II, Selectric III, Selectric Composer) are built, wired
+   into `tune.py`, routed through `lib/build_log.py` (part 67), and
+   hard-gate verified. Per the roadmap this was the last machine listed
+   in CLAUDE.md's taxonomy, so nothing is currently queued as "next" -
+   remaining Selectric-specific work is Calibration entry points, drain
+   holes, Composer's own pica type-test system, and non-US language
+   variants (see part 65/66).
 2. Bennett's port (between Mignon and Helios) has no `SESSION_LOG.md`
    chapter of its own - per CLAUDE.md, that's flagged as correlating with
    Bennett having more small undocumented inconsistencies than Mignon.

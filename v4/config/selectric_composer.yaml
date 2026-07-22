@@ -1,0 +1,142 @@
+# Selectric Composer type element (88 chars, 4 rows x 22/row) - ported
+# from v2/ibm.scad's Render_Mode=0 branch (see that file for authoritative
+# source/comments) + v2/lib/layouts/ibm_layouts.scad's Composer-specific
+# section. Physically the SAME sphere/skirt/boss/shaft as Selectric I/II
+# and III, but with its OWN font-sizing convention (cap-height, not direct
+# point size), its OWN alignment offsets, and a larger platen (43mm vs
+# 36mm). US language only for now (v2 also has UK/Nordic/German/Latin/
+# Custom - see lib/layouts/selectric_composer_layout.py's docstring).
+#
+# alignment.x_pos_offset/y_pos_offset/custom_h_offset/custom_v_offset/
+# h_alignment below are PRINT-CRITICAL - explicit user directive during
+# this port: Composer's glyph alignment must be preserved byte-exact from
+# v2, not approximated or defaulted. Do not change these values without
+# re-verifying against v2/ibm.scad's own X_Pos_Offset_Composer_/
+# Y_Pos_Offset_Composer/All_H_Alignments[0].
+
+machine: selectric_composer
+
+font:
+  path: "/home/lchau/fonts/Library/Sans Text/FreeSans.ttf"   # substitute for v2's "Arial", same as config/selectric12.yaml
+  # Composer sizes type by CAP HEIGHT (in points), not direct point size -
+  # v2: Font_Size_Selected = Composer_Cap_Height/2.834 (ibm.scad:186,190).
+  # This is a fixed numeric conversion (matches v2 exactly), not a real
+  # FreeType cap-height measurement/solve.
+  composer_cap_height: 7.0
+  name: "Arial"          # v2 Font - engraved typeface-label text only
+
+font2:
+  # font2_-prefixed keys - avoids colliding with font:'s own key text
+  # (tune.py's patch_yaml_value matches by bare key across the whole
+  # file, not by section - same reasoning as config/selectric12.yaml).
+  font2_path: "/home/lchau/fonts/Library/Serif Text/FreeSerif.ttf"  # substitute for v2's "Times New Roman"
+  font2_composer_cap_height: 7.0   # v2 Composer2_Cap_Height (ibm.scad:198)
+  font2_chars: ""                  # v2 Font2_Chars (ibm.scad:205)
+
+alignment:
+  # "mode" (not h_alignment) - matches tune.py's generic center/left
+  # Select-widget convention. CRITICAL: "left" here, not "center" - see
+  # file header comment.
+  mode: "left"       # v2 All_H_Alignments[0] (ibm.scad:239) - CRITICAL, see file header comment
+  x_pos_offset: 1.20        # v2 X_Pos_Offset_Composer_ (ibm.scad:221) - CRITICAL, see file header comment
+  y_pos_offset: -1.30       # v2 Y_Pos_Offset_Composer (ibm.scad:224) - CRITICAL, see file header comment
+  custom_h_chars: ""        # v2 CUSTOMHALIGNCHARS (ibm.scad:207)
+  custom_h_offset: 0.2      # v2 CUSTOMHALIGNOFFSET (ibm.scad:209)
+  custom_v_chars: ""        # v2 CUSTOMVALIGNCHARS (ibm.scad:211)
+  custom_v_offset: -0.2     # v2 CUSTOMVALIGNOFFSET (ibm.scad:213)
+
+element:
+  # Physically the SAME ball as Selectric I/II/III - see file header comment.
+  sphere_od: 33.4
+  max_od: 34.9
+  top_flat_to_center: 11.0
+  top_flat_thickness: 3.5
+  top_chamfer: 0.7
+  inside_id: 28.15
+  boss_od: 11.6
+  boss_clearance: 2.5
+  boss_step: 0.0
+  boss_to_center_base: 2.5
+  snoot_droop_compensation: 0.42
+  shaft_id: 8.8
+  skirt_top_od: 32.3
+  skirt_bottom_od: 30.2
+  platen_diameter: 43.0            # v2 Platen_OD_C (ibm.scad:289) - Composer's own, larger platen
+  drive_notch_width: 1.06
+  drive_notch_height: 2.2
+  drive_notch_theta: 131.0
+  detent_valley_to_center: 6.0
+  detent_skirt_clock_offset: 0.0
+  floor: 10.7
+
+layout:
+  chars_per_row: 22                # v2 Chars_Per_Row_All[0] (ibm.scad:333) - same class as Selectric I/II
+  chars_per_row_reference: 22      # Tooth()'s own reference count - equal here, no narrowing needed
+  hemisphere_cols_per_row: 11      # v2 Hemisphere_Cols_Per_Row_All[0] (ibm.scad:338)
+  row_latitudes: [32.8, 16.4, 0, -16.4]                  # v2 Row_Latitudes (ibm.scad:356) - shared physical ball
+  platen_longitude_offsets: [-1.05, -1.05, -1.0, -1.05]  # v2 Platen_Longitude_Offsets (ibm.scad:122)
+  baseline_longitude_offsets: [0.0, 0.0, 0.0, 0.0]       # v2 Baseline_Longitude_Offsets (ibm.scad:398)
+  minkowski_longitudinal_offsets: [0.0, 0.0, 0.0, 0.0]   # v2 Minkowski_Longitudinal_Offsets (ibm.scad:79)
+
+label:
+  enabled: true
+  arrow_enabled: true
+  show_number: false            # v2: `if (Render_Mode!=0)` (ibm.scad:988) - FALSE for Composer (Render_Mode==0)
+  label_no: "10"
+  label_text_override: ""
+  label_no_font_override: ""
+  label_font_override: ""
+  no_label_size: 2.0
+  no_label_offset: 0.0
+  font_label_size: 2.0
+  font_label_offset: 0.0
+  del_base_from_centre: 8.2
+  del_depth: 0.6
+
+build:
+  points_per_mm: 8.0
+  draft_angle_deg: 55.0
+  minkowski_enabled: true
+  character_block_height_mm: 6.0
+  mink_cone_height_mm: 2.0
+  resin_support: true
+  target: "element"
+
+quality:
+  surface_fn: 120
+  cyl_fn: 360
+  minkowski_fn: 20
+
+resin:
+  resin_fn: 20
+  tip_od: 0.9
+  tip_notch_od: 0.4
+  tip_notch_offset: 12.0
+  tip_in: 0.4
+  tip_h: 1.0
+  rod_od: 1.2
+  base_od: 4.0
+  base_h: 2.0
+  min_rod_h: 2.0
+  resin_detent_clock_offset: 0.0
+
+output:
+  directory: "output"
+  stl_name: "selectric_composer_running.stl"
+
+# Composer's OWN pica/units type-test system (TextGaugeComposerLine2,
+# Composer_Pitch_List) is genuinely different from Selectric I/II & III's
+# CPI TextGauge - NOT wired into type_test.py yet in this pass (deferred,
+# same as Calibration/drain holes for the other two Selectric machines -
+# doesn't affect FullElement/ResinPrint, only a separate print-test-gauge
+# render variant). units_per_inch below is kept for when that lands.
+type_test:
+  units_per_inch: 72     # v2 Units_Per_Inch (ibm.scad:261) - [72:Red, 84:Yellow, 96:Blue]
+  # cpi/lpi: tune.py's generic Type Test tab convention (a v4-only flat
+  # CPI/LPI preview shared by every machine, independent of the real
+  # element pipeline) - not the same as units_per_inch above (Composer's
+  # own real pica/units type-test system, not wired up yet).
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow
