@@ -3700,6 +3700,45 @@ same way as part 56 (stash `lib/hammond.py`, rebuild `element.groove=
 true`'s full `ResinPrint` before/after): `verts=458769 faces=918854
 volume=4309.645mm3` identical both times.
 
+## 58. Hammond: added "Flat Bottom" checkbox to the Rib tab - `RibOnly()` can now omit the top pin-support boss
+
+`PinSupport()`'s boss is built as two mirrored halves ("top"/"bottom",
+one on each Z side of the rib plane) unioned together (v2:513-530,
+faithfully ported). For `RibOnly()` printed as its own standalone FDM
+part, having protruding material on BOTH Z sides means the part can't
+sit flat on the buildplate without support material under one side's
+overhang.
+
+Added `flat_bottom` parameter to `PinSupport()` (default `False`,
+reproduces the original two-sided boss exactly) - when `True`, skips
+building "top" entirely and returns just "bottom" (after the same
+`Anvil_ID` clearance-ring `difference()` as before). Threaded through
+`RibAssembled(flat_bottom=False)` (also defaults False, so the fused
+Shuttle with Rib assembly's two other call sites - `Additive()`/
+`CalibrationAdditive()`, both `sp.union_all([shell, RibAssembled()])` -
+are unaffected since neither passes it). `RibOnly()` now passes
+`flat_bottom=Rib_Flat_Bottom`, a new `element.rib_flat_bottom` config
+bool (default `false`), exposed as a checkbox in the Rib tab (part 56)
+per explicit request: "add a checkbox, Flat Bottom. when checked, only
+render bottom pin support, not the top one, so it can be printed flat
+on a buildplate."
+
+**Verified**: `rib_flat_bottom=false` reproduces part 57's exact
+`RibOnly()` output (`verts=3275 faces=6550 volume=142.362mm3`,
+byte-for-byte). `rib_flat_bottom=true` gives a smaller, still-valid
+mesh (`verts=2874 faces=5748 volume=123.825mm3 watertight=True
+is_volume=True`) - f3d screenshots confirm one side is now flat (no
+boss protrusion, just the pin-support hole visible) and the other
+retains the single bottom boss. Fused Shuttle with Rib build (`--no-
+resin-support`, `rib_flat_bottom=true` in the test config) still gives
+`FullElement volume=1960.523mm3`, matching its own pre-existing
+baseline exactly, confirming zero effect on that path. Master-default
+full `ResinPrint` (`element.groove=false`) also re-verified unchanged
+(`verts=474495 faces=950638 volume=4802.476mm3`). Headless `TuneApp`
+test against a scratch config: the Rib tab's `#field-rib_flat_bottom`
+Switch exists, toggling it and saving writes `rib_flat_bottom: true`
+correctly.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

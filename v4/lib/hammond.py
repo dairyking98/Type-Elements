@@ -248,6 +248,12 @@ def configure(config_path):
     # invented one; override only if a physical fit-check shows it
     # should stop short of or protrude past that surface.
     g["Rib_Tang_Length"] = e.get("rib_tang_length_mm", g["Shuttle_Arc_Radius"] + g["Shuttle_Thickness"])
+    # v4-specific, not a v2 value - RibOnly() only: omit PinSupport()'s
+    # "top" boss, keeping just "bottom", so the printed part has a
+    # protruding pin-boss feature on one Z side only and can sit flat on
+    # the buildplate. Never applied to the fused Shuttle with Rib
+    # assembly (RibAssembled()'s own default stays False there).
+    g["Rib_Flat_Bottom"] = bool(e.get("rib_flat_bottom", False))
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
@@ -476,15 +482,25 @@ def PinSupportHull():
     return trimesh.util.concatenate([top_3d, base_3d]).convex_hull
 
 
-def PinSupport():
-    top = sp.translate(PinSupportHull(),
-                        [Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset, 0,
-                         Shuttle_Height - Shuttle_Rib_Plane - z])
+def PinSupport(flat_bottom=False):
+    """flat_bottom (v4-specific, NOT a v2 term - default False reproduces
+    the original two-sided boss exactly): omit the "top" boss entirely,
+    keeping only "bottom" - RibOnly() passes Rib_Flat_Bottom here so the
+    printed part has protruding pin-boss material on one Z side only,
+    letting it sit flat on the buildplate instead of needing supports
+    under an overhang on both sides. Never applied at the fused Shuttle
+    with Rib assembly (see RibAssembled()'s own default)."""
     bottom = sp.scad_transform(PinSupportHull(), ("rotate", [180, 0, 0]))
     bottom = sp.translate(bottom,
                            [Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset, 0,
                             Shuttle_Height - Shuttle_Rib_Plane - Shuttle_Rib_Thickness + z])
-    boss = sp.union_all([top, bottom])
+    if flat_bottom:
+        boss = bottom
+    else:
+        top = sp.translate(PinSupportHull(),
+                            [Shuttle_Arc_Radius - Shuttle_Square_Hole_Offset, 0,
+                             Shuttle_Height - Shuttle_Rib_Plane - z])
+        boss = sp.union_all([top, bottom])
 
     outer_disk = sp.cylinder_z(Anvil_ID + 10, 40, sections=Cyl_Fn, base_z=-20)
     inner_disk = sp.cylinder_z(2 * (Anvil_ID / 2.0 + 0.3), 41, sections=Cyl_Fn, base_z=-20.5)
@@ -501,8 +517,8 @@ def PinSupportHole():
                                  -Shuttle_Square_Hole_Width / 2.0, -z])
 
 
-def RibAssembled():
-    combined = sp.union_all([Rib(), PinSupport()])
+def RibAssembled(flat_bottom=False):
+    combined = sp.union_all([Rib(), PinSupport(flat_bottom=flat_bottom)])
     return combined.difference(PinSupportHole(), engine="manifold")
 
 
@@ -559,10 +575,12 @@ def RibOnly():
     clearance inside that taller slot, per explicit request ("let the
     tang on rib only be the thickness of the rib too. so there will be
     clearance in the slot") - rather than the tang matching the slot's
-    own oversized cut dimension and fitting snugly with no play."""
+    own oversized cut dimension and fitting snugly with no play.
+    flat_bottom=Rib_Flat_Bottom: passed straight through to
+    RibAssembled()/PinSupport() - see PinSupport()'s own docstring."""
     _require_configured()
     tab_start = Shuttle_Arc_Radius - Shuttle_Rib_Width - 1.0
-    rib = sp.union_all([RibAssembled(),
+    rib = sp.union_all([RibAssembled(flat_bottom=Rib_Flat_Bottom),
                          GrooveShape(shrink=Rib_Interface_Offset, include_tab=True,
                                      tab_length=Rib_Tang_Length, tab_start=tab_start,
                                      tab_z_pad=0.0, nub_grow=Rib_Nub_Growth, trim_to_arc=True)])

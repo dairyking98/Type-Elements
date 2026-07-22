@@ -768,6 +768,10 @@ RIB_FIELDS_HAMMOND = [
      "FDM print-fit margin for the Rib-only flange's 4 nub-clearance cutouts, independent of "
      "Interface offset above. Increase if the flange's clearance holes print too tight to "
      "clear the Shuttle's nub geometry. Only affects Build target Rib."),
+    ("rib_flat_bottom", ["element", "rib_flat_bottom"], bool, "Flat bottom",
+     "Only render the bottom pin support boss, not the top one, so the Rib-only part can be "
+     "printed flat on the buildplate with no overhang on the other side. Only affects Build "
+     "target Rib."),
 ]
 
 SECTIONS_BY_MACHINE = {

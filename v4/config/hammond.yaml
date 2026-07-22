@@ -166,6 +166,12 @@ element:
   # comment) if a physical fit-check shows it should stop short of or
   # protrude past that surface.
   # rib_tang_length_mm: <override, mm from rotation axis - see comment above>
+  # v4-specific, not a v2 value - RibOnly() only: when true, omits
+  # PinSupport()'s "top" boss (keeps only "bottom"), so the printed part
+  # has a protruding pin-boss feature on one Z side only and can sit
+  # flat on the buildplate without needing supports under the other
+  # side's overhang. Never applied to the fused Shuttle with Rib print.
+  rib_flat_bottom: false
 
 # quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
 # comment: "no separate structural-quality tier from Cyl_Fn").
