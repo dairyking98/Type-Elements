@@ -550,18 +550,28 @@ def RibOnly():
     the tang's width (see GrooveShape()'s own tab_half_width) and, via
     nub_grow=Rib_Nub_Growth, grows its 4 nub-clearance holes - both
     FDM-fit margins that only apply to this flange, never the real
-    Shuttle-side cutter."""
+    Shuttle-side cutter.
+    tab_z_pad=0.0: the tang's height is exactly Shuttle_Rib_Thickness,
+    not GrooveShape()'s own default (+Groove_Opening_Offset, split
+    above/below) - the Shuttle-side slot is still cut WITH that pad (the
+    real cutter call site, elsewhere, uses GrooveShape()'s default), so
+    a tang sized to just the rib's real thickness now has genuine Z
+    clearance inside that taller slot, per explicit request ("let the
+    tang on rib only be the thickness of the rib too. so there will be
+    clearance in the slot") - rather than the tang matching the slot's
+    own oversized cut dimension and fitting snugly with no play."""
     _require_configured()
     tab_start = Shuttle_Arc_Radius - Shuttle_Rib_Width - 1.0
     rib = sp.union_all([RibAssembled(),
                          GrooveShape(shrink=Rib_Interface_Offset, include_tab=True,
                                      tab_length=Rib_Tang_Length, tab_start=tab_start,
-                                     nub_grow=Rib_Nub_Growth, trim_to_arc=True)])
+                                     tab_z_pad=0.0, nub_grow=Rib_Nub_Growth, trim_to_arc=True)])
     rib, _, _, _ = sp.check_and_repair(rib, label="RibOnly")
     return rib
 
 
-def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, nub_grow=0.0, trim_to_arc=False):
+def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, tab_z_pad=None,
+                 nub_grow=0.0, trim_to_arc=False):
     """v2:484-500 - circumferential snap-fit slot cut into the shell,
     opening from its INNER surface (a solid disk r=Shuttle_Arc_Radius+
     Shuttle_Groove_Depth, unioned with a radial "tab" box reaching out to
@@ -605,6 +615,22 @@ def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, nu
     1mm overlap margin as the disk's own inner_hole cut below) so its
     positive tang is a short feature contiguous with the flange's own
     ring, not a spike running all the way in to the rotation axis.
+
+    tab_z_pad (v4-specific - default None resolves to Groove_Opening_
+    Offset, reproducing the original shell-cutter shape exactly): extra
+    tab height/depth beyond Shuttle_Rib_Thickness, split evenly above
+    and below the disk's own [Rib_Bottom_Z, Rib_Bottom_Z+Shuttle_Rib_
+    Thickness] span (see the Z-span note above) - the real cutter's
+    whole reason for this pad existing at all: cutting the Shuttle's
+    slot opening slightly TALLER than the disk material itself gives a
+    real assembled rib room to seat without a tight Z interference fit.
+    RibOnly() passes tab_z_pad=0.0 so its own tang's height matches
+    Shuttle_Rib_Thickness exactly (same span as the disk, no pad) -
+    since the Shuttle's slot is still cut with the real pad (this
+    function's OTHER call site, at its own default), a tang sized to
+    just Shuttle_Rib_Thickness now sits with genuine clearance inside
+    that taller slot, instead of a snug fit that used the same
+    oversized dimension on both sides.
 
     nub_grow (v4-specific, default 0.0 reproduces the original shell-
     cutter exactly): added to Shuttle_Groove_Nub_Size's radius for the
@@ -681,13 +707,14 @@ def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, nu
 
     parts = [disk]
     if include_tab:
+        z_pad = Groove_Opening_Offset if tab_z_pad is None else tab_z_pad
         tab_half_width = Groove_Tab_Width / 2.0 - shrink
         tab_2d = ShapelyPolygon([
             (tab_start, -tab_half_width), (tab_length, -tab_half_width),
             (tab_length, tab_half_width), (tab_start, tab_half_width),
         ])
-        tab = trimesh.creation.extrude_polygon(tab_2d, Shuttle_Rib_Thickness + Groove_Opening_Offset)
-        tab = sp.translate(tab, [0, 0, -Groove_Opening_Offset / 2.0])
+        tab = trimesh.creation.extrude_polygon(tab_2d, Shuttle_Rib_Thickness + z_pad)
+        tab = sp.translate(tab, [0, 0, -z_pad / 2.0])
         parts.append(tab)
 
     shape = sp.union_all(parts)

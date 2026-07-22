@@ -3669,6 +3669,37 @@ growth_mm`; those two are no longer under `#tab-element`; a save
 round-trip writes both keys correctly; Element tab's baseline/cutout
 rows render "Baseline row 3 (math)"/"Cutout row 3 (math)".
 
+## 57. Hammond: `RibOnly()`'s new tang (part 56) sized to match the slot's own oversized cut, not the rib's real thickness
+
+Follow-up to part 56, same session. Part 56's tang reused `GrooveShape()`'s
+tab exactly as the real cutter builds it, including its Z padding
+(`Shuttle_Rib_Thickness+Groove_Opening_Offset`, split evenly above/below
+the disk's own span) - `Groove_Opening_Offset`'s whole purpose is
+letting the CUTTER open the Shuttle's slot slightly taller than the
+rib material, so an assembled rib has real clearance. Passing that same
+oversized dimension through to the tang as positive material undid that
+- both sides used the same (Shuttle_Rib_Thickness+Groove_Opening_Offset)
+dimension, so the tang fit the slot snugly with no Z play at all.
+
+User: "let the tang on rib only be the thickness of the rib too. so
+there will be clearance in the slot." Added `tab_z_pad` to
+`GrooveShape()` (default `None` -> resolves to `Groove_Opening_Offset`,
+reproducing the original cutter shape exactly at its one real call
+site). `RibOnly()` now passes `tab_z_pad=0.0`, so its tang's height is
+exactly `Shuttle_Rib_Thickness` - same Z-span as the disk itself, no
+pad - while the Shuttle-side slot is still cut with the real pad
+(unaffected, uses `GrooveShape()`'s own default). The mismatch between
+the two is now the intended clearance.
+
+**Verified**: `RibOnly()` volume dropped `148.983mm3` -> `142.362mm3`
+(thinner tang, expected direction/magnitude - `Groove_Opening_Offset`
+is `0.5mm` over the tang's small footprint). f3d screenshot shows the
+tang now flush with the flange's own thickness instead of a slightly
+taller pad. Shell-cutter path re-verified byte-for-byte unaffected the
+same way as part 56 (stash `lib/hammond.py`, rebuild `element.groove=
+true`'s full `ResinPrint` before/after): `verts=458769 faces=918854
+volume=4309.645mm3` identical both times.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
