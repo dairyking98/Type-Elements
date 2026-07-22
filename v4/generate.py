@@ -160,13 +160,25 @@ def main():
                               "already selects the with-rib/without-rib shell variant, and "
                               "Resin supports off already skips resin geometry), so only "
                               "'rib_only' remains as its own dedicated flag.")
+    parser.add_argument("--hammond-split-normal", action="store_true",
+                         help="Hammond Split only: build the flat, un-rotated, no-resin-"
+                              "support layout (hammond_split.NormalElement()) instead of the "
+                              "vertical resin-print layout - v2's real Render_Mode==0 'Normal' "
+                              "target (v1/HammondSplitShuttle.scad's GenStyle 0/4/5 'Normal'/"
+                              "NormalL/NormalR), a genuine second render target alongside "
+                              "ResinPrint/FullElement, not a debug/preview mode. Render Left/"
+                              "Right (build.render_left/render_right) still pick which half(es) "
+                              "are included, same as the vertical layout. Ignores --resin-"
+                              "support/--no-resin-support - the real Normal target never has "
+                              "resin supports.")
     parser.add_argument("--cut-bodies", action="store_true",
                          help="debug: export the union of Subtractive()'s negative/cutter "
                               "tool bodies (HollowSpace, DrivePin, core grooves, ...) "
                               "instead of doing the real additive-subtractive difference - "
                               "lets you verify what's actually about to be removed. Only "
                               "applies to the plain Element/Resin build path (ignored with "
-                              "--gauge/--calibrate); composes with --cross-section-angle-deg")
+                              "--gauge/--calibrate/--hammond-split-normal); composes with "
+                              "--cross-section-angle-deg")
     args = parser.parse_args()
 
     bd = _load_machine(args.config)
@@ -250,6 +262,27 @@ def main():
         label = f"hammond --hammond-part {args.hammond_part}"
         full = _apply_cross_section(full, args.cross_section_angle_deg)
         build_log.mesh_report(full, label)
+        build_log.atomic_export(full, out_path)
+        print(f"wrote {out_path}", flush=True)
+        return
+
+    if args.hammond_split_normal:
+        if not hasattr(bd, "NormalElement"):
+            print(f"--hammond-split-normal is only meaningful for hammond_split "
+                  f"(got machine={bd.__name__!r})", file=sys.stderr, flush=True)
+            sys.exit(1)
+        full, char_parts = bd.NormalElement(
+            points_per_mm=args.points_per_mm,
+            separation_mm=args.separation_mm,
+            render_core_groove=render_core_groove,
+            cone_segments=args.cone_segments,
+            simplify_tolerance_mm=args.simplify_tolerance_mm,
+            platen_fn=args.platen_fn,
+            minkowski_enabled=args.minkowski_enabled,
+            draft_angle_deg=args.draft_angle_deg,
+        )
+        full = _apply_cross_section(full, args.cross_section_angle_deg)
+        build_log.mesh_report(full, "NormalElement")
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         return

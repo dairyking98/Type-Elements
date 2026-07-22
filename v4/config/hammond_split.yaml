@@ -19,7 +19,22 @@
 # independently placed per side (TextAssemble(side)'s own per-side angle-
 # sign/character-index formula - not just a mirror of the same text). Both
 # halves ship in ONE STL as physically separate (non-overlapping,
-# print-oriented) solids - see ResinPrint()/FullElement()'s docstrings.
+# print-oriented) solids - see ResinPrint()/FullElement()/NormalElement()'s
+# docstrings.
+#
+# TWO real, complete render targets exist in the source, not one -
+# v2/hammond_split.scad:60's own customizer comment names them directly:
+# `Render_Mode=1;//[0:Normal, 1:ResinPrint, 2:Type Test]`, and v1's pre-
+# migration original (v1/Hammond/HammondSplitShuttle.scad:16) is even more
+# explicit: `GenStyle = 1; //[0:Normal, 1:ResinPrint, 2:ResinPrintL,
+# 3:ResinPrintR, 4:NormalL, 5:NormalR]`. "ResinPrint" (Render_Mode==1/
+# GenStyle 1-3) is the vertical, tipped-up, resin-supported layout
+# (ResinPrint()/FullElement(), the only one wired up in the original port
+# session) - "Normal" (Render_Mode==0/GenStyle 0/4/5) is a flat, un-rotated,
+# UNCONDITIONALLY resin-free layout (NormalElement(), wired up in a later
+# session once this doc header itself led someone to re-check v1 closely
+# and find it) - neither is "more real" than the other, both exist in every
+# version of this machine's source that's ever been found.
 
 machine: hammond_split
 
@@ -183,10 +198,13 @@ build:
   render_left: true                # Render_Left
   render_right: true                # Render_Right
   resin_support: true
-  # target - tune.py Build-tab UI state only (element/calibration), same
-  # convention as every other machine's build.target - not read by
-  # lib/hammond_split.py itself (generate.py's --calibrate flag drives
-  # CalibrationElement() directly, same as every other machine).
+  # target - tune.py Build-tab UI state only (element/calibration/normal),
+  # same convention as every other machine's build.target - not read by
+  # lib/hammond_split.py itself (generate.py's --calibrate/--hammond-split-
+  # normal flags drive CalibrationElement()/NormalElement() directly, same
+  # as every other machine's own alternate-target flags). "normal" is this
+  # machine's real second v2 render target (Render_Mode==0 "Normal", v1
+  # GenStyle 0/4/5) - see this file's own header comment.
   target: "element"
   simplify_tolerance_mm: 0.005
   # Mink_On/Mink_Draft_Angle/Mink_Height - v2:65-73. Mink_Radius is derived

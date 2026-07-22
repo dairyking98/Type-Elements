@@ -661,14 +661,36 @@ def AssembleSide(side):
 
 
 def Assemble(render_left=None, render_right=None):
-    """v2:544-549 (Render_Mode==0's preview) - both halves nested in the
-    SAME frame (side==1's own Mirror() already places it correctly relative
-    to side==0), useful for visualizing the folded-together assembly but
-    NOT itself a printable layout (the two halves overlap) - see
-    ResinPrint()/FullElement() for the real print-oriented layout."""
+    """v2:544-549 - v2's real "Normal" render target (Render_Mode==0, see
+    v2:60's own customizer comment: `Render_Mode=1;//[0:Normal,
+    1:ResinPrint, 2:Type Test]`). v1/Hammond/HammondSplitShuttle.scad:16's
+    GenStyle customizer names this same target explicitly: `GenStyle =
+    1; //[0:Normal, 1:ResinPrint, 2:ResinPrintL, 3:ResinPrintR, 4:NormalL,
+    5:NormalR]` - GenStyle 0/4/5 (v1:720-733) are this function's three
+    real combinations (both/left-only/right-only, i.e. exactly
+    render_left/render_right). Neither v1's LeftShuttleAssembled/
+    RightShuttleAssembled nor either version's Assemble() ever calls a
+    resin-rod module - Normal is unconditionally resin-free in the real
+    source, not a v4 simplification.
+
+    Despite an earlier version of this docstring claiming otherwise, the
+    two halves do NOT overlap: side==1's own Mirror() (_mirror_side, a
+    pure Y-reflection with no translation) leaves both halves sharing the
+    same X/Z frame with only a Y sign flip, so their bounding boxes
+    overlap in Y but their actual solids are disjoint - confirmed
+    empirically (Assemble(render_left=True, render_right=True)'s union
+    volume equals AssembleSide(0)'s volume + AssembleSide(1)'s volume to
+    float precision, and the result is watertight/is_volume=True). This
+    IS a real, printable layout - see NormalElement() for the wired CLI/
+    tune.py entry point. ResinPrint()/FullElement() are the OTHER real
+    target (v2 Render_Mode==1/v1 GenStyle 1-3, vertical + resin
+    supports), not a "more real" version of this one."""
     _require_configured()
     rl = Render_Left if render_left is None else render_left
     rr = Render_Right if render_right is None else render_right
+    if not rl and not rr:
+        raise ValueError("hammond_split: Render Left and Render Right are both off - "
+                          "nothing to build. Turn at least one back on (Build tab).")
     parts = []
     if rl:
         parts.append(AssembleSide(0))
@@ -942,9 +964,12 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
     machine's real geometry (see module docstring), matching hammond.
     yaml's own documented "Cutout is unused" precedent for the same
     underlying reason. Uses the same print-oriented, laid-apart layout as
-    FullElement (not resin-supported) rather than Hammond's own flat/un-
-    oriented convention - hammond_split has no equivalent flat mode that
-    keeps both sides legibly separated (see Assemble()'s own docstring)."""
+    FullElement (not resin-supported), NOT NormalElement()'s flat/nested
+    Normal layout (a real, different v2 render target now wired up
+    separately - see NormalElement()'s own docstring) - Calibration
+    predates that wiring and there's no requirement to make it switchable
+    too, so it just keeps its own fixed vertical layout regardless of
+    which build target the user last picked."""
     _require_configured()
     if not Render_Left and not Render_Right:
         raise ValueError("hammond_split: Render Left and Render Right are both off - "
@@ -1043,3 +1068,36 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
     _require_configured()
     return _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg,
                   with_resin=True)
+
+
+def NormalElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+                   cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
+                   minkowski_enabled=None, draft_angle_deg=None):
+    """v2:544-549/v2:60 "Normal" (Render_Mode==0) - v1/HammondSplitShuttle.
+    scad's GenStyle 0/4/5 "Normal"/NormalL/NormalR (v1:16,720-733), the
+    OTHER real render target alongside ResinPrint()/FullElement() (v2
+    Render_Mode==1/v1 GenStyle 1-3) - not a v4 invention, see Assemble()'s
+    own docstring for the full derivation and the empirical proof that
+    the two halves don't actually overlap. Flat, un-rotated (no
+    ResPrintOrient()) and unconditionally resin-free, matching the real
+    source exactly - Render_Left/Render_Right (same module globals/Build-
+    tab switches FullElement/ResinPrint already use) pick NormalL/NormalR/
+    combined. separation_mm/render_core_groove/align_kwargs/platen_fn
+    accepted-but-ignored, same convention as FullElement/ResinPrint."""
+    _require_configured()
+    global POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
+    pts = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    fn = DEFAULT_MINK_FN if cone_segments is None else cone_segments
+    tol = DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None else simplify_tolerance_mm
+    mink_on = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
+    draft = DEFAULT_MINK_DRAFT_ANGLE if draft_angle_deg is None else draft_angle_deg
+
+    old = (POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
+    POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, tol, mink_on, fn, draft
+    Mink_Radius = np.tan(np.radians(draft / 2.0)) * Mink_Height
+    try:
+        full = Assemble()  # reads Render_Left/Render_Right - Assemble() itself raises if both are off
+        full, _, _, _ = sp.check_and_repair(full, label="hammond_split normal")
+        return full, []  # char_parts always empty - see _build()'s matching comment
+    finally:
+        (POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old

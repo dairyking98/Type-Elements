@@ -4124,6 +4124,106 @@ output with the new `mesh_report()`/`atomic_export()` formatting).
 of migrated files, so "is this migrated yet" has one answer instead of
 requiring a fresh `grep` every time.
 
+## 64. Hammond Split: wired up the real v1/v2 "Normal" (flat, no-resin) build target - `Assemble()` was already correct, just unexposed
+
+The user asked whether Hammond Split has "different resin print
+orientations." First answer was wrong: assumed v2 only has one real
+render target (the vertical `ResinPrint`) and started designing a
+from-scratch "horizontal" mode as a v4 invention. The user pushed back
+directly ("i think youre wrong, what are the genstyles") - the right
+call, and exactly the instinct CLAUDE.md's "always diff against the real
+v2 source" rule is meant to enforce.
+
+Checked `v1/Hammond/HammondSplitShuttle.scad` (the pre-migration
+original, distinct from `HammondSplitShuttle2.scad` which became
+v2/hammond_split.scad) closely and found a real, literal customizer
+comment: `GenStyle = 1; //[0:Normal, 1:ResinPrint, 2:ResinPrintL,
+3:ResinPrintR, 4:NormalL, 5:NormalR]`. v2/hammond_split.scad:60 still
+carries the same split, just renamed: `Render_Mode=1;//[0:Normal,
+1:ResinPrint, 2:Type Test]`. So there really are two complete, real
+render targets in the source, not one:
+
+- **ResinPrint** (v1 GenStyle 1-3, v2 `Render_Mode==1`) - the vertical,
+  tipped-up, resin-supported layout. The only one wired up in part 60's
+  original port session (`ResinPrint()`/`FullElement()`, both funneling
+  through `_build()`, which always applies `ResPrintOrient()`).
+- **Normal** (v1 GenStyle 0/4/5, v2 `Render_Mode==0`) - a flat, un-rotated,
+  UNCONDITIONALLY resin-free layout (neither `LeftShuttleAssembled`/
+  `RightShuttleAssembled` (v1) nor `Assemble()` (v1 or v2) ever call a
+  resin-rod module - confirmed by inspection). `lib/hammond_split.py`
+  already had a faithful, **working** port of this as `Assemble()` - built
+  correctly during the original port session, but never wired into
+  `generate.py`/`tune.py` as a selectable target, AND its own docstring
+  made a false claim: "the two halves overlap... NOT itself a printable
+  layout." Empirically disproven this session:
+  ```
+  left volume  = 4003.87...   right volume = 4038.53...   sum = 8042.4058...
+  Assemble(True, True) union volume = 8042.4058...   (diff: -2.22e-14, float noise)
+  watertight=True, is_volume=True
+  ```
+  The two halves' bounding boxes overlap in Y (both `_mirror_side()`'s pure
+  Y-reflection, no translation, leaves them sharing the same X/Z frame),
+  but the actual solids are disjoint - the union volume exactly equals the
+  sum of the parts. `Assemble(render_left=True, render_right=False)` alone
+  is also confirmed valid/watertight (matches v1's `NormalL`/GenStyle 4).
+
+**Fix, following a Plan-mode design review** (a Plan agent validated the
+approach against the actual current code before implementation, catching
+nothing that needed changing - the design held up):
+
+- `lib/hammond_split.py`: fixed `Assemble()`'s docstring (cites `v2:544-
+  549`/`v2:60` and `v1/HammondSplitShuttle.scad:16,720-733`'s real GenStyle
+  values, states the disjointness fact instead of the false overlap claim),
+  added the same "both Render Left/Right off" `ValueError` guard `_build()`/
+  `CalibrationElement()` already have. New `NormalElement(...)` entry point
+  (same accept-but-ignore kwarg signature as `FullElement`/`ResinPrint`,
+  same points_per_mm/Minkowski override-and-restore pattern as `_build()`,
+  calls bare `Assemble()` - the guard now fires for free). Minor doc fix to
+  `CalibrationElement()`'s stale cross-reference (used to claim "no
+  equivalent flat mode exists" - no longer true).
+- `generate.py`: new `--hammond-split-normal` flag (machine-namespaced like
+  the existing `--hammond-part`, since this concept has no analog on any
+  other machine), new early-return dispatch block modeled on `--hammond-
+  part`'s skeleton but passing the full quality-kwarg battery (like
+  `--calibrate`'s block, since `NormalElement()` goes through the real
+  glyph/Minkowski pipeline). Being an early return before the generic
+  `resin_support = ...` fork means `--resin-support`/`--no-resin-support`
+  are simply never consulted - confirmed identical output with either flag.
+- `tune.py`: `is_hammond_split` gets a third dropdown option ("Normal
+  (flat, no resin)", value `"normal"`) alongside Element/Calibration
+  Element - stays a plain 3-option `Select`, not Hammond's own elaborate
+  consolidated-dropdown pattern (no body-assembly-variant axis to fold in
+  here). Help text explains Normal is always resin-free regardless of the
+  checkbox - deliberately NOT via `RESIN_SUPPORT_UNAVAILABLE_NOTE` (that
+  dict's contract is "this whole machine never supports resin," which is
+  false for hammond_split's Element/Resin target; a per-machine note there
+  would mislead while Element is selected) - inline help text only, no new
+  widget-disabling logic. `_refresh_widgets_from_cfg`'s own `valid_targets`
+  fallback list needed the same `"normal"` addition, or the dropdown
+  selection would silently revert to "Element" on every reload/reset - the
+  one part of this that would have been easy to miss. New `elif
+  values["target"] == "normal":` branch in `_run_build` adds `--hammond-
+  split-normal` and forces Minkowski the same way the `calibration` branch
+  does. The existing Render Left/Right switches (added in part 60) needed
+  NO changes - `Assemble()`/`NormalElement()` already consume the same
+  `build.render_left`/`render_right` globals those switches already write.
+- `config/hammond_split.yaml`: header comment and `build.target` comment
+  extended to document both real targets and why they coexist.
+
+**Verification**: direct CLI matrix (both sides, left-only, right-only via
+scratch config copies, both-off correctly raises the `ValueError` instead
+of silently writing an empty STL, `--resin-support`/`--no-resin-support`
+confirmed true no-ops, cross-machine `hasattr` guard fires cleanly against
+`blickensderfer.yaml`). Headless `tune.py` test against a scratch config
+copy (never the real master/running files, per CLAUDE.md's standing
+warning): dropdown offers the new option, save/reload round-trips
+`build.target: normal` correctly (including through
+`_refresh_widgets_from_cfg`'s fix), and a real end-to-end Quick Preview via
+`_run_build` produced a valid watertight STL. Full 7-machine hard gate
+plus hammond_split's own existing `FullElement`/`ResinPrint` paths run
+directly - every number byte-for-byte identical to part 63's baseline,
+confirming this was purely additive.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

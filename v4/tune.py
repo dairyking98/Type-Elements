@@ -2107,7 +2107,9 @@ class TuneApp(App):
         is_hammond = self.machine == "hammond"
         is_hammond_split = self.machine == "hammond_split"
         hammond_parts = ("none",) if is_hammond else ()
-        valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ()) + hammond_parts
+        hammond_split_normal_target = ("normal",) if is_hammond_split else ()
+        valid_targets = (("element", "calibration") + (("gauge",) if has_gauge else ())
+                          + hammond_parts + hammond_split_normal_target)
         with TabPane("Build", id="tab-build"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
@@ -2131,6 +2133,8 @@ class TuneApp(App):
                         if has_gauge:
                             options.append(("Shaft Gauge", "gauge"))
                         options.append(("Calibration Element", "calibration"))
+                        if is_hammond_split:
+                            options.append(("Normal (flat, no resin)", "normal"))
                         build_select = Select(options, value=target_now, id="build-select", allow_blank=False)
                         yield build_select
                 with Horizontal(classes="picker-row"):
@@ -2153,6 +2157,17 @@ class TuneApp(App):
                         "always includes its own resin supports regardless of this "
                         "checkbox."
                     ) if has_gauge else ""
+                    # is_hammond_split only - a real second v2 render target
+                    # (Render_Mode==0 "Normal"/v1 GenStyle 0/4/5), not this
+                    # machine's own version of Shaft Gauge/Calibration -
+                    # always resin-free regardless of the checkbox above,
+                    # since the real source never calls a resin-rod module
+                    # for it (see hammond_split.Assemble()'s own docstring).
+                    normal_help = (
+                        " Normal: the flat, un-rotated layout (v2 Render_Mode==0, v1 "
+                        "GenStyle 0/4/5 \"Normal\"/NormalL/NormalR) - never has resin "
+                        "supports regardless of this checkbox."
+                    ) if is_hammond_split else ""
                     resin_unavailable = RESIN_SUPPORT_UNAVAILABLE_NOTE.get(self.machine, "")
                     yield Static(
                         "Element: the real element. Turn on Resin supports to add "
@@ -2160,7 +2175,7 @@ class TuneApp(App):
                         f"{gauge_help} Calibration Element: strikes the same test "
                         "character everywhere, sweeping baseline or cutout per column "
                         "(see the Calibration tab) to find layout.baseline_row/cutout_row."
-                        f"{resin_unavailable}",
+                        f"{normal_help}{resin_unavailable}",
                         classes="picker-help")
 
                 if is_hammond:
@@ -2229,7 +2244,7 @@ class TuneApp(App):
                     "pin, core grooves, ...) instead of the real element, so you "
                     "can verify what's actually being removed - independent of "
                     "Cross section, and only applies to Element/Resin builds "
-                    "(ignored for Shaft Gauge/Calibration Element). Session-only "
+                    "(ignored for Shaft Gauge/Calibration Element/Normal). Session-only "
                     "debug settings: neither of these is saved to the config.",
                     classes="picker-help")
 
@@ -2485,7 +2500,8 @@ class TuneApp(App):
             self.query_one("#build-select", Select).value = (
                 _hammond_build_dropdown_value(target_now, groove_now))
         else:
-            valid_targets = ("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ())
+            valid_targets = (("element", "calibration") + (("gauge",) if "Gauge" in self.SECTIONS else ())
+                              + (("normal",) if self.machine == "hammond_split" else ()))
             if target_now not in valid_targets:
                 # "resin" was a valid target value before the Build tab's
                 # dropdown was split into target + a separate Resin supports
@@ -2721,6 +2737,24 @@ class TuneApp(App):
                 # branch below. --no-core-groove is deliberately NOT forced
                 # here - Quick Preview follows build.render_core_groove same
                 # as a real Render (see 48e501c).
+                cmd += ["--no-minkowski", "--no-minkowski-text"]
+            else:
+                cmd += ["--minkowski"]
+        elif values["target"] == "normal":
+            # Hammond Split only: v2's real Render_Mode==0 "Normal" (v1
+            # GenStyle 0/4/5 "Normal"/NormalL/NormalR) - flat, un-rotated,
+            # never resin-supported (see hammond_split.NormalElement()'s
+            # docstring), a genuine second render target, not a debug
+            # mode. Render Left/Right (already wired above) pick NormalL/
+            # NormalR/combined the same way they already do for Element/
+            # Resin. DOES go through build_glyph/TextRing (NormalElement()
+            # still strikes real characters), so Minkowski is forced the
+            # same way as the other real-glyph-pipeline branches.
+            # build-resin-support's checkbox value is simply never turned
+            # into a flag here - the real Normal target has no resin
+            # geometry at all (see build_log-adjacent picker-help text).
+            cmd += ["--hammond-split-normal"]
+            if fast:
                 cmd += ["--no-minkowski", "--no-minkowski-text"]
             else:
                 cmd += ["--minkowski"]
