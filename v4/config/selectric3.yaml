@@ -1,0 +1,130 @@
+# Selectric III type element (96 chars, 4 rows x 24/row) - ported from
+# v2/ibm.scad's Render_Mode=2 branch (see that file for authoritative
+# source/comments) + v2/lib/layouts/ibm_layouts.scad's S3-specific
+# section. Physically the SAME sphere/skirt/boss/shaft as Selectric I/II
+# and Composer - Selectric III reuses Selectric I/II's font-size/platen/
+# offset values as its OWN starting defaults per v2/ibm.scad:187-190,
+# 292-294 (NOT a cross-file reference - this is its own independent copy
+# of those numbers, tunable separately if Selectric III ever needs to
+# diverge). See lib/spherical_machine.py for the shared geometry pipeline
+# this config drives.
+
+machine: selectric3
+
+font:
+  # Same substitute as config/selectric12.yaml (v2's real value is the
+  # system font name "Arial")
+  path: "/home/lchau/fonts/Library/Sans Text/FreeSans.ttf"
+  size_mm: 2.4          # v2 Font_Size (ibm.scad:184) - S3 reuses S12's Font_Size directly (All_Font_Sizes[2]=Font_Size), own copy here
+  name: "Arial"         # v2 Font - engraved typeface-label text only
+
+font2:
+  # font2_-prefixed keys - see config/selectric12.yaml's matching comment
+  # (tune.py's patch_yaml_value matches by bare key text file-wide).
+  font2_path: "/home/lchau/fonts/Library/Serif Text/FreeSerif.ttf"
+  font2_size_mm: 2.4          # v2 Font2_Size (ibm.scad:196) - S3 reuses S12's Font2_Size directly (All_Font2_Sizes[2]=Font2_Size)
+  font2_chars: ""             # v2 Font2_Chars (ibm.scad:205)
+
+alignment:
+  mode: "center"    # v2 All_H_Alignments[2] (ibm.scad:239) - same as S12
+  x_pos_offset: 0.0        # v2 All_X_Offsets[2]=X_Pos_Offset_S12 (ibm.scad:233,226) - S3 reuses S12's value directly
+  y_pos_offset: -1.5       # v2 All_Y_Offsets[2]=Y_Pos_Offset_S12 (ibm.scad:231,228) - S3 reuses S12's value directly
+  custom_h_chars: ""       # v2 CUSTOMHALIGNCHARS (ibm.scad:207)
+  custom_h_offset: 0.2     # v2 CUSTOMHALIGNOFFSET (ibm.scad:209)
+  custom_v_chars: ""       # v2 CUSTOMVALIGNCHARS (ibm.scad:211)
+  custom_v_offset: -0.2    # v2 CUSTOMVALIGNOFFSET (ibm.scad:213)
+
+element:
+  # Physically the SAME ball as Selectric I/II (see module comment above) -
+  # every value in this section is identical to config/selectric12.yaml's,
+  # each its own independent copy per the multi-config convention.
+  sphere_od: 33.4
+  max_od: 34.9
+  top_flat_to_center: 11.0
+  top_flat_thickness: 3.5
+  top_chamfer: 0.7
+  inside_id: 28.15
+  boss_od: 11.6
+  boss_clearance: 2.5
+  boss_step: 0.0
+  boss_to_center_base: 2.5
+  snoot_droop_compensation: 0.42
+  shaft_id: 8.8
+  skirt_top_od: 32.3
+  skirt_bottom_od: 30.2
+  platen_diameter: 36.0            # v2 Platen_OD_All[2]=Platen_OD_S12 (ibm.scad:294,291) - S3 reuses S12's platen directly
+  drive_notch_width: 1.06
+  drive_notch_height: 2.2
+  drive_notch_theta: 131.0
+  detent_valley_to_center: 6.0
+  detent_skirt_clock_offset: 0.0
+  floor: 10.7
+
+layout:
+  chars_per_row: 24                # v2 Chars_Per_Row_All[2] (ibm.scad:333)
+  # Tooth()'s profile reference count is ALWAYS Selectric I/II's own 22
+  # (v2 Chars_Per_Row_All[1], hardcoded in Tooth() regardless of which
+  # mode is rendering - ibm.scad:718) - narrows Selectric III's teeth to
+  # match its tighter 24-per-row spacing (scale_y=22/24).
+  chars_per_row_reference: 22
+  hemisphere_cols_per_row: 12      # v2 Hemisphere_Cols_Per_Row_All[2] (ibm.scad:338)
+  row_latitudes: [32.8, 16.4, 0, -16.4]                  # v2 Row_Latitudes (ibm.scad:356) - shared physical ball, same for all 3 modes
+  platen_longitude_offsets: [-1.05, -1.05, -1.0, -1.05]  # v2 Platen_Longitude_Offsets (ibm.scad:122) - same default array used for all modes
+  baseline_longitude_offsets: [0.0, 0.0, 0.0, 0.0]       # v2 Baseline_Longitude_Offsets (ibm.scad:398)
+  minkowski_longitudinal_offsets: [0.0, 0.0, 0.0, 0.0]   # v2 Minkowski_Longitudinal_Offsets (ibm.scad:79)
+
+label:
+  enabled: true
+  arrow_enabled: true
+  show_number: true             # v2: `if (Render_Mode!=0)` (ibm.scad:988) - true for Selectric III
+  label_no: "10"
+  label_text_override: ""
+  label_no_font_override: ""
+  label_font_override: ""
+  no_label_size: 2.0
+  no_label_offset: 0.0
+  font_label_size: 2.0
+  font_label_offset: 0.0
+  del_base_from_centre: 8.2
+  del_depth: 0.6
+
+build:
+  points_per_mm: 8.0
+  draft_angle_deg: 55.0
+  minkowski_enabled: true
+  character_block_height_mm: 6.0
+  mink_cone_height_mm: 2.0
+  resin_support: true
+  target: "element"
+
+quality:
+  surface_fn: 120
+  cyl_fn: 360
+  minkowski_fn: 20
+
+resin:
+  # See config/selectric12.yaml's matching comment - v2's Rod_Base_C has
+  # no equivalent slot in the shared resin_support.resin_rod(), dropped
+  # (resin supports are removed after printing, not part of the measured
+  # physical part).
+  resin_fn: 20
+  tip_od: 0.9
+  tip_notch_od: 0.4
+  tip_notch_offset: 12.0
+  tip_in: 0.4
+  tip_h: 1.0
+  rod_od: 1.2
+  base_od: 4.0
+  base_h: 2.0
+  min_rod_h: 2.0
+  resin_detent_clock_offset: 0.0
+
+output:
+  directory: "output"
+  stl_name: "selectric3_running.stl"
+
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow
