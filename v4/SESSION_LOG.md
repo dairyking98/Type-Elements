@@ -3539,6 +3539,39 @@ pre-fix `241.948mm3` as expected - the corrected, non-rotated trim
 boundary keeps marginally more material than the rotated/clipped one
 did).
 
+## 55. Hammond: RibOnly() flange was a SOLID disk to the center, not a ring - part 54's angle fix was correct but incomplete
+
+User, with screenshots: "it is still wrong" - part 54 fixed the trim
+boundary's ANGLE (confirmed correct - RibOnly()'s edge lines up with
+RibAssembled()'s to 8 decimal places) but missed a second, separate
+problem also causing the reported "flat line": `GrooveShape()`'s disk
+is a SOLID disk reaching to the center (`Point(0,0).buffer(radius)`),
+which is harmless in its real cutter use (the target shell is itself
+only a thin band near the outer wall, so the cutter's own material
+toward the center has no shell material to remove there anyway) - but
+as `RibOnly()`'s positive flange, that solid center is real, visible
+material. The wedge trim's straight chord, cutting across a SOLID DISK
+all the way to the center rather than a narrow band, produces a large
+flat facet - screenshots confirmed exactly this: a wide, flat straight
+edge running most of the piece's height, not a wedge-trim edge scaled
+to a thin band's actual width.
+
+Added an inner cutout to `GrooveShape()`'s `trim_to_arc=True` path,
+turning the disk into a proper RING from `Shuttle_Arc_Radius-
+Shuttle_Rib_Width-1.0` (1mm past `Rib()`'s own real inner radius, for
+guaranteed union overlap, not just a coincident boundary) out to the
+disk's own outer radius - matching `Rib()`'s real radial band width
+instead of reaching to the center.
+
+**Verified**: `RibOnly()` volume dropped from `243.599mm3` to
+`141.991mm3` (removing the large solid center wedge, as expected);
+screenshot confirms a proper crescent/band silhouette matching `Rib()`'s
+own shape, no more large flat chord. Shell-cutter path (default args)
+confirmed byte-for-byte unaffected. Full hard gate: Groove body
+`ResinPrint` volume `4309.645mm3` matches baseline exactly; `RibOnly()`
+via `--hammond-part rib_only` CLI still builds a clean, valid,
+watertight mesh.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

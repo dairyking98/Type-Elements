@@ -575,11 +575,26 @@ def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
     but recomputing p1 at a different radius broke that exact equality,
     landing at -89.53deg instead), producing a visibly misaligned
     seam/flat facet where the flange's edge should smoothly continue
-    Rib()'s own curve - reported as "the two regressed... the Rib only
-    has a flat line, should have the same curves." Fixed by extending
-    the SAME p1/p3 points outward along their own existing ray from
-    apex (scaled by a generous factor, not re-derived), guaranteeing
-    identical trim-boundary angles regardless of this disk's radius.
+    Rib()'s own curve. Fixed by extending the SAME p1/p3 points outward
+    along their own existing ray from apex (scaled by a generous factor,
+    not re-derived), guaranteeing identical trim-boundary angles
+    regardless of this disk's radius.
+
+    Also cuts an INNER hole, turning the disk into a ring from
+    (Shuttle_Arc_Radius-Shuttle_Rib_Width) out to this disk's own outer
+    radius - matching Rib()'s own real radial band. GrooveShape()'s
+    disk is a SOLID disk reaching to the center in its real cutter use,
+    which is harmless there (Groove()'s target shell is itself only a
+    thin band near the outer wall - the cutter's own material toward
+    the center has nothing to remove, since the shell has no material
+    there either). But as RibOnly()'s positive flange, that same solid
+    center becomes real, VISIBLE, unwanted material - the wedge trim's
+    straight chord, cutting across a solid disk all the way to the
+    center rather than a narrow band, is what actually produced the
+    large flat facet reported as "the Rib only has a flat line, should
+    have the same curves" (this inner cutout was missing from the
+    previous fix, which only corrected the trim ANGLE, not this - the
+    flat chord was still there, just correctly angled).
     Needed because GrooveShape()'s disk is meant to be subtracted from a
     FULL circular shell in its real cutter use (no trim needed there -
     the shell itself gets trimmed elsewhere), but RibOnly()'s positive-
@@ -603,6 +618,11 @@ def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
         p1 = tuple(apex + 3.0 * (p1_rib - apex))
         p3 = tuple(apex + 3.0 * (p3_rib - apex))
         disk_2d = disk_2d.difference(_wedge_complement_poly(p1, (Z_Offset, 0.0), p3))
+        # Ring, not a solid disk to the center - see docstring above.
+        # 1mm past Rib()'s own inner radius, guaranteeing genuine overlap
+        # (not just a coincident boundary) for a robust union in RibOnly().
+        inner_hole = Point(0, 0).buffer(Shuttle_Arc_Radius - Shuttle_Rib_Width - 1.0, resolution=res)
+        disk_2d = disk_2d.difference(inner_hole)
     disk = trimesh.creation.extrude_polygon(disk_2d, Shuttle_Rib_Thickness)
 
     parts = [disk]
