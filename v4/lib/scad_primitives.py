@@ -203,6 +203,52 @@ def scad_transform(mesh, *ops):
     return out
 
 
+def to_manifold(mesh):
+    """trimesh.Trimesh -> manifold3d.Manifold. Promoted from glyph_poc.py's
+    private _to_manifold/_from_manifold (build_glyph()/build_flat_text_
+    drafted()'s own Minkowski-sum plumbing) once hammond_split.py needed the
+    identical conversion for its own from-scratch draft-cone Minkowski sum
+    (Mink_Height/Mink_Radius are independent of the extrusion depth there,
+    unlike either shared glyph_poc helper - see lib/hammond_split.py's
+    _letter_text_drafted()) - a third call site, past this repo's "extract
+    shared derivations" threshold. glyph_poc._to_manifold/_from_manifold
+    are kept as thin pass-throughs so existing call sites there don't need
+    to change."""
+    from manifold3d import Manifold, Mesh as ManifoldMesh
+    return Manifold(mesh=ManifoldMesh(
+        vert_properties=np.array(mesh.vertices, dtype=np.float32),
+        tri_verts=np.array(mesh.faces, dtype=np.uint32)))
+
+
+def from_manifold(manifold):
+    """manifold3d.Manifold -> trimesh.Trimesh. See to_manifold()."""
+    m = manifold.to_mesh()
+    return trimesh.Trimesh(vertices=m.vert_properties, faces=m.tri_verts, process=False)
+
+
+def mirror(mesh, normal):
+    """mirror(v) equivalent: reflects across the plane through the origin
+    perpendicular to normal (a 3-vector, not required to be unit length -
+    matches OpenSCAD's mirror(), which also normalizes internally).
+    Reflection has determinant -1, which flips face winding/normals - but
+    trimesh's own Trimesh.apply_transform() already detects a negative-
+    determinant transform and corrects winding internally (confirmed: a
+    manual .invert() call after apply_transform() here double-flipped it
+    back to inverted-normal/negative-volume, is_volume=False - apply_
+    transform alone is already correct, do not add a second invert).
+    First caller: hammond_split's Mirror(side) (v2/hammond_split.scad),
+    mirror([0,1,0]) - the only machine with a real left/right mirrored-
+    body pair."""
+    n = np.asarray(normal, dtype=float)
+    n = n / np.linalg.norm(n)
+    reflect = np.eye(3) - 2.0 * np.outer(n, n)
+    m4 = np.eye(4)
+    m4[:3, :3] = reflect
+    out = mesh.copy()
+    out.apply_transform(m4)
+    return out
+
+
 def rotate_z(mesh, degrees):
     m = mesh.copy()
     m.apply_transform(trimesh.transformations.rotation_matrix(

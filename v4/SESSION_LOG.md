@@ -3783,6 +3783,154 @@ before/after) identical `verts=458769 faces=918854 volume=4309.645mm3`
 both times; master-default full `ResinPrint`
 (`verts=474495 faces=950638 volume=4802.476mm3`) unchanged.
 
+## 60. Hammond Split Shuttle port - a from-scratch machine, not a Hammond follow-on
+
+Ported `hammond_split.scad` (771 lines, "Split Hammond 1 Shuttle" /
+"HammondSplitShuttle2.scad" pre-migration) per the roadmap's next item
+(part 29's "Resuming later" #2). Confirmed via re-reading the real v2
+source directly that part 29's audit was right: this file shares
+essentially nothing with `hammond.scad` beyond the machine name - zero
+`include` statements, its own inlined `TextAssemble`/`TextPlacement`/
+`LetterText`/`TextRing(side)` glyph pipeline (NOT wired to the shared
+`glyph_pipeline.scad`, and NOT reusing `cylinder_machine.place_on_
+cylinder`/`TextRing` the way `lib/hammond.py` does), a completely
+different two-piece Left/Right spoke/folder assembly (`Arc`/`Spoke*`/
+`Rib`/`Tube`/`FolderClearance`/`FolderCutaway`/`GlueHoles`/`GlueGroove`),
+and a THIRD independent resin-support scheme (a tiered Arc/Folder/Ring
+grid plus a diagonal cross-bracing "fence" lattice - neither `cylinder_
+machine`'s placement layer nor Hammond's own `VertResinSupport2`). New
+`config/hammond_split.yaml` + `lib/hammond_split.py` (~900 lines) cover
+this file only - real machine numbers ported line-by-line from v2, with
+comments citing v2 line numbers throughout, matching `config/hammond.
+yaml`/`bennett.yaml`'s precedent.
+
+**What genuinely reuses shared code, and what's new**: `resin_support.
+resin_rod`/`connecting_rod` do NOT apply here (their real math is
+Hammond-specific, per `resin_support.rod_tip()`'s own docstring citing
+`v2/hammond.scad` line numbers directly) - hammond_split's `ResinRod`/
+`ResinTip`/`ResinRodClean` are their own faithful port, but `connecting_
+rod()` (the hull-of-two-spheres capsule primitive) IS reused for the new
+fence lattice, since the underlying shape is identical even though the
+placement math differs completely. The struck-glyph pipeline reuses
+`glyph_poc.build_glyph()` directly for the real default (`Mink_On=false`):
+`platen_radius_mm=0` (no curved platen - same "Skip_Platen_Cutout" trick
+`lib/hammond.py` established) + `minkowski_enabled=False` + `align_
+kwargs` reproduces v2's `linear_extrude(Glyph_Height+1) Text(...)`
+exactly (mirror + halign=center + valign=baseline). `Mink_On=true` could
+NOT reuse `build_glyph()`/`build_flat_text_drafted()` though - both tie
+the draft cone's height to the extrusion depth, but this machine's real
+`Mink_Height` (2mm) is an INDEPENDENT fixed value, unrelated to `Glyph_
+Height` (0.8mm) - confirmed by working through v2's actual minkowski+
+difference(cube) construction by hand (see `_letter_text_drafted()`'s own
+docstring for the full derivation, including why the realized taper ends
+up a mild shrinking-to-zero flare rather than a normal "wide root" draft
+given the real v2 numbers). Needed its own small Minkowski helper built
+directly from two newly-promoted shared primitives, `scad_primitives.
+to_manifold()`/`from_manifold()` (previously private to `glyph_poc.py`,
+now a third call site - promoted per this repo's "extract shared
+derivations" rule, with `glyph_poc._to_manifold`/`_from_manifold` kept as
+thin pass-throughs so nothing else had to change). `Logo()` (the engraved
+Left/Right name/year label) reuses `cylinder_machine.build_text_string()`
+directly, same as Hammond's own `Label()`.
+
+**Real bug found and fixed in shared code during this port**: a new
+`scad_primitives.mirror()` primitive (needed for the Left/Right mirrored-
+body pair - the one genuinely new OpenSCAD-primitive-equivalent this
+port required) initially called `.invert()` after `apply_transform()` to
+"fix" face winding for the reflection's negative determinant - this
+DOUBLE-flipped it, since `trimesh.Trimesh.apply_transform()` already
+auto-corrects winding for a negative-determinant transform internally.
+Caught immediately via a real, not synthetic, failure: side=1's real
+`TextRing()` intersection raised `ValueError: Not all meshes are not
+volumes!`, traced to the mirrored `Arc()` having `is_volume=False`
+despite `watertight=True`/`winding_consistent=True` (negative volume).
+Fixed by removing the manual `.invert()` call - confirmed with a plain
+`trimesh.creation.box()` mirror test showing `apply_transform` alone
+already gives the correct positive volume.
+
+**tune.py wiring**: `MACHINES` entry, `SECTIONS_BY_MACHINE["hammond_
+split"]` (Font & Alignment/Calibration/Label/Quality/Resin/Element tabs -
+no Gauge/Logo key, same reasons as Hammond), and a new `is_hammond_split`
+branch in `_compose_build_tab`/`_collect_values`/`_refresh_widgets_from_
+cfg` for Render Left/Render Right (the one genuine "which variant to
+build" Build-tab toggle this machine has - real config-driven fields,
+`build.render_left`/`render_right`, no CLI flag needed since `_run_build`
+persists the config before invoking `generate.py` as a subprocess, same
+mechanism every other config field already uses). Initially also added a
+"Minkowski draft" on/off Switch to the Build tab before discovering
+`_run_build` ALREADY forces `--minkowski`/`--no-minkowski` unconditionally
+based on which button was pressed (Quick Preview vs. Render), for every
+machine, precisely so this is never a per-config toggle - removed that
+switch and moved `mink_draft_angle_deg`/`mink_height` onto the Font &
+Alignment tab as plain tunable fields instead (matching every other
+machine's `draft_angle_deg` convention: the ANGLE is tunable, whether the
+draft runs at all is not). Also found and fixed two real config bugs
+surfaced by a real headless `TuneApp(...)` smoke test against a scratch
+copy (per CLAUDE.md's standing warning): `char_mod.font_path`/`size_mm`
+collided with `font.path`/`size_mm`'s literal key text (`tune.py`'s
+`patch_yaml_value()` matches by literal YAML key text anywhere in the
+file, not scoped by section - would have silently patched the wrong
+field) - renamed to `char_mod_font_path`/`char_mod_size_mm`; and
+`build.target` was missing entirely (every other machine's config has
+it as pure UI-state, not consumed by the lib itself). Also added the
+full `layout.baseline_row`/`cutout_row`/`placement_map`/`latitude_
+columns`/`modify_glyphs` key set tune.py's shared Layout tab reads
+unconditionally for every machine, even though `lib/hammond_split.py`
+only actually needs `baseline_row` (stored as the final absolute per-row
+value directly, replacing the `baseline_gaps`/`baseline_offset`
+decomposition an earlier version of this config used) - same "dead but
+required for the TUI" treatment part 29 already established for
+Hammond's own `Cutout_Row`.
+
+**Calibration**: v2 has no calibration render mode for this machine at
+all (unlike `hammond.scad`, which reuses the shared lib's real one) -
+`tune.py`'s Build target dropdown and Calibration tab are unconditional
+for every machine though, so a real crash-prone gap would have existed
+without one. Added a v4-only `CalibrationElement()`/`CalibrationAdditive()`
+that strikes `calibration.test_char` at every real placement slot,
+`vary_baseline` shifting each of the 3 baseline ROWS (not per-column -
+this machine has no per-column baseline_row/cutout_row sweep structure)
+by `start+row*interval`; `vary_cutout` is accepted-but-ignored, same
+reason `cutout_row` is a documented no-op (no curved-platen/cutout
+concept anywhere in this machine's real geometry).
+
+**Verification**: full CLAUDE.md hard-gate command run for all 6 existing
+machines before/after the `scad_primitives.py`/`glyph_poc.py` shared-code
+changes - blickensderfer's `verts=42618 faces=85408 volume=5666.804mm3`
+matches the exact number cited in CLAUDE.md itself; postal/mignon/
+bennett/helios/hammond all still watertight/valid volumes, no crashes.
+Hammond Split's own builds, all watertight/`is_volume=True`: `FullElement`
+(no resin) `verts=35911 volume=8042.298mm3`; `ResinPrint` (master
+defaults, real quality settings) `verts=222941 volume=13445.430mm3`;
+`Mink_On=true` path `verts=44376 volume=8191.777mm3`; `--calibrate
+--calibration-vary-baseline` `verts=36165 volume=8060.662mm3`. Full
+`tune.py` round-trip also verified headlessly against a scratch config
+copy (never the real master/running files, per CLAUDE.md's standing
+warning): machine picker, all 6 tabs compose without error (70 FIELDS
+total), `_collect_values`/`_save_to_yaml`/`_refresh_widgets_from_cfg`
+round-trip cleanly, and a real end-to-end Quick Preview AND full Render
+(resin supports + Minkowski draft both on, via the actual `_run_build`
+worker and `generate.py` subprocess) both completed successfully -
+Render: `watertight=True volume=13594.85mm3, verts=230464`.
+
+**Deferred / open questions**:
+
+- **`Groove=false`-equivalent alternate assembly** - v2/hammond_split.scad
+  has no such variant at all (unlike Hammond's real `element.groove`) -
+  nothing deferred here, just noting the two machines' assembly-variant
+  surface area genuinely differs, not an oversight.
+- **Named layout presets** - only `Ideal_Element` (`Layout_Selection=0`,
+  the real default) is wired; `Qwerty_Element` is a real, complete v2
+  preset not yet exposed in `tune.py`'s picker (`LAYOUT_PRESETS_BY_
+  MACHINE` has no `"hammond_split"` entry yet - falls back to `{}`, same
+  as Hammond's own still-unwired 7 presets).
+- **`TypeTest()`** - v2's own inlined flat-layout preview (a single flat
+  30-char/row array, unlike `TextAssemble`'s split halves) was not
+  ported as its own function - `tune.py`'s generic Type Test tab
+  (config's `type_test.cpi`/`lpi`/`text`) already covers the same role
+  machine-independently, same pre-existing gap noted for Mignon/Helios
+  in the "Resuming later" list below.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
@@ -3797,11 +3945,12 @@ both times; master-default full `ResinPrint`
    field-by-field against `config/hammond.yaml` for anything still
    missing (named layout presets, Calibration wiring - see part 29's
    open items).
-2. **Hammond_split.scad and IBM are next** - `hammond.scad` itself is
-   done (part 29). `hammond_split.scad` turned out to share almost
-   nothing with `hammond.scad` (see part 29's audit) - treat it as its
-   own from-scratch port, not a quick follow-on. IBM (spherical) is still
-   fully unstarted.
+2. **IBM (spherical) is next** - `hammond.scad` (part 29) and now
+   `hammond_split.scad` (part 60) are both done. IBM is still fully
+   unstarted - per CLAUDE.md's machine taxonomy, don't assume it shares
+   anything with either Hammond machine OR the cylinder family; audit its
+   own real v2 source against all of them from scratch, the way part 29
+   and part 60 both did.
 2. Bennett's port (between Mignon and Helios) has no `SESSION_LOG.md`
    chapter of its own - per CLAUDE.md, that's flagged as correlating with
    Bennett having more small undocumented inconsistencies than Mignon.

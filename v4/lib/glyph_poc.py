@@ -72,6 +72,7 @@ from shapely.geometry import Polygon
 from shapely.affinity import scale as shapely_scale
 import shapely.ops
 from manifold3d import Manifold, Mesh as ManifoldMesh
+import scad_primitives as sp
 
 # --- Parameters ported from v2/blickensderfer.scad ---
 ELEMENT_DIAMETER = 34.0
@@ -611,14 +612,16 @@ def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_
 
 
 def _to_manifold(mesh):
-    return Manifold(mesh=ManifoldMesh(
-        vert_properties=np.array(mesh.vertices, dtype=np.float32),
-        tri_verts=np.array(mesh.faces, dtype=np.uint32)))
+    """Thin pass-through to scad_primitives.to_manifold() - promoted there
+    once hammond_split.py became a third call site (see that function's
+    docstring). Kept here so this module's own call sites don't change."""
+    return sp.to_manifold(mesh)
 
 
 def _from_manifold(manifold):
-    m = manifold.to_mesh()
-    return trimesh.Trimesh(vertices=m.vert_properties, faces=m.tri_verts, process=False)
+    """Thin pass-through to scad_primitives.from_manifold() - see
+    _to_manifold() above."""
+    return sp.from_manifold(manifold)
 
 
 def build_glyph(char, points_per_mm, expansion_width_mm=None,

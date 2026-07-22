@@ -191,6 +191,7 @@ MACHINES = {
     "bennett": ("Bennett", os.path.join(REPO_ROOT, "config", "bennett.yaml")),
     "helios": ("Helios Klimax", os.path.join(REPO_ROOT, "config", "helios.yaml")),
     "hammond": ("Hammond", os.path.join(REPO_ROOT, "config", "hammond.yaml")),
+    "hammond_split": ("Hammond Split", os.path.join(REPO_ROOT, "config", "hammond_split.yaml")),
 }
 
 FONT_FILE_FILTERS = Filters(
@@ -774,6 +775,112 @@ RIB_FIELDS_HAMMOND = [
      "target Rib."),
 ]
 
+# Split Hammond 1 Shuttle - a SEPARATE machine from Hammond (see lib/
+# hammond_split.py's module docstring). "draft_angle_deg" is replaced by
+# TWO fields here (mink_draft_angle_deg + mink_height, not SECTIONS_
+# COMMON's single shared draft_angle_deg key) - this machine's real draft
+# cone height (Mink_Height) is independent of the character's own
+# extrusion depth (Glyph_Height, Element tab), unlike every other
+# machine's coupled draft-cone convention (see lib/hammond_split.py's
+# _letter_text_drafted() docstring) - so it needs its own second knob.
+# Like draft_angle_deg elsewhere, whether the draft actually RUNS is never
+# a config toggle (Quick Preview always skips it, Render always applies
+# it - see tune.py's _run_build) - only its angle/height are tunable here.
+FONT_FIELDS_HAMMOND_SPLIT = [
+    ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters (Type_Face)."),
+    ("size_mm", ["font", "size_mm"], float, "Font size (mm)", "Type_Size - em-square size."),
+    ("char", ["char_mod", "char"], str, "Modified character(s)", "Char_Mod - characters using the separate font/size below."),
+    ("char_mod_font_path", ["char_mod", "char_mod_font_path"], str, "Modified char font path", ""),
+    ("char_mod_size_mm", ["char_mod", "char_mod_size_mm"], float, "Modified char size (mm)", "Char_Mod_Size."),
+    ("mink_draft_angle_deg", ["build", "mink_draft_angle_deg"], float, "Draft angle (deg)",
+     "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
+    ("mink_height", ["build", "mink_height"], float, "Draft cone height (mm)",
+     "Mink_Height - the draft cone's own height, independent of Glyph height (Element tab). "
+     "Only takes effect on Render."),
+    ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left".'),
+    ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),
+    ("left_offset_mm", ["alignment", "left_offset_mm"], float, "Left offset (mm)", ""),
+    ("modified_left_chars", ["alignment", "modified_left_chars"], str, "Modified-left chars", "Chars getting an extra left shift."),
+    ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
+    ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
+    ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
+]
+
+# Logo (v2's real name) is a whole-string engraved label (two lines, read
+# directly, never struck) - same "Label" tab convention as Bennett/Hammond
+# (LABEL_FIELDS_BENNETT/LABEL_FIELDS_HAMMOND), named for what kind of
+# feature it is, not the v2 variable name.
+LABEL_FIELDS_HAMMOND_SPLIT = [
+    ("font_path", ["label", "font_path"], str, "Label font path", "Font for the two engraved Logo_Text lines."),
+    ("label1", ["label", "label1"], str, "Label 1", "Logo_Text_1 - e.g. a name."),
+    ("label2", ["label", "label2"], str, "Label 2", "Logo_Text_2 - e.g. a year."),
+    ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", "Logo_Size."),
+    ("depth_mm", ["label", "depth_mm"], float, "Label depth (mm)", "Logo_Depth."),
+]
+
+QUALITY_FIELDS_HAMMOND_SPLIT = [
+    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)",
+     "Collapses minkowski_sum's CSG noise. 0 disables. Only matters while Minkowski (Build tab) is on."),
+    ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Arc/Center/Rib/Tube/etc. body facet count."),
+    ("mink_fn", ["quality", "mink_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
+    ("text_fn", ["quality", "text_fn"], int, "Text fn", "Not currently consumed - v4's freetype pipeline uses Outline density instead."),
+]
+
+RESIN_FIELDS_HAMMOND_SPLIT = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
+    ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
+    ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
+    ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
+    ("inset", ["resin", "inset"], float, "Inset (mm)", ""),
+    ("min_rod_height", ["resin", "min_rod_height"], float, "Min rod height (mm)", ""),
+    ("raft_od", ["resin", "raft_od"], float, "Raft OD (mm)", ""),
+    ("raft_thickness", ["resin", "raft_thickness"], float, "Raft thickness (mm)", ""),
+    ("fence_spacing", ["resin", "fence_spacing"], float, "Fence lattice spacing (mm)", "Res_Spacing - diagonal cross-bracing rod pitch."),
+    ("fence_angle_deg", ["resin", "fence_angle_deg"], float, "Fence lattice angle (deg)", "Res_Angle."),
+    # arc_div/folder_div/folder_face_div/ring_div/ring_start_end_deg
+    # (list-valued grid-division counts) are deliberately YAML-only - edit
+    # config/hammond_split.yaml directly - same treatment as layout.
+    # placement_map/char_legend elsewhere, per this repo's "a list-valued
+    # config key needs an explicit decision" rule.
+]
+
+ELEMENT_FIELDS_HAMMOND_SPLIT = [
+    ("arc_od", ["element", "arc_od"], float, "Arc OD (mm)", "Arc_OD."),
+    ("arc_thickness", ["element", "arc_thickness"], float, "Arc thickness (mm)", ""),
+    ("arc_height", ["element", "arc_height"], float, "Arc height (mm)", ""),
+    ("arc_height_offset", ["element", "arc_height_offset"], float, "Arc height offset (mm)", ""),
+    ("folder_degree_offset", ["element", "folder_degree_offset"], float, "Folder degree offset (deg)", ""),
+    ("folder_degrees", ["element", "folder_degrees"], float, "Folder degrees (deg)", ""),
+    ("folder_id_mm", ["element", "folder_id_mm"], float, "Folder ID (mm)", "Folder_ID_Mm - +/- folder_radial_gap gives the real left/right IDs."),
+    ("folder_od", ["element", "folder_od"], float, "Folder OD (mm)", ""),
+    ("folder_thickness", ["element", "folder_thickness"], float, "Folder thickness (mm)", ""),
+    ("folder_close_gap", ["element", "folder_close_gap"], float, "Folder close gap (deg)", "Folder_Arc_Start = this/2."),
+    ("folder_glue_hole_id_mm", ["element", "folder_glue_hole_id_mm"], float, "Glue hole ID (mm)", ""),
+    ("folder_glue_groove_r", ["element", "folder_glue_groove_r"], float, "Glue groove radius (mm)", ""),
+    ("folder_glue_groove_depth", ["element", "folder_glue_groove_depth"], float, "Glue groove depth (mm)", ""),
+    ("glyph_height", ["element", "glyph_height"], float, "Glyph height (mm)", "Struck character engraving depth."),
+    ("finger_thickness", ["element", "finger_thickness"], float, "Finger thickness (mm)", "Alignment finger tip width."),
+    ("spoke_thickness", ["element", "spoke_thickness"], float, "Spoke thickness (mm)", ""),
+    ("spoke_height", ["element", "spoke_height"], float, "Spoke height (mm)", ""),
+    ("spoke_count", ["element", "spoke_count"], int, "Spoke count", ""),
+    ("spoke_extent", ["element", "spoke_extent"], float, "Spoke extent (deg)", ""),
+    ("spoke_chamfer", ["element", "spoke_chamfer"], float, "Spoke chamfer (mm)", ""),
+    ("rib_od", ["element", "rib_od"], float, "Rib OD (mm)", ""),
+    ("rib_thickness", ["element", "rib_thickness"], float, "Rib thickness (mm)", ""),
+    ("rib_radius", ["element", "rib_radius"], float, "Rib radius (mm)", ""),
+    ("angular_divisions", ["element", "angular_divisions"], int, "Angular divisions", "Char_Theta = 360/this."),
+    ("pin_id_mm", ["element", "pin_id_mm"], float, "Pin hole ID (mm)", ""),
+    ("pin_radial", ["element", "pin_radial"], float, "Pin radial distance (mm)", ""),
+    ("pin_id_chamfer", ["element", "pin_id_chamfer"], float, "Pin hole chamfer (mm)", ""),
+    ("tube_chamfer", ["element", "tube_chamfer"], float, "Tube chamfer (mm)", ""),
+    # pin_theta/tube_od_mm (2-element [left,right] lists) are deliberately
+    # YAML-only, same reason as the resin div arrays above.
+    ("id_offset", ["element", "id_offset"], float, "ID offset (mm)", "Tube/pin hole resin/FDM print-fit growth."),
+    ("folder_radial_gap", ["element", "folder_radial_gap"], float, "Folder radial gap (mm)", "Folder_ID[0]/[1] +/- split."),
+    ("folder_squash_clearance", ["element", "folder_squash_clearance"], float, "Folder squash clearance (mm)", ""),
+]
+
 SECTIONS_BY_MACHINE = {
     "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
@@ -808,6 +915,13 @@ SECTIONS_BY_MACHINE = {
     "hammond": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
                 "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND},
+    # no "Gauge"/"Logo" key - same reasons as Hammond above. "Font &
+    # Alignment" is overridden (not the shared SECTIONS_COMMON one) - see
+    # FONT_FIELDS_HAMMOND_SPLIT's own comment for why (no draft_angle_deg
+    # field here, plus the char_mod fields no other machine has).
+    "hammond_split": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_HAMMOND_SPLIT,
+                       "Label": LABEL_FIELDS_HAMMOND_SPLIT, "Quality": QUALITY_FIELDS_HAMMOND_SPLIT,
+                       "Resin": RESIN_FIELDS_HAMMOND_SPLIT, "Element": ELEMENT_FIELDS_HAMMOND_SPLIT},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -1989,6 +2103,7 @@ class TuneApp(App):
     def _compose_build_tab(self):
         has_gauge = "Gauge" in self.SECTIONS
         is_hammond = self.machine == "hammond"
+        is_hammond_split = self.machine == "hammond_split"
         hammond_parts = ("none",) if is_hammond else ()
         valid_targets = ("element", "calibration") + (("gauge",) if has_gauge else ()) + hammond_parts
         with TabPane("Build", id="tab-build"):
@@ -2072,6 +2187,23 @@ class TuneApp(App):
                         'along the outer wall instead. Independent of Build target above - whenever '
                         'it builds a body with a rib ("Shuttle with Rib"), its own resin-rod supports '
                         "are always added too, regardless of this setting.",
+                        classes="field-help")
+
+                if is_hammond_split:
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Render left half", classes="field-label")
+                        yield Switch(value=bool(self.cfg.get("build", {}).get("render_left", True)),
+                                     id="build-render-left")
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Render right half", classes="field-label")
+                        yield Switch(value=bool(self.cfg.get("build", {}).get("render_right", True)),
+                                     id="build-render-right")
+                    yield Static(
+                        "Turn either off to build/print just one shuttle half at a time. "
+                        "Both halves ship in one STL, laid out side by side (not overlapping) "
+                        "when both are on. Minkowski draft itself (like every machine) isn't a "
+                        "config toggle - Quick Preview always skips it, Render always applies it; "
+                        "its angle/height live on the Font & Alignment tab.",
                         classes="field-help")
 
                 yield Static("Debug", classes="field-label")
@@ -2236,6 +2368,17 @@ class TuneApp(App):
             # for the same reason as groove above.
             values["orientation"] = self.query_one("#build-orientation", Select).value
             values["horizontal_method"] = self.query_one("#build-horizontal-method", Select).value
+        if self.machine == "hammond_split":
+            # render_left/render_right - bespoke Build-tab widgets (see
+            # _compose_build_tab's is_hammond_split branch), same treatment
+            # as Hammond's orientation/horizontal_method above. Minkowski
+            # draft angle/height are plain self.FIELDS entries (Font &
+            # Alignment tab) instead - not bespoke, since (like every
+            # machine's draft_angle_deg) they're real tunable parameters,
+            # unlike whether the draft runs at all (never a config toggle -
+            # forced by which button was pressed, see _run_build).
+            values["render_left"] = self.query_one("#build-render-left", Switch).value
+            values["render_right"] = self.query_one("#build-render-right", Switch).value
         # Type Test's own cpi/lpi - bespoke widgets, not in self.FIELDS, but
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
@@ -2358,6 +2501,10 @@ class TuneApp(App):
             hm_now = str(self.cfg.get("resin", {}).get("horizontal_method", "resin_rod"))
             self.query_one("#build-horizontal-method", Select).value = (
                 hm_now if hm_now in ("cut_groove", "resin_rod") else "resin_rod")
+        if self.machine == "hammond_split":
+            b = self.cfg.get("build", {})
+            self.query_one("#build-render-left", Switch).value = bool(b.get("render_left", True))
+            self.query_one("#build-render-right", Switch).value = bool(b.get("render_right", True))
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]

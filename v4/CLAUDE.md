@@ -101,11 +101,10 @@ the cited section for the full incident).
 
 - **Physical form and code-sharing are two separate axes - check both,
   don't infer one from the other.** Ported so far: Blickensderfer,
-  Postal, Mignon, Bennett, Helios Klimax. Remaining, per the roadmap:
-  Hammond/Hammond_split (shuttle mechanism - a different form factor from
-  the cylindrical family), IBM (spherical - also a different form
-  factor). All of Blickensderfer/Postal/Mignon/Bennett/Helios are
-  cylindrical in outward form, but:
+  Postal, Mignon, Bennett, Helios Klimax, Hammond, Hammond Split. Remaining,
+  per the roadmap: IBM (spherical - a different form factor from both the
+  cylindrical family and the two Hammond machines). All of Blickensderfer/
+  Postal/Mignon/Bennett/Helios are cylindrical in outward form, but:
   - **Blickensderfer and Postal are near-twins** - they diverge in code
     only at the "drive pin trio" (`HollowSpace`/`DrivePin`/
     `ResinSupport`); everything else lives in `lib/cylinder_machine.py`
@@ -120,12 +119,20 @@ the cited section for the full incident).
     real v2 source against `cylinder_machine.py` function-by-function
     before assuming reuse, and don't assume it behaves like
     Blickensderfer/Postal just because it's cylindrical too.
-  - **Hammond/Hammond_split and IBM are a different form factor
-    entirely** - don't reach for `cylinder_machine.py` as the starting
-    point for either; they need their own equivalent of that
-    exercise (identify what, if anything, is genuinely shared with an
-    existing machine vs. `glyph_poc.py`/`scad_primitives.py`-level
-    primitives only).
+  - **Hammond, Hammond Split, and IBM are a different form factor
+    entirely** - `cylinder_machine.py` was not the starting point for any
+    of them. Hammond and Hammond Split themselves turned out to share
+    almost nothing with EACH OTHER either, despite the shared name -
+    Hammond genuinely reuses `cylinder_machine.place_on_cylinder`/
+    `TextRing` for glyph placement (its arc reduces algebraically to a
+    "fake cylinder" - see `lib/hammond.py`'s module docstring), while
+    Hammond Split builds its own from-scratch glyph pipeline entirely and
+    has a third, independent resin-support scheme (see `lib/hammond_
+    split.py`'s module docstring). Don't infer either machine's code-
+    sharing from the other just because they're named alike - IBM (still
+    unstarted) needs its own from-scratch audit against
+    `glyph_poc.py`/`scad_primitives.py`-level primitives, not an
+    assumption that it resembles either Hammond machine.
   - `lib/cylinder_machine.py`'s own module docstring used to frame it as
     "Blickensderfer/Postal, and future family members" - that framing was
     stale (fixed to state the above explicitly) and should stay corrected;
