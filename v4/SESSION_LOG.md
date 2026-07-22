@@ -3572,6 +3572,103 @@ confirmed byte-for-byte unaffected. Full hard gate: Groove body
 via `--hammond-part rib_only` CLI still builds a clean, valid,
 watertight mesh.
 
+## 56. Hammond: `RibOnly()` was missing its center tang, plus a new "Rib" tab and per-row "(math)" label
+
+Three small, related follow-ups, all from explicit user requests.
+
+**Row label**: "math/universal layout ui doesnt work properly" turned
+out not to be a functional bug at all - a headless `TuneApp` test
+(select "Math Universal", collect values, save) found no exception and
+no data loss. The user's own follow-up clarified what "doesn't work
+properly" meant: `ROW_LABELS` (`tune.py`) only had 3 entries
+(`lowercase`/`uppercase`/`figs`), so the Element tab's 4th baseline/
+cutout row (real, editable, and correctly seeded per part 1207's/
+`on_select_changed`'s existing machinery - see `_compose_baseline_
+cutout_fields`) rendered as a bare "Baseline row 3" with no indication
+of what it's for. Added `"math"` as `ROW_LABELS[3]` - now reads
+"Baseline row 3 (math)"/"Cutout row 3 (math)". No other layer of this
+(seeding, `n_rows` sizing, save/patch) needed a fix - it was working
+correctly and just needed the label.
+
+**New "Rib" tab**: `element.rib_interface_offset_mm` moved out of the
+Element tab into its own new "Rib" tab (`RIB_FIELDS_HAMMOND`, registered
+in `SECTIONS_BY_MACHINE["hammond"]`, composed in `_compose_tuner_ui`
+right after Element), per explicit request - "put it in a new tab Rib.
+note value is for Rib only for FDM printing." A new `SECTION_INTROS["Rib"]`
+banner states these are v4-only FDM print-fit knobs for Build target Rib
+specifically, never the fused Shuttle-with-Rib print or the Shuttle body.
+
+**Nub clearance growth**: "also shift the nub size larger too for that."
+`Shuttle_Groove_Nub_Size` (`Shuttle_Thickness/2`, v2:260, derived, not
+independently tunable) is shared as-is between `GrooveShape()`'s two
+real uses: the Shuttle-side cutter (unaffected, must stay exact per v2)
+and `RibOnly()`'s flange (the new v4-only positive-material reuse from
+parts 51/54/55). Added a `nub_grow` parameter to `GrooveShape()`
+(default `0.0`, reproduces the original exactly) that only grows the 4
+nub-clearance cutout radii, independent of the existing `shrink`
+parameter (which only affects the disk/tab's outer boundary). New
+`element.rib_nub_growth_mm` config key (default `0.15mm`, same starting
+point as `rib_interface_offset_mm`), exposed as the Rib tab's 2nd field,
+consumed only by `RibOnly()`'s own `GrooveShape()` call.
+
+**Missing tang**: "the rib only is missing the tang in the center that
+inserts into the slot cut out on the shuttle." `RibOnly()` (parts 51/54/
+55) explicitly passed `include_tab=False` to `GrooveShape()`, on the
+reasoning that the "tab" only makes sense as a cutter (it creates the
+Shuttle-side opening; the flange being inserted through that opening
+"doesn't need an equivalent feature of its own"). That reasoning was
+wrong for the v4-only two-piece FDM assembly path: with no tang, a
+printed `RibOnly()` has nothing that physically plugs through the
+opening the Shuttle-side cutter creates - it's not actually insertable.
+
+Fix: `RibOnly()` now passes `include_tab=True`. The real cutter's own
+tab is a 50mm-overshoot box running from the rotation axis (`x=0`) out
+past the shell, a deliberate sentinel that only makes sense as a
+cutter (harmless there - it only ever cuts empty air past the shell's
+real material); reused as positive material verbatim it would be a
+50mm spike. Added two new `GrooveShape()` parameters, both defaulting
+to reproduce the original cutter shape exactly:
+- `tab_length` (default `50.0`): the tab's far edge along local `+x`.
+  `RibOnly()` passes the new `Rib_Tang_Length` global, which defaults
+  (`element.rib_tang_length_mm` omitted) to `Shuttle_Arc_Radius+
+  Shuttle_Thickness` - the Shuttle's own real outer wall radius (see
+  `ShuttleCylinder()`) - a DERIVED value, not an invented literal,
+  deliberately left out of `hammond.yaml`/`hammond.running.yaml` (only a
+  commented-out placeholder line, with a comment explaining why) so it
+  keeps tracking those two globals rather than needing to be
+  hand-kept in sync with them. Not exposed in the Rib tab for the same
+  reason - `patch_yaml_value` requires a live (uncommented) key to
+  already exist in the config text, and a hand-added override is
+  expected to be rare enough that direct YAML editing is fine (same
+  "YAML-only, documented" treatment CLAUDE.md already endorses for
+  `layout.placement_map`/`char_legend`).
+- `tab_start` (default `0.0`): the tab's near edge. `RibOnly()` passes
+  `Shuttle_Arc_Radius-Shuttle_Rib_Width-1.0` - the same inner-radius/
+  overlap-margin already used by `GrooveShape()`'s own `inner_hole` cut
+  (part 55) - so the tang is a short feature contiguous with the
+  flange's own ring, not a spike running all the way in to the
+  rotation axis.
+
+**Verified**: `--hammond-part rib_only` (master `config/hammond.yaml`)
+now builds `verts=3262 faces=6524 watertight=True winding_consistent=True
+is_volume=True volume=148.983mm3` (up from part 55's `141.991mm3` -
+consistent with adding one small tang feature). f3d screenshot confirms
+a small rectangular tang centered on the flange, contiguous with the
+curved band, not a spike. Full hard gate: stashed just `lib/hammond.py`
+and re-ran the Shuttle-side groove-cutter path (`element.groove=true`,
+full `ResinPrint`) both before and after the stash - identical
+`verts=458769 faces=918854 volume=4309.645mm3` (all validity flags
+`True`) both times, confirming the real cutter call site (bare
+`GrooveShape()`, all new params at their reproduce-original defaults)
+is byte-for-byte unaffected. Master `groove=false` (fused Shuttle with
+Rib) and Blickensderfer (`ResinPrint` `volume=5666.804mm3`, matching
+this file's own documented baseline) both still build clean. Headless
+`TuneApp` test against a scratch config copy confirms: `#tab-rib` pane
+exists with exactly `field-rib_interface_offset_mm`/`field-rib_nub_
+growth_mm`; those two are no longer under `#tab-element`; a save
+round-trip writes both keys correctly; Element tab's baseline/cutout
+rows render "Baseline row 3 (math)"/"Cutout row 3 (math)".
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

@@ -230,6 +230,24 @@ def configure(config_path):
     # printed separately from the Shuttle) rather than growing the
     # Shuttle's own groove cut, per explicit request.
     g["Rib_Interface_Offset"] = e.get("rib_interface_offset_mm", 0.15)
+    # v4-specific - extra radius added to GrooveShape()'s 4 nub-clearance
+    # cutouts, only for RibOnly()'s flange (never the real Shuttle-side
+    # cutter), giving the flange's own clearance holes some margin over
+    # the shuttle's nub geometry for FDM tolerance, same spirit as
+    # Rib_Interface_Offset but for the nub holes specifically.
+    g["Rib_Nub_Growth"] = e.get("rib_nub_growth_mm", 0.15)
+    # v4-specific - the outer reach (in GrooveShape()'s local X, measured
+    # from the rotation axis) of RibOnly()'s center tang, the part that
+    # plugs through the Shuttle's cut opening (GrooveShape()'s "tab" -
+    # see RibOnly()/GrooveShape() docstrings; the tang's near/inner edge
+    # is separately pulled in to the flange's own inner radius, not
+    # config-exposed). Defaults to exactly Shuttle_Arc_Radius+
+    # Shuttle_Thickness - the shuttle's own real outer wall radius (see
+    # ShuttleCylinder()) - so the tang reaches flush with the Shuttle's
+    # real outer surface by default, a derived value rather than an
+    # invented one; override only if a physical fit-check shows it
+    # should stop short of or protrude past that surface.
+    g["Rib_Tang_Length"] = e.get("rib_tang_length_mm", g["Shuttle_Arc_Radius"] + g["Shuttle_Thickness"])
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
@@ -509,26 +527,41 @@ def RibOnly():
     channel into a Groove=true shell also happens to be the correct
     shape for a flange that fills that same channel and clears its 4
     retention ridges, just added instead of subtracted.
-    include_tab=False - the "tab" portion is EXCLUDED here: it only ever
-    makes sense as a cutter (an oversized box reaching to x=50,
-    guaranteeing a clean through-cut regardless of the shell's real
-    wall thickness - see GrooveShape()'s own docstring). Reused as
-    positive material it would just be a 50mm spike sticking out of the
-    printed part - the tab creates the INSERTION OPENING on the shell
-    side; the flange being inserted through that opening doesn't need
-    an equivalent feature of its own. shrink=Rib_Interface_Offset gives
-    the flange (the "male" piece here, since it's the one being
-    test-fit into an already-cut slot) FDM print clearance - shrinking
-    the male side rather than growing the Shuttle's own groove cut, per
-    explicit request."""
+    include_tab=True, tab_length=Rib_Tang_Length, tab_start=<disk's own
+    inner radius>: the "tab" portion IS included here (unlike an earlier
+    version of this that omitted it entirely) - it's the physical tang
+    that plugs through the opening GrooveShape()'s real cutter use cuts
+    into the Shuttle body, and a printed RibOnly() with no tang at all
+    can't actually be inserted into that opening. Both bounds differ
+    from the real cutter's own call, which spans a 50mm-overshoot
+    sentinel all the way in to the rotation axis (harmless there - it
+    only ever cuts through empty air past the shell's real material) -
+    reused as positive material that would be a 50mm spike running deep
+    into the print. tab_start is pulled in to the disk's own inner
+    boundary (same margin as its inner_hole cut) so the tang is a short
+    feature contiguous with the flange's own ring; tab_length=
+    Rib_Tang_Length bounds the far end to the Shuttle's own real outer
+    wall radius (a derived value, not invented - see Rib_Tang_Length's
+    config comment) instead of continuing 50mm past it.
+    shrink=Rib_Interface_Offset gives the flange (the "male" piece here,
+    since it's the one being test-fit into an already-cut slot) FDM
+    print clearance - shrinking the male side rather than growing the
+    Shuttle's own groove cut, per explicit request. This also shrinks
+    the tang's width (see GrooveShape()'s own tab_half_width) and, via
+    nub_grow=Rib_Nub_Growth, grows its 4 nub-clearance holes - both
+    FDM-fit margins that only apply to this flange, never the real
+    Shuttle-side cutter."""
     _require_configured()
+    tab_start = Shuttle_Arc_Radius - Shuttle_Rib_Width - 1.0
     rib = sp.union_all([RibAssembled(),
-                         GrooveShape(shrink=Rib_Interface_Offset, include_tab=False, trim_to_arc=True)])
+                         GrooveShape(shrink=Rib_Interface_Offset, include_tab=True,
+                                     tab_length=Rib_Tang_Length, tab_start=tab_start,
+                                     nub_grow=Rib_Nub_Growth, trim_to_arc=True)])
     rib, _, _, _ = sp.check_and_repair(rib, label="RibOnly")
     return rib
 
 
-def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
+def GrooveShape(shrink=0.0, include_tab=True, tab_length=50.0, tab_start=0.0, nub_grow=0.0, trim_to_arc=False):
     """v2:484-500 - circumferential snap-fit slot cut into the shell,
     opening from its INNER surface (a solid disk r=Shuttle_Arc_Radius+
     Shuttle_Groove_Depth, unioned with a radial "tab" box reaching out to
@@ -554,10 +587,31 @@ def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
     only RibOnly()'s new flange use passes a nonzero value.
 
     include_tab (v4-specific - default True reproduces the original
-    shell-cutter shape exactly): set False to omit the tab box entirely
-    - see RibOnly()'s own docstring for why its positive-flange use
-    needs this off (the tab's x=50 overshoot only makes sense as a
-    cutter).
+    shell-cutter shape exactly): set False to omit the tab box entirely.
+
+    tab_length (v4-specific - default 50.0 reproduces the original
+    shell-cutter's sentinel overshoot exactly): the tab box's far edge,
+    along local +x from the rotation axis (x=0). RibOnly() overrides
+    this to Rib_Tang_Length (Shuttle_Arc_Radius+Shuttle_Thickness) so
+    its positive tang stops flush at the Shuttle's real outer wall
+    instead of continuing 50mm past it.
+
+    tab_start (v4-specific - default 0.0 reproduces the original
+    shell-cutter exactly, spanning all the way from the rotation axis):
+    the tab box's near edge. Harmless left at 0 for the real cutter (the
+    extra reach toward the axis just cuts through empty air, no shell
+    material sits there), but RibOnly() overrides this to the disk's own
+    inner boundary (Shuttle_Arc_Radius-Shuttle_Rib_Width, minus the same
+    1mm overlap margin as the disk's own inner_hole cut below) so its
+    positive tang is a short feature contiguous with the flange's own
+    ring, not a spike running all the way in to the rotation axis.
+
+    nub_grow (v4-specific, default 0.0 reproduces the original shell-
+    cutter exactly): added to Shuttle_Groove_Nub_Size's radius for the
+    4 nub-clearance cutouts only - RibOnly() passes Rib_Nub_Growth here
+    to give its own flange's clearance holes some FDM-fit margin,
+    independent of shrink (which only affects the disk/tab's outer
+    boundary, not these interior cutouts).
 
     trim_to_arc (v4-specific - default False reproduces the original
     shell-cutter shape exactly, a FULL 360deg disk): set True to trim
@@ -629,8 +683,8 @@ def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
     if include_tab:
         tab_half_width = Groove_Tab_Width / 2.0 - shrink
         tab_2d = ShapelyPolygon([
-            (0, -tab_half_width), (50, -tab_half_width),
-            (50, tab_half_width), (0, tab_half_width),
+            (tab_start, -tab_half_width), (tab_length, -tab_half_width),
+            (tab_length, tab_half_width), (tab_start, tab_half_width),
         ])
         tab = trimesh.creation.extrude_polygon(tab_2d, Shuttle_Rib_Thickness + Groove_Opening_Offset)
         tab = sp.translate(tab, [0, 0, -Groove_Opening_Offset / 2.0])
@@ -638,7 +692,7 @@ def GrooveShape(shrink=0.0, include_tab=True, trim_to_arc=False):
 
     shape = sp.union_all(parts)
     for n in (-2, -1, 1, 2):
-        nub = sp.cylinder_z(2 * Shuttle_Groove_Nub_Size, Shuttle_Rib_Thickness + 2 * z,
+        nub = sp.cylinder_z(2 * (Shuttle_Groove_Nub_Size + nub_grow), Shuttle_Rib_Thickness + 2 * z,
                              sections=Cyl_Fn, base_z=-z)
         nub = sp.translate(nub, [Shuttle_Arc_Radius + Shuttle_Groove_Depth, 0, 0])
         nub = sp.rotate_z(nub, Shuttle_Groove_Nub_Angle * n)

@@ -148,6 +148,24 @@ element:
   # 0.15mm is a reasonable starting point for a snug slide-fit at
   # typical 0.4mm-nozzle FDM tolerances - tune per printer/filament.
   rib_interface_offset_mm: 0.15
+  # v4-specific, not a v2 value - extra radius added to the Rib flange's
+  # 4 nub-clearance cutouts (see GrooveShape()'s nub_grow parameter),
+  # independent of rib_interface_offset_mm - gives the flange's own
+  # clearance holes some FDM-fit margin over the Shuttle-side nub
+  # geometry. Only affects RibOnly(), never the Shuttle-side cutter.
+  rib_nub_growth_mm: 0.15
+  # v4-specific, not a v2 value - how far the Rib flange's center tang
+  # (the feature that plugs through the Shuttle's cut opening) reaches,
+  # in absolute mm from the rotation axis. Deliberately OMITTED here -
+  # lib/hammond.py's configure() defaults it to Shuttle_Arc_Radius+
+  # Shuttle_Thickness (the Shuttle's own real outer wall radius) when
+  # this key is absent, so the tang sits flush with the Shuttle's real
+  # outer surface automatically, tracking those two values instead of a
+  # separately-maintained literal that could drift out of sync with
+  # them. Only add this key (see lib/hammond.py's Rib_Tang_Length
+  # comment) if a physical fit-check shows it should stop short of or
+  # protrude past that surface.
+  # rib_tang_length_mm: <override, mm from rotation axis - see comment above>
 
 # quality/facet counts - v2:79-92. Surface_Fn mirrors Cyl_Fn (v2's own
 # comment: "no separate structural-quality tier from Cyl_Fn").

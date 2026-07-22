@@ -750,11 +750,24 @@ ELEMENT_FIELDS_HAMMOND = [
     ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used for Build target Shuttle (the without-rib/groove body's own cut slot - Rib's flange omits the tab, see hammond.py)."),
     ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used for Build target Shuttle (the without-rib/groove body)."),
     ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Its ResinChamfer() consumer is currently disabled (commented out) - only used by the Resin tab's Cut Groove support method now (unrelated feature, same constant - see config comment)."),
-    ("rib_interface_offset_mm", ["element", "rib_interface_offset_mm"], float, "Rib interface offset (mm)",
-     "FDM print-fit clearance for Build target Rib's groove-interface flange - shrinks the "
+]
+
+# v4-specific "Rib" tab (Hammond only) - FDM print-fit tuning for the
+# standalone Build target Rib part (RibOnly()), kept separate from the
+# Element tab's real-machine-dimension fields since every value here is
+# purely a v4 print-fit knob, not a v2/real-machine number. Every field's
+# help text should make clear it only affects Rib-only FDM printing, not
+# the fused Shuttle-with-Rib resin print or the Shuttle body itself.
+RIB_FIELDS_HAMMOND = [
+    ("rib_interface_offset_mm", ["element", "rib_interface_offset_mm"], float, "Interface offset (mm)",
+     "FDM print-fit clearance for the Rib-only flange (Build target Rib) - shrinks the "
      "flange (the piece being test-fit into a Shuttle body's cut slot) so it actually slides "
      "in after printing. 0 reproduces the exact nominal/uncompensated fit; increase if the "
-     "flange prints too tight for your printer/filament."),
+     "flange prints too tight for your printer/filament. Only affects Build target Rib."),
+    ("rib_nub_growth_mm", ["element", "rib_nub_growth_mm"], float, "Nub clearance growth (mm)",
+     "FDM print-fit margin for the Rib-only flange's 4 nub-clearance cutouts, independent of "
+     "Interface offset above. Increase if the flange's clearance holes print too tight to "
+     "clear the Shuttle's nub geometry. Only affects Build target Rib."),
 ]
 
 SECTIONS_BY_MACHINE = {
@@ -790,7 +803,7 @@ SECTIONS_BY_MACHINE = {
     # "Label" tab instead, same convention as Bennett.
     "hammond": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
-                "Element": ELEMENT_FIELDS_HAMMOND},
+                "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -798,6 +811,10 @@ SECTIONS_BY_MACHINE = {
 SECTION_INTROS = {
     "Element": ("ADVANCED - real machine dimensions. Rarely need changing.",
                 "advanced-warning"),
+    "Rib": ("v4-specific FDM print-fit tuning, not real machine dimensions - these values are "
+            "for Build target Rib only (the standalone printed flange), never the fused "
+            "Shuttle with Rib resin print or the Shuttle body itself.",
+            "advanced-warning"),
     "Gauge": (
         "Small 6-pocket calibration print, not the real element. Each "
         "pocket bores its shaft passage at offset_start + n*offset_int. "
@@ -1853,12 +1870,15 @@ class TuneApp(App):
     # _refresh_widgets_from_cfg handle them explicitly, same pattern as
     # the Layout/Type Test tabs' own bespoke widgets.
     # Only meaningful for Blickensderfer/Postal's 3 real shift rows
-    # (lowercase/uppercase/figs) - Mignon's 7 rows have no such semantic
-    # names (v2 itself has no per-row label concept, see
-    # lib/glyph_pipeline.scad's Row_Labels comment: "default: numeric
-    # 'row N'" for machines with no 3-entry meaning). Rows beyond this
-    # list's length just show as "Row N" with no parenthetical.
-    ROW_LABELS = ["lowercase", "uppercase", "figs"]
+    # (lowercase/uppercase/figs) and Hammond's 4th row (the Math
+    # Universal preset's own extra row, no shift-key equivalent - just
+    # labeled "math" so it isn't shown as an unlabeled row when that
+    # preset's selected) - Mignon's 7 rows have no such semantic names
+    # (v2 itself has no per-row label concept, see lib/glyph_pipeline.
+    # scad's Row_Labels comment: "default: numeric 'row N'" for machines
+    # with no 3-entry meaning). Rows beyond this list's length just show
+    # as "Row N" with no parenthetical.
+    ROW_LABELS = ["lowercase", "uppercase", "figs", "math"]
 
     def _compose_baseline_cutout_fields(self):
         yield Static(
@@ -2141,6 +2161,8 @@ class TuneApp(App):
                 if "Label" in self.SECTIONS:
                     yield from self._compose_section_tab("Label")
                 yield from self._compose_section_tab("Element")
+                if "Rib" in self.SECTIONS:
+                    yield from self._compose_section_tab("Rib")
 
             with Vertical(id="buttons"):
                 # short, wide, and OUTSIDE the TabbedContent (unlike the
