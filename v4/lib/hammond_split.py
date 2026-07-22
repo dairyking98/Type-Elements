@@ -73,6 +73,8 @@ as Helios having no resin support at all - not every debug flag needs to
 work identically on every machine).
 """
 
+import time
+
 import numpy as np
 import trimesh
 from shapely.geometry import Point, Polygon as ShapelyPolygon
@@ -487,19 +489,49 @@ def LetterText(char, font_path, font_size_mm):
 
 
 def TextAssemble(side):
-    """v2:366-383."""
+    """v2:366-383. Prints "[n/total] building ..." progress lines matching
+    cylinder_machine.TextRing's own convention (tune.py's progress bar
+    parses this exact shape via its _PROGRESS_RE - see _update_progress's
+    docstring) - this machine builds its own from-scratch character loop
+    instead of reusing TextRing, so it doesn't get that instrumentation
+    for free the way Mignon/Bennett/Helios/Hammond do; without a matching
+    print here the Build tab's progress bar just sits at 0% for the whole
+    build. Also matches TextRing's per-character skip-on-exception
+    behavior (one bad glyph doesn't abort the whole build)."""
     parts = []
+    skipped = []
+    total = 3 * 15
+    n = 0
+    t_start = time.perf_counter()
     for baseline in range(3):
         height = Baselines[baseline]
         for i in range(15):
+            n += 1
             angle = (1 + i) * Char_Theta if side == 0 else (-1 - (14 - i)) * Char_Theta
             char = Layout[baseline][14 - i] if side == 0 else Layout[baseline][29 - i]
-            is_mod = char in Char_Mod
-            font_path = CHAR_MOD_FONT_PATH if is_mod else FONT_PATH
-            size = Char_Mod_Size if is_mod else Type_Size
-            letter = LetterText(char, font_path, size)
+            # flush=True - see cylinder_machine.TextRing's own comment:
+            # generate.py's stdout is piped (not a TTY) under tune.py's
+            # subprocess, which fully block-buffers without this.
+            print(f"TextAssemble: side={side} [{n}/{total}] building {char!r} (row {baseline})...",
+                  end="", flush=True)
+            t0 = time.perf_counter()
+            try:
+                is_mod = char in Char_Mod
+                font_path = CHAR_MOD_FONT_PATH if is_mod else FONT_PATH
+                size = Char_Mod_Size if is_mod else Type_Size
+                letter = LetterText(char, font_path, size)
+            except Exception as e:
+                skipped.append((baseline, i, char, str(e)))
+                print(f" SKIPPED ({e})", flush=True)
+                continue
+            print(f" {time.perf_counter() - t0:.2f}s", flush=True)
             letter = sp.scad_transform(letter, *_text_placement_ops(angle, height))
             parts.append(letter)
+    print(f"TextAssemble: side={side} all characters built in {time.perf_counter() - t_start:.1f}s",
+          flush=True)
+    if skipped:
+        print(f"TextAssemble: side={side} placed {len(parts)}, skipped {len(skipped)}: {skipped}",
+              flush=True)
     return sp.union_all(parts)
 
 
@@ -865,12 +897,20 @@ def CalibrationTextRing(side, test_char, vary_baseline, start, interval):
     interval instead of looking up the real per-column layout height."""
     parts = []
     mapping_lines = []
+    total = 3 * 15
+    n = 0
     for baseline in range(3):
         height = Baselines[baseline]
         if vary_baseline:
             height = height + start + baseline * interval
         for i in range(15):
+            n += 1
             angle = (1 + i) * Char_Theta if side == 0 else (-1 - (14 - i)) * Char_Theta
+            # Same "[n/total]" shape as TextAssemble()/cylinder_machine.
+            # TextRing, so tune.py's progress bar tracks Calibration
+            # builds too - see TextAssemble()'s own comment.
+            print(f"CalibrationTextRing: side={side} [{n}/{total}] building {test_char!r} (row {baseline})...",
+                  flush=True)
             letter = LetterText(test_char, FONT_PATH, Type_Size)
             letter = sp.scad_transform(letter, *_text_placement_ops(angle, height))
             parts.append(letter)
@@ -914,6 +954,9 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
     oriented convention - hammond_split has no equivalent flat mode that
     keeps both sides legibly separated (see Assemble()'s own docstring)."""
     _require_configured()
+    if not Render_Left and not Render_Right:
+        raise ValueError("hammond_split: Render Left and Render Right are both off - "
+                          "nothing to build. Turn at least one back on (Build tab).")
     char = Calibration_Test_Char if test_char is None else test_char
     vb = Calibration_Vary_Baseline if vary_baseline is None else vary_baseline
     st = Calibration_Start if start is None else start
@@ -949,6 +992,13 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
 
 def _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg, with_resin):
     global POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
+    if not Render_Left and not Render_Right:
+        # sp.union_all([]) silently returns a 0-vertex Trimesh rather than
+        # raising - with both Build tab switches off that would otherwise
+        # export a genuinely empty, valid-looking STL with no error at
+        # all (reported as f3d showing "[EMPTY]" with no explanation).
+        raise ValueError("hammond_split: Render Left and Render Right are both off - "
+                          "nothing to build. Turn at least one back on (Build tab).")
     pts = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
     fn = DEFAULT_MINK_FN if cone_segments is None else cone_segments
     tol = DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None else simplify_tolerance_mm

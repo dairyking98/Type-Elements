@@ -267,6 +267,37 @@ the cited section for the full incident).
   `flush=True`.** Piped subprocess stdout is fully block-buffered
   otherwise, so live progress silently stalls until the buffer fills.
   (`SESSION_LOG.md` part 7)
+- **Any per-character glyph-building loop must print a `"[n/total] ..."`
+  line (exact shape, `flush=True`) for every character, matching
+  `cylinder_machine.TextRing`'s convention.** `tune.py`'s Build-tab
+  progress bar (`_update_progress`/`_PROGRESS_RE`) parses this literal
+  `[digits/digits]` pattern from the subprocess's stdout to drive 0-95%;
+  a machine whose glyph pipeline doesn't emit it gets a progress bar
+  that sits at 0% for the entire build, then jumps straight to 100% on
+  completion - not a bug in `tune.py`, a missing print in that machine's
+  lib code. Blickensderfer/Postal/Mignon/Bennett/Helios/Hammond all get
+  this for free by genuinely calling `cylinder_machine.TextRing`/
+  `CalibrationTextRing`; Hammond Split builds its own from-scratch
+  character loop (see `lib/hammond_split.py`'s module docstring) and
+  initially shipped without matching instrumentation, reproducing exactly
+  this symptom - fixed by adding the same `[n/total]` prints (plus
+  `cylinder_machine.TextRing`'s other habit worth copying: catch a
+  per-character exception, print `" SKIPPED (...)"`, and continue rather
+  than aborting the whole build over one bad glyph) directly to
+  `TextAssemble()`/`CalibrationTextRing()`. Any FUTURE machine with its
+  own from-scratch glyph loop (not reusing `cylinder_machine.TextRing`)
+  needs this same instrumentation added by hand - it is not automatic.
+- **`generate.py` writes the output STL via `_atomic_export()` (temp file
+  in the same directory + `os.replace()`), never a bare `mesh.export(out_
+  path)`.** `trimesh`'s own `export()` opens/truncates the destination
+  directly - `tune.py`'s f3d `--watch` window has its own independent
+  filesystem watcher and can fire on that truncate/open event before the
+  write finishes, loading a 0-byte or partial file (reported as f3d
+  showing `"[EMPTY]"` right after a real Preview/Render, not a corrupt
+  build - the STL generate.py finished writing was valid every time this
+  was checked). Every new call site that writes the final output mesh
+  must go through `_atomic_export()`, not add a new direct `.export()`
+  call.
 - **List-valued config keys (`layout.rows`, `baseline_row`/`cutout_row`)
   need their own bespoke patcher (see `patch_yaml_list_item`/the
   block-list patch in `tune.py`), not the generic single-scalar FIELDS

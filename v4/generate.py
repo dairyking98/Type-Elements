@@ -14,6 +14,7 @@ import importlib
 import math
 import os
 import sys
+import tempfile
 
 import numpy as np
 import trimesh
@@ -49,6 +50,31 @@ def _apply_cross_section(mesh, angle_deg):
     trimmed = manifold.trim_by_plane(normal, 0.0)
     result = trimmed.to_mesh()
     return trimesh.Trimesh(vertices=result.vert_properties, faces=result.tri_verts, process=False)
+
+
+def _atomic_export(mesh, out_path):
+    """trimesh's mesh.export(path) opens/truncates the destination file
+    directly, then writes - not atomic. tune.py's f3d --watch window has
+    its own filesystem watcher, independent of tune.py telling it to
+    reload, and can fire on that truncate/open event before the write
+    completes, briefly (or, on a slow/loaded disk, not so briefly) loading
+    a 0-byte or partial STL - reported as f3d showing "[EMPTY]" right
+    after a Preview/Render. Writing to a temp file in the SAME directory
+    (so the final os.replace is a same-filesystem rename, atomic on POSIX)
+    and renaming it into place means the destination path only ever shows
+    either the complete previous file or the complete new one, never a
+    partial write in between - the standard fix for this class of race,
+    not specific to any one machine."""
+    out_dir = os.path.dirname(out_path) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=out_dir, prefix=".tmp-", suffix=os.path.splitext(out_path)[1])
+    os.close(fd)
+    try:
+        mesh.export(tmp_path)
+        os.replace(tmp_path, out_path)
+    except BaseException:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise
 
 
 def _load_machine(config_path):
@@ -192,7 +218,7 @@ def main():
         print(f"GaugeTestSet: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
-        full.export(out_path)
+        _atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         return
 
@@ -231,7 +257,7 @@ def main():
         print(f"CalibrationElement: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
-        full.export(out_path)
+        _atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         # .txt sidecar - the user's explicit ask: a durable keyboard-key/
         # position -> tested-value mapping alongside the STL, not just a
@@ -254,7 +280,7 @@ def main():
         print(f"{label}: verts={len(full.vertices)} faces={len(full.faces)} "
               f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
               f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
-        full.export(out_path)
+        _atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
         return
 
@@ -286,7 +312,7 @@ def main():
           f"watertight={full.is_watertight} winding_consistent={full.is_winding_consistent} "
           f"is_volume={full.is_volume} volume={full.volume:.3f}mm3", flush=True)
 
-    full.export(out_path)
+    _atomic_export(full, out_path)
     print(f"wrote {out_path}", flush=True)
 
 

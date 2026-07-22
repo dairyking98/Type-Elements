@@ -3931,6 +3931,69 @@ Render: `watertight=True volume=13594.85mm3, verts=230464`.
   machine-independently, same pre-existing gap noted for Mignon/Helios
   in the "Resuming later" list below.
 
+## 61. Hammond Split follow-up: progress bar stuck at 0%, f3d showing "[EMPTY]"
+
+Two real bugs reported after actually using the part 60 port in the live
+TUI: the Build tab's progress bar never moved during a build (stayed at
+0% until jumping straight to 100%), and f3d's preview window showed
+`"[EMPTY]"` after a Preview/Render.
+
+**Progress bar**: traced to `tune.py`'s `_update_progress`/`_PROGRESS_RE`
+parsing a literal `"[n/total]"` pattern out of the subprocess's stdout -
+`cylinder_machine.TextRing`/`CalibrationTextRing` print this on every
+character (`flush=True`), which Blickensderfer/Postal/Mignon/Bennett/
+Helios/Hammond all get for free by genuinely calling those shared
+functions (confirmed via `grep` - all six really do call `cylinder_
+machine.TextRing`). Hammond Split's own `TextAssemble()`/
+`CalibrationTextRing()` build their own from-scratch character loop (see
+part 60 - this machine doesn't reuse the shared glyph-placement layer at
+all) and never got matching instrumentation added. Fixed by adding the
+same `"[n/total] building {char!r} (row {baseline})..."` prints
+(`flush=True`) to both functions, plus `cylinder_machine.TextRing`'s
+other habit worth copying: catch a per-character exception, print
+`" SKIPPED (...)"`, and continue rather than aborting the whole build
+over one bad glyph (a real robustness gap the original port didn't have
+at all). Verified: `generate.py` output now shows live `[1/45]` .. `[45/
+45]` progress per side. Documented as a standing `CLAUDE.md` TUI rule so
+a FUTURE from-scratch glyph loop doesn't reproduce the same gap.
+
+**f3d `"[EMPTY]"`**: investigated three candidate causes before finding
+the real one. (1) Confirmed the STL itself was never actually empty or
+corrupt - ran `f3d <file> --no-render --verbose=debug` directly (headless,
+no GUI needed) against a freshly-generated Hammond Split STL and got a
+clean `77876 polygons` load, not empty. (2) Found and fixed a REAL, if
+narrow, footgun while investigating: `scad_primitives.union_all([])`
+silently returns a 0-vertex `Trimesh` rather than raising - with the new
+part-60 Render Left/Render Right Build-tab switches both off, `_build()`/
+`CalibrationElement()` would have exported a genuinely empty, valid-
+looking STL with zero error or warning anywhere in the log. Added an
+explicit `ValueError` guard at the top of both functions ("Render Left
+and Render Right are both off - nothing to build") - not confirmed as
+THE cause (the real-session running config had both switches on), but a
+real bug regardless, worth fixing on its own. (3) The actual explanation:
+`generate.py`'s `full.export(out_path)` (plain `trimesh` export, not
+atomic - opens/truncates the destination file directly, then writes)
+races against f3d's OWN independent filesystem watcher under `--watch`,
+which is not told anything by `tune.py` and can fire on that truncate/
+open event before the write completes - loading a 0-byte or partial file
+at that instant. This isn't Hammond-Split-specific (every machine writes
+its STL the same non-atomic way), just more likely to be *noticed* here
+since this was the first machine exercised heavily right after a fresh
+port. Fixed with a new `generate.py` `_atomic_export()` (write to a temp
+file in the same directory, `os.replace()` into place - same-filesystem
+rename is atomic on POSIX, so the destination path only ever shows a
+fully-complete file) - all four of `generate.py`'s `.export()` call sites
+now go through it. Documented as a standing `CLAUDE.md` rule: every
+future output-writing call site must use `_atomic_export()`, never a bare
+`.export()`.
+
+**Verification**: full `CLAUDE.md` hard-gate command re-run for all 7
+machines (the 6 existing plus Hammond Split) after the `generate.py`/
+`lib/hammond_split.py` changes - every one byte-for-byte identical to
+part 60's own numbers (confirms the atomic-export/progress-print/empty-
+guard changes are purely additive, no behavior change to the actual
+built geometry).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
