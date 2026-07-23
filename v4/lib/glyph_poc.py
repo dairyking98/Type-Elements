@@ -20,10 +20,15 @@ under test, not the real typeface.
 
 --- Parameter derivation (his constant -> ours, and why) ---
 
-SCALE (his SCALE_FROM_TTF_TO_REAL_WORLD): derived, not guessed. FreeType
-gives outline coordinates in font units (DejaVu Sans Mono: 2048 units/em).
-OpenSCAD's text(size=Font_Size) scales its font so the em-square is
-Font_Size mm, so SCALE = FONT_SIZE_MM / units_per_EM.
+SCALE (his SCALE_FROM_TTF_TO_REAL_WORLD): derived AND empirically verified
+against a real OpenSCAD render, not guessed. FreeType gives outline
+coordinates in font units (DejaVu Sans Mono: 2048 units/em). OpenSCAD's
+text(size=Font_Size) does NOT scale the font so its em-square is
+Font_Size mm - it renders at 100 DPI while treating `size` as a point
+value, so real OpenSCAD output is (100/72) larger than a literal
+"em-square=Font_Size mm" read would give (confirmed by rendering "H" at
+size=10 in openscad-nightly and comparing STL bounding boxes - see
+em_to_mm_scale() below). So SCALE = FONT_SIZE_MM * (100/72) / units_per_EM.
 
 FRONT_BACK_SEPARATION (his fixed distance from back/root plane to the
 nominal front/print-face plane, before scalloping): this is exactly what
@@ -92,6 +97,22 @@ PLATEN_RADIUS_MM = 1.0 / PLATEN_DIAMETER
 RADIUS_Y_OFFSET_MM = CUTOUT_ROW[TEST_ROW] - BASELINE_ROW[TEST_ROW]
 DRAFT_HALF_ANGLE_RAD = np.radians(MINK_DRAFT_ANGLE / 2.0)
 BASE_EXPANSION_WIDTH_MM = FRONT_BACK_SEPARATION_MM * np.tan(DRAFT_HALF_ANGLE_RAD)
+
+# OpenSCAD's text(size=X) does NOT scale a font's em-square to X mm - it
+# renders at 100 DPI while treating `size` as a point value, so real
+# OpenSCAD output is (100/72) larger than a literal "em-square=size mm"
+# read of FreeType's units_per_EM gives. Verified empirically: a real
+# openscad-nightly render of text("H", size=10, font="DejaVu Sans Mono")
+# measures 6.5033x10.1248mm; font_size_mm/units_per_EM alone reproduces
+# only 4.6826x7.2900mm - adding this factor closes the gap to <0.01%.
+OPENSCAD_TEXT_DPI_FACTOR = 100.0 / 72.0
+
+
+def em_to_mm_scale(font_size_mm, units_per_em):
+    """FreeType font-unit -> mm scale that reproduces OpenSCAD's real
+    text(size=font_size_mm) output - not a literal em-square=mm read of
+    units_per_em (see OPENSCAD_TEXT_DPI_FACTOR)."""
+    return font_size_mm * OPENSCAD_TEXT_DPI_FACTOR / units_per_em
 
 # Default separation used by the CLI/build_glyph is intentionally LONGER than
 # the real 0.5mm Char_Protrusion: on a steeply curved element surface a thin
@@ -552,7 +573,7 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = freetype.Face(fp)
-    scale = fs / face.units_per_EM
+    scale = em_to_mm_scale(fs, face.units_per_EM)
     contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
     contours_mm = [c * scale for c in contours_font_units]
     if align_kwargs is not None:
@@ -587,7 +608,7 @@ def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = freetype.Face(fp)
-    scale = fs / face.units_per_EM
+    scale = em_to_mm_scale(fs, face.units_per_EM)
     contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
     contours_mm = [c * scale for c in contours_font_units]
     if align_kwargs is not None:
@@ -709,7 +730,7 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = freetype.Face(fp)
-    scale = fs / face.units_per_EM
+    scale = em_to_mm_scale(fs, face.units_per_EM)
 
     contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
     contours_mm = [c * scale for c in contours_font_units]

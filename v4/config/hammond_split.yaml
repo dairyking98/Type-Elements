@@ -185,7 +185,7 @@ type_test:
 # convention, don't add a fifth variant" rule.
 quality:
   cyl_fn: 120                      # Cyl_Fn
-  mink_fn: 20                      # Mink_Fn
+  minkowski_fn: 20                 # Mink_Fn - renamed from mink_fn to match every other machine's key name
   text_fn: 30                      # Text_Fn
 
 # mesh-pipeline build settings (v4-specific, not real v2 numbers) - see

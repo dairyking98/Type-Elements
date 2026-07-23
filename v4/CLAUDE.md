@@ -13,6 +13,16 @@ agent sessions here too, not just interactive ones - don't reach for
 `EnterWorktree`/branch-and-PR as the default move just because that's
 the harness's out-of-the-box behavior elsewhere.
 
+## OpenSCAD binary
+
+Real OpenSCAD (not just v2 `.scad` source) is available for direct
+cross-checks against v4's Python geometry, e.g. rendering a `text()`
+glyph and diffing its STL bounding box against v4's own output for the
+same font/size. The installed binary is the snap `openscad-nightly`
+(`/snap/bin/openscad-nightly`), not `openscad` - there is no plain
+`openscad` on PATH, so scripts/commands that shell out to OpenSCAD must
+call `openscad-nightly` explicitly.
+
 ## Before writing new code
 
 Search `lib/cylinder_machine.py` (shared across cylinder machines) and the
@@ -233,13 +243,19 @@ the cited section for the full incident).
 - **A config concept that already exists on another machine goes in the
   same top-level YAML section, every time - don't let it drift to a
   different section because it "feels like" it belongs elsewhere.**
-  Concrete outlier already in the codebase: the resin facet-count knob
-  is `resin.resin_fn` for Blickensderfer/Postal/Bennett but
-  `quality.resin_fn` for Mignon (with the matching `tune.py` field
-  living on the Resin tab for three machines and the Quality tab for
-  Mignon). Don't add a fifth variant - either match the majority
-  (`resin.resin_fn`) for the next machine, or fix Mignon's placement
-  while you're in the area.
+  Two now-fixed outliers, kept here as the concrete example of what to
+  avoid: the resin facet-count knob used to be `resin.resin_fn` for
+  every machine except Mignon, which had it under `quality.resin_fn`
+  (with the matching `tune.py` field living on the Quality tab instead
+  of the Resin tab) - moved to `resin.resin_fn` to match the rest of the
+  fleet. Separately, Hammond Split's Minkowski cone facet-count knob was
+  spelled `quality.mink_fn` where every other machine spells the same
+  concept `quality.minkowski_fn` - renamed to match. Both were pure
+  key/section renames verified to produce byte-identical mesh output
+  (same verts/faces/volume) before and after. Don't add a fifth variant
+  or a differently-spelled knob for the next machine - match the
+  established convention (`resin.resin_fn`, `quality.minkowski_fn`), or
+  fix an existing outlier while you're in the area.
 - **A list-valued config key that doesn't fit `tune.py`'s generic
   scalar `FIELDS` mechanism needs an explicit decision, made and
   written down, not a silent gap.** The two legitimate outcomes are (a)

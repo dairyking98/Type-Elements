@@ -58,7 +58,7 @@ import trimesh
 import freetype
 from manifold3d import Manifold, Mesh as ManifoldMesh
 
-from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_x_offset
+from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_x_offset, em_to_mm_scale
 import scad_primitives as sp
 import resin_support
 import build_log
@@ -116,7 +116,7 @@ def _text2d_contours(char, font_path, font_size_mm, points_per_mm, halign,
     adjustment (Font_Weight_Offset/X_Weight_Adjustment/Y_Weight_Adjustment)
     not implemented - see module docstring."""
     face = freetype.Face(font_path)
-    scale = font_size_mm / face.units_per_EM
+    scale = em_to_mm_scale(font_size_mm, face.units_per_EM)
     contours_font_units, advance_mm = get_glyph_contours_and_advance(
         char, points_per_mm, scale, font_path=font_path)
     contours_mm = [c * scale for c in contours_font_units]
@@ -357,7 +357,7 @@ def Labels():
         cursor = 0.0
         no_parts = []
         face = freetype.Face(no_font)
-        scale = No_Label_Size / face.units_per_EM
+        scale = em_to_mm_scale(No_Label_Size, face.units_per_EM)
         for ch in Label_No:
             _, adv = get_glyph_contours_and_advance(ch, DEFAULT_POINTS_PER_MM, scale, font_path=no_font)
             m = build_flat_text(ch, DEFAULT_POINTS_PER_MM, 0.01, font_size_mm=No_Label_Size, font_path=no_font)
@@ -372,7 +372,7 @@ def Labels():
     cursor = 0.0
     label_parts = []
     face = freetype.Face(label_font)
-    scale = Font_Label_Size / face.units_per_EM
+    scale = em_to_mm_scale(Font_Label_Size, face.units_per_EM)
     for ch in label_text:
         if ch == " ":
             cursor += Font_Label_Size * 0.3

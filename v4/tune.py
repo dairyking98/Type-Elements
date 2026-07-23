@@ -420,12 +420,12 @@ QUALITY_FIELDS_MIGNON = [
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "CenterShaft only."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
-    ("resin_fn", ["quality", "resin_fn"], int, "Resin fn", ""),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
 ]
 
 RESIN_FIELDS_MIGNON = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
     ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
     ("tip_od", ["resin", "tip_od"], float, "Tip OD (mm)", ""),
     ("tip_l", ["resin", "tip_l"], float, "Tip length (mm)", ""),
@@ -826,7 +826,7 @@ QUALITY_FIELDS_HAMMOND_SPLIT = [
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)",
      "Collapses minkowski_sum's CSG noise. 0 disables. Only matters while Minkowski (Build tab) is on."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Arc/Center/Rib/Tube/etc. body facet count."),
-    ("mink_fn", ["quality", "mink_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
     ("text_fn", ["quality", "text_fn"], int, "Text fn", "Not currently consumed - v4's freetype pipeline uses Outline density instead."),
 ]
 

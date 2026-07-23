@@ -261,7 +261,7 @@ def configure(config_path):
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
     g["Text_Fn"] = q["text_fn"]  # not consumed directly - v4's freetype pipeline uses points_per_mm instead
-    g["DEFAULT_MINK_FN"] = q["mink_fn"]
+    g["DEFAULT_MINK_FN"] = q["minkowski_fn"]
     g["Mink_Fn"] = g["DEFAULT_MINK_FN"]
 
     b = cfg["build"]

@@ -153,7 +153,6 @@ def configure(config_path):
     q = cfg["quality"]
     g["Surface_Fn"] = q["surface_fn"]
     g["Cyl_Fn"] = q["cyl_fn"]
-    g["Resin_Fn"] = q["resin_fn"]
     g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
 
     layout = cfg["layout"]
@@ -217,6 +216,7 @@ def configure(config_path):
     g["DEFAULT_DRAFT_ANGLE_DEG"] = b.get("draft_angle_deg", GLYPH_DEFAULT_DRAFT_ANGLE_DEG)
 
     r = cfg["resin"]
+    g["Resin_Fn"] = r["resin_fn"]
     g["Resin_Rod_OD"] = r["rod_od"]
     g["Resin_Tip_OD"] = r["tip_od"]
     g["Resin_Tip_L"] = r["tip_l"]

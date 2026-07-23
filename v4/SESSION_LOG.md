@@ -4488,6 +4488,100 @@ per the roadmap" list (part of "Porting a new machine") said IBM was
 "still unstarted" - corrected to list IBM/Selectric as done (3 machines,
 `lib/spherical_machine.py`) and note nothing remains on the roadmap.
 
+## 68. Real em-to-mm DPI bug found and fixed across the WHOLE fleet - every machine's glyphs were ~28% undersized; Selectric slowness diagnosed to minkowski_fn, not the hollow-body cut; two config-key outliers fixed
+
+User asked whether v4's font-size input actually reproduces OpenSCAD's
+real `text(size=)` output - `lib/glyph_poc.py`'s docstring claimed
+`scale = font_size_mm / units_per_EM` because "OpenSCAD's text(size=)
+scales its font so the em-square is Font_Size mm," but this had never
+actually been checked against a real OpenSCAD render, only derived on
+paper.
+
+**Empirical test**: installed real OpenSCAD (`openscad-nightly`, the
+snap at `/snap/bin/openscad-nightly` - no plain `openscad` on PATH,
+documented in a new CLAUDE.md "OpenSCAD binary" section). Rendered
+`text("H", size=10, font="DejaVu Sans Mono:style=Book")` for real,
+exported STL, measured its bounding box with trimesh: `6.5033x10.1248mm`.
+Built the same "H" through `glyph_poc.build_flat_text(font_size_mm=10)`
+with the same font file: `4.6826x7.2900mm`. Ratio on BOTH axes:
+1.3888-1.3889, i.e. exactly `100/72`. Confirmed by feeding v4
+`font_size_mm * 100/72` instead - reproduced OpenSCAD's real dimensions
+to <0.01%. Root cause: OpenSCAD's `text(size=X)` does NOT scale the
+em-square to X mm - it renders as if `size` were a point value at 100
+DPI, so real output is `(100/72)` larger than a literal em-square
+reading.
+
+**Impact**: every machine's `Font_Size`/`size_mm` config value is
+transcribed straight from real v2 `.scad` source (per this file's
+porting rule) and only produces the correct physical dimension when run
+through OpenSCAD's actual convention - so every v4 machine's glyphs were
+~28% too small linearly versus the real v2 geometry, invisible to the
+hard-gate check because that only ever compared v4 against itself, never
+against a real OpenSCAD render.
+
+**Fix**: added `glyph_poc.em_to_mm_scale(font_size_mm, units_per_em)`
+(the single named home for the `100/72` constant, `OPENSCAD_TEXT_DPI_
+FACTOR`) and rewired all 8 call sites that used to compute `fs /
+face.units_per_EM` by hand - `glyph_poc.py` (3x: `build_flat_text`,
+`build_flat_text_drafted`, `build_glyph`), `cylinder_machine.py` (2x:
+`build_text_string`, `LogoText`'s label helper), `spherical_machine.py`
+(3x: the main glyph builder, the Composer number-label helper, and the
+typeface-name label helper - this last pair matters because their
+`get_glyph_contours_and_advance` advance-width calc and their
+`build_flat_text` mesh call must use the SAME scale or spacing drifts
+out of sync with glyph size). Also corrected `glyph_poc.py`'s module
+docstring, which stated the old, now-disproven derivation.
+
+**New hard-gate baselines recorded for all 10 machines** (every one
+shifted up, as expected - both `volume` and `verts`/`faces` increased,
+since bigger glyphs at the same `points_per_mm` density sample more
+contour points over the now-longer arc length):
+blickensderfer 5666.804->5730.295mm3 (verts 42618->49720),
+postal ->5555.794mm3, mignon ->4676.755mm3, bennett ->3681.781mm3, helios
+->4310.913mm3 (also surfaced 80 inter-character collisions in `TextRing` -
+detection-only, not a build failure, but a direct consequence of glyphs
+now being their real size against a layout tuned against the previously-
+undersized ones - not chased further this session), hammond
+->4877.488mm3, hammond_split 13445.375->13495.980mm3, selectric12
+7961.611->8054.455mm3, selectric3 8002.442->8103.048mm3,
+selectric_composer 7969.495->8070.024mm3.
+
+**Selectric build-time investigation** (user noticed Selectric builds
+run long, guessed the hollow-body/radii cut): ran `/usr/bin/time -v` on
+a full, untruncated Selectric3 build. Total wall clock 210.9s, of which
+the per-character `AssembleMinkowski` loop alone was 207.3s (98%) -
+`SubtractFromFull` (the actual hollow-body boolean) and everything else
+combined took ~3.6s. Not the hollow-body cut. Per-character breakdown
+showed a handful of curvy glyphs dominating (`%`=23.80s, `6`=17.91s,
+`5`=17.49s, `?`=16.39s, `9`=15.17s, `0`=14.95s, `¢`=10.77s, `)`=10.31s,
+`(`=8.89s, `/`=7.32s, `Z`=6.52s, `z`=5.91s) against straight-stroke
+letters finishing in well under a second - consistent with manifold3d's
+documented Minkowski cost scaling with the PRODUCT of both operands' face
+counts: Selectric's `quality.minkowski_fn=20` (vs. 12 on bennett/helios/
+hammond/mignon, 16 on blickensderfer) multiplies against contour-point
+counts that are now also ~28% higher post-fix. Also noted, as a separate
+open question: 1609s user / 918s system time at 1198% CPU with 38.8M
+involuntary context switches - real thread-contention overhead on top of
+the raw Minkowski cost, not chased down this session. User is
+independently checking the GUI (tune.py) build log to cross-check which
+stage is slowest there.
+
+**Two config-key outliers fixed while auditing Quality/Resin tab
+consistency across all 10 machines** (prompted by the minkowski_fn
+investigation above): (1) Mignon's `resin_fn` lived under `quality:`
+instead of `resin:` like every other machine (the exact outlier this
+file's "Pick one convention" section already named) - moved to
+`resin.resin_fn` in `config/mignon.yaml`/`.running.yaml`,
+`lib/mignon.py`'s `configure()`, and `tune.py`'s field lists (out of
+`QUALITY_FIELDS_MIGNON`, into `RESIN_FIELDS_MIGNON` - literally moves
+the control from the Quality tab to the Resin tab). (2) Hammond Split's
+Minkowski facet-count knob was spelled `quality.mink_fn` where every
+other machine spells it `quality.minkowski_fn` - renamed in
+`config/hammond_split.yaml`/`.running.yaml`, `lib/hammond_split.py`, and
+`tune.py`. Both verified as pure relocations: re-ran the hard-gate
+check for both machines post-rename, got byte-identical `verts`/`faces`/
+`volume` to the just-recorded post-em-fix baselines above.
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.

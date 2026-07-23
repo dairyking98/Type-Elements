@@ -116,13 +116,16 @@ element:
   pin_through: false
   cylinder_shape: 0    # 0=Polygonal (12-gon, v2 default), 1=Cylindrical
 
-# quality/facet counts - Mignon's own naming (Cyl_Fn/Surface_Fn/Resin_Fn/
-# Mink_Fn), no separate body_fn (PolygonCylinder has no circular facet
-# count - it's already a flat N-gon) or groove_fn (no core grooves).
+# quality/facet counts - Mignon's own naming (Cyl_Fn/Surface_Fn/Mink_Fn),
+# no separate body_fn (PolygonCylinder has no circular facet count - it's
+# already a flat N-gon) or groove_fn (no core grooves). Resin_Fn moved to
+# resin.resin_fn below - Mignon used to be the sole quality.resin_fn
+# outlier CLAUDE.md's "pick one convention" section documented by name;
+# fixed to match the majority (Blickensderfer/Postal/Bennett/Hammond/
+# Hammond Split/Selectric all use resin.resin_fn).
 quality:
   cyl_fn: 360
   surface_fn: 360
-  resin_fn: 20
   minkowski_fn: 12
   platen_fn: 360
 
@@ -187,6 +190,7 @@ build:
 # Mignon-specific (Resin_Support_Height/Resin_Support_Thickness), not
 # part of Blickensderfer/Postal's resin: schema.
 resin:
+  resin_fn: 20
   rod_od: 1.0                 # Resin_Support_Wire_Thickness
   tip_od: 0.6                 # Resin_Support_Contact_Point_Diameter
   tip_l: 1.0
