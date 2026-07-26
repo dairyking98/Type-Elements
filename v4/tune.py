@@ -184,6 +184,9 @@ from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select,
 from textual_fspicker import FileOpen, FileSave, Filters
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(REPO_ROOT, "lib"))
+import f3d_bootstrap  # noqa: E402 - needs the lib/ sys.path.insert above first
+
 # f3d --command-script file: just `set_camera top`, the exact console
 # command the "7" key runs - see action_render_type_test's use of it
 F3D_TOP_VIEW_SCRIPT = os.path.join(REPO_ROOT, "f3d_top_view_cmds.txt")
@@ -3104,13 +3107,18 @@ class TuneApp(App):
         if self._f3d_proc is None or self._f3d_proc.poll() is not None or self._f3d_out_path != out_path:
             self._kill_f3d()
             try:
+                # off the event loop thread: a first-run bootstrap download
+                # can take a while and would otherwise freeze the whole TUI
+                f3d_path = await asyncio.to_thread(
+                    f3d_bootstrap.ensure_f3d_path,
+                    lambda msg: self.call_from_thread(self.log_line, msg))
                 self._f3d_proc = subprocess.Popen(
-                    ["f3d", "--watch", out_path, "-g", "-x", *camera_flags],
+                    [f3d_path, "--watch", out_path, "-g", "-x", *camera_flags],
                     cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 self._f3d_out_path = out_path
                 self.log_line(f"[cyan]launched f3d --watch on {out_path}[/cyan]")
-            except FileNotFoundError:
-                self.log_line("[red]f3d not found on PATH[/red]")
+            except (FileNotFoundError, RuntimeError) as exc:
+                self.log_line(f"[red]couldn't launch f3d: {exc}[/red]")
             return
         await asyncio.sleep(0.3)  # let f3d's own file watcher reload first
         if shutil.which("wmctrl"):
