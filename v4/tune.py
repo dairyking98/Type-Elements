@@ -1501,6 +1501,106 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
     },
 }
 
+# The 3 Selectric machines' layout.rows is 8 rows (4 lowercase then 4
+# uppercase, keyboard reading order) instead of the cylinder family's
+# 3-4 shift-row shape - see config/selectric12.yaml's layout.rows comment
+# for why row boundaries here are cosmetic (only each case's flat
+# concatenated length matters - lib/layouts/selectric*_layout.py's fixed
+# hemisphere permutation indexes into that flat sequence, not these row
+# boundaries). Ported directly from v2/lib/layouts/ibm_layouts.scad.
+LAYOUT_PRESETS_SELECTRIC12 = {
+    # v2 S12_88_Language==0 (LOWERCASE88_US/UPPERCASE88_US) - the only
+    # real named language S12 has (S12_88_Language's other option is
+    # Custom, i.e. this machine's own Modify glyphs switch).
+    "UNITED_STATES": [
+        "1234567890-=",
+        "qwertyuiop½",
+        "asdfghjkl;'",
+        "zxcvbnm,./",
+        "!@#$%¢&*()_+",
+        "QWERTYUIOP¼",
+        "ASDFGHJKL:\"",
+        "ZXCVBNM,.?",
+    ],
+}
+
+LAYOUT_PRESETS_SELECTRIC3 = {
+    # v2 has no language-variant preset for Selectric III at all
+    # ("Selectric III has no custom-language variant yet",
+    # ibm_layouts.scad:203) - LOWERCASE96_US/UPPERCASE96_US is the only
+    # real layout.
+    "UNITED_STATES": [
+        "±1234567890-=",
+        "qwertyuiop½]",
+        "asdfghjkl;'",
+        "zxcvbnm,./²§",
+        "°!@#$%¢&*()_+",
+        "QWERTYUIOP¼[",
+        "ASDFGHJKL:\"",
+        "ZXCVBNM,.?³¶",
+    ],
+}
+
+# v2's ALL_C (ibm_layouts.scad:100-197) - all 5 real Composer language
+# variants (v2's 6th ALL_C entry, Custom, is this machine's own Modify
+# glyphs switch instead). All 5 share the identical row-length shape
+# (12/11/11/10 per case) and the SAME fixed hemisphere permutation
+# (COMPOSER_HEMISPHERE_MAP, derived from US only and reused across
+# languages per v2's own comment - see lib/layouts/
+# selectric_composer_layout.py) - only glyph content changes per preset.
+LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
+    "UNITED_STATES": [
+        "1234567890-=",
+        "qwertyuiop?",
+        "asdfghjkl][",
+        "zxcvbnm,.;",
+        "!†+$%/&*()–@",
+        "QWERTYUIOP¾",
+        "ASDFGHJKL¼½",
+        "ZXCVBNM‘’:",
+    ],
+    "UNITED_KINGDOM": [
+        "1234567890-=",
+        "qwertyuiop?",
+        "asdfghjkl][",
+        "zxcvbnm,.;",
+        "!†+£%/&*()–@",
+        "QWERTYUIOP¾",
+        "ASDFGHJKL¼½",
+        "ZXCVBNM‘’:",
+    ],
+    "NORDIC": [
+        "1234567890-ø",
+        "qwertyuiopå",
+        "asdfghjklöä",
+        "zxcvbnm,.;",
+        "»!?§%/&=()–Ø",
+        "QWERTYUIOPÅ",
+        "ASDFGHJKLÖÄ",
+        "ZXCVBNM‘’:",
+    ],
+    "GERMAN": [
+        "1234567890-ß",
+        "qwertyuiopü",
+        "asdfghjklöä",
+        "zxcvbnm,.;",
+        "!=+§%/&*()–?",
+        "QWERTYUIOPÜ",
+        "ASDFGHJKLÖÄ",
+        "ZXCVBNM‘’:",
+    ],
+    "LATIN": [
+        "1234567890-ñ",
+        "qwertyuiopˆ",
+        "asdfghjkl´ç",
+        "zxcvbnm,.;",
+        "ı¿¡$!/&*()–Ñ",
+        "QWERTYUIOP¨",
+        "ASDFGHJKL`?",
+        "ZXCVBNM‘’:",
+    ],
+}
+
 LAYOUT_PRESETS_BY_MACHINE = {
     "blickensderfer": LAYOUT_PRESETS,
     "postal": LAYOUT_PRESETS_POSTAL,
@@ -1508,6 +1608,9 @@ LAYOUT_PRESETS_BY_MACHINE = {
     "bennett": LAYOUT_PRESETS_BENNETT,
     "helios": LAYOUT_PRESETS_HELIOS,
     "hammond": LAYOUT_PRESETS_HAMMOND,
+    "selectric12": LAYOUT_PRESETS_SELECTRIC12,
+    "selectric3": LAYOUT_PRESETS_SELECTRIC3,
+    "selectric_composer": LAYOUT_PRESETS_SELECTRIC_COMPOSER,
 }
 
 # Layout tab's picker-help banner, one flowing string per machine (see
@@ -1550,6 +1653,30 @@ LAYOUT_PICKER_HELP = {
         "not a separate toggle), and resizes baseline_row/cutout_row to "
         "match. Both are real v2 presets - v1's original source has "
         "nothing extra beyond these two."
+    ),
+    "selectric12": (
+        "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
+        "shifted, each in real keyboard reading order. Row boundaries are "
+        "just for readability - the ball's fixed hemisphere map is keyed "
+        "by each case's flat character count, so Modify glyphs can swap "
+        "which character sits at a position but can't change any row's "
+        "length. United States is v2's only real layout for this machine."
+    ),
+    "selectric3": (
+        "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
+        "shifted. Row 4 of each case includes 2 extra ball-only "
+        "characters (not reachable via the real Selectric III keyboard) "
+        "folded in from v2's own 5th print-line. Like Selectric I/II, row "
+        "lengths are fixed by the ball's hemisphere map - Modify glyphs "
+        "can only swap which character sits at a position. Selectric III "
+        "has no second real language variant in v2."
+    ),
+    "selectric_composer": (
+        "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
+        "shifted. All 5 presets share the same hemisphere map (derived "
+        "from United States only, per v2's own comment) and row-length "
+        "shape - only glyph content differs. Modify glyphs can swap which "
+        "character sits at a position but can't change any row's length."
     ),
 }
 
@@ -1898,33 +2025,53 @@ class TuneApp(App):
         self.SECTIONS = SECTIONS_BY_MACHINE.get(self.machine, SECTIONS_BY_MACHINE["blickensderfer"])
         self.FIELDS = [field for fields in self.SECTIONS.values() for field in fields]
         self.LAYOUT_PRESETS = LAYOUT_PRESETS_BY_MACHINE.get(self.machine, {})
-        # Selectric machines have no editable keyboard-layout concept at
-        # all (fixed hemisphere character map, not a user-selectable
-        # preset - see lib/layouts/selectric12_layout.py) - gates the
-        # Layout tab and every baseline_row/cutout_row-style widget
-        # (compose()/_save_to_yaml/_refresh_widgets_from_cfg), same
-        # pattern as "Gauge" in self.SECTIONS for machines with no Shaft
-        # Gauge Test.
+        # HAS_LAYOUT_TAB gates the Layout tab itself (compose()) - true
+        # for any machine with an editable layout.rows, including the 3
+        # Selectric machines now (8 rows: 4 lowercase + 4 uppercase, see
+        # config/selectric12.yaml's layout.rows comment).
+        #
+        # HAS_BASELINE_CUTOUT is a SEPARATE flag for the Element tab's
+        # per-row baseline_row/cutout_row float widgets
+        # (_compose_baseline_cutout_fields/_save_to_yaml/
+        # _refresh_widgets_from_cfg) - the cylinder family's per-row
+        # calibration values. Selectric has HAS_LAYOUT_TAB but NOT this:
+        # its own per-row calibration arrays (row_latitudes/
+        # platen_longitude_offsets/baseline_longitude_offsets/
+        # minkowski_longitudinal_offsets) are a different shape (4 fixed
+        # physical ball rows, not tied to layout.rows' 8 keyboard rows)
+        # and aren't wired into tune.py yet - decoupled from
+        # HAS_LAYOUT_TAB so enabling one doesn't require faking the
+        # other.
         self.HAS_LAYOUT_TAB = "rows" in self.cfg.get("layout", {})
-        if not self.HAS_LAYOUT_TAB:
+        self.HAS_BASELINE_CUTOUT = "baseline_row" in self.cfg.get("layout", {})
+        if not self.HAS_BASELINE_CUTOUT:
             self.BASELINE_CUTOUT_KEYS = []
-            return
-        # row count varies per machine (3 for Blickensderfer/Postal, 7 for
-        # Mignon) - see BASELINE_CUTOUT_KEYS' module comment. Hammond's
-        # own presets additionally vary in row count from EACH OTHER
-        # (Math Universal is 4 rows, everything else is 3) - using just
-        # the CURRENT config's row count here would only ever show 3
-        # editable baseline/cutout fields, with no way to reach/edit a
-        # 4th row until some other action (switching machine and back,
-        # restarting) happened to recompose the form with 4 rows on disk.
-        # Using the max across every real preset for this machine (falling
-        # back to the current config if there are no presets, or it
-        # somehow exceeds all of them) means the 4th row field always
-        # exists and is editable, even when the 3-row preset is currently
-        # selected (it's just not consulted by TextRing in that case).
-        n_rows = max([len(self.cfg["layout"]["baseline_row"])]
-                     + [len(rows) for rows in self.LAYOUT_PRESETS.values()])
-        self.BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(n_rows)]
+        else:
+            # row count varies per machine (3 for Blickensderfer/Postal, 7
+            # for Mignon) - see BASELINE_CUTOUT_KEYS' module comment.
+            # Hammond's own presets additionally vary in row count from
+            # EACH OTHER (Math Universal is 4 rows, everything else is 3)
+            # - using just the CURRENT config's row count here would only
+            # ever show 3 editable baseline/cutout fields, with no way to
+            # reach/edit a 4th row until some other action (switching
+            # machine and back, restarting) happened to recompose the
+            # form with 4 rows on disk. Using the max across every real
+            # preset for this machine (falling back to the current config
+            # if there are no presets, or it somehow exceeds all of them)
+            # means the 4th row field always exists and is editable, even
+            # when the 3-row preset is currently selected (it's just not
+            # consulted by TextRing in that case).
+            n_rows = max([len(self.cfg["layout"]["baseline_row"])]
+                         + [len(rows) for rows in self.LAYOUT_PRESETS.values()])
+            self.BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(n_rows)]
+        # Flat-indexed layout.rows (Selectric family: has rows, but no
+        # placement_map) - each row's length is load-bearing, not just an
+        # upper bound, since the character content is consumed by flat
+        # keyboard index (lib/spherical_machine.AssembleMinkowski), not
+        # per-row placement like the cylinder family's placement_map. See
+        # _layout_row_caps()/_save_to_yaml's Modify-glyphs validation.
+        self.HAS_FLAT_INDEXED_ROWS = (
+            self.HAS_LAYOUT_TAB and "placement_map" not in self.cfg["layout"])
 
     @staticmethod
     def _peek_machine(config_path):
@@ -2218,9 +2365,11 @@ class TuneApp(App):
 
     def _compose_baseline_cutout_fields(self):
         # No layout.baseline_row/cutout_row concept at all for machines
-        # with no editable keyboard layout (self.HAS_LAYOUT_TAB False,
-        # self.BASELINE_CUTOUT_KEYS empty - see that flag's own comment).
-        if not self.HAS_LAYOUT_TAB:
+        # without it (self.HAS_BASELINE_CUTOUT False, self.BASELINE_
+        # CUTOUT_KEYS empty - see that flag's own comment; this includes
+        # the Selectric family, which has HAS_LAYOUT_TAB but its own
+        # differently-shaped per-row calibration arrays instead).
+        if not self.HAS_BASELINE_CUTOUT:
             return
         yield Static(
             "Per-row baseline/platen-cutout (mm). See the Calibration tab "
@@ -2269,11 +2418,31 @@ class TuneApp(App):
             return self.cfg["layout"]["rows"]
         return self.LAYOUT_PRESETS[value]
 
+    def _layout_row_caps(self):
+        """Max character length for each editable Layout-tab row Input,
+        one entry per self.cfg["layout"]["rows"]. The cylinder family
+        shares ONE cap across every row (placement_map's column count is
+        uniform per row - see this method's caller for why placement_map
+        itself is never exposed as a widget). Selectric's rows are NOT
+        uniform width (v2's real keyboard-row shape, e.g. Selectric I/
+        II's 12/11/11/10 split) and unlike the cylinder family, every
+        row's length is load-bearing there (self.HAS_FLAT_INDEXED_ROWS -
+        CASES88_LOWER/UPPER are consumed by flat keyboard index, see
+        spherical_machine.AssembleMinkowski), so each row's cap is its
+        OWN current on-disk length - long enough for every real preset
+        (they all share the same per-row shape - see e.g.
+        LAYOUT_PRESETS_SELECTRIC_COMPOSER's own comment) but never
+        growable from the widget alone."""
+        if "placement_map" in self.cfg["layout"]:
+            cap = len(self.cfg["layout"]["placement_map"])
+            return [cap] * len(self.cfg["layout"]["rows"])
+        return [len(row) for row in self.cfg["layout"]["rows"]]
+
     def _compose_layout_tab(self):
         # named-layout picker only - latitude_columns must stay in sync
         # with placement_map/the physical layout, so it's not exposed
         # here (edit it directly in the YAML if you really mean to)
-        char_cap = len(self.cfg["layout"]["placement_map"])
+        row_caps = self._layout_row_caps()
         with TabPane("Layout", id="tab-layout"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
@@ -2308,11 +2477,22 @@ class TuneApp(App):
                     modify_now = bool(self.cfg["layout"]["modify_glyphs"])
                     sw = Switch(value=modify_now, id="layout-modify-glyphs")
                     yield sw
-                yield Static(
-                    f"Unlocks {len(display_rows)} hand-editable rows, max {char_cap} "
-                    "characters each. Shorter rows just leave some positions unstruck. "
-                    "While on, this edited copy (not the preset above) is what gets saved.",
-                    classes="picker-help")
+                if self.HAS_FLAT_INDEXED_ROWS:
+                    rows_help = (
+                        f"Unlocks {len(display_rows)} hand-editable rows, each capped at "
+                        "its own current length (shown per row above) - this layout's "
+                        "hemisphere map is keyed by flat keyboard index, so shortening a "
+                        "row would silently shift every later character's position. "
+                        "While on, this edited copy (not the preset above) is what gets "
+                        "saved."
+                    )
+                else:
+                    rows_help = (
+                        f"Unlocks {len(display_rows)} hand-editable rows, max {row_caps[0]} "
+                        "characters each. Shorter rows just leave some positions unstruck. "
+                        "While on, this edited copy (not the preset above) is what gets saved."
+                    )
+                yield Static(rows_help, classes="picker-help")
 
                 custom_rows_container = Vertical(id="layout-custom-rows")
                 custom_rows_container.display = modify_now
@@ -2320,7 +2500,7 @@ class TuneApp(App):
                     current_rows = self.cfg["layout"]["rows"]
                     for i in range(len(current_rows)):
                         inp = Input(value=current_rows[i], id=f"layout-custom-row-{i}",
-                                    max_length=char_cap, classes="custom-row-input")
+                                    max_length=row_caps[i], classes="custom-row-input")
                         yield inp
 
     def _compose_build_tab(self):
@@ -2671,12 +2851,28 @@ class TuneApp(App):
             if modify_glyphs:
                 # the hand-edited copy is authoritative over the preset
                 # dropdown while unlocked - "fix" (defensively re-clamp) each
-                # row to the placement_map cap in case anything bypassed the
-                # Input's own max_length (e.g. a paste)
-                char_cap = len(self.cfg["layout"]["placement_map"])
+                # row to its own cap in case anything bypassed the Input's
+                # own max_length (e.g. a paste) - see _layout_row_caps().
+                row_caps = self._layout_row_caps()
                 n_rows = len(self.cfg["layout"]["rows"])
-                custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:char_cap] for i in range(n_rows)]
-                text = patch_yaml_rows(text, custom_rows)
+                custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:row_caps[i]] for i in range(n_rows)]
+                if self.HAS_FLAT_INDEXED_ROWS and any(len(row) != cap for row, cap in zip(custom_rows, row_caps)):
+                    # Unlike the cylinder family (a short row just leaves
+                    # some positions unstruck - see the picker-help text
+                    # above), a SHORT row here would shift every later
+                    # character in the same case onto the wrong physical
+                    # ball position (flat keyboard-index lookup, not
+                    # per-row placement - see _layout_row_caps()'s own
+                    # comment). Refuse just this edit rather than write
+                    # data that would silently corrupt the layout; every
+                    # other field on the form still saves normally.
+                    self.log_line(
+                        "[red]layout row edit NOT saved: each row must stay exactly "
+                        f"{row_caps} characters long (got {[len(r) for r in custom_rows]}) - "
+                        "shortening a row would silently shift every later character's "
+                        "position on this machine's fixed hemisphere map[/red]")
+                else:
+                    text = patch_yaml_rows(text, custom_rows)
             else:
                 layout_select = self.query_one("#layout-select", Select)
                 if layout_select.value is not Select.NULL:
@@ -2766,26 +2962,26 @@ class TuneApp(App):
         self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
-        if not self.HAS_LAYOUT_TAB:
-            return
-        display_rows = self._display_rows_for_preset()
-        for i in range(len(display_rows)):
-            self._update_row_widget("layout-original-row", i, display_rows[i])
-        modify_glyphs = bool(self.cfg["layout"]["modify_glyphs"])
-        self.query_one("#layout-modify-glyphs", Switch).value = modify_glyphs
-        self.query_one("#layout-custom-rows").display = modify_glyphs
-        current_rows = self.cfg["layout"]["rows"]
-        for i in range(len(current_rows)):
-            self._update_row_widget("layout-custom-row", i, current_rows[i])
-        for arr_key in ("baseline_row", "cutout_row"):
-            arr = self.cfg["layout"][arr_key]
-            for i in range(len(arr)):
-                # self.inputs (a plain dict, not query_one) - same row-
-                # count-mismatch reasoning as _update_row_widget above,
-                # but a dict lookup raises KeyError, not NoMatches.
-                w = self.inputs.get(f"{arr_key}_{i}")
-                if w is not None:
-                    w.value = str(arr[i])
+        if self.HAS_LAYOUT_TAB:
+            display_rows = self._display_rows_for_preset()
+            for i in range(len(display_rows)):
+                self._update_row_widget("layout-original-row", i, display_rows[i])
+            modify_glyphs = bool(self.cfg["layout"]["modify_glyphs"])
+            self.query_one("#layout-modify-glyphs", Switch).value = modify_glyphs
+            self.query_one("#layout-custom-rows").display = modify_glyphs
+            current_rows = self.cfg["layout"]["rows"]
+            for i in range(len(current_rows)):
+                self._update_row_widget("layout-custom-row", i, current_rows[i])
+        if self.HAS_BASELINE_CUTOUT:
+            for arr_key in ("baseline_row", "cutout_row"):
+                arr = self.cfg["layout"][arr_key]
+                for i in range(len(arr)):
+                    # self.inputs (a plain dict, not query_one) - same row-
+                    # count-mismatch reasoning as _update_row_widget above,
+                    # but a dict lookup raises KeyError, not NoMatches.
+                    w = self.inputs.get(f"{arr_key}_{i}")
+                    if w is not None:
+                        w.value = str(arr[i])
 
     def action_reload(self):
         self._load_current()

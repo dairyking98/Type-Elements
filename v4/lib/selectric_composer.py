@@ -29,7 +29,7 @@ import yaml
 
 import spherical_machine
 from spherical_machine import FullElement, ResinPrint, Additive  # re-exported for callers
-from layouts.selectric_composer_layout import LOWERCASECOMPOSER_US, UPPERCASECOMPOSER_US, longitude_latitude
+from layouts.selectric_composer_layout import longitude_latitude
 
 _configured = False
 
@@ -150,10 +150,21 @@ def configure(config_path):
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
     g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
 
-    # Character/hemisphere layout - see lib/layouts/selectric_composer_layout.py
-    g["CASES88_LOWER"] = LOWERCASECOMPOSER_US
-    g["CASES88_UPPER"] = UPPERCASECOMPOSER_US
-    g["LONGITUDE_LATITUDE"] = longitude_latitude()
+    # Character/hemisphere layout - editable via tune.py's Layout tab
+    # (layout.rows: 4 lowercase rows then 4 uppercase rows, keyboard
+    # reading order - see lib/layouts/selectric_composer_layout.py for the
+    # fixed hemisphere permutation this gets zipped against, reused
+    # unchanged across every language preset).
+    rows = layout["rows"]
+    cases_lower = "".join(rows[:4])
+    cases_upper = "".join(rows[4:])
+    assert len(cases_upper) == 44, (
+        f"layout.rows' 4 uppercase rows must concatenate to exactly 44 "
+        f"characters (same fixed hemisphere permutation as lowercase) - "
+        f"got {len(cases_upper)}")
+    g["CASES88_LOWER"] = cases_lower
+    g["CASES88_UPPER"] = cases_upper
+    g["LONGITUDE_LATITUDE"] = longitude_latitude(cases_lower)
 
     _configured = True
     spherical_machine._receive_config(g, "selectric_composer")

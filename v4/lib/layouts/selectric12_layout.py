@@ -4,20 +4,21 @@ v2/lib/layouts/ibm_layouts.scad's S12-specific section (LOWERCASE88_US/
 UPPERCASE88_US/S12_LC_HEMISPHERE88_US/S12_HEMISPHERE_MAP, ~lines 12-40 and
 216-222).
 
-v2's layout strings are OpenSCAD multi-line string literals indexed
-character-by-character including embedded newlines - CASES88[case][i] for
-i in [0:43] only lines up with real keyboard characters if the reader
-already knows OpenSCAD's exact string-literal newline semantics, which
-isn't reproducible from the .scad source alone without a real OpenSCAD
-interpreter to test against. Sidestepped here: v2's own
-S12_HEMISPHERE_MAP is already a PRECOMPUTED, hardcoded permutation table
+The keyboard-order CHARACTER CONTENT (what v2 called LOWERCASE88_US/
+UPPERCASE88_US) now lives in config/selectric12.yaml's layout.rows and
+tune.py's LAYOUT_PRESETS_SELECTRIC12 (editable via the Layout tab), not
+here - see lib/selectric12.py's configure(), which concatenates the 4
+lowercase + 4 uppercase rows into the flat 44-character-per-case strings
+this module's longitude_latitude() consumes. Only the physical/fixed
+hemisphere permutation (never user-editable - see tune.py's
+_compose_layout_tab comment on placement_map-style constants) stays here.
+
+v2's own S12_HEMISPHERE_MAP is a PRECOMPUTED, hardcoded permutation table
 (44 entries, the comment above it in v2 says so explicitly) - copied
-verbatim below, not re-derived. The keyboard-order strings are stripped
-of all whitespace/newlines to a clean 44-character sequence (reading
-order: row 0 left-to-right, then row 1, etc.) - self-consistent with
-S12_HEMISPHERE_MAP's indices, which must refer to the same "real
-characters only, in reading order" positions for the original v2 model
-to have produced a sane typeball layout at all.
+verbatim below, not re-derived. It refers to positions in the same "real
+characters only, keyboard reading order" sequence as LOWERCASE88_US/
+UPPERCASE88_US (row 0 left-to-right, then row 1, etc.) for the original
+v2 model to have produced a sane typeball layout at all.
 
 Physical layout: 4 rows x 11 hemisphere columns = 44 keyboard positions
 per case; lowercase (case 0) and uppercase (case 1) sit on OPPOSITE
@@ -28,30 +29,9 @@ CHARS_PER_ROW = 22
 HEMISPHERE_COLS_PER_ROW = 11
 TOTAL_CHARS = 88
 
-# v2/lib/layouts/ibm_layouts.scad:12-19 (LOWERCASE88_US), stripped of the
-# leading/trailing/row-separating newlines that make the source read like
-# a physical keyboard grid.
-LOWERCASE88_US = "".join("""
-1234567890-=
-qwertyuiop½
-asdfghjkl;'
-zxcvbnm,./
-""".split("\n"))
-
-# v2/lib/layouts/ibm_layouts.scad:21-27 (UPPERCASE88_US)
-UPPERCASE88_US = "".join("""
-!@#$%¢&*()_+
-QWERTYUIOP¼
-ASDFGHJKL:"
-ZXCVBNM,.?
-""".split("\n"))
-
-assert len(LOWERCASE88_US) == TOTAL_CHARS // 2 == 44
-assert len(UPPERCASE88_US) == 44
-
 # v2/lib/layouts/ibm_layouts.scad:222 - precomputed keyboard-index ->
-# hemisphere-index permutation (44 entries, one per LOWERCASE88_US
-# position). Copied verbatim, not re-derived (see module docstring).
+# hemisphere-index permutation (44 entries, one per keyboard-order
+# position - see module docstring). Copied verbatim, not re-derived.
 S12_HEMISPHERE_MAP = [
     10, 4, 9, 6, 3, 2, 8, 7, 0, 1, 33, 37, 35, 22, 14, 30, 16, 34, 20, 24,
     28, 36, 27, 29, 23, 19, 42, 43, 12, 38, 13, 17, 41, 25, 5, 21, 18, 31,
@@ -60,15 +40,23 @@ S12_HEMISPHERE_MAP = [
 assert len(S12_HEMISPHERE_MAP) == 44
 
 
-def longitude_latitude():
+def longitude_latitude(cases_lower):
     """v2's LONGITUDE_LATITUDE (ibm.scad:243, S12-specialized): for each
     keyboard index i, [longitude_col, latitude_row, lowercase_char,
     keyboard_index]. longitude_col/latitude_row are derived from
     S12_HEMISPHERE_MAP[i] % / // HEMISPHERE_COLS_PER_ROW - the hemisphere
-    permutation's own column/row within the 11-wide physical ring."""
+    permutation's own column/row within the 11-wide physical ring.
+
+    cases_lower - the flat 44-char keyboard-order lowercase string
+    (config-driven now, see module docstring), not a hardcoded
+    constant."""
+    assert len(cases_lower) == 44, (
+        f"layout.rows' 4 lowercase rows must concatenate to exactly 44 "
+        f"characters (S12_HEMISPHERE_MAP is a fixed 44-entry permutation "
+        f"over this same sequence) - got {len(cases_lower)}")
     return [
         (S12_HEMISPHERE_MAP[i] % HEMISPHERE_COLS_PER_ROW,
          S12_HEMISPHERE_MAP[i] // HEMISPHERE_COLS_PER_ROW,
-         LOWERCASE88_US[i], i)
+         cases_lower[i], i)
         for i in range(44)
     ]

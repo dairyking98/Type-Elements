@@ -80,6 +80,28 @@ layout:
   platen_longitude_offsets: [-1.05, -1.05, -1.0, -1.05]  # v2 Platen_Longitude_Offsets (ibm.scad:122)
   baseline_longitude_offsets: [0.0, 0.0, 0.0, 0.0]       # v2 Baseline_Longitude_Offsets (ibm.scad:398)
   minkowski_longitudinal_offsets: [0.0, 0.0, 0.0, 0.0]   # v2 Minkowski_Longitudinal_Offsets (ibm.scad:79)
+  # Keyboard character content, editable via tune.py's Layout tab - first
+  # 4 rows are lowercase (case 0), last 4 are uppercase (case 1), each in
+  # real keyboard reading order. v2 LOWERCASE88_US/UPPERCASE88_US
+  # (v2/lib/layouts/ibm_layouts.scad:12-27) - the "United States" preset
+  # in tune.py's LAYOUT_PRESETS_SELECTRIC12. Row boundaries here are
+  # cosmetic (match the physical keyboard's own row shape) - what's
+  # geometry-critical is each case's flat 44-character total, since
+  # lib/layouts/selectric12_layout.py's fixed hemisphere permutation
+  # indexes into that flat sequence, not these row boundaries. Selectric
+  # I/II has no second real language variant in v2 (S12_88_Language is
+  # just US or Custom) - use Modify glyphs on the Layout tab for anything
+  # else.
+  rows:
+    - "1234567890-="
+    - "qwertyuiop½"
+    - "asdfghjkl;'"
+    - "zxcvbnm,./"
+    - "!@#$%¢&*()_+"
+    - "QWERTYUIOP¼"
+    - "ASDFGHJKL:\""
+    - "ZXCVBNM,.?"
+  modify_glyphs: false
 
 label:
   enabled: true                # v2 Label (ibm.scad:369)

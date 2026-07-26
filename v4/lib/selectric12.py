@@ -22,7 +22,7 @@ import yaml
 
 import spherical_machine
 from spherical_machine import FullElement, ResinPrint, Additive, TextGauge  # re-exported for callers
-from layouts.selectric12_layout import LOWERCASE88_US, UPPERCASE88_US, longitude_latitude
+from layouts.selectric12_layout import longitude_latitude
 
 _configured = False
 
@@ -144,10 +144,20 @@ def configure(config_path):
     g["Test_CPI"] = tt.get("cpi", 10.0)
     g["Test_String_Custom"] = tt.get("text", "")
 
-    # Character/hemisphere layout - see lib/layouts/selectric12_layout.py
-    g["CASES88_LOWER"] = LOWERCASE88_US
-    g["CASES88_UPPER"] = UPPERCASE88_US
-    g["LONGITUDE_LATITUDE"] = longitude_latitude()
+    # Character/hemisphere layout - editable via tune.py's Layout tab
+    # (layout.rows: 4 lowercase rows then 4 uppercase rows, keyboard
+    # reading order - see lib/layouts/selectric12_layout.py for the fixed
+    # hemisphere permutation this gets zipped against).
+    rows = layout["rows"]
+    cases_lower = "".join(rows[:4])
+    cases_upper = "".join(rows[4:])
+    assert len(cases_upper) == 44, (
+        f"layout.rows' 4 uppercase rows must concatenate to exactly 44 "
+        f"characters (same fixed hemisphere permutation as lowercase) - "
+        f"got {len(cases_upper)}")
+    g["CASES88_LOWER"] = cases_lower
+    g["CASES88_UPPER"] = cases_upper
+    g["LONGITUDE_LATITUDE"] = longitude_latitude(cases_lower)
 
     _configured = True
     spherical_machine._receive_config(g, "selectric12")

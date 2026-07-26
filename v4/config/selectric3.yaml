@@ -72,6 +72,30 @@ layout:
   platen_longitude_offsets: [-1.05, -1.05, -1.0, -1.05]  # v2 Platen_Longitude_Offsets (ibm.scad:122) - same default array used for all modes
   baseline_longitude_offsets: [0.0, 0.0, 0.0, 0.0]       # v2 Baseline_Longitude_Offsets (ibm.scad:398)
   minkowski_longitudinal_offsets: [0.0, 0.0, 0.0, 0.0]   # v2 Minkowski_Longitudinal_Offsets (ibm.scad:79)
+  # Keyboard character content, editable via tune.py's Layout tab - first
+  # 4 rows are lowercase (case 0), last 4 are uppercase (case 1). v2
+  # LOWERCASE96_US/UPPERCASE96_US (v2/lib/layouts/ibm_layouts.scad:56-71)
+  # print as 5 keyboard lines (13+12+11+10+2=48 chars) - the trailing
+  # 2-char line (²§ / ³¶, on the ball but not reachable via the real S3
+  # keyboard) is folded into row 4 here so every Selectric machine's
+  # Layout tab shows the same "4 lowercase + 4 uppercase" shape; the flat
+  # concatenated character sequence is unchanged from v2's, which is what
+  # actually matters - lib/layouts/selectric3_layout.py's fixed hemisphere
+  # permutation indexes into that flat 48-character sequence, not these
+  # row boundaries. Selectric III has no language-variant preset in v2
+  # ("Selectric III has no custom-language variant yet" per
+  # ibm_layouts.scad:203) - use Modify glyphs on the Layout tab for
+  # anything else.
+  rows:
+    - "±1234567890-="
+    - "qwertyuiop½]"
+    - "asdfghjkl;'"
+    - "zxcvbnm,./²§"
+    - "°!@#$%¢&*()_+"
+    - "QWERTYUIOP¼["
+    - "ASDFGHJKL:\""
+    - "ZXCVBNM,.?³¶"
+  modify_glyphs: false
 
 label:
   enabled: true

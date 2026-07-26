@@ -4582,6 +4582,101 @@ other machine spells it `quality.minkowski_fn` - renamed in
 check for both machines post-rename, got byte-identical `verts`/`faces`/
 `volume` to the just-recorded post-em-fix baselines above.
 
+## 69. Selectric family gets a real Layout tab - 8 rows (4 lowercase + 4 uppercase), named presets, Modify glyphs
+
+All 3 Selectric machines (`selectric12`, `selectric3`,
+`selectric_composer`) previously had `tune.py`'s `HAS_LAYOUT_TAB` hard
+off (`"Selectric machines have no editable keyboard-layout concept at
+all"`) because their character content was 100% hardcoded Python
+constants (`LOWERCASE88_US`/`UPPERCASE88_US` etc. in `lib/layouts/
+selectric*_layout.py`), never read from config. User asked for a real
+Layout tab, using v2's existing default layouts as presets, porting any
+additional real presets that exist, plus custom editability - shaped as
+8 rows (4 lowercase, 4 capitals/shifted).
+
+**What changed:**
+- `config/selectric12.yaml`/`selectric3.yaml`/`selectric_composer.yaml`
+  gained `layout.rows` (8 strings) and `layout.modify_glyphs` (bool) -
+  the same shape as the cylinder family's own `layout.rows`/
+  `modify_glyphs`, letting `tune.py`'s existing Layout tab machinery
+  apply almost unchanged. Row *content* is byte-identical to what the
+  removed Python constants held (verified via the hard-gate re-run
+  below) - this is a pure relocation from code to config, matching
+  CLAUDE.md's "real machine numbers live in YAML" rule, not a new port.
+- `lib/layouts/selectric12_layout.py`/`selectric3_layout.py`/
+  `selectric_composer_layout.py`: removed the now-redundant hardcoded
+  case-content strings; `longitude_latitude()` now takes the config-
+  driven lowercase string as a parameter instead of closing over a
+  module constant. The fixed hemisphere permutation tables
+  (`S12_HEMISPHERE_MAP`/`S3_HEMISPHERE_MAP`/`COMPOSER_HEMISPHERE_MAP`)
+  stay as Python constants, unexposed - same treatment as the cylinder
+  family's own `placement_map` (never a tune.py widget either).
+- `lib/selectric12.py`/`selectric3.py`/`selectric_composer.py`'s
+  `configure()`: build `CASES88_LOWER`/`CASES88_UPPER` by concatenating
+  `layout["rows"][:4]`/`[4:]`, with an assert that each concatenates to
+  exactly the hemisphere map's real length (44 for S12/Composer, 48 for
+  S3) - a custom edit that breaks this fails loud at build time instead
+  of silently misplacing characters.
+- **New port work** (the "add more if you have them" part): Composer's
+  4 additional real v2 language variants - UK, Nordic, German, Latin
+  (`v2/lib/layouts/ibm_layouts.scad:126-188`, never ported to v4 before)
+  - added as named presets in `tune.py`'s new
+  `LAYOUT_PRESETS_SELECTRIC_COMPOSER` alongside United States, all
+  verified to share the exact same per-row-length shape and to total 44
+  characters per case. Selectric I/II and III each get only their one
+  real v2 layout (`UNITED_STATES`) as a preset - v2 has no second
+  language variant for either.
+- **A real Selectric-specific design problem, not just data-shuffling**:
+  Selectric's character content is consumed by FLAT keyboard index
+  (`spherical_machine.AssembleMinkowski`: `case_str[kb_index]`), not
+  per-row placement like the cylinder family's `placement_map` - so
+  unlike Blickensderfer/Mignon/etc (where "shorter rows just leave some
+  positions unstruck"), shortening one Selectric row would silently
+  shift every LATER character in that same case onto the wrong physical
+  ball position. `tune.py` gained a new `HAS_FLAT_INDEXED_ROWS` flag
+  (true whenever `layout.rows` exists with no `placement_map` - i.e. the
+  Selectric family) and a new `_layout_row_caps()` helper (per-row caps
+  instead of the cylinder family's one shared cap). `_save_to_yaml`'s
+  Modify-glyphs path now validates every row's length is UNCHANGED
+  before writing when `HAS_FLAT_INDEXED_ROWS` - a violation logs a red
+  error and skips just that field (every other pending change still
+  saves), rather than writing data that would corrupt the layout.
+- **`HAS_LAYOUT_TAB` decoupled from a new `HAS_BASELINE_CUTOUT` flag**:
+  the old code used one flag to gate BOTH the Layout tab and the Element
+  tab's `baseline_row`/`cutout_row` widgets, on the assumption that
+  having one implies having the other. Selectric breaks that assumption
+  - it now has a real Layout tab but has no `layout.baseline_row`/
+  `cutout_row` concept at all (its own per-row calibration arrays -
+  `row_latitudes`/`platen_longitude_offsets`/`baseline_longitude_
+  offsets`/`minkowski_longitudinal_offsets` - are a different shape, 4
+  fixed physical ball rows, and aren't wired into tune.py yet, unchanged
+  by this session). `HAS_BASELINE_CUTOUT` (`"baseline_row" in layout`)
+  now gates `_compose_baseline_cutout_fields`/the `_refresh_widgets_
+  from_cfg` baseline/cutout loop independently of `HAS_LAYOUT_TAB`.
+
+**Verification**: hard-gate re-run (`--no-minkowski`) on all 3 Selectric
+configs before/after (via `git stash` on just the touched files) -
+`verts`/`faces`/`volume`/watertight all byte-identical, confirming the
+config-relocation didn't change any geometry. Additionally smoke-tested
+`tune.py` itself headless via Textual's `run_test()` against scratch
+config copies (never the real config/ directory, per this file's own
+standing warning): Layout tab mounts for all 3 machines, preset dropdown
+correctly detects the on-disk default as a named preset, per-row
+`max_length` matches each row's real length, a preset switch (Composer
+US -> GERMAN) writes the right rows, a deliberately-shortened custom row
+is rejected (rows stay unchanged) instead of silently saved, and
+Blickensderfer (cylinder family) is unaffected - Layout tab and Element
+tab baseline/cutout fields both still present, no-op save still
+preserves rows.
+
+**Left open** (not part of this ask): Selectric's own per-row
+calibration arrays (`row_latitudes` etc.) still aren't exposed in
+tune.py at all - same "list-valued config key needs an explicit
+decision" gap CLAUDE.md already flags elsewhere, not newly introduced
+here. Composer's own pica/units type-test system and Calibration entry
+points for all 3 Selectric machines remain unported (pre-existing gaps,
+see parts 65-66).
+
 ## Resuming later
 
 1. **Hammond follow-up work (parts 30-31)**: (a) DONE - `resin.
@@ -4600,10 +4695,13 @@ check for both machines post-rename, got byte-identical `verts`/`faces`/
    (Selectric I/II, Selectric III, Selectric Composer) are built, wired
    into `tune.py`, routed through `lib/build_log.py` (part 67), and
    hard-gate verified. Per the roadmap this was the last machine listed
-   in CLAUDE.md's taxonomy, so nothing is currently queued as "next" -
+   in CLAUDE.md's taxonomy. A real Layout tab (part 69) and Composer's
+   non-US language variants (UK/Nordic/German/Latin) are now done too -
    remaining Selectric-specific work is Calibration entry points, drain
-   holes, Composer's own pica type-test system, and non-US language
-   variants (see part 65/66).
+   holes, Composer's own pica type-test system, and exposing Selectric's
+   own per-row calibration arrays (`row_latitudes`/`platen_longitude_
+   offsets`/`baseline_longitude_offsets`/`minkowski_longitudinal_
+   offsets`) in tune.py (see part 69's "Left open").
 2. Bennett's port (between Mignon and Helios) has no `SESSION_LOG.md`
    chapter of its own - per CLAUDE.md, that's flagged as correlating with
    Bennett having more small undocumented inconsistencies than Mignon.
