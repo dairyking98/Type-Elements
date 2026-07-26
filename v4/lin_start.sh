@@ -4,8 +4,8 @@
 # at least once and want to see it.
 #
 # Usage:
-#   ./start.sh                              # machine picker (choose Blickensderfer/Postal/...)
-#   ./start.sh config/blickensderfer.yaml   # skip the picker, load directly
+#   ./lin_start.sh                              # machine picker (choose Blickensderfer/Postal/...)
+#   ./lin_start.sh config/blickensderfer.yaml   # skip the picker, load directly
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 if [ ! -d .venv ]; then
-    echo ".venv not found - run ./setup.sh first" >&2
+    echo ".venv not found - run ./lin_setup.sh first" >&2
     exit 1
 fi
 # shellcheck disable=SC1091

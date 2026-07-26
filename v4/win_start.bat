@@ -4,14 +4,14 @@ rem "Launch f3d" button (or run f3d --watch yourself) once you've
 rem rendered at least once and want to see it.
 rem
 rem Usage:
-rem   start.bat                              machine picker (choose Blickensderfer/Postal/...)
-rem   start.bat config\blickensderfer.yaml   skip the picker, load directly
+rem   win_start.bat                              machine picker (choose Blickensderfer/Postal/...)
+rem   win_start.bat config\blickensderfer.yaml   skip the picker, load directly
 setlocal
 
 cd /d "%~dp0"
 
 if not exist .venv (
-    echo .venv not found - run setup.bat first 1>&2
+    echo .venv not found - run win_setup.bat first 1>&2
     exit /b 1
 )
 call .venv\Scripts\activate.bat

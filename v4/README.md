@@ -44,16 +44,16 @@ Linux/macOS:
 
 ```
 cd v4
-./setup.sh      # creates .venv, installs requirements.txt
-./start.sh      # launches tune.py
+./lin_setup.sh      # creates .venv, installs requirements.txt
+./lin_start.sh      # launches tune.py
 ```
 
 Windows:
 
 ```
 cd v4
-setup.bat
-start.bat
+win_setup.bat
+win_start.bat
 ```
 
 Either script is equivalent to the manual `python -m venv .venv` /

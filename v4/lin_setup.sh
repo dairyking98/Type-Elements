@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Creates/updates the .venv that start.sh runs against - run this once,
-# and again any time requirements.txt changes.
+# Creates/updates the .venv that lin_start.sh runs against - run this
+# once, and again any time requirements.txt changes.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,4 +13,4 @@ fi
 source .venv/bin/activate
 pip install -r requirements.txt
 
-echo "Setup complete - run ./start.sh to launch tune.py"
+echo "Setup complete - run ./lin_start.sh to launch tune.py"

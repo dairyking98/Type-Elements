@@ -28,8 +28,8 @@ OS user-data dirs.
   log pane during Render), not incidental - any packaging approach that
   collapses this to an in-process call would need to solve streaming
   output some other way.
-- `start.sh` (bash, `.venv`-based) is dev-only; irrelevant to the
-  packaged app and doesn't need to change.
+- `lin_start.sh`/`win_start.bat` (`.venv`-based) are dev-only; irrelevant
+  to the packaged app and don't need to change.
 - `f3d` (the external viewer, invoked via `f3d --watch`) is
   [BSD-3-Clause](https://github.com/f3d-app/f3d/blob/master/LICENSE.md) -
   no licensing obstacle to redistributing/fetching its binary
