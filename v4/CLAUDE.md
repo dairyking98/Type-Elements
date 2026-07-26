@@ -432,8 +432,22 @@ Before calling any change to glyph/mesh/assembly code done, run
 final summary line against a pre-change baseline:
 
 ```
-python3 generate.py config/<name>.yaml --points-per-mm 8 --cone-segments 12 --no-core-groove --out /tmp/check.stl
+python3 generate.py config/<name>.yaml --points-per-mm 8 --cone-segments 12 --no-core-groove --no-minkowski --out /tmp/check.stl
 ```
+
+`--no-minkowski` skips the (slow, minutes-per-config) Minkowski draft
+sweep - the gate only needs a change's effect on the underlying
+glyph/assembly geometry to be visible, and the sweep is a separate,
+already-covered invariant (see "Geometry invariants" above) that doesn't
+need re-proving on every unrelated change. This means baseline numbers
+recorded before this convention changed (with Minkowski enabled) are
+NOT comparable to a `--no-minkowski` run - verts/faces/volume will
+legitimately differ - so the first `--no-minkowski` run against any given
+config after this change is a fresh baseline to record, not a mismatch
+to chase down. A change that specifically touches Minkowski/draft-sweep
+code still needs at least one real (Minkowski-enabled, no flag) gate run
+on an affected config, since `--no-minkowski` can't verify that path at
+all.
 
 The last line before `wrote ...` (e.g. `ResinPrint: verts=42618
 faces=85408 watertight=True winding_consistent=True is_volume=True
@@ -441,10 +455,10 @@ volume=5666.804mm3`) is deterministic run-to-run for unchanged inputs -
 confirmed by running the same config twice. For any config/machine the
 change was NOT meant to touch, this line must match exactly
 (verts/faces/volume to the printed precision, watertight/
-winding_consistent/is_volume all still `True`). A mismatch on an
-"unaffected" config means the change had a side effect that wasn't
-intended - chase it down before considering the work finished, don't
-just note it and move on.
+winding_consistent/is_volume all still `True`) against that config's own
+`--no-minkowski` baseline. A mismatch on an "unaffected" config means the
+change had a side effect that wasn't intended - chase it down before
+considering the work finished, don't just note it and move on.
 
 ## SESSION_LOG.md discipline
 
