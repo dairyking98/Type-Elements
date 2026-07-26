@@ -191,6 +191,39 @@ import f3d_bootstrap  # noqa: E402 - needs the lib/ sys.path.insert above first
 # command the "7" key runs - see action_render_type_test's use of it
 F3D_TOP_VIEW_SCRIPT = os.path.join(REPO_ROOT, "f3d_top_view_cmds.txt")
 
+
+def _raise_window_by_pid(pid):
+    """Windows equivalent of `wmctrl -a f3d` - best-effort, no wmctrl
+    equivalent exists there, so this shells straight to user32 instead.
+    Finds the given process's own top-level window (matching by PID,
+    same as wmctrl matching by title, since f3d.exe's window is created
+    in-process) and raises it. Returns False if no window was found or
+    Windows' foreground-lock timeout refused the raise (only guaranteed
+    to succeed when tune.py's own console is already the foreground
+    window - there's no API to force it otherwise, matching wmctrl's own
+    best-effort nature on Linux)."""
+    import ctypes
+    user32 = ctypes.windll.user32
+    SW_RESTORE = 9
+    found = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+    def _enum_proc(hwnd, _lparam):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        window_pid = ctypes.c_ulong()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(window_pid))
+        if window_pid.value == pid:
+            found.append(hwnd)
+            return False
+        return True
+
+    user32.EnumWindows(_enum_proc, 0)
+    if not found:
+        return False
+    user32.ShowWindow(found[0], SW_RESTORE)  # in case it's minimized
+    return bool(user32.SetForegroundWindow(found[0]))
+
 # Machines the picker screen (shown on startup, or via the "Change
 # Machine" button - see _compose_machine_picker/_select_machine) offers,
 # each mapped to its own master config. Order here is the order shown.
@@ -3121,7 +3154,12 @@ class TuneApp(App):
                 self.log_line(f"[red]couldn't launch f3d: {exc}[/red]")
             return
         await asyncio.sleep(0.3)  # let f3d's own file watcher reload first
-        if shutil.which("wmctrl"):
+        if sys.platform == "win32":
+            if not _raise_window_by_pid(self._f3d_proc.pid) and not self._warned_no_wmctrl:
+                self._warned_no_wmctrl = True
+                self.log_line("[yellow]f3d already open with the updated model, but couldn't "
+                               "bring it to front automatically - click its taskbar icon[/yellow]")
+        elif shutil.which("wmctrl"):
             subprocess.run(["wmctrl", "-a", "f3d"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif not self._warned_no_wmctrl:
             self._warned_no_wmctrl = True
