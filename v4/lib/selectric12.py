@@ -118,6 +118,7 @@ def configure(config_path):
     g["Character_Block_Height_Mm"] = b["character_block_height_mm"]
     g["Mink_Cone_Height_Mm"] = b["mink_cone_height_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
+    g["DEFAULT_SIMPLIFY_TOLERANCE_MM"] = b["simplify_tolerance_mm"]
 
     q = cfg["quality"]
     g["Surface_Fn"] = q["surface_fn"]

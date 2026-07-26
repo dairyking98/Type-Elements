@@ -132,6 +132,20 @@ build:
   # (ibm.scad:575,581) - same reasoning as character_block_height_mm above.
   mink_cone_height_mm: 2.0
   resin_support: true
+  # manifold3d's raw platen-cut boolean + minkowski_sum output is
+  # drastically over-triangulated on nominally flat regions (a single
+  # straight wall facet came out as ~24 near-coplanar micro-triangles
+  # with slightly wobbling normals - visible as the dense triangle-fan
+  # faceting on straight strokes like 'M's, not a real draft-angle
+  # problem). Manifold.simplify() at this tolerance collapses it to a
+  # single flat face per straight run; far below any real glyph feature
+  # size, so it doesn't visibly affect real curvature. Same value/knob
+  # as every cylinder-family machine (config/blickensderfer.yaml etc) -
+  # this was previously accepted-but-ignored here (SingleMinkowskiChar
+  # never called simplify() at all), which let a bloated, un-simplified
+  # platen-cut mesh feed straight into minkowski_sum: confirmed 2206s ->
+  # 4s (552x) on 'M' alone by wiring this through. 0 disables.
+  simplify_tolerance_mm: 0.005
   target: "element"
 
 quality:

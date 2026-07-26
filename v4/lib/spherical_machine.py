@@ -94,7 +94,8 @@ def _from_manifold(manifold):
 
 # --------------------------------------------------------------- Body/Sphere
 
-def FullBody(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None):
+def FullBody(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None,
+             simplify_tolerance_mm=None):
     """FullBody() (v2/ibm.scad:486-494): union(sphere, skirt frustum,
     AssembleMinkowski())."""
     _require_configured()
@@ -102,7 +103,7 @@ def FullBody(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None):
     skirt = sp.frustum_z(Skirt_Bottom_OD, Skirt_Top_OD, Floor - Center_To_Skirt,
                           sections=Surface_Fn, base_z=-Floor)
     ring = AssembleMinkowski(points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
-                              draft_angle_deg=draft_angle_deg)
+                              draft_angle_deg=draft_angle_deg, simplify_tolerance_mm=simplify_tolerance_mm)
     return sp.union_all([ball, skirt, ring])
 
 
@@ -136,16 +137,32 @@ def _text2d_contours(char, font_path, font_size_mm, points_per_mm, halign,
 def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
                         minklongoffset, draft_angle, platendia, font_path, font_size_mm,
                         custom_h_offset=0.0, custom_v_offset=0.0,
-                        points_per_mm=None, minkowski_enabled=None):
+                        points_per_mm=None, minkowski_enabled=None, simplify_tolerance_mm=None):
     """SingleMinkowski() (v2/ibm.scad:553-587) - one struck character:
     build the 2D glyph, extrude to a flat block, carve the platen scallop
     (a real cylinder, matching PlatenCutout()'s own construction exactly -
     NOT build_glyph's cylinder-family model, see module docstring), then
     Minkowski-sum with a draft cone. Mink_Flat's extra flat-preview copy
-    is not ported (debug-only, defaults off)."""
+    is not ported (debug-only, defaults off).
+
+    simplify_tolerance_mm: Manifold.simplify(), applied to the platen-cut
+    `scalloped` mesh right before minkowski_sum and again to its output -
+    same two call sites/same reasoning as cylinder_machine's build_glyph
+    (glyph_poc.py's own build_glyph docstring: raw boolean-diff/minkowski
+    output is drastically over-triangulated on nominally flat regions,
+    tens of near-coplanar micro-triangles per straight wall facet). This
+    module didn't have that call at all until profiling 'M' on Alma Mono
+    found why: the unsimplified platen-cut mesh (666 faces, only 164 of
+    them real - the rest exactly-collinear boolean-solver noise) fed
+    into minkowski_sum ballooned to a 2.87M-face output and took 2206s;
+    simplifying first drops that to 4s (552x), verified byte-for-byte
+    equivalent scalloped shape (only coplanar noise collapses, confirmed
+    visually before/after) - not a fidelity tradeoff, a bug fix."""
     _require_configured()
     points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
     minkowski_enabled = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
+    simplify_tolerance_mm = (DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None
+                              else simplify_tolerance_mm)
     contours_mm = _text2d_contours(char, font_path, font_size_mm, points_per_mm,
                                     H_Alignment, X_Pos_Offset, Y_Pos_Offset,
                                     custom_h_offset, custom_v_offset)
@@ -182,9 +199,12 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
         ("rotate", [90, 0, 0]),
     )
     scalloped = positioned.difference(cutter, engine="manifold")
+    scalloped_manifold = _to_manifold(scalloped)
+    if simplify_tolerance_mm > 0:
+        scalloped_manifold = scalloped_manifold.simplify(simplify_tolerance_mm)
 
     if not minkowski_enabled:
-        return scalloped
+        return _from_manifold(scalloped_manifold)
 
     # Minkowski draft cone(s), built at the ORIGIN (rotated only, never
     # translated) - see module docstring for why this is still a correct
@@ -208,11 +228,14 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
     # not "fixed" to match the character's own base_offset-adjusted latitude.
     cone_hull = sp.scad_transform(cone_hull, ("rotate", [90 - latitude, 0, 90 + longitude]))
 
-    drafted = _to_manifold(scalloped).minkowski_sum(_to_manifold(cone_hull))
+    drafted = scalloped_manifold.minkowski_sum(_to_manifold(cone_hull))
+    if simplify_tolerance_mm > 0:
+        drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
 
 
-def AssembleMinkowski(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None):
+def AssembleMinkowski(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None,
+                       simplify_tolerance_mm=None):
     """AssembleMinkowski() (v2/ibm.scad:618-655) - places every character
     of both cases (lowercase=0, uppercase=1, 180 degrees apart) at its
     real hemisphere position. LONGITUDE_LATITUDE/CASES88 are supplied by
@@ -257,7 +280,8 @@ def AssembleMinkowski(points_per_mm=None, minkowski_enabled=None, draft_angle_de
                 mesh = SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
                                            minklongoffset, draft_angle_deg, Platen_OD,
                                            font_path, font_size, custom_h, custom_v,
-                                           points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled)
+                                           points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
+                                           simplify_tolerance_mm=simplify_tolerance_mm)
             except Exception as e:
                 skipped.append((case_int, char, str(e)))
                 build_log.progress_skipped(e)
@@ -346,7 +370,13 @@ def Labels():
     """Labels() (v2/ibm.scad:984-996) - the number label (disabled for
     Composer - Render_Mode!=0 in v2; Selectric I/II and III both always
     show it, see Labels_Show_Number below, set true by both) plus the
-    typeface label."""
+    typeface label. Each per-character build_flat_text() call is wrapped
+    in a skip-on-exception, same reasoning as AssembleMinkowski's
+    per-character skip (module docstring/CLAUDE.md's "Keep doing this")
+    - the typeface label renders font.name IN THAT SAME FONT, so a font
+    whose own name contains a glyph that font can't cleanly triangulate
+    (confirmed: PxPlus IBM MDA's 'u', in "Plus") would otherwise hard-crash
+    every build via this unconditional label text, not just Type Test."""
     from glyph_poc import build_flat_text
     parts = []
     if Labels_Show_Number:
@@ -359,8 +389,12 @@ def Labels():
         face = freetype.Face(no_font)
         scale = em_to_mm_scale(No_Label_Size, face.units_per_EM)
         for ch in Label_No:
-            _, adv = get_glyph_contours_and_advance(ch, DEFAULT_POINTS_PER_MM, scale, font_path=no_font)
-            m = build_flat_text(ch, DEFAULT_POINTS_PER_MM, 0.01, font_size_mm=No_Label_Size, font_path=no_font)
+            try:
+                _, adv = get_glyph_contours_and_advance(ch, DEFAULT_POINTS_PER_MM, scale, font_path=no_font)
+                m = build_flat_text(ch, DEFAULT_POINTS_PER_MM, 0.01, font_size_mm=No_Label_Size, font_path=no_font)
+            except Exception as e:
+                print(f"Labels: skipping {ch!r} in number label ({e})", flush=True)
+                continue
             no_parts.append(sp.translate(m, [cursor, 0, 0]))
             cursor += adv
         no_mesh = sp.translate(sp.union_all(no_parts), [-cursor / 2.0, 0, 0])
@@ -377,8 +411,12 @@ def Labels():
         if ch == " ":
             cursor += Font_Label_Size * 0.3
             continue
-        _, adv = get_glyph_contours_and_advance(ch, DEFAULT_POINTS_PER_MM, scale, font_path=label_font)
-        m = build_flat_text(ch, DEFAULT_POINTS_PER_MM, 0.01, font_size_mm=Font_Label_Size, font_path=label_font)
+        try:
+            _, adv = get_glyph_contours_and_advance(ch, DEFAULT_POINTS_PER_MM, scale, font_path=label_font)
+            m = build_flat_text(ch, DEFAULT_POINTS_PER_MM, 0.01, font_size_mm=Font_Label_Size, font_path=label_font)
+        except Exception as e:
+            print(f"Labels: skipping {ch!r} in typeface label ({e})", flush=True)
+            continue
         label_parts.append(sp.translate(m, [cursor, 0, 0]))
         cursor += adv
     label_mesh = sp.translate(sp.union_all(label_parts), [-cursor / 2.0, 0, 0])
@@ -420,9 +458,10 @@ def SolidCleanup():
     return sp.union_all(parts)
 
 
-def SubtractFromFull(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None):
+def SubtractFromFull(points_per_mm=None, minkowski_enabled=None, draft_angle_deg=None,
+                      simplify_tolerance_mm=None):
     full = FullBody(points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
-                    draft_angle_deg=draft_angle_deg)
+                    draft_angle_deg=draft_angle_deg, simplify_tolerance_mm=simplify_tolerance_mm)
     clean = SolidCleanup()
     result = full.difference(clean, engine="manifold")
     result, _, _, _ = sp.check_and_repair(result, label="SubtractFromFull")
@@ -504,18 +543,20 @@ def ResinRodAssemble():
 def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
                 cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                 minkowski_enabled=None, draft_angle_deg=None):
-    """separation_mm/render_core_groove/cone_segments/simplify_tolerance_mm/
-    platen_fn are accepted-but-ignored - generate.py's build_fn(...) call
-    is uniform across every machine (see CLAUDE.md's "Porting a new
-    machine" convention); Selectric has no core-groove concept, no
-    separate Minkowski-cone circular-segments knob (Mink_Fn from config
-    is used directly - see quality.minkowski_fn), and reuses Cyl_Fn for
-    the platen cutter's own facet count (matching v2, which has no
-    distinct Platen_Fn variable either - PlatenCutout's cylinder uses
-    Cyl_Fn directly, ibm.scad:515)."""
+    """separation_mm/render_core_groove/cone_segments/platen_fn are
+    accepted-but-ignored - generate.py's build_fn(...) call is uniform
+    across every machine (see CLAUDE.md's "Porting a new machine"
+    convention); Selectric has no core-groove concept, no separate
+    Minkowski-cone circular-segments knob (Mink_Fn from config is used
+    directly - see quality.minkowski_fn), and reuses Cyl_Fn for the
+    platen cutter's own facet count (matching v2, which has no distinct
+    Platen_Fn variable either - PlatenCutout's cylinder uses Cyl_Fn
+    directly, ibm.scad:515). simplify_tolerance_mm is NOT in that ignored
+    list - it's real here (see SingleMinkowskiChar's docstring)."""
     _require_configured()
     result = SubtractFromFull(points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
-                              draft_angle_deg=draft_angle_deg)
+                              draft_angle_deg=draft_angle_deg,
+                              simplify_tolerance_mm=simplify_tolerance_mm)
     build_log.mesh_report(result, "FullElement")
     return result, []
 
@@ -527,10 +568,12 @@ def Additive(points_per_mm=None, separation_mm=None, render_core_groove=None,
     the cylinder family) - FullBody() is a real union then FullBody minus
     SolidCleanup happens together in SubtractFromFull(). Provided for
     generate.py's uniform dispatch only - see FullElement's docstring for
-    the accepted-but-ignored kwargs."""
+    the accepted-but-ignored kwargs (simplify_tolerance_mm is real, same
+    as there)."""
     _require_configured()
     return FullBody(points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
-                    draft_angle_deg=draft_angle_deg), []
+                    draft_angle_deg=draft_angle_deg,
+                    simplify_tolerance_mm=simplify_tolerance_mm), []
 
 
 def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None,
@@ -538,7 +581,8 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None,
                minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
     full, char_parts = FullElement(points_per_mm=points_per_mm, minkowski_enabled=minkowski_enabled,
-                                    draft_angle_deg=draft_angle_deg)
+                                    draft_angle_deg=draft_angle_deg,
+                                    simplify_tolerance_mm=simplify_tolerance_mm)
     # v2's ResinPrint() (ibm.scad:881-887): `translate([0,0,Floor])
     # SubtractFromFull(); ResinRodAssemble();` - the main body is shifted
     # up by Floor so the detent teeth land at world z=0, which is the
