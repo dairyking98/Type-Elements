@@ -39,17 +39,24 @@ Config file: three tiers, master/running/saved.
     pointed at - tune.py NEVER writes to it. Browse (top of the screen,
     next to "master:") switches to a different master of the SAME
     machine, live.
-  - RUNNING is a per-master scratch copy (<master-stem>.running.yaml,
-    same directory, gitignored) that every edit/save actually goes to.
-    Bootstrapped as a copy of master the first time it's needed;
-    "once changed, always changed" - it persists across tune.py
-    restarts against the same master, picking up wherever you left off.
-    Reset to Defaults (also top of screen) overwrites the running copy
-    with a fresh copy of master, discarding all accumulated edits. If
-    master has since gained fields the running copy predates (e.g. a
-    codebase update adds a new config section), they're auto-backfilled
-    from master on load - see _migrate_running_config() - without
-    touching anything you've already customized.
+  - RUNNING is a per-MACHINE scratch copy (<machine>.running.yaml, same
+    directory as master, gitignored) that every edit/save actually goes
+    to - shared by every font-variant master config for that machine
+    (e.g. every selectric12_*.yaml Browses to the same selectric12.
+    running.yaml), not one file per master. Bootstrapped as a copy of
+    master the first time it's needed; "once changed, always changed" -
+    it persists across tune.py restarts against the SAME master, picking
+    up wherever you left off. A `# source_master:` header line tracks
+    which master it was last synced from - Browsing to a DIFFERENT
+    master (a different variant of the same machine) resets it fresh
+    from that master rather than showing an unrelated variant's edits
+    (see _ensure_running_config()). Reset to Defaults (also top of
+    screen) overwrites the running copy with a fresh copy of master,
+    discarding all accumulated edits. If master has since gained fields
+    the running copy predates (e.g. a codebase update adds a new config
+    section), they're auto-backfilled from master on load - see
+    _migrate_running_config() - without touching anything you've already
+    customized.
   - SAVED is whatever Save produces (see above) - a deliberate,
     named/timestamped snapshot, independent of both master and running.
 
@@ -1881,7 +1888,8 @@ class TuneApp(App):
         must run AFTER this, since the tuner form's shape (Element tab's
         field set, Layout tab's presets) depends on self.machine."""
         self.master_config_path = os.path.abspath(config_path)
-        self.config_path = self._running_config_path(self.master_config_path)
+        machine = self._peek_machine(self.master_config_path)
+        self.config_path = self._running_config_path(self.master_config_path, machine)
         self._ensure_running_config()
         self._migrate_running_config()  # no log_line here - RichLog isn't mounted yet
         self.inputs = {}
@@ -1919,14 +1927,67 @@ class TuneApp(App):
         self.BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(n_rows)]
 
     @staticmethod
-    def _running_config_path(master_path):
+    def _peek_machine(config_path):
+        """Reads just the `machine:` key without going through the full
+        master/running/self.cfg bootstrap - needed to name the running
+        copy (see _running_config_path) before that bootstrap has run."""
+        with open(config_path) as f:
+            cfg = yaml.safe_load(f) or {}
+        return cfg.get("machine", os.path.splitext(os.path.basename(config_path))[0])
+
+    @staticmethod
+    def _running_config_path(master_path, machine):
+        # One scratch file PER MACHINE, not per master config file - every
+        # font-variant config (config/selectric12_oriental.yaml etc.) for a
+        # given machine shares the same running copy. Keying this by the
+        # master's own filename stem used to spawn a brand-new *.running.yaml
+        # per variant (selectric12_oriental.running.yaml, selectric12_pxplus_
+        # ibm_mda.running.yaml, ...) every time a different variant was
+        # loaded - real disk bloat with no purpose, since Save (not the
+        # running copy) is the mechanism for durable per-variant snapshots.
         d = os.path.dirname(master_path)
-        stem, ext = os.path.splitext(os.path.basename(master_path))
-        return os.path.join(d, f"{stem}.running{ext}")
+        return os.path.join(d, f"{machine}.running.yaml")
+
+    _SOURCE_MASTER_RE = re.compile(r'^#\s*source_master:\s*(.+?)\s*$', re.MULTILINE)
+
+    def _write_running_from_master(self):
+        """(Re)writes self.config_path from self.master_config_path, tagged
+        with a `# source_master: <path>` header line so a later load can
+        tell whether the existing running copy still belongs to the CURRENTLY
+        loaded master or is left over from a different variant of the same
+        machine (see _ensure_running_config) - both share one file now, so
+        that distinction has to live somewhere."""
+        with open(self.master_config_path) as f:
+            master_text = f.read()
+        header = f"# source_master: {self.master_config_path}\n"
+        with open(self.config_path, "w") as f:
+            f.write(header + master_text)
 
     def _ensure_running_config(self):
         if not os.path.exists(self.config_path):
-            shutil.copy2(self.master_config_path, self.config_path)
+            self._write_running_from_master()
+            return
+        with open(self.config_path) as f:
+            existing_text = f.read()
+        m = self._SOURCE_MASTER_RE.search(existing_text)
+        if m is not None and m.group(1) != self.master_config_path:
+            # Running copy on disk belongs to a different master (a
+            # different font variant of this same machine) - it's scratch
+            # state for THAT variant, not this one, so start fresh from the
+            # newly loaded master rather than showing unrelated customizations.
+            self._write_running_from_master()
+        elif m is None:
+            # Pre-existing running copy from before source_master tracking
+            # existed (every machine's <machine>.running.yaml as of this
+            # change) - under the OLD per-master-stem naming this file could
+            # only ever have come from the one master whose filename stem
+            # equals this machine name, so it's unambiguously already
+            # "this" master's copy. Stamp it in place rather than treating
+            # a missing header as a mismatch - the whole point is to never
+            # discard real accumulated customizations just because they
+            # predate this tracking mechanism.
+            with open(self.config_path, "w") as f:
+                f.write(f"# source_master: {self.master_config_path}\n" + existing_text)
 
     def _migrate_running_config(self):
         """A running copy can predate a later codebase update that added
@@ -2732,7 +2793,7 @@ class TuneApp(App):
         self.log_line("[cyan]reloaded values from disk[/cyan]")
 
     def action_reset_defaults(self):
-        shutil.copy2(self.master_config_path, self.config_path)
+        self._write_running_from_master()
         self._load_current()
         self._refresh_widgets_from_cfg()
         self.log_line("[yellow]reset to master defaults - all customizations to the running "
@@ -2765,7 +2826,7 @@ class TuneApp(App):
                 f"use the \"Change Machine\" button instead[/red]")
             return
         self.master_config_path = new_master_path
-        self.config_path = self._running_config_path(self.master_config_path)
+        self.config_path = self._running_config_path(self.master_config_path, new_machine)
         self._ensure_running_config()
         migrated = self._migrate_running_config()
         self._load_current()
