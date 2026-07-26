@@ -362,6 +362,61 @@ def alignment_x_offset(char, advance_mm,
 # loop) is ~0.005 mm^2, several orders of magnitude above this.
 _MIN_PART_AREA_MM2 = 1e-6
 
+# A ring-pair distance below this (mm) is a real touch, not a near-miss -
+# opened up by _open_touching_geometry before triangulation (see there for
+# why: the C `triangle` library segfaults on a ring that touches another
+# ring at a point, even though shapely itself considers the geometry
+# valid). The opening/closing pair below removes the pinch at a cost of
+# ~_TOUCH_TOL^2 mm^2 of area (confirmed ~3e-8mm^2 on the cases that found
+# this - PxPlus IBM MDA's 'q'/'u'/'h'/'n'/'G'/'½'/'¼' - many orders of
+# magnitude below any real feature size), so this is a numerical-
+# robustness constant for a third-party library quirk, not a real machine
+# dimension/tolerance - it stays a code constant, not a config knob (see
+# CLAUDE.md's "z" epsilon precedent in cylinder_machine.configure()).
+_TOUCH_TOL_MM = 1e-9
+_TOUCH_OPEN_EPS_MM = 1e-4
+
+
+def _open_touching_geometry(geom):
+    """A ring that touches another ring at a single point - the exterior
+    touching one of its own holes (confirmed on 'q'), or two entirely
+    separate MultiPolygon islands meeting at one point (confirmed on
+    'u'/'h'/'n'/'G'/'½'/'¼' - e.g. 'u' is two side-by-side stroke shapes
+    whose boundaries touch at x=-0.126, `polys[0].distance(polys[1]) ==
+    0.0`) - is a valid shapely geometry but a segfault waiting to happen in
+    trimesh.creation.triangulate_polygon's `triangle` engine (confirmed:
+    Fatal Python error: Segmentation fault deep in
+    triangle.tri.triangulate, not a catchable Python exception, so this
+    must be fixed BEFORE triangulation, not caught after). Even where it
+    doesn't segfault, triangulating the touching parts independently and
+    concatenating (the naive per-part loop this replaces) leaves the touch
+    point as two coincident-but-distinct vertex indices, which
+    extrude_triangulation then walls off as if it were real boundary,
+    producing a non-watertight prism (confirmed: euler number off from the
+    correct value by exactly the touch count, e.g. 'u' euler=3 instead of
+    4 for its true two separate solids) - SKIPPED by AssembleMinkowski's
+    per-character exception handling rather than crashing, but silently
+    missing from the printed element. A tiny morphological opening (erode
+    then dilate by _TOUCH_OPEN_EPS_MM) applied to the WHOLE geometry
+    BEFORE splitting into per-part polygons fixes both failure modes at
+    once - it either merges genuinely-touching parts or cleanly separates
+    them by a hairline gap, so _polygon_parts's later triangulation loop
+    sees ordinary, independent, non-touching parts either way. Checking
+    every ring (exterior + interiors) across every part, not just within
+    one polygon, is what distinguishes this from a per-polygon check - a
+    touch between two different top-level parts wouldn't be caught by
+    looking at any single part's own rings. Geometrically negligible area
+    cost (see _TOUCH_TOL_MM's comment) - left untouched (byte-identical to
+    before this fix) for the vast majority of glyphs that don't have this
+    problem."""
+    parts = _polygon_parts(geom)
+    rings = [r for p in parts for r in ([p.exterior] + list(p.interiors))]
+    touching = any(rings[i].distance(rings[j]) < _TOUCH_TOL_MM
+                   for i in range(len(rings)) for j in range(i + 1, len(rings)))
+    if not touching:
+        return geom
+    return geom.buffer(-_TOUCH_OPEN_EPS_MM).buffer(_TOUCH_OPEN_EPS_MM)
+
 
 def _polygon_parts(geom):
     """Flattens a Polygon/MultiPolygon/GeometryCollection (as produced by
@@ -459,6 +514,7 @@ def classify_and_triangulate(contours_mm):
             result = result.difference(level_union)  # odd depth: a hole
 
     mesh_compound = None
+    result = _open_touching_geometry(result)
     for poly in _polygon_parts(result):
         vertices, faces = trimesh.creation.triangulate_polygon(
             poly, triangle_args='p', engine="triangle")
