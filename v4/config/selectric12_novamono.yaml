@@ -11,7 +11,7 @@
 machine: selectric12
 
 font:
-  # PROFILE: ported from v1/IBM/IBM2.json parameterSet '12/1-2' -
+  # PROFILE: ported from v1/IBM/IBM2.json parameterSet '12/1' -
   # font swapped (path/name/size_mm) onto the current calibrated
   # selectric12.yaml master; every other field (element/layout/
   # resin/build) stays master's fully byte-verified values rather
@@ -20,9 +20,9 @@ font:
   # being tuned across these v1 saves - not part of what makes this
   # a distinct "profile"). See SESSION_LOG.md for the v1 profile
   # survey this was ported from.
-  path: "/home/lchau/fonts/Custom & Modified/IBM Oriental (GP) (Brent Carter).ttf"
-  size_mm: 2.4          # v1 '12/1-2' FONT_SIZE
-  name: "Oriental"         # v1 '12/1-2' FONT - engraved typeface-label text only, not glyph rendering
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/NovaMono.ttf"
+  size_mm: 2.6          # v1 '12/1' FONT_SIZE
+  name: "NovaMono"         # v1 '12/1' FONT - engraved typeface-label text only, not glyph rendering
 
 font2:
   # FreeSerif is the standard substitute for v2's real value "Times New Roman"
@@ -32,13 +32,7 @@ font2:
   # lib/mignon.py's LABEL_FIELDS_MIGNON prefixing, see tune.py).
   font2_path: "/home/lchau/fonts/Library/Serif Text/FreeSerif.ttf"
   font2_size_mm: 2.4          # v2 Font2_Size (ibm.scad:196)
-  # IBM Oriental (GP) (Brent Carter).ttf covers 88 glyphs but not the
-  # full S12 layout: it's missing +, =, ¼, ½ (has bracketleft/bracketright/
-  # asciicircum instead, none of which the layout uses) - confirmed via
-  # its cmap. Without this, AssembleMinkowski's per-char exception handler
-  # (lib/spherical_machine.py) silently SKIPs those 4 keyboard positions.
-  # FreeSerif (font2 above) has all 4, so route just those to it.
-  font2_chars: "+=¼½"          # v2 Font2_Chars (ibm.scad:205) - chars that adopt font2 instead of font
+  font2_chars: ""             # v2 Font2_Chars (ibm.scad:205) - chars that adopt font2 instead of font
 
 alignment:
   # "mode" (not h_alignment) - matches tune.py's generic center/left
