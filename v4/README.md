@@ -40,12 +40,30 @@ current status/resume point for ongoing work.
 
 ## Setup
 
+Linux/macOS:
+
 ```
 cd v4
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+./setup.sh      # creates .venv, installs requirements.txt
+./start.sh      # launches tune.py
 ```
+
+Windows:
+
+```
+cd v4
+setup.bat
+start.bat
+```
+
+Either script is equivalent to the manual `python -m venv .venv` /
+`pip install -r requirements.txt` steps, just idempotent (safe to
+re-run, e.g. after `requirements.txt` changes) and consistent across
+platforms. `tune.py` shells out to `f3d` for the live preview window -
+`lib/f3d_bootstrap.py` finds one already on `PATH` if installed, or
+downloads a pinned build automatically the first time it's needed (see
+`PACKAGING_PLAN.md`), so no separate f3d install step is required on
+either platform.
 
 ## Usage
 

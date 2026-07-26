@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 if [ ! -d .venv ]; then
-    echo ".venv not found - run the Setup steps in README.md first" >&2
+    echo ".venv not found - run ./setup.sh first" >&2
     exit 1
 fi
 # shellcheck disable=SC1091
