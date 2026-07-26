@@ -1,0 +1,231 @@
+# Mignon type element - all real parameters ported 1:1 from
+# v2/mignon.scad (see that file for authoritative source/comments).
+# Mignon diverges from Blickensderfer/Postal's shared cylinder_machine.py
+# across essentially the whole body-construction half of the pipeline -
+# no wall/chamfer/speed-hole/core-groove/clip/drive-pin concepts at all,
+# a 12-sided polygon main body instead of a round cylinder, a different
+# top feature, a different shaft/alignment mechanism, and fully bespoke
+# resin-support placement - so this file's element:/resin: sections are
+# shaped very differently from theirs. See lib/mignon.py's module
+# docstring for the full comparison. Only the glyph placement pipeline
+# and the Calibration mechanism are genuinely shared - this file's
+# layout:/calibration:/alignment: sections use the same schema as
+# Blickensderfer/Postal's.
+
+# generate.py/export_glyphs.py dispatch on this key to import
+# blickensderfer.py/postal.py/mignon.py - see lib/cylinder_machine.py's
+# docstring for the shared-module mechanism this feeds into.
+machine: mignon
+
+font:
+  # PROFILE: ported from v1/Mignon/MignonCylinder.json parameterSet 'Plakatschrift'
+  # - font swapped onto the current calibrated mignon.yaml master. v1's own Layout_Selection=0 (Custom Layout) -
+  # layout.rows below carries that literal custom row data, not a named
+  # v2 built-in layout table.
+  path: "/home/lchau/fonts/Library/Display, Decorative & Stencil/Antikor Display.ttf"
+  size_mm: 6.0
+
+logo:
+  # v2's real value is also "Iosevka Etoile" (Cylinder_Label_Font_Override
+  # empty -> falls back to Typeface_). v2's own Cylinder_Label default
+  # (Cylinder_Label_Override empty -> falls back to the FONT NAME STRING
+  # itself, "Iosevka Etoile", as placeholder label text) isn't a
+  # meaningful real value to port literally - using a real label instead,
+  # matching Blickensderfer/Postal's own logo.text convention.
+  font_path: "/home/lchau/fonts/Library/Display, Decorative & Stencil/Antikor Display.ttf"    # v1 Cylinder_Label_Font_Override empty -> falls back to Typeface_
+  text: "PLAKATSCHRIFT"          # v1 'Plakatschrift' Cylinder_Label_Override
+  # Cylinder_Label_Size_Override=0 -> 0.51*Type_Size = 0.51*2.45
+  text_size_mm: 4.0          # v1 'Plakatschrift' Cylinder_Label_Size_Override
+  text_spacing: 15.0            # Cylinder_Label_Spacing (degrees between characters)
+  position_offset_deg: 0.0      # Cylinder_Label_Offset
+  # Cylinder_Label_Height_Offset - local radial nudge off the chamfer
+  # surface ElementLabel() places the label on (see lib/mignon.py) - NOT
+  # the same concept as Blickensderfer/Postal's radial_offset_mm (their
+  # label sits flat on the top face; Mignon's sits on an angled chamfer
+  # surface, a genuinely different placement geometry). 1.0/0.3 (not v2's
+  # unmodified .5/.09) - see text_depth_mm below for why: at v2's thin
+  # depth this offset alone leaves most of the text embedded/invisible.
+  height_offset_mm: 1.0
+  # v4-only, not a v2 field (v2 hardcodes .09) - how far the raised text
+  # extends. The chamfer is a CURVED frustum and the text is a flat panel
+  # resting tangent to it, so a thin extrusion only clears the surface at
+  # the exact tangent point - increasing height_offset_mm alone just slides
+  # the same thin sliver around rather than exposing the character, and
+  # enough offset to clear the whole curve detaches it into a floating
+  # island. A deeper extrusion spans embedded (anchored)->exposed
+  # (visible) at a modest offset instead. Verified visually at 0.3/1.0:
+  # full "Leonard Chau 2026" text solidly raised and attached all the way
+  # around the arc, not just near center.
+  text_depth_mm: 0.3
+  # v4-only - v2 has no toggle, its small sphere-minkowski edge-rounding
+  # is unconditional (gated only by the preview-quality Mink_On flag).
+  # off (false): plain flat extrude, both Logo and Label text. on (true):
+  # a real draft-cone taper (build.draft_angle_deg/quality.minkowski_fn/
+  # build.simplify_tolerance_mm - the same knobs struck characters use),
+  # applied to BOTH Logo and Label - one checkbox, not per-feature.
+  minkowski_text: false
+
+# v4-only second engraved-text feature (NOT a v2 concept - v2/mignon.scad
+# has exactly one, Cylinder_Label, ported above as logo.*) - same
+# font/size/spacing/height-offset format as logo above, always placed 180
+# degrees opposite logo's position_offset_deg (derived in lib/mignon.py's
+# configure(), not stored here - editing logo.position_offset_deg keeps
+# the label locked opposite it). text defaults to empty (renders nothing)
+# rather than duplicating logo.text verbatim - at logo's real 15deg/char
+# spacing, "Leonard Chau 2026" (18 chars) already spans ~255 degrees, so a
+# second copy of it 180 degrees away would heavily overlap the first
+# rather than sitting cleanly opposite it. Fill in your own shorter text.
+# Keys prefixed label_* (not font_path/text/... like logo above) - tune.py's
+# patch_yaml_value matches by bare key text across the WHOLE config file,
+# not by section, so identical key names under logo:/label: would collide
+# (the same literal "font_path:"/"text:"/etc. appearing twice) and patch
+# the wrong one - every YAML key patch_yaml_value can touch must be
+# globally unique in the file (see GAUGE_FIELDS' matching comment in tune.py).
+label:
+  label_font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Iosevka Etoile.ttf"
+  label_text: ""
+  label_text_size_mm: 1.2495
+  label_text_spacing: 15.0
+  # see logo.height_offset_mm/text_depth_mm's matching comments above -
+  # same curved-chamfer-vs-flat-panel reasoning applies here.
+  label_height_offset_mm: 1.0
+  label_text_depth_mm: 0.3
+
+element:
+  platen_diameter: 26.5
+  element_diameter: 18.64
+  min_final_character_diameter: 19.4
+  # Cylinder_Height_=40.5 - the BASE/untallened height; actual built
+  # Element_Height adds height_increase_mm on top of this when tallen is on.
+  element_height: 40.5
+  # Tallen (Plakatschrift, a display-type variant) - v2/mignon.scad:109-
+  # 115,197. Off by default (matches v2's Tallen=false and this file's
+  # real Layout_Selection=5 German 4 default, an untallened element).
+  # When on: Element_Height = element_height + height_increase_mm, and
+  # every baseline row shifts by tallen_baseline_offset_mm (cutout rows
+  # are NOT affected - v2 has no Cutout_Tallen variant).
+  tallen: true
+  height_increase_mm: 3.0
+  tallen_baseline_offset_mm: -0.8
+  cylinder_top_height_offset: 3.0
+  cylinder_top_chamfer: 2.0
+  cylinder_top_diameter: 10.5
+  cylinder_top_shaft_diameter: 7.3
+  cylinder_bottom_shaft_diameter: 14.6
+  pin_height: 1.8
+  pin_width: 1.7
+  pin_depth: 1.0
+  pin_through: false
+  cylinder_shape: 0    # 0=Polygonal (12-gon, v2 default), 1=Cylindrical
+
+# quality/facet counts - Mignon's own naming (Cyl_Fn/Surface_Fn/Mink_Fn),
+# no separate body_fn (PolygonCylinder has no circular facet count - it's
+# already a flat N-gon) or groove_fn (no core grooves). Resin_Fn moved to
+# resin.resin_fn below - Mignon used to be the sole quality.resin_fn
+# outlier CLAUDE.md's "pick one convention" section documented by name;
+# fixed to match the majority (Blickensderfer/Postal/Bennett/Hammond/
+# Hammond Split/Selectric all use resin.resin_fn).
+quality:
+  cyl_fn: 360
+  surface_fn: 360
+  minkowski_fn: 12
+  platen_fn: 360
+
+# per-row baseline/platen-cutout heights (mm, ABSOLUTE from the bottom
+# face - v2/mignon.scad:281 Baseline_Z_Offset=0, unlike Blickensderfer/
+# Postal's negative-from-clip-end convention), latitude spacing, and the
+# physical layout (v2's German 4 / Layouts[5], the real default -
+# Layout_Selection=5).
+#
+# rows: stored in RAW KEYBOARD-LEGEND order (v2's `Layout` array, matching
+# what's printed on the physical keyboard/manual), NOT the Char_Legend-
+# remapped `Physical_Layout` order used for actual glyph placement -
+# mignon.py's configure() applies char_legend below to compute the real
+# build-time DHIATENSOR, mirroring v2/mignon.scad:275's
+# Physical_Layout=[for (row) [for (col) Layout[row][Char_Legend[col]]]]
+# exactly. Mignon also has no separate placement_map override beyond
+# Char_Legend - identity below.
+layout:
+  baseline_row: [2.25, 7.55, 12.75, 17.8, 22.8, 28.0, 32.8]
+  cutout_row: [2.7, 8.25, 13.6, 18.7, 23.7, 28.7, 33.6]
+  latitude_columns: 12
+  placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  char_legend: [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6]
+  rows:
+    - "@QWERTZUIOP."
+    - "           ,"
+    - "£ASDFGHJKLY:"
+    - "            "
+    - "$(/XCVBNM§&="
+    - "           -"
+    - ")'23456789?¨"
+  modify_glyphs: false
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+# mesh-pipeline build settings (v4-specific) + v2's Letter_Placement_
+# Protrusion/Angle_Half_Step overrides (see cylinder_machine.
+# place_on_cylinder's docstring) - Mignon's placement radius is the raw
+# Element_Diameter/2 (no protrusion added at placement, unlike
+# Blickensderfer/Postal) and has no half-column centering step.
+build:
+  points_per_mm: 15.0
+  separation_mm: 2.0
+  resin_support: true
+  target: "element"
+  simplify_tolerance_mm: 0.005
+  minkowski_enabled: true
+  draft_angle_deg: 55.0
+  placement_protrusion: 0.0
+  angle_half_step: 0.0
+
+# lib/resin_rod.scad only (Mignon includes just this, not
+# lib/resin_support.scad's placement layer - see lib/mignon.py's
+# ResinSupport(), fully bespoke). support_height/support_thickness are
+# Mignon-specific (Resin_Support_Height/Resin_Support_Thickness), not
+# part of Blickensderfer/Postal's resin: schema.
+resin:
+  resin_fn: 20
+  rod_od: 1.0                 # Resin_Support_Wire_Thickness
+  tip_od: 0.6                 # Resin_Support_Contact_Point_Diameter
+  tip_l: 1.0
+  inset: 0.0
+  min_rod_height: 0.0
+  raft_od: 1.0                # unused (Resin_Rod_Raft always false for Mignon), defined for clarity only
+  raft_thickness: 0.0
+  support_height: 4.0
+  support_thickness: 2.0
+
+output:
+  directory: "output"
+  stl_name: "mignon_running.stl"
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/mignon.scad) - see config/blickensderfer.yaml's matching comment.
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    to do: stop.
+    wait! uh... no,
+    (parentheses)
+    excitement!
+
+# Calibration (v2's Testing_Baseline/Testing_Cutout/Testing_Layout +
+# Testing_Offsets, wired to the same Cutout_Test/Baseline_Test/Test_Layout
+# mechanism Blickensderfer/Postal use) - see config/blickensderfer.yaml's
+# matching comment. Mignon's real Testing_Offsets=[-.5,-.4,...,.6] (12
+# columns) is exactly testSweepArray(-0.5, 0.1, 12).
+calibration:
+  test_char: "H"
+  vary_baseline: false
+  vary_cutout: true
+  start: -0.5
+  interval: 0.1
