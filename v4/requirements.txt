@@ -1,5 +1,6 @@
 shapely
 trimesh
+python-fcl
 triangle
 bezier
 freetype-py
