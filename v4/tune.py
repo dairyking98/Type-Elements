@@ -2220,7 +2220,21 @@ class TuneApp(App):
                 else master_text[sec_start:]
             additions = []
             for sk in missing_subkeys:
-                sub_m = re.search(rf'(^|\n)((?:[ \t]*#[^\n]*\n)*[ \t]+{re.escape(sk)}:.*?)(?=\n[ \t]*\S|\Z)',
+                # Terminating lookahead must require the SAME indentation as
+                # the subkey's own line (\3, backreferenced), not just "any
+                # indented non-blank line" - a block-list value (e.g.
+                # layout.rows) has its "- ..." items indented DEEPER than the
+                # `rows:` line itself, and those items also satisfy a bare
+                # "[ \t]*\S" lookahead, so the old regex stopped matching
+                # right after the `key:` line and silently dropped every
+                # list item, backfilling a blank `rows:` (i.e. YAML null)
+                # into the running copy - confirmed live: a selectric_
+                # composer.running.yaml whose layout: section predated
+                # layout.rows existing in master got exactly this, corrupting
+                # `rows` to null and crashing _layout_row_caps() on load.
+                # Requiring \3 (same indent) means only a true sibling key
+                # ends the match.
+                sub_m = re.search(rf'(^|\n)((?:[ \t]*#[^\n]*\n)*([ \t]+){re.escape(sk)}:.*?)(?=\n\3\S|\Z)',
                                    sec_body, re.DOTALL)
                 if sub_m:
                     additions.append(sub_m.group(2).rstrip("\n"))
