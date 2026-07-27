@@ -142,9 +142,9 @@ Tabs (in display order):
     physical layout, not something to change casually; edit it directly
     in the YAML if you really mean to.
   Quality          - quality.* facet counts + build.flatness_tolerance_mm/
-    separation_mm/render_core_groove/simplify_tolerance_mm (moved here
-    from Build - these are all mesh generation quality/speed knobs, not
-    "what to build"). The Minkowski draft sweep itself is NOT exposed
+    separation_mm/render_core_groove (moved here from Build - these are
+    all mesh generation quality/speed knobs, not "what to build"). The
+    Minkowski draft sweep itself is NOT exposed
     here - Render always forces it on and Quick Preview always forces
     it off (see _run_build), so a config-file toggle would just be
     dead weight/a second source of truth.
@@ -369,7 +369,6 @@ QUALITY_FIELDS_BLICKPOSTAL = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
-    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Inner shaft/core bore only."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowSpace, SpeedHoles, chamfers...)."),
@@ -428,7 +427,7 @@ LOGO_FIELDS_MIGNON = [
      "a thin 0.09mm."),
     ("minkowski_text", ["logo", "minkowski_text"], bool, "Minkowski text",
      "Draft-cone taper for BOTH Logo and Label text (not a v2 option) - "
-     "uses the same draft_angle_deg/minkowski_fn/simplify_tolerance_mm as "
+     "uses the same draft_angle_deg/minkowski_fn as "
      "struck characters. Off: plain flat extrude (fast)."),
 ]
 
@@ -460,7 +459,6 @@ LABEL_FIELDS_MIGNON = [
 QUALITY_FIELDS_MIGNON = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
-    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "CenterShaft only."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
@@ -528,7 +526,6 @@ QUALITY_FIELDS_BENNETT = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
-    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft/pin fn", "PositionerPins/CenterShaft."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowBody, SpeedHoles, countersinks...)."),
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
@@ -597,7 +594,6 @@ QUALITY_FIELDS_HELIOS = [
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves",
      "16 twisted friction grooves (v4-only, see the core_shaft note on the Element tab) - slow, off for quick iteration."),
-    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     # cyl_fn is now genuinely used (Core()'s shaft-bore facet count, via
     # the v4-only core_shaft reuse - see config/helios.yaml's element
     # section comment) - previously declared-but-unused.
@@ -728,7 +724,6 @@ LABEL_FIELDS_HAMMOND = [
 QUALITY_FIELDS_HAMMOND = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
-    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shuttle arc body (ShuttleCylinder/Rib/PinSupport)."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
@@ -865,8 +860,6 @@ LABEL_FIELDS_HAMMOND_SPLIT = [
 
 QUALITY_FIELDS_HAMMOND_SPLIT = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)",
-     "Collapses minkowski_sum's CSG noise. 0 disables. Only matters while Minkowski (Build tab) is on."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Arc/Center/Rib/Tube/etc. body facet count."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
 ]

@@ -128,11 +128,18 @@ the cited section for the full incident).
   still in-silhouette, still flat, still correct) facet wherever the
   curve doesn't - exactly the adaptive behavior wanted, for free, with
   no pre-conditioning of the input contour.
-- **`Manifold.simplify()` is disabled EVERYWHERE in the glyph pipeline,
-  fleet-wide - every call site, cylinder and spherical both, no
-  exceptions.** All commented out, not deleted, in case any of this
-  needs revisiting. Call sites: `glyph_poc.build_glyph()` (both its
-  no-Minkowski preview path and its post-Minkowski path),
+- **`Manifold.simplify()`/`simplify_tolerance_mm` do not exist anywhere in
+  the glyph pipeline, fleet-wide - no config key, no `tune.py` field, no
+  function parameter, cylinder and spherical both, no exceptions.** This
+  went through two stages: first disabled (every call site commented
+  out but the parameter still threaded through every config/signature,
+  in case the regression below reappeared), later fully deleted per
+  explicit user direction once that risk was confirmed gone in practice
+  (re-verified: deletion is a pure no-op - every affected config's
+  `--no-minkowski` gate output is byte-identical before/after, since
+  every real call site was already disabled). What used to call it (now
+  just doesn't): `glyph_poc.build_glyph()` (both its no-Minkowski
+  preview path and its post-Minkowski path),
   `glyph_poc.build_flat_text_drafted()` (post-Minkowski),
   `spherical_machine.SingleMinkowskiChar()` (BOTH its pre-Minkowski and
   post-Minkowski calls), `hammond_split._letter_text_drafted()` (post-
@@ -145,18 +152,20 @@ the cited section for the full incident).
   machine`'s pre-Minkowski call had a real, DIFFERENT, previously-
   documented reason to exist (552x speedup avoiding a 2206s-per-
   character regression on Alma Mono 'M', by shrinking `minkowski_sum`'s
-  INPUT face count, not cleaning its output) - removed anyway per
+  INPUT face count, not cleaning its output) - disabled anyway per
   explicit user direction ("disable all simplification"), then directly
   re-tested against that exact regression case: the same character/font/
-  real-Minkowski build now completes in 5.75s with zero `simplify()`
-  calls anywhere. The adaptive contour tracing (this file's earlier
-  bullet) already fixes the root cause that call was compensating for -
-  a bloated, CSG-noise-heavy boolean-cut mesh from the old fixed-rate
+  real-Minkowski build completed in 5.75s with zero `simplify()` calls
+  anywhere. The adaptive contour tracing (this file's earlier bullet)
+  already fixes the root cause that call was compensating for - a
+  bloated, CSG-noise-heavy boolean-cut mesh from the old fixed-rate
   `points_per_mm` scheme no longer exists to explode through Minkowski
   in the first place, so the workaround for it is no longer needed
   either. User-confirmed in real use: full-font builds (all characters,
   real Minkowski) complete in under a minute at `flatness_tolerance_mm
-  =0.01`.
+  =0.01`. If a future regression like the 552x case above ever
+  reappears, re-add `Manifold.simplify()` as a fresh, deliberate change -
+  don't expect to find it lying around commented out anymore.
 - **`build_glyph()` (struck characters) mirrors X after `x_shift`.
   `build_flat_text()`/`LogoText`/Type Test never mirror.** A struck
   element is a mirror image of the printed glyph, like a stamp - this

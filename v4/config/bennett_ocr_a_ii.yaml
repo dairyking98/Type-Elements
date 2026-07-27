@@ -154,7 +154,6 @@ build:
   render_core_groove: true
   resin_support: true          # Generate_Support
   target: "element"
-  simplify_tolerance_mm: 0.005
   minkowski_enabled: true
   draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated
                                 # dimension, uses the shared angle-derived formula

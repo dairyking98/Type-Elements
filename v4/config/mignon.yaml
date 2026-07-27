@@ -58,9 +58,9 @@ logo:
   # v4-only - v2 has no toggle, its small sphere-minkowski edge-rounding
   # is unconditional (gated only by the preview-quality Mink_On flag).
   # off (false): plain flat extrude, both Logo and Label text. on (true):
-  # a real draft-cone taper (build.draft_angle_deg/quality.minkowski_fn/
-  # build.simplify_tolerance_mm - the same knobs struck characters use),
-  # applied to BOTH Logo and Label - one checkbox, not per-feature.
+  # a real draft-cone taper (build.draft_angle_deg/quality.minkowski_fn -
+  # the same knobs struck characters use), applied to BOTH Logo and
+  # Label - one checkbox, not per-feature.
   minkowski_text: false
 
 # v4-only second engraved-text feature (NOT a v2 concept - v2/mignon.scad
@@ -178,7 +178,6 @@ build:
   separation_mm: 2.0
   resin_support: true
   target: "element"
-  simplify_tolerance_mm: 0.005
   minkowski_enabled: true
   draft_angle_deg: 55.0
   placement_protrusion: 0.0
