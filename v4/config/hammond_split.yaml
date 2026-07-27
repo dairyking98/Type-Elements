@@ -186,15 +186,14 @@ type_test:
 quality:
   cyl_fn: 120                      # Cyl_Fn
   minkowski_fn: 20                 # Mink_Fn - renamed from mink_fn to match every other machine's key name
-  text_fn: 30                      # Text_Fn
 
 # mesh-pipeline build settings (v4-specific, not real v2 numbers) - see
-# config/hammond.yaml's matching comment. points_per_mm/simplify_tolerance_mm
+# config/hammond.yaml's matching comment. flatness_tolerance_mm/simplify_tolerance_mm
 # feed the freetype contour extraction reused for LetterText() (see
 # lib/hammond_split.py's module docstring on why build_glyph() is reused for
 # the Mink_On=false path but NOT for Mink_On=true).
 build:
-  points_per_mm: 15.0
+  flatness_tolerance_mm: 0.005
   render_left: true                # Render_Left
   render_right: true                # Render_Right
   resin_support: true

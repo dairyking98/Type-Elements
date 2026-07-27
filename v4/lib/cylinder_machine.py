@@ -167,7 +167,7 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
     return trimesh.Trimesh(vertices=new_v, faces=mesh.faces, process=False)
 
 
-def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
     """Per-character self-intersection ('the draft offset folds through
@@ -179,7 +179,7 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
     only inter-character collisions (a placement/spacing issue, unrelated
     to a single glyph's own geometry) are still checked below."""
     _require_configured()
-    points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
     separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
     align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
     cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
@@ -205,7 +205,7 @@ def TextRing(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
             t0 = time.perf_counter()
             try:
                 mesh = build_glyph(
-                    ch, points_per_mm, separation_mm=separation_mm, row=row,
+                    ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
                     align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
                     radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
                     platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
@@ -253,10 +253,10 @@ def _check_inter_character_collisions(parts):
     return names
 
 
-def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
-    text_ring, char_parts = TextRing(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+    text_ring, char_parts = TextRing(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
                                       cone_segments=cone_segments,
                                       simplify_tolerance_mm=simplify_tolerance_mm,
                                       platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
@@ -287,7 +287,7 @@ def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_seg
 
 def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None,
                          placement_protrusion=None, angle_half_step=None):
@@ -311,7 +311,7 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
     # next one.
     reference_baseline_row = BASELINE_ROW if reference_baseline_row is None else reference_baseline_row
     reference_cutout_row = CUTOUT_ROW if reference_cutout_row is None else reference_cutout_row
-    points_per_mm = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
     separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
     align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
     cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
@@ -344,7 +344,7 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
             baseline_mm = reference_baseline_row[row] + (offset if vary_baseline else 0.0)
             cutout_mm = reference_cutout_row[row] + (offset if vary_cutout else 0.0)
             mesh = build_glyph(
-                test_char, points_per_mm, separation_mm=separation_mm, row=row,
+                test_char, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
                 align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
                 radius_y_offset_mm=cutout_mm - baseline_mm,
                 platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
@@ -376,12 +376,12 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     text_ring, mapping_lines = CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -390,7 +390,7 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        points_per_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
                         align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
                         platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     """FullElement()'s calibration counterpart - same real body/hollow-out
@@ -399,7 +399,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
     _require_configured()
     additive, mapping_lines = CalibrationAdditive(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -573,7 +573,7 @@ def CoreEllipses():
     return sp.union_all(parts)
 
 
-def LogoText(points_per_mm=20.0):
+def LogoText(flatness_tolerance_mm=0.005):
     """LogoText(): each character gets its own angular position, sitting
     flat on the XY plane (extruded along Z, not wrapped radially like
     TextRing characters) near the top face. halign=center in the real
@@ -595,7 +595,7 @@ def LogoText(points_per_mm=20.0):
     for n, ch in enumerate(Logo_Text):
         if ch == " ":
             continue
-        mesh = build_flat_text(ch, points_per_mm, 0.4, font_size_mm=Logo_Text_Size,
+        mesh = build_flat_text(ch, flatness_tolerance_mm, 0.4, font_size_mm=Logo_Text_Size,
                                 font_path=LOGO_FONT_PATH)
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
@@ -608,7 +608,7 @@ def LogoText(points_per_mm=20.0):
     return sp.union_all(parts)
 
 
-def build_text_string(text, size, font_path, depth, points_per_mm=20.0):
+def build_text_string(text, size, font_path, depth, flatness_tolerance_mm=0.005):
     """Whole-string flat text, e.g. v2's text(text=<whole string>,
     halign="center", valign="center") called directly on a multi-character
     string rather than a ring of individually angle-placed characters
@@ -630,9 +630,9 @@ def build_text_string(text, size, font_path, depth, points_per_mm=20.0):
     parts = []
     cursor = 0.0
     for ch in text:
-        _, advance_mm = get_glyph_contours_and_advance(ch, points_per_mm, scale, font_path=font_path)
+        _, advance_mm = get_glyph_contours_and_advance(ch, flatness_tolerance_mm, scale, font_path=font_path)
         if ch != " ":
-            mesh = build_flat_text(ch, points_per_mm, depth, font_size_mm=size, font_path=font_path)
+            mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=size, font_path=font_path)
             parts.append(sp.translate(mesh, [cursor, 0, 0]))
         cursor += advance_mm
     whole = sp.union_all(parts)
@@ -662,11 +662,11 @@ def Subtractive(render_core_groove=None):
     return sp.union_all(parts)
 
 
-def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
     _require_configured()
-    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+    additive, char_parts = Additive(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
@@ -792,10 +792,10 @@ def BottomSupports():
     return sp.union_all(parts)
 
 
-def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
-    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
+    full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
                                     simplify_tolerance_mm=simplify_tolerance_mm,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,

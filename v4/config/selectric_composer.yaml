@@ -115,7 +115,7 @@ label:
   del_depth: 0.6
 
 build:
-  points_per_mm: 8.0
+  flatness_tolerance_mm: 0.005
   draft_angle_deg: 55.0
   minkowski_enabled: true
   character_block_height_mm: 6.0

@@ -131,7 +131,7 @@ label:
   del_depth: 0.6                # v2 Del_Depth (ibm.scad:393)
 
 build:
-  points_per_mm: 8.0
+  flatness_tolerance_mm: 0.005
   draft_angle_deg: 55.0            # v2 Mink_Draft_Angle (ibm.scad:65)
   minkowski_enabled: true          # v2 Mink_On (ibm.scad:63)
   # v2's linear_extrude(6) in PositionText's child (ibm.scad:521-524) - a

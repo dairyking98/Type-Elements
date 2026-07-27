@@ -153,7 +153,7 @@ def configure(config_path):
     }
 
     b = cfg["build"]
-    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
+    g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
     g["DEFAULT_RENDER_CORE_GROOVE"] = b["render_core_groove"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]

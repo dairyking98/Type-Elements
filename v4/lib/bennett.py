@@ -269,7 +269,7 @@ def configure(config_path):
     }
 
     b = cfg["build"]
-    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
+    g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
     g["DEFAULT_RENDER_CORE_GROOVE"] = b.get("render_core_groove", True)
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
@@ -435,7 +435,7 @@ def AlignmentHoles():
     return sp.union_all(parts)
 
 
-def LabelText(points_per_mm=20.0):
+def LabelText(flatness_tolerance_mm=0.005):
     """v2/bennett.scad:418-432 - two independent flat engraved-text groups
     cut into the bottom face near the shaft (SUBTRACTED in Assemble(), not
     additive like every other machine's decorative text - Bennett has no
@@ -448,9 +448,9 @@ def LabelText(points_per_mm=20.0):
     cylinder_machine.build_text_string() (shared with Hammond's Label() -
     see that function's docstring for the full derivation, originally
     written here before being promoted to the shared module)."""
-    right_1b = cylinder_machine.build_text_string(Shuttle_Label1b, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm)
+    right_1b = cylinder_machine.build_text_string(Shuttle_Label1b, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm)
     right_1a = sp.translate(
-        cylinder_machine.build_text_string(Shuttle_Label1a, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm),
+        cylinder_machine.build_text_string(Shuttle_Label1a, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm),
         [0, 2.25, 0])
     right = sp.union_all([right_1b, right_1a])
     right = sp.scad_transform(
@@ -458,7 +458,7 @@ def LabelText(points_per_mm=20.0):
         ("translate", [Shaft_Diameter / 2 + 1.5 + 0.25, 0, Bottom_Countersink_Depth + Shuttle_Label_Depth]),
         ("rotate", [180, 0, 90]),
     )
-    left = cylinder_machine.build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, points_per_mm)
+    left = cylinder_machine.build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm)
     left = sp.scad_transform(
         left,
         ("translate", [-Shaft_Diameter / 2 - 1.75 - 0.5, 0, Bottom_Countersink_Depth + Shuttle_Label_Depth]),
@@ -519,14 +519,14 @@ def IndicatorHole():
 
 # ---------------------------------------------------------------- Element
 
-def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None):
     # placement_protrusion omitted - defaults to Char_Protrusion, same as
     # Blickensderfer/Postal (see configure()'s comment on why v2's
     # Letter_Placement_Protrusion=0 does NOT translate to 0 here).
     text_ring, char_parts = cylinder_machine.TextRing(
-        points_per_mm=points_per_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
+        flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
         cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
         platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     return sp.union_all([text_ring, Cylinder()]), char_parts
@@ -579,12 +579,12 @@ def Subtractive(render_core_groove=None):
     return sp.union_all(_subtractive_parts(render_core_groove))
 
 
-def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
     _require_configured()
     render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
-    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+    additive, char_parts = Additive(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
@@ -601,13 +601,13 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
 
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     # placement_protrusion omitted - see Additive()'s matching comment.
     text_ring, mapping_lines = cylinder_machine.CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -616,14 +616,14 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        points_per_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
                         align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
                         platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
     render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
     additive, mapping_lines = CalibrationAdditive(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -693,14 +693,14 @@ def ResinSupport():
     return sp.translate(whole, [0, 0, -Resin_Support_Height + z])
 
 
-def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
     """v2/bennett.scad:544-551 - same upside-down flip Mignon's ResinPrint
     uses (translate([0,0,Element_Height]) rotate([0,180,0]) before adding
     supports) - the bottom face (where LabelText()/ResinSupport() live)
     ends up facing the build plate."""
-    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
+    full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
                                     simplify_tolerance_mm=simplify_tolerance_mm,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,

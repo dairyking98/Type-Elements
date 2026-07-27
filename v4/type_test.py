@@ -31,7 +31,7 @@ import build_log  # noqa: E402 - needs the lib/ sys.path.insert above first
 import scad_primitives as sp  # noqa: E402
 
 
-def build_type_test_line(text, cpi, font_path, font_size_mm, points_per_mm=8.0, depth=0.4,
+def build_type_test_line(text, cpi, font_path, font_size_mm, flatness_tolerance_mm=0.005, depth=0.4,
                           lpi=6.0, align_kwargs=None):
     line_spacing_mm = 25.4 / lpi  # same fixed-pitch convention as cpi, just vertical
     slot_mm = 25.4 / cpi
@@ -42,7 +42,7 @@ def build_type_test_line(text, cpi, font_path, font_size_mm, points_per_mm=8.0, 
         for i, ch in enumerate(line):
             if ch == " ":
                 continue
-            mesh = build_flat_text(ch, points_per_mm, depth, font_size_mm=font_size_mm, font_path=font_path,
+            mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=font_size_mm, font_path=font_path,
                                     align_kwargs=align_kwargs)
             x = (i - (n - 1) / 2.0) * slot_mm
             mesh.apply_translation([x, y, 0])
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument("--lpi", type=float, default=6.0, help="lines per inch, for multi-line text (default 6)")
     parser.add_argument("--font-path", required=True)
     parser.add_argument("--font-size-mm", type=float, required=True)
-    parser.add_argument("--points-per-mm", type=float, default=8.0)
+    parser.add_argument("--flatness-tolerance-mm", type=float, default=0.005)
     parser.add_argument("--align-mode", default=ALIGN_MODE, help='"center" or "left" (default: %(default)s)')
     parser.add_argument("--center-offset-mm", type=float, default=ALIGN_CENTER_OFFSET_MM)
     parser.add_argument("--left-offset-mm", type=float, default=ALIGN_LEFT_OFFSET_MM)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         modified_right_chars=args.modified_right_chars,
         modified_right_offset_mm=args.modified_right_offset_mm,
     )
-    mesh = build_type_test_line(args.text, args.cpi, args.font_path, args.font_size_mm, args.points_per_mm,
+    mesh = build_type_test_line(args.text, args.cpi, args.font_path, args.font_size_mm, args.flatness_tolerance_mm,
                                  lpi=args.lpi, align_kwargs=align_kwargs)
     build_log.mesh_report(mesh, "TypeTest")
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)

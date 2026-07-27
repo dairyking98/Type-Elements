@@ -74,7 +74,7 @@ quality:
                           # smoother scallop at the cost of a slower per-glyph boolean
   minkowski_fn: 16        # draft cone kernel (see glyph_poc.build_glyph) - manifold3d's Minkowski
                           # cost scales with the product of the two operands' face counts, so this
-                          # (and points_per_mm) drive generation time much more than the other Fn
+                          # (and flatness_tolerance_mm) drive generation time much more than the other Fn
                           # values above; see README's Performance section
 
 # per-row baseline/cutout (mm from clip end - Baseline_Z_Offset shifts to
@@ -110,7 +110,7 @@ alignment:
 
 # mesh-pipeline build settings (v4-specific, not from v2/blickensderfer.scad)
 build:
-  points_per_mm: 15.0
+  flatness_tolerance_mm: 0.005
   separation_mm: 2.0
   render_core_groove: true
   resin_support: true   # ResinPrint() equivalent - union(FullElement(), ResinSupport())
@@ -122,13 +122,17 @@ build:
   # Gauge tab/config section.
   target: "element"
   # manifold3d's cost scales with the product of face counts, so
-  # quality.minkowski_fn and points_per_mm together set generation time:
-  # ~16-24s for the full 84-char ring at ppm=6-8/minkowski_fn=8-12, ~66s
-  # at this file's ppm=15/minkowski_fn=16. Lower --points-per-mm/
-  # --cone-segments via the CLI for faster iteration; quality difference
-  # is minor even at the fast end (confirmed visually on 'e'/'m'). Or use
-  # tune.py's Quick Preview button, which always forces
-  # minkowski_enabled off (see below) for the fastest possible preview.
+  # quality.minkowski_fn and flatness_tolerance_mm together set generation
+  # time. flatness_tolerance_mm replaced the old fixed points_per_mm rate -
+  # adaptive contour flattening (straight strokes get zero subdivision,
+  # curves get exactly as many points as their own curvature needs at this
+  # tolerance) already cuts real build time 1.3x-4.5x on its own vs. the
+  # old scheme at equivalent visual quality, so this file's default
+  # (0.005mm) is a good starting point, not just a placeholder. Raise
+  # --flatness-tolerance-mm (fewer points, faster, coarser curves) or
+  # lower --cone-segments via the CLI for faster iteration. Or use
+  # tune.py's Quick Preview button, which always forces minkowski_enabled
+  # off (see below) for the fastest possible preview.
   #
   # manifold3d's raw minkowski_sum output is also drastically over-
   # triangulated on flat regions (a single straight wall facet came out as

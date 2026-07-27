@@ -178,7 +178,7 @@ alignment:
 # Element_Diameter/2 (no protrusion added at placement, unlike
 # Blickensderfer/Postal) and has no half-column centering step.
 build:
-  points_per_mm: 15.0
+  flatness_tolerance_mm: 0.005
   separation_mm: 2.0
   resin_support: true
   target: "element"

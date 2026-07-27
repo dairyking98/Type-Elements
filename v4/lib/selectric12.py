@@ -112,7 +112,7 @@ def configure(config_path):
     g["Del_Depth"] = lbl["del_depth"]
 
     b = cfg["build"]
-    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
+    g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
     g["Mink_Draft_Angle"] = b["draft_angle_deg"]
     g["DEFAULT_MINKOWSKI_ENABLED"] = b["minkowski_enabled"]
     g["Character_Block_Height_Mm"] = b["character_block_height_mm"]

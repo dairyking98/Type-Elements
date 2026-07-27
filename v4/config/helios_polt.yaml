@@ -86,7 +86,7 @@ element:
 # OTHER cylinder in the body - HollowingElement/MinkCleanup/clip/etc). Text_
 # Fn/Text_2D_Fn (v2's OpenSCAD $fn hook for glyph curves) has no v4
 # equivalent at all - text-curve sampling is controlled by
-# build.points_per_mm's vector tracing instead, unlike v2's $fn-based
+# build.flatness_tolerance_mm's adaptive vector tracing instead, unlike v2's $fn-based
 # approach - so it is NOT ported (not even declared-but-unused).
 quality:
   cyl_fn: 360
@@ -143,7 +143,7 @@ alignment:
 # lib/helios.py module global (Angle_Half_Step), the same pattern
 # lib/mignon.py's configure() uses for its own non-default overrides.
 build:
-  points_per_mm: 15.0
+  flatness_tolerance_mm: 0.005
   separation_mm: 2.0
   resin_support: false         # see the resin: section below - v2 never builds any support geometry
   render_core_groove: true     # CoreGrooves() - v4-only, see the core_shaft note above; slow, off for quick iteration

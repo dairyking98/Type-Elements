@@ -84,6 +84,79 @@ the cited section for the full incident).
   summed with; patching after leaves walls built as if the tip were
   flat. This lesson was learned twice. (`README.md` "Real platen
   cutout"; `SESSION_LOG.md` parts 5 and 6)
+- **Glyph outline sampling (`glyph_poc.contour_to_points()`) is adaptive
+  flatness-tolerance-based (recursive de Casteljau Bezier subdivision,
+  `flatten_quadratic`/`flatten_cubic`), never a fixed points-per-mm
+  rate.** Straight on-curve segments get ZERO subdivision (already flat);
+  curves get exactly as many points as their OWN curvature needs at
+  `flatness_tolerance_mm`. A fixed rate (the old `points_per_mm`,
+  replaced fleet-wide) subdivided straight strokes at the same density as
+  curves - measured leaving 46-71% of a straight-stroke glyph's points
+  geometrically redundant, and directly inflating Minkowski cost (which
+  scales with the product of the two operands' face counts). Confirmed
+  1.3x-4.5x real build-time reduction with no correctness loss (volumes
+  match the old fixed-rate output to within 0.03-1% across both
+  quadratic/TrueType and cubic/CFF fonts). The platen cutout itself
+  stays a real boolean cylinder subtraction (previous bullet) - a
+  separate attempt to realize it as a per-vertex height-field instead
+  was tried and abandoned (more post-Minkowski faces, not fewer; see
+  `SESSION_LOG.md`).
+- **No manual Y-breakpoint insertion is needed (and none exists) to help
+  the real platen boolean cut along a long, adaptively-unsubdivided
+  straight edge (e.g. 'd'/'l'/'k's stem) - the real boolean handles it
+  correctly on its own.** A "sail/spike" artifact was suspected here
+  mid-session (a triangle appearing to span nearly a character's full
+  height and depth on AverageMono's 'd'/'p'/'k'/'N'/'V') and a shared-
+  Y-breakpoint mechanism (matched to the platen cylinder's own
+  `platen_fn` facet step) was built, then REMOVED again after two
+  things became clear: (1) it introduced its own new defect - a fan of
+  degenerate thin triangles in the flat 2D cap triangulation wherever a
+  breakpoint-dense edge met an already-dense curve region like a serif,
+  since inserting a boundary vertex doesn't constrain the interior
+  triangulation to actually connect it across the stroke (no "rung"),
+  leaving Delaunay to improvise and do it badly under mismatched point
+  density; and (2) once checked with a properly SIZE-NORMALIZED
+  metric (any face may not exceed 1.5x that character's own bounding-
+  box diagonal, not an absolute mm threshold), the original "sail"
+  concern was a false positive - confirmed 0 faces exceed that bound
+  across every character in both AverageMono (cylinder family,
+  `glyph_poc.build_glyph`) and FreeSans (spherical family,
+  `spherical_machine.SingleMinkowskiChar`), all watertight/valid,
+  neither one needing any breakpoint help. The real boolean cut was
+  directly observed subdividing a stem's wall finely wherever the
+  platen curve actually changes, and leaving it as one larger (but
+  still in-silhouette, still flat, still correct) facet wherever the
+  curve doesn't - exactly the adaptive behavior wanted, for free, with
+  no pre-conditioning of the input contour.
+- **`Manifold.simplify()` is disabled EVERYWHERE in the glyph pipeline,
+  fleet-wide - every call site, cylinder and spherical both, no
+  exceptions.** All commented out, not deleted, in case any of this
+  needs revisiting. Call sites: `glyph_poc.build_glyph()` (both its
+  no-Minkowski preview path and its post-Minkowski path),
+  `glyph_poc.build_flat_text_drafted()` (post-Minkowski),
+  `spherical_machine.SingleMinkowskiChar()` (BOTH its pre-Minkowski and
+  post-Minkowski calls), `hammond_split._letter_text_drafted()` (post-
+  Minkowski). The preview-path call was independently confirmed to
+  reintroduce a sail/spike artifact on top of an otherwise-clean platen-
+  cut mesh (worst offending triangle dropped from 2.10mm to 1.37mm the
+  instant that one call was skipped, no other change) - whatever
+  `simplify()` was doing with this much sparser adaptive-contour input,
+  it wasn't safe anywhere, not just after Minkowski. `spherical_
+  machine`'s pre-Minkowski call had a real, DIFFERENT, previously-
+  documented reason to exist (552x speedup avoiding a 2206s-per-
+  character regression on Alma Mono 'M', by shrinking `minkowski_sum`'s
+  INPUT face count, not cleaning its output) - removed anyway per
+  explicit user direction ("disable all simplification"), then directly
+  re-tested against that exact regression case: the same character/font/
+  real-Minkowski build now completes in 5.75s with zero `simplify()`
+  calls anywhere. The adaptive contour tracing (this file's earlier
+  bullet) already fixes the root cause that call was compensating for -
+  a bloated, CSG-noise-heavy boolean-cut mesh from the old fixed-rate
+  `points_per_mm` scheme no longer exists to explode through Minkowski
+  in the first place, so the workaround for it is no longer needed
+  either. User-confirmed in real use: full-font builds (all characters,
+  real Minkowski) complete in under a minute at `flatness_tolerance_mm
+  =0.01`.
 - **`build_glyph()` (struck characters) mirrors X after `x_shift`.
   `build_flat_text()`/`LogoText`/Type Test never mirror.** A struck
   element is a mirror image of the printed glyph, like a stamp - this

@@ -8,7 +8,7 @@ what you see here matches what ends up on the actual element.
 
 Usage:
     python3 export_glyphs.py config/blickensderfer.yaml
-    python3 export_glyphs.py config/blickensderfer.yaml --out-dir output/glyphs --points-per-mm 8 --cone-segments 12
+    python3 export_glyphs.py config/blickensderfer.yaml --out-dir output/glyphs --flatness-tolerance-mm 0.005 --cone-segments 12
 """
 
 import argparse
@@ -40,7 +40,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config")
     parser.add_argument("--out-dir", default="output/glyphs")
-    parser.add_argument("--points-per-mm", type=float, default=None)
+    parser.add_argument("--flatness-tolerance-mm", type=float, default=None)
     parser.add_argument("--separation-mm", type=float, default=None)
     parser.add_argument("--cone-segments", type=int, default=None)
     parser.add_argument("--simplify-tolerance-mm", type=float, default=None)
@@ -50,7 +50,7 @@ def main():
 
     bd = _load_machine(args.config)
     bd.configure(args.config)
-    points_per_mm = args.points_per_mm or bd.DEFAULT_POINTS_PER_MM
+    flatness_tolerance_mm = args.flatness_tolerance_mm or bd.DEFAULT_FLATNESS_TOLERANCE_MM
     separation_mm = args.separation_mm or bd.DEFAULT_SEPARATION_MM
     cone_segments = args.cone_segments or bd.DEFAULT_CONE_SEGMENTS
     simplify_tolerance_mm = (args.simplify_tolerance_mm if args.simplify_tolerance_mm is not None
@@ -69,7 +69,7 @@ def main():
             done += 1
             try:
                 mesh = build_glyph(
-                    ch, points_per_mm, separation_mm=separation_mm, row=row,
+                    ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
                     align_kwargs=bd.ALIGN_KWARGS, font_path=bd.FONT_PATH, font_size_mm=bd.FONT_SIZE_MM,
                     radius_y_offset_mm=bd.CUTOUT_ROW[row] - bd.BASELINE_ROW[row],
                     platen_radius_mm=bd.PLATEN_RADIUS_MM, cone_segments=cone_segments,
