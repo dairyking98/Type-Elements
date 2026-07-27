@@ -93,17 +93,60 @@ def _from_manifold(manifold):
 
 # --------------------------------------------------------------- Body/Sphere
 
+def _seam_collar(ball, skirt, seam_z):
+    """Fillet-like patch bridging the ball/skirt union seam. Center_To_Skirt
+    (selectric12.py/selectric3.py/selectric_composer.py's configure()) only
+    matches POSITION between the icosphere and the frustum at `seam_z` (the
+    frustum's top ring radius is set to the sphere's true radius there) -
+    it doesn't match SLOPE, since the frustum is a fixed straight taper
+    (real, measured Skirt_Bottom_OD/Skirt_Top_OD/Floor) while the sphere
+    curves. That's a real (if small) tangent-direction discontinuity, and
+    on top of it the icosphere's own vertex ring at that latitude isn't
+    perfectly circular (a geodesic subdivision, not a revolve) - so
+    `Manifold`'s boolean union has to stitch the icosphere's slightly
+    polygonal cross-section against the frustum's true circular one,
+    confirmed (by z-histogram of the plain union's face centroids) to
+    concentrate ~290 tiny sliver triangles into a single 0.1mm-thick ring
+    exactly at the seam - the visible faceted "belt" reported against a
+    real ResinPrint render.
+
+    Fix: hull a thin band of `ball` vertices just above the seam together
+    with a thin band of `skirt` vertices just below it into one small
+    convex patch, then include that patch in the union alongside the
+    (untouched) ball/skirt. Where the patch's own smooth, few-facet
+    surface becomes the union's outer boundary in that local zone, the
+    original icosphere/frustum stitching band ends up interior (hidden),
+    not on the final surface at all. Band half-width is 1.1x the ball
+    mesh's own mean edge length (self-scaling with icosphere resolution/
+    Sphere_OD rather than a fixed mm constant - subdivisions=4 is the only
+    icosphere resolution used, but Sphere_OD differs per spherical
+    machine) - swept empirically from 0.5x-2.5x that edge length: the
+    residual sliver count drops from 290 to ~250/~210 at 0.5x/0.8x, then
+    plateaus at ~65 from 1.0x on (a small residual at the collar's own
+    boundary with the icosphere, not worth chasing further), so 1.1x sits
+    just past the plateau's start with margin. Confirmed watertight and
+    non-ballooning (radial profile within 0.01mm of the un-collared union
+    at every sampled z) - this is a local smoothing patch, not a size
+    change."""
+    band = 1.1 * ball.edges_unique_length.mean()
+    ball_band = ball.vertices[(ball.vertices[:, 2] >= seam_z) & (ball.vertices[:, 2] <= seam_z + band)]
+    skirt_band = skirt.vertices[(skirt.vertices[:, 2] <= seam_z) & (skirt.vertices[:, 2] >= seam_z - band)]
+    return trimesh.Trimesh(vertices=np.vstack([ball_band, skirt_band]), process=True).convex_hull
+
+
 def FullBody(flatness_tolerance_mm=None, minkowski_enabled=None, draft_angle_deg=None,
              simplify_tolerance_mm=None):
     """FullBody() (v2/ibm.scad:486-494): union(sphere, skirt frustum,
-    AssembleMinkowski())."""
+    AssembleMinkowski()), plus a seam collar bridging the ball/skirt join
+    - see _seam_collar's docstring."""
     _require_configured()
     ball = trimesh.creation.icosphere(subdivisions=4, radius=Sphere_OD / 2.0)
     skirt = sp.frustum_z(Skirt_Bottom_OD, Skirt_Top_OD, Floor - Center_To_Skirt,
                           sections=Surface_Fn, base_z=-Floor)
+    collar = _seam_collar(ball, skirt, seam_z=-Center_To_Skirt)
     ring = AssembleMinkowski(flatness_tolerance_mm=flatness_tolerance_mm, minkowski_enabled=minkowski_enabled,
                               draft_angle_deg=draft_angle_deg, simplify_tolerance_mm=simplify_tolerance_mm)
-    return sp.union_all([ball, skirt, ring])
+    return sp.union_all([ball, skirt, collar, ring])
 
 
 # ------------------------------------------------------- Character embedding
