@@ -207,7 +207,7 @@ def configure(config_path):
     }
 
     b = cfg["build"]
-    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
+    g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
     g["DEFAULT_CONE_SEGMENTS"] = q.get("minkowski_fn", GLYPH_DEFAULT_CONE_SEGMENTS)
@@ -295,7 +295,7 @@ def ElementChamfer():
 
 
 def _render_engraved_text(text, text_size, text_spacing, position_offset, height_offset,
-                           font_path, text_depth, points_per_mm=20.0):
+                           font_path, text_depth, flatness_tolerance_mm=0.005):
     """Shared placement chain for ElementLogo()/ElementLabel() - v2/
     mignon.scad:341-355's ElementLabel(), placed on ElementChamfer()'s
     angled chamfer surface (rotate([45,0,90])), not flat on the top face
@@ -330,12 +330,12 @@ def _render_engraved_text(text, text_size, text_spacing, position_offset, height
         if ch == " ":
             continue
         if Minkowski_Text:
-            mesh = build_flat_text_drafted(ch, points_per_mm, text_depth, font_size_mm=text_size,
+            mesh = build_flat_text_drafted(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
                                             font_path=font_path, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
                                             cone_segments=DEFAULT_CONE_SEGMENTS,
                                             simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM)
         else:
-            mesh = build_flat_text(ch, points_per_mm, text_depth, font_size_mm=text_size,
+            mesh = build_flat_text(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
                                     font_path=font_path)
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
@@ -352,24 +352,24 @@ def _render_engraved_text(text, text_size, text_spacing, position_offset, height
     return sp.union_all(parts)
 
 
-def ElementLogo(points_per_mm=20.0):
+def ElementLogo(flatness_tolerance_mm=0.005):
     """v2/mignon.scad's actual (only) engraved-text feature - v2 calls
     this "Cylinder_Label" internally, but it's what Blickensderfer/
     Postal's config schema and this app's UI call "Logo" (logo.* config
     keys) for schema-reuse convenience - see configure()'s docstring."""
     return _render_engraved_text(Logo_Text, Logo_Text_Size, Logo_Text_Spacing,
                                   Logo_Position_Offset, Logo_Height_Offset,
-                                  LOGO_FONT_PATH, Logo_Text_Depth, points_per_mm)
+                                  LOGO_FONT_PATH, Logo_Text_Depth, flatness_tolerance_mm)
 
 
-def ElementLabel(points_per_mm=20.0):
+def ElementLabel(flatness_tolerance_mm=0.005):
     """v4-only second engraved-text feature (NOT a v2 concept - see
     configure()'s docstring) - same placement chain as ElementLogo(),
     always 180 degrees opposite it (Label_Position_Offset is derived from
     Logo_Position_Offset, not independently stored)."""
     return _render_engraved_text(Label_Text, Label_Text_Size, Label_Text_Spacing,
                                   Label_Position_Offset, Label_Height_Offset,
-                                  LABEL_FONT_PATH, Label_Text_Depth, points_per_mm)
+                                  LABEL_FONT_PATH, Label_Text_Depth, flatness_tolerance_mm)
 
 
 def MinkCleanup():
@@ -421,11 +421,11 @@ def AlignmentPin():
 
 # ---------------------------------------------------------------- Element
 
-def Additive(points_per_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
              simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None):
     text_ring, char_parts = cylinder_machine.TextRing(
-        points_per_mm=points_per_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
+        flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
         cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
         platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
         placement_protrusion=Placement_Protrusion, angle_half_step=Angle_Half_Step)
@@ -447,11 +447,11 @@ def Subtractive(render_core_groove=None):
     return sp.union_all([CenterShaft(), HollowBody(), AlignmentPin()])
 
 
-def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
     _require_configured()
-    additive, char_parts = Additive(points_per_mm, separation_mm, align_kwargs=align_kwargs,
+    additive, char_parts = Additive(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
                                      simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
@@ -476,12 +476,12 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
 
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         points_per_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
                          cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     text_ring, mapping_lines = cylinder_machine.CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
@@ -498,13 +498,13 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        points_per_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
                         align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
                         platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
     additive, mapping_lines = CalibrationAdditive(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, points_per_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -550,7 +550,7 @@ def ResinSupport():
     return sp.union_all(parts)
 
 
-def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
     """v2/mignon.scad:436-444 - unlike Blickensderfer/Postal's ResinPrint
@@ -561,7 +561,7 @@ def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, 
     the new z=0), the shaft-bore/mechanical end faces up, away from
     supports. A real, deliberate part of Mignon's print orientation, not
     an oversight - ported faithfully."""
-    full, char_parts = FullElement(points_per_mm, separation_mm, render_core_groove, align_kwargs,
+    full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
                                     simplify_tolerance_mm=simplify_tolerance_mm,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,

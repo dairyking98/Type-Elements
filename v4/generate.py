@@ -3,7 +3,7 @@
 v4 generation entry point. Usage:
 
     python3 generate.py config/blickensderfer.yaml
-    python3 generate.py config/blickensderfer.yaml --points-per-mm 20 --separation-mm 1.5
+    python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.01 --separation-mm 1.5
 
 All real-machine parameters live in the config file, not in code - see
 config/blickensderfer.yaml for the full parameter set and comments.
@@ -66,8 +66,8 @@ def _load_machine(config_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="path to a YAML config, e.g. config/blickensderfer.yaml")
-    parser.add_argument("--points-per-mm", type=float, default=None,
-                         help="override build.points_per_mm from the config")
+    parser.add_argument("--flatness-tolerance-mm", type=float, default=None,
+                         help="override build.flatness_tolerance_mm from the config")
     parser.add_argument("--separation-mm", type=float, default=None,
                          help="override build.separation_mm from the config")
     parser.add_argument("--cone-segments", type=int, default=None,
@@ -230,7 +230,7 @@ def main():
             interval=args.calibration_interval,
             reference_baseline_row=reference_baseline_row,
             reference_cutout_row=reference_cutout_row,
-            points_per_mm=args.points_per_mm,
+            flatness_tolerance_mm=args.flatness_tolerance_mm,
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
@@ -272,7 +272,7 @@ def main():
                   f"(got machine={bd.__name__!r})", file=sys.stderr, flush=True)
             sys.exit(1)
         full, char_parts = bd.NormalElement(
-            points_per_mm=args.points_per_mm,
+            flatness_tolerance_mm=args.flatness_tolerance_mm,
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
@@ -299,7 +299,7 @@ def main():
         resin_support = args.resin_support if args.resin_support is not None else bd.DEFAULT_RESIN_SUPPORT
         build_fn = bd.ResinPrint if resin_support else bd.FullElement
         full, char_parts = build_fn(
-            points_per_mm=args.points_per_mm,
+            flatness_tolerance_mm=args.flatness_tolerance_mm,
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,

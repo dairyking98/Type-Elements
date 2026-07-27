@@ -141,7 +141,7 @@ Tabs (in display order):
     is not exposed - it must stay in sync with placement_map/the
     physical layout, not something to change casually; edit it directly
     in the YAML if you really mean to.
-  Quality          - quality.* facet counts + build.points_per_mm/
+  Quality          - quality.* facet counts + build.flatness_tolerance_mm/
     separation_mm/render_core_groove/simplify_tolerance_mm (moved here
     from Build - these are all mesh generation quality/speed knobs, not
     "what to build"). The Minkowski draft sweep itself is NOT exposed
@@ -366,7 +366,7 @@ LOGO_FIELDS_BLICKPOSTAL = [
 ]
 
 QUALITY_FIELDS_BLICKPOSTAL = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
@@ -375,7 +375,7 @@ QUALITY_FIELDS_BLICKPOSTAL = [
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowSpace, SpeedHoles, chamfers...)."),
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
-    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
 ]
 
 RESIN_FIELDS_BLICKPOSTAL = [
@@ -458,13 +458,13 @@ LABEL_FIELDS_MIGNON = [
 ]
 
 QUALITY_FIELDS_MIGNON = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "CenterShaft only."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
-    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
 ]
 
 RESIN_FIELDS_MIGNON = [
@@ -525,7 +525,7 @@ LABEL_FIELDS_BENNETT = [
 ]
 
 QUALITY_FIELDS_BENNETT = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
@@ -534,7 +534,7 @@ QUALITY_FIELDS_BENNETT = [
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("alignment_hole_fn", ["quality", "alignment_hole_fn"], int, "Alignment hole fn", "AlignmentHoles facet count."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
-    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
 ]
 
 RESIN_FIELDS_BENNETT = [
@@ -593,7 +593,7 @@ ELEMENT_FIELDS_BENNETT = [
 # with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge Test) are
 # omitted"), no "Gauge" key (same reason).
 QUALITY_FIELDS_HELIOS = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves",
      "16 twisted friction grooves (v4-only, see the core_shaft note on the Element tab) - slow, off for quick iteration."),
@@ -605,7 +605,7 @@ QUALITY_FIELDS_HELIOS = [
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Every other cylinder/revolve in the body (HollowingElement, MinkCleanup, clip...)."),
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
-    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
 ]
 
 # v2's own header comment: "the original file declares Resin_Support/
@@ -726,13 +726,12 @@ LABEL_FIELDS_HAMMOND = [
 ]
 
 QUALITY_FIELDS_HAMMOND = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)", "Collapses minkowski_sum's CSG noise. 0 disables."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shuttle arc body (ShuttleCylinder/Rib/PinSupport)."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
-    ("text_fn", ["quality", "text_fn"], int, "Text fn", "Glyph curve smoothness."),
-    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
 ]
 
 RESIN_FIELDS_HAMMOND = [
@@ -865,12 +864,11 @@ LABEL_FIELDS_HAMMOND_SPLIT = [
 ]
 
 QUALITY_FIELDS_HAMMOND_SPLIT = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("simplify_tolerance_mm", ["build", "simplify_tolerance_mm"], float, "Simplify tolerance (mm)",
      "Collapses minkowski_sum's CSG noise. 0 disables. Only matters while Minkowski (Build tab) is on."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Arc/Center/Rib/Tube/etc. body facet count."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
-    ("text_fn", ["quality", "text_fn"], int, "Text fn", "Not currently consumed - v4's freetype pipeline uses Outline density instead."),
 ]
 
 RESIN_FIELDS_HAMMOND_SPLIT = [
@@ -1003,14 +1001,14 @@ LABEL_FIELDS_SELECTRIC = [
 ]
 
 QUALITY_FIELDS_SELECTRIC = [
-    ("points_per_mm", ["build", "points_per_mm"], float, "Outline density (pts/mm)", "Glyph curve sampling density."),
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft", "Off: fast undrafted preview (correct platen curve/placement, no taper)."),
     ("character_block_height_mm", ["build", "character_block_height_mm"], float, "Character block height (mm)",
      "v2's linear_extrude(6) construction margin - must exceed any character's real embed depth."),
     ("mink_cone_height_mm", ["build", "mink_cone_height_mm"], float, "Minkowski cone height (mm)", "v2's hardcoded cylinder h=2 in the draft cone."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Sphere/skirt/roof/boss facet count."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shaft bore and the real platen cutout cylinder (v2 shares one Cyl_Fn for both)."),
-    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with points_per_mm."),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
 ]
 
 RESIN_FIELDS_SELECTRIC = [

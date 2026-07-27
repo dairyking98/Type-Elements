@@ -65,8 +65,10 @@ Also worth being precise about what Mink_Fn actually rounds: minkowski
 with a CONE only adds a straight linear taper (no axial curvature - that
 would need summing with a sphere/torus instead); what Mink_Fn's facet
 count controls is how many flat panels appear going AROUND the taper,
-same axis as this script's POINTS_PER_MM. So the fix demonstrated below is
-raising outline point density, not adding intermediate Z-layers.
+same axis as this script's outline point density (originally POINTS_PER_MM,
+now FLATNESS_TOLERANCE_MM - see that constant's own comment). So the fix
+demonstrated below is raising outline point density, not adding
+intermediate Z-layers.
 """
 
 import argparse
@@ -160,6 +162,24 @@ DEFAULT_CONE_SEGMENTS = 16
 # curvature (0.005mm is far below any meaningful glyph feature size).
 DEFAULT_SIMPLIFY_TOLERANCE_MM = 0.005
 
+# Max perpendicular deviation (real mm, measured in the same post-scale
+# coordinate space as DEFAULT_SIMPLIFY_TOLERANCE_MM) allowed between a
+# flattened glyph-outline segment and the true mathematical curve it
+# approximates - see contour_to_points()'s adaptive/recursive de Casteljau
+# subdivision below. Replaces the old points_per_mm fixed-rate scheme
+# (contour_inspect.py measured that scheme leaving 46-71% of a straight-
+# stroke glyph's points geometrically redundant, since it subdivided
+# straight segments at the same rate as curves) - straight on-curve
+# segments now get ZERO subdivision (already flat), and curves get exactly
+# as many points as their OWN curvature needs at this tolerance, instead
+# of a length-based guess. Validated (lib/heightfield_poc.py, kept as the
+# investigation record) against today's fixed-rate output on DejaVu Sans
+# Mono (quadratic curves) and Alma Mono Thin (cubic CFF curves): volumes
+# match to within 0.03-1%, all watertight/winding_consistent/is_volume
+# checks pass, and build time drops 1.3x-4.5x (biggest wins on straight-
+# stroke-heavy glyphs like 'M'/'A', smallest on all-curve glyphs like 'O').
+DEFAULT_FLATNESS_TOLERANCE_MM = 0.005
+
 # Circular segments for the REAL platen cutout cylinder (see build_glyph) -
 # unlike DEFAULT_CONE_SEGMENTS, this doesn't get multiplied against another
 # operand's face count in the same way (the block being cut is far smaller
@@ -182,24 +202,74 @@ DEFAULT_MINKOWSKI_ENABLED = True
 DEFAULT_DRAFT_ANGLE_DEG = MINK_DRAFT_ANGLE
 
 
-def quadratic_bezier(p0, p1, p2, n):
-    t = np.linspace(0, 1, n + 1)[1:]  # exclude t=0 (p0 already added by caller)
-    t = t[:, None]
-    return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t ** 2 * p2
+def _quad_flat_enough(p0, p1, p2, tol):
+    """Standard flatness test for a quadratic Bezier: perpendicular
+    distance of the single control point p1 from the chord p0-p2."""
+    chord = p2 - p0
+    norm = np.linalg.norm(chord)
+    if norm < 1e-12:
+        return np.linalg.norm(p1 - p0) <= tol
+    cross = abs(chord[0] * (p1[1] - p0[1]) - chord[1] * (p1[0] - p0[0]))
+    return (cross / norm) <= tol
 
 
-def cubic_bezier(p0, p1, p2, p3, n):
-    t = np.linspace(0, 1, n + 1)[1:]  # exclude t=0 (p0 already added by caller)
-    t = t[:, None]
-    return ((1 - t) ** 3 * p0 + 3 * (1 - t) ** 2 * t * p1
-             + 3 * (1 - t) * t ** 2 * p2 + t ** 3 * p3)
+def flatten_quadratic(p0, p1, p2, tol, depth=0, max_depth=20):
+    """Adaptive/recursive de Casteljau subdivision with a flatness-
+    tolerance stopping test - the standard technique behind cairo/Skia/
+    AGG curve flattening (confirmed against matplotlib.path.Path.
+    to_polygons(), which implements the same idea, before this was
+    adopted here). Splits only where the curve's own curvature demands
+    it, unlike a fixed arc-length sampling rate."""
+    if depth >= max_depth or _quad_flat_enough(p0, p1, p2, tol):
+        return [p2]
+    q0 = (p0 + p1) / 2.0
+    q1 = (p1 + p2) / 2.0
+    q2 = (q0 + q1) / 2.0
+    return (flatten_quadratic(p0, q0, q2, tol, depth + 1) +
+            flatten_quadratic(q2, q1, p2, tol, depth + 1))
 
 
-def contour_to_points(points, tags, points_per_mm, scale):
+def _cubic_flat_enough(p0, p1, p2, p3, tol):
+    """Same flatness test as _quad_flat_enough, extended to a cubic's two
+    control points (both must be within tol of the chord p0-p3)."""
+    chord = p3 - p0
+    norm = np.linalg.norm(chord)
+    if norm < 1e-12:
+        return max(np.linalg.norm(p1 - p0), np.linalg.norm(p2 - p0)) <= tol
+    d1 = abs(chord[0] * (p1[1] - p0[1]) - chord[1] * (p1[0] - p0[0])) / norm
+    d2 = abs(chord[0] * (p2[1] - p0[1]) - chord[1] * (p2[0] - p0[0])) / norm
+    return max(d1, d2) <= tol
+
+
+def flatten_cubic(p0, p1, p2, p3, tol, depth=0, max_depth=20):
+    """Cubic counterpart to flatten_quadratic - same adaptive de Casteljau
+    halving, same flatness-tolerance stopping test."""
+    if depth >= max_depth or _cubic_flat_enough(p0, p1, p2, p3, tol):
+        return [p3]
+    p01 = (p0 + p1) / 2.0
+    p12 = (p1 + p2) / 2.0
+    p23 = (p2 + p3) / 2.0
+    p012 = (p01 + p12) / 2.0
+    p123 = (p12 + p23) / 2.0
+    p0123 = (p012 + p123) / 2.0
+    return (flatten_cubic(p0, p01, p012, p0123, tol, depth + 1) +
+            flatten_cubic(p0123, p123, p23, p3, tol, depth + 1))
+
+
+def contour_to_points(points, tags, scale, flatness_tolerance_mm):
     """Walk one FreeType contour (on/off-curve tagged points) into a flat
-    polyline, sampling curved spans at points_per_mm (post-scale) density -
-    this is the single knob that drives both glyph-curve smoothness and
-    taper-wall smoothness (see module docstring on the fn=8 discussion).
+    polyline. Straight on-curve segments pass through with NO subdivision
+    (they're already flat); curved spans are flattened by adaptive/
+    recursive de Casteljau subdivision (flatten_quadratic/flatten_cubic
+    above) with a flatness_tolerance_mm stopping test, so each curve gets
+    exactly as many points as ITS OWN curvature needs, not a length-based
+    guess (see DEFAULT_FLATNESS_TOLERANCE_MM's comment for the measured
+    win over the old points_per_mm fixed-rate scheme this replaced).
+    Returns points already scaled to real mm (unlike the old points_per_mm
+    version, this needs mm-space internally for the flatness test anyway -
+    font-unit scale is inconsistent across fonts - so callers no longer
+    need their own separate "* scale" step; see get_glyph_contours_and_
+    advance()).
 
     Handles both TrueType-flavored (glyf table, quadratic) and CFF-flavored
     (PostScript/OTF-native, cubic) outlines - FreeType normalizes both into
@@ -245,46 +315,36 @@ def contour_to_points(points, tags, points_per_mm, scale):
         on = on[start:] + on[:start]
         is_cubic = is_cubic[start:] + is_cubic[:start]
 
-    out = [np.array(points[0], dtype=float)]
+    pts_mm = [np.array(p, dtype=float) * scale for p in points]
+
+    out = [pts_mm[0]]
     i = 1
     cur = out[0]
     while i <= n:
         idx = i % n
-        p = np.array(points[idx], dtype=float)
+        p = pts_mm[idx]
         if on[idx]:
-            seg_len_mm = np.linalg.norm((p - cur) * scale)
-            npts = max(1, int(np.ceil(seg_len_mm * points_per_mm)))
-            for k in range(1, npts + 1):
-                out.append(cur + (p - cur) * (k / npts))
+            out.append(p)
             cur = p
             i += 1
         elif is_cubic[idx]:
             ctrl2_idx = (i + 1) % n
             end_idx = (i + 2) % n
-            ctrl2 = np.array(points[ctrl2_idx], dtype=float)
-            end = np.array(points[end_idx], dtype=float)
-            ctrl_len_mm = (np.linalg.norm((p - cur) * scale) +
-                           np.linalg.norm((ctrl2 - p) * scale) +
-                           np.linalg.norm((end - ctrl2) * scale))
-            npts = max(2, int(np.ceil(ctrl_len_mm * points_per_mm)))
-            curve_pts = cubic_bezier(cur, p, ctrl2, end, npts)
-            out.extend(list(curve_pts))
+            ctrl2 = pts_mm[ctrl2_idx]
+            end = pts_mm[end_idx]
+            out.extend(flatten_cubic(cur, p, ctrl2, end, flatness_tolerance_mm))
             cur = end
             i += 3
         else:
             nxt_idx = (i + 1) % n
-            nxt = np.array(points[nxt_idx], dtype=float)
+            nxt = pts_mm[nxt_idx]
             if on[nxt_idx]:
                 end = nxt
                 consumed = 2
             else:
                 end = (p + nxt) / 2.0  # implied on-curve midpoint
                 consumed = 1
-            ctrl_len_mm = (np.linalg.norm((p - cur) * scale) +
-                           np.linalg.norm((end - p) * scale))
-            npts = max(2, int(np.ceil(ctrl_len_mm * points_per_mm)))
-            curve_pts = quadratic_bezier(cur, p, end, npts)
-            out.extend(list(curve_pts))
+            out.extend(flatten_quadratic(cur, p, end, flatness_tolerance_mm))
             cur = end
             i += consumed
     # drop the duplicated closing point (== out[0])
@@ -293,12 +353,16 @@ def contour_to_points(points, tags, points_per_mm, scale):
     return np.array(out)
 
 
-def get_glyph_contours(char, points_per_mm, scale, font_path=None):
-    contours, _advance = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path)
+def get_glyph_contours(char, flatness_tolerance_mm, scale, font_path=None):
+    contours, _advance = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path)
     return contours
 
 
-def get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=None):
+def get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=None):
+    """Returns contours already scaled to real mm (contour_to_points() does
+    the scaling internally now, since its flatness test needs mm-space
+    regardless - callers no longer need their own separate "* scale" step,
+    unlike the old points_per_mm version this replaced)."""
     face = load_font_face(font_path or FONT_PATH)
     face.set_char_size(face.units_per_EM)
     face.load_char(char, freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING)
@@ -309,7 +373,7 @@ def get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=None):
     for end in outline.contours:
         pts = outline.points[start:end + 1]
         tags = outline.tags[start:end + 1]
-        contours.append(contour_to_points(pts, tags, points_per_mm, scale))
+        contours.append(contour_to_points(pts, tags, scale, flatness_tolerance_mm))
         start = end + 1
     return contours, advance_mm
 
@@ -625,7 +689,7 @@ def join_front_back(mesh_front, mesh_back, front_outline):
     return trimesh.Trimesh(vertices=v_all, faces=np.array(faces))
 
 
-def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=None, align_kwargs=None):
+def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_path=None, align_kwargs=None):
     """Plain flat linear_extrude(depth) of one character - no platen
     scallop, no draft taper. Used for LogoText() (an engraved surface
     label, not a struck type character): reuses the same
@@ -647,8 +711,7 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     fs = font_size_mm or FONT_SIZE_MM
     face = load_font_face(fp)
     scale = em_to_mm_scale(fs, face.units_per_EM)
-    contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
-    contours_mm = [c * scale for c in contours_font_units]
+    contours_mm, advance_mm = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=fp)
     if align_kwargs is not None:
         x_shift = alignment_x_offset(char, advance_mm, **align_kwargs)
         contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
@@ -658,7 +721,7 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     return join_front_back(front, back, front_outline)
 
 
-def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_path=None,
+def build_flat_text_drafted(char, flatness_tolerance_mm, depth, font_size_mm=None, font_path=None,
                              align_kwargs=None, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
                              cone_segments=DEFAULT_CONE_SEGMENTS,
                              simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM):
@@ -682,8 +745,7 @@ def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_
     fs = font_size_mm or FONT_SIZE_MM
     face = load_font_face(fp)
     scale = em_to_mm_scale(fs, face.units_per_EM)
-    contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
-    contours_mm = [c * scale for c in contours_font_units]
+    contours_mm, advance_mm = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=fp)
     if align_kwargs is not None:
         x_shift = alignment_x_offset(char, advance_mm, **align_kwargs)
         contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
@@ -700,8 +762,16 @@ def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_
     cone = cone.translate([0, 0, -cone_h])
 
     drafted = _to_manifold(prism).minkowski_sum(cone)
-    if simplify_tolerance_mm > 0:
-        drafted = drafted.simplify(simplify_tolerance_mm)
+    # Post-Minkowski simplify() disabled - with the adaptive/flatness-
+    # tolerance contour method feeding far fewer base points into the
+    # sum, simplify() was observed producing thin spike/sliver artifacts
+    # (degenerate near-zero-area collapses) it didn't produce against the
+    # old, much denser fixed-rate contour. Commented out rather than
+    # deleted - the over-triangulation this was cleaning up (see
+    # module docstring) may still need addressing some other way, but
+    # simplify() itself is the wrong tool once the input is this sparse.
+    # if simplify_tolerance_mm > 0:
+    #     drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
 
 
@@ -718,7 +788,7 @@ def _from_manifold(manifold):
     return sp.from_manifold(manifold)
 
 
-def build_glyph(char, points_per_mm, expansion_width_mm=None,
+def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
                  separation_mm=DEFAULT_SEPARATION_MM, row=TEST_ROW,
                  align_kwargs=None, font_path=None, font_size_mm=None,
                  radius_y_offset_mm=None, platen_radius_mm=None,
@@ -785,8 +855,11 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     Real cost: manifold3d warns Minkowski performance scales with the
     PRODUCT of the two operands' face counts, confirmed empirically at
     ~0.2-1.2s per character (vs. a few ms before) depending on
-    points_per_mm/cone_segments - roughly 16-66s for the full 84-character
-    TextRing depending on quality settings, vs. ~3-6s before. Accepted
+    flatness_tolerance_mm/cone_segments - roughly 16-66s for the full
+    84-character TextRing depending on quality settings (measured before
+    flatness_tolerance_mm replaced points_per_mm; the adaptive contour
+    method cuts real build time 1.3x-4.5x on top of that - see DEFAULT_
+    FLATNESS_TOLERANCE_MM's comment), vs. ~3-6s before. Accepted
     tradeoff: this is offline batch generation, not interactive, in
     exchange for eliminating an entire class of per-glyph bugs rather than
     chasing them one at a time.
@@ -805,8 +878,7 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
     face = load_font_face(fp)
     scale = em_to_mm_scale(fs, face.units_per_EM)
 
-    contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
-    contours_mm = [c * scale for c in contours_font_units]
+    contours_mm, advance_mm = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=fp)
     x_shift = alignment_x_offset(char, advance_mm, **(align_kwargs or {}))
     contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
     # A struck type element carries a MIRROR-IMAGE of the desired printed
@@ -931,16 +1003,29 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
         # scalloped block as-is, undrafted (constant cross-section from
         # root to tip). Correct platen curve and glyph footprint/placement,
         # no taper - for quick layout iteration, not a final export.
-        if simplify_tolerance_mm > 0:
-            scalloped = scalloped.simplify(simplify_tolerance_mm)
+        #
+        # simplify() disabled here too (not just the post-Minkowski call
+        # sites) - confirmed via direct measurement that THIS call was
+        # reintroducing a sail/spike artifact on top of an otherwise-clean
+        # platen-cut mesh (worst offending triangle's xy-extent dropped
+        # from 2.10mm to 1.37mm - matching a real, legitimate long
+        # boundary edge - the instant this call was skipped). Whatever
+        # is happening inside Manifold.simplify() with this much sparser
+        # adaptive-contour input, it isn't safe on either side of the
+        # Minkowski sweep, not just after it.
+        # if simplify_tolerance_mm > 0:
+        #     scalloped = scalloped.simplify(simplify_tolerance_mm)
         return _from_manifold(scalloped)
 
     cone = Manifold.cylinder(cone_h, expansion_width_mm, 0.0, circular_segments=cone_segments)
     cone = cone.translate([0, 0, -cone_h])
 
     drafted = scalloped.minkowski_sum(cone)
-    if simplify_tolerance_mm > 0:
-        drafted = drafted.simplify(simplify_tolerance_mm)
+    # Post-Minkowski simplify() disabled - see build_flat_text_drafted's
+    # matching comment above (same artifact, same reasoning). Commented
+    # out rather than deleted in case this needs to come back.
+    # if simplify_tolerance_mm > 0:
+    #     drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
 
 
@@ -962,7 +1047,10 @@ def report(mesh, label):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("chars", nargs="*", default=["O", "A", "e"])
-    parser.add_argument("--points-per-mm", type=float, default=8.0)
+    parser.add_argument("--flatness-tolerance-mm", type=float, default=DEFAULT_FLATNESS_TOLERANCE_MM,
+                         help="max perpendicular deviation (real mm) allowed between a "
+                              "flattened outline segment and the true curve - see "
+                              "DEFAULT_FLATNESS_TOLERANCE_MM's comment.")
     parser.add_argument("--draft-angle", type=float, default=MINK_DRAFT_ANGLE,
                          help="overrides Mink_Draft_Angle (deg), real value 55. "
                               "Kept fixed when sweeping depth instead (see "
@@ -980,7 +1068,7 @@ if __name__ == "__main__":
                          help="circular segments for the Minkowski cone kernel - "
                               "trades roundness for speed (manifold3d's cost "
                               "scales with the product of the two operands' "
-                              "face counts, so this and --points-per-mm both "
+                              "face counts, so this and --flatness-tolerance-mm both "
                               "matter for generation time).")
     parser.add_argument("--simplify-tolerance-mm", type=float, default=DEFAULT_SIMPLIFY_TOLERANCE_MM,
                          help="Manifold.simplify() tolerance applied to the raw "
@@ -1006,15 +1094,15 @@ if __name__ == "__main__":
     print()
 
     for ch in args.chars:
-        mesh = build_glyph(ch, args.points_per_mm, expansion_mm, args.separation_mm,
+        mesh = build_glyph(ch, args.flatness_tolerance_mm, expansion_mm, args.separation_mm,
                             cone_segments=args.cone_segments,
                             simplify_tolerance_mm=args.simplify_tolerance_mm,
                             platen_fn=args.platen_fn,
                             minkowski_enabled=args.minkowski_enabled)
-        report(mesh, f"char='{ch}' points_per_mm={args.points_per_mm} "
+        report(mesh, f"char='{ch}' flatness_tolerance_mm={args.flatness_tolerance_mm} "
                      f"separation_mm={args.separation_mm} draft_angle={args.draft_angle} "
                      f"cone_segments={args.cone_segments} "
                      f"simplify_tolerance_mm={args.simplify_tolerance_mm} "
                      f"platen_fn={args.platen_fn} minkowski_enabled={args.minkowski_enabled}")
         safe = ch if ch.isalnum() else f"u{ord(ch):04x}"
-        mesh.export(f"out_{safe}_ppm{int(args.points_per_mm)}_sep{args.separation_mm:.2f}.stl")
+        mesh.export(f"out_{safe}_ftol{args.flatness_tolerance_mm:.4f}_sep{args.separation_mm:.2f}.stl")

@@ -260,13 +260,12 @@ def configure(config_path):
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
-    g["Text_Fn"] = q["text_fn"]  # not consumed directly - v4's freetype pipeline uses points_per_mm instead
     g["DEFAULT_MINK_FN"] = q["minkowski_fn"]
     g["Mink_Fn"] = g["DEFAULT_MINK_FN"]
 
     b = cfg["build"]
-    g["DEFAULT_POINTS_PER_MM"] = b["points_per_mm"]
-    g["POINTS_PER_MM"] = g["DEFAULT_POINTS_PER_MM"]
+    g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
+    g["FLATNESS_TOLERANCE_MM"] = g["DEFAULT_FLATNESS_TOLERANCE_MM"]
     g["Render_Left"] = bool(b["render_left"])
     g["Render_Right"] = bool(b["render_right"])
     g["DEFAULT_RESIN_SUPPORT"] = bool(b["resin_support"])
@@ -453,7 +452,7 @@ def _letter_text_drafted(char, font_path, font_size_mm, depth):
     (maximal at z=0, zero at z=depth), not a normal "wide root" draft.
     This is what the real v2 numbers actually produce, not an approximation
     of some intended fuller taper."""
-    flat = glyph_poc.build_glyph(char, POINTS_PER_MM, align_kwargs=ALIGN_KWARGS,
+    flat = glyph_poc.build_glyph(char, FLATNESS_TOLERANCE_MM, align_kwargs=ALIGN_KWARGS,
                                   font_path=font_path, font_size_mm=font_size_mm,
                                   separation_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
                                   minkowski_enabled=False, simplify_tolerance_mm=0.0)
@@ -467,8 +466,11 @@ def _letter_text_drafted(char, font_path, font_size_mm, depth):
     # poly's far=100/GrooveShape's tab_length=50 sentinels elsewhere.
     trimmer = sp.box_centered([200.0, 200.0, 20.0], [0, 0, -10.0])
     trimmed = summed.difference(trimmer, engine="manifold")
-    if SIMPLIFY_TOLERANCE_MM > 0:
-        trimmed = sp.from_manifold(sp.to_manifold(trimmed).simplify(SIMPLIFY_TOLERANCE_MM))
+    # Post-Minkowski simplify() disabled - see glyph_poc.build_glyph's
+    # matching comment (same artifact category, disabled fleet-wide per
+    # explicit user direction).
+    # if SIMPLIFY_TOLERANCE_MM > 0:
+    #     trimmed = sp.from_manifold(sp.to_manifold(trimmed).simplify(SIMPLIFY_TOLERANCE_MM))
     return trimmed
 
 
@@ -482,7 +484,7 @@ def LetterText(char, font_path, font_size_mm):
     convention)."""
     depth = Glyph_Height + 1.0
     if not Mink_On:
-        return glyph_poc.build_glyph(char, POINTS_PER_MM, align_kwargs=ALIGN_KWARGS,
+        return glyph_poc.build_glyph(char, FLATNESS_TOLERANCE_MM, align_kwargs=ALIGN_KWARGS,
                                       font_path=font_path, font_size_mm=font_size_mm,
                                       separation_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
                                       minkowski_enabled=False, simplify_tolerance_mm=SIMPLIFY_TOLERANCE_MM)
@@ -948,7 +950,7 @@ def CalibrationAssembleSide(side, test_char, vary_baseline, start, interval):
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        points_per_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
                         cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                         minkowski_enabled=None, draft_angle_deg=None):
     """v4-only - v2/hammond_split.scad has no calibration render mode at
@@ -979,10 +981,10 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
     st = Calibration_Start if start is None else start
     iv = Calibration_Interval if interval is None else interval
 
-    global POINTS_PER_MM
-    pts = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
-    old_pts = POINTS_PER_MM
-    POINTS_PER_MM = pts
+    global FLATNESS_TOLERANCE_MM
+    pts = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
+    old_pts = FLATNESS_TOLERANCE_MM
+    FLATNESS_TOLERANCE_MM = pts
     try:
         parts = []
         mapping_lines = []
@@ -1002,13 +1004,13 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
         full, _, _, _ = sp.check_and_repair(full, label="hammond_split calibration")
         return full, mapping_lines
     finally:
-        POINTS_PER_MM = old_pts
+        FLATNESS_TOLERANCE_MM = old_pts
 
 
 # --------------------------------------------------------------- Entry points
 
-def _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg, with_resin):
-    global POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
+def _build(flatness_tolerance_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg, with_resin):
+    global FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
     if not Render_Left and not Render_Right:
         # sp.union_all([]) silently returns a 0-vertex Trimesh rather than
         # raising - with both Build tab switches off that would otherwise
@@ -1016,14 +1018,14 @@ def _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enable
         # all (reported as f3d showing "[EMPTY]" with no explanation).
         raise ValueError("hammond_split: Render Left and Render Right are both off - "
                           "nothing to build. Turn at least one back on (Build tab).")
-    pts = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    pts = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
     fn = DEFAULT_MINK_FN if cone_segments is None else cone_segments
     tol = DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None else simplify_tolerance_mm
     mink_on = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
     draft = DEFAULT_MINK_DRAFT_ANGLE if draft_angle_deg is None else draft_angle_deg
 
-    old = (POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
-    POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, tol, mink_on, fn, draft
+    old = (FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
+    FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, tol, mink_on, fn, draft
     Mink_Radius = np.tan(np.radians(draft / 2.0)) * Mink_Height
     try:
         parts = []
@@ -1043,10 +1045,10 @@ def _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enable
         full, _, _, _ = sp.check_and_repair(full, label="hammond_split")
         return full, []  # char_parts always empty - see module docstring on why
     finally:
-        (POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old
+        (FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old
 
 
-def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                  minkowski_enabled=None, draft_angle_deg=None):
     """Both halves, print-oriented and laid out apart (AssembleResin()'s
@@ -1056,21 +1058,21 @@ def FullElement(points_per_mm=None, separation_mm=None, render_core_groove=None,
     kwargs generate.py's uniform build_fn(...) call passes to every
     machine."""
     _require_configured()
-    return _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg,
+    return _build(flatness_tolerance_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg,
                   with_resin=False)
 
 
-def ResinPrint(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                 cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                 minkowski_enabled=None, draft_angle_deg=None):
     """FullElement() plus each half's own ResinSupports() - the real
     AssembleResin() print target."""
     _require_configured()
-    return _build(points_per_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg,
+    return _build(flatness_tolerance_mm, cone_segments, simplify_tolerance_mm, minkowski_enabled, draft_angle_deg,
                   with_resin=True)
 
 
-def NormalElement(points_per_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def NormalElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                    cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
                    minkowski_enabled=None, draft_angle_deg=None):
     """v2:544-549/v2:60 "Normal" (Render_Mode==0) - v1/HammondSplitShuttle.
@@ -1085,19 +1087,19 @@ def NormalElement(points_per_mm=None, separation_mm=None, render_core_groove=Non
     combined. separation_mm/render_core_groove/align_kwargs/platen_fn
     accepted-but-ignored, same convention as FullElement/ResinPrint."""
     _require_configured()
-    global POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
-    pts = DEFAULT_POINTS_PER_MM if points_per_mm is None else points_per_mm
+    global FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
+    pts = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
     fn = DEFAULT_MINK_FN if cone_segments is None else cone_segments
     tol = DEFAULT_SIMPLIFY_TOLERANCE_MM if simplify_tolerance_mm is None else simplify_tolerance_mm
     mink_on = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
     draft = DEFAULT_MINK_DRAFT_ANGLE if draft_angle_deg is None else draft_angle_deg
 
-    old = (POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
-    POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, tol, mink_on, fn, draft
+    old = (FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
+    FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, tol, mink_on, fn, draft
     Mink_Radius = np.tan(np.radians(draft / 2.0)) * Mink_Height
     try:
         full = Assemble()  # reads Render_Left/Render_Right - Assemble() itself raises if both are off
         full, _, _, _ = sp.check_and_repair(full, label="hammond_split normal")
         return full, []  # char_parts always empty - see _build()'s matching comment
     finally:
-        (POINTS_PER_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old
+        (FLATNESS_TOLERANCE_MM, SIMPLIFY_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old

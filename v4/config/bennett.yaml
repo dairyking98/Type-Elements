@@ -147,7 +147,7 @@ alignment:
 # (2*28)) formula reduces to exactly (0.5+col)*Latitude_Int, the shared
 # lib's default).
 build:
-  points_per_mm: 15.0
+  flatness_tolerance_mm: 0.005
   separation_mm: 2.0
   render_core_groove: true
   resin_support: true          # Generate_Support

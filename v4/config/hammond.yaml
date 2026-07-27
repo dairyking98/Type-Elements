@@ -178,9 +178,7 @@ element:
 quality:
   cyl_fn: 360
   surface_fn: 360
-  text_fn: 20                      # Text_Fn (also wired to Text_2D_Fn, v2:85)
   minkowski_fn: 12                 # Mink_Fn
-  resin_fn: 20                     # Resin_Fn
 
 # Baseline (v2:130) is [Lowercase, Uppercase, Figures, Math], measured from
 # the bottom RIB plane (Baseline_Z_Offset=Rib_Bottom_Z, a derived value -
@@ -238,7 +236,7 @@ alignment:
 # scallop term vanish for every y, i.e. a genuinely flat print face,
 # rather than an undefined 1/0. See lib/hammond.py's configure().
 build:
-  points_per_mm: 15.0
+  flatness_tolerance_mm: 0.005
   separation_mm: 2.0
   resin_support: true               # Resin_Support (v2:298)
   target: "element"

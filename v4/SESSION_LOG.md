@@ -4719,3 +4719,286 @@ see parts 65-66).
    Y_Scale/Text_Align_Method/Text_Align_Modified*) and the Character_
    Modifieds/Typeface_2 per-character override systems have no v4
    implementation for ANY machine (not Mignon-specific) - see part 21.
+
+## 70. `points_per_mm` -> `flatness_tolerance_mm`: adaptive glyph-outline sampling fleet-wide (2026-07-26)
+
+Investigation started from a suspicion that `glyph_poc.contour_to_points()`
+was generating far more mesh detail than glyph shapes actually need -
+confirmed with a standalone diagnostic (`lib/contour_inspect.py`): the old
+`points_per_mm` fixed-rate scheme subdivided STRAIGHT on-curve segments at
+the same density as curves, leaving 46-92% of a straight-stroke glyph's
+points geometrically redundant (collinear within `DEFAULT_SIMPLIFY_
+TOLERANCE_MM`).
+
+**Abandoned detour - platen height-field.** First tried replacing the
+platen's real boolean cylinder subtraction with a per-vertex Z-displacement
+height field (exact circle equation, applied to the base solid before
+Minkowski, same ordering the existing hard rule already requires). Result:
+MORE post-Minkowski faces than the real pipeline in every character tested
+(contour points down 46-71%, final faces still up 24-52%) - the boolean
+cut's own CSG-generated topology happens to be more Minkowski/simplify-
+friendly than a direct height-field warp of the original glyph
+triangulation. Also had an independent sign bug (bulged the wrong
+direction - caught by eye, not by volume-matching, which barely moved
+since the platen bulge is tiny next to the Minkowski taper - a real
+lesson: volume-match alone doesn't catch inverted curvature at small-
+perturbation scale). Abandoned; kept as `lib/heightfield_poc.py`,
+investigation history only, not wired into production.
+
+**Adopted approach - adaptive contour, real boolean platen unchanged.**
+Isolated the ONE actual change: `contour_to_points()` now flattens curves
+via adaptive/recursive de Casteljau subdivision with a flatness-tolerance
+stopping test (`flatten_quadratic`/`flatten_cubic` - the standard technique
+behind cairo/Skia/AGG curve flattening, confirmed against `matplotlib.
+path.Path.to_polygons()` before adopting it) instead of a fixed points-
+per-mm rate; straight on-curve segments get ZERO subdivision. Real platen
+boolean cut and real Minkowski sweep left completely untouched. Validated
+on DejaVu Sans Mono (quadratic curves) and Alma Mono Thin (cubic CFF
+curves, also the font that historically exposed a real tag-parsing bug in
+this same function - a meaningful stress test, not a redundant one):
+volumes match old pipeline to 0.03-1%, all watertight/winding_consistent/
+is_volume checks pass, build time drops 1.3x-4.5x (biggest wins on
+straight-stroke-heavy glyphs like 'M'/'A', smallest on all-curve glyphs
+like 'O', exactly where the old scheme had the least redundancy to begin
+with).
+
+**Real bug found during broader testing - sail/spike artifact.** User
+visually caught a spike sticking out past a character's linear-extrusion
+silhouette on `bennett_average_mono` (AverageMono.otf, not yet tested).
+Root cause (confirmed via direct triangle-level inspection, not guessed):
+a long straight edge correctly left unsubdivided by adaptive flattening
+(e.g. 'd'/'l'/'k's stem) becomes ONE tall wall quad in the extruded prism.
+When the real platen boolean cylinder cuts through that wall, it has to
+insert a new vertex wherever it actually crosses - with no nearby original
+vertex to bridge to, manifold3d's CSG re-triangulation bridges the gap
+with a triangle spanning nearly the character's full height AND depth in
+two faces (confirmed on AverageMono's 'd', 'p', 'k', 'N', 'V', among
+others - 8794 such faces across a 58-character sweep). The old
+`points_per_mm` scheme never hit this because it always left many
+intermediate points along any long straight run for the cut to bridge to.
+
+Fix: `platen_y_breakpoints()` inserts a shared grid of Y-breakpoints into
+every character's contour before triangulation, spaced to match the REAL
+platen cutting cylinder's own facet resolution (`Rp * 2*pi/platen_fn`) -
+same Y values for every character in a row (depends only on row-level
+constants: Rp, `radius_y_offset_mm`, `platen_fn`), not a per-glyph
+computation, per explicit user direction. Confirmed: worst remaining wall
+segment across the same 58-character sweep dropped from spanning the full
+character height (2.3mm+) to ~0.4mm - matching ordinary wall geometry at
+that breakpoint spacing, not a defect (verified the metric itself wasn't a
+false positive: legitimate long HORIZONTAL edges, e.g. 'E'/'L'/'F'/'Z''s
+bars, also show up as "long" by a naive xy-distance check but are
+genuinely safe since Y is constant along them, so the platen cut is at one
+fixed Z the whole way - no gap possible; filtering for real Y-variation
+confirmed the remaining faces are all small, legitimate wall segments).
+
+**Second bug found in the same investigation - `simplify()` reintroducing
+the defect.** User asked to disable `Manifold.simplify()` "after
+Minkowski" specifically. Doing only that left a smaller but still-real
+sail (worst case 2.10mm). Direct A/B measurement (disable vs. not, same
+character, same everything else) showed `build_glyph`'s PREVIEW-path
+`simplify()` call (inside the `not minkowski_enabled` branch - not
+literally "after Minkowski") was independently reintroducing the artifact
+on top of an otherwise-clean cut mesh: disabling it alone dropped the
+worst sail from 2.10mm to 1.37mm (a real, legitimate long edge). All three
+call sites feeding from the adaptive-contour pipeline are now disabled
+(commented out, not deleted): `build_glyph`'s preview path,
+`build_glyph`'s post-Minkowski path, `build_flat_text_drafted`'s post-
+Minkowski path. `spherical_machine.SingleMinkowskiChar`'s own post-
+Minkowski call is disabled the same way; its PRE-Minkowski call (cleaning
+the boolean-diff'd mesh before `minkowski_sum` - documented 552x speedup
+avoiding a 2206s-per-character regression) is NOT touched, a genuinely
+different role.
+
+**Net result after both fixes**, DejaVu A/M/O/l, Minkowski-enabled, vs.
+the original `points_per_mm` pipeline:
+
+```
+       original pipeline   fixed (breakpoints, simplify off)   speedup
+A          0.391s               0.152s                          2.6x
+M          0.690s               0.255s                          2.7x
+O          0.853s               0.585s                          1.5x
+l          0.307s               0.190s                          1.6x
+```
+
+Less dramatic than the very first (buggy) adaptive-only measurement
+(3.6x/4.5x/1.3x/1.7x - taken before the sail bug was found, since
+`simplify()` was still masking it and face counts were correspondingly
+lower), but still a clear, real win across the board, and now actually
+correct. Final face counts are higher than the pre-fix numbers (e.g. 'A':
+814 verts/1624 faces vs. 252/500) - the honest cost of the breakpoint
+safeguard plus `simplify()` fully disabled; worth someone revisiting
+later whether a narrower, still-safe `simplify()` tolerance could be
+reintroduced now that the input is better-conditioned, but not attempted
+in this session.
+
+**Fleet-wide rename**: `build.points_per_mm` -> `build.flatness_tolerance_
+mm` across all 42 `config/*.yaml` files, every machine module's
+`configure()`, `cylinder_machine.py`, `spherical_machine.py`, `glyph_poc.py`
+(including the CLI), `generate.py`/`type_test.py`/`export_glyphs.py` CLI
+flags, and all 7 `tune.py` `QUALITY_FIELDS_*` lists (`_BLICKPOSTAL`,
+`_MIGNON`, `_BENNETT`, `_HELIOS`, `_HAMMOND`, `_HAMMOND_SPLIT`,
+`_SELECTRIC` - covering every machine). Hard cutover, no back-compat
+alias, per this codebase's existing rename precedents (`resin_fn`/
+`minkowski_fn` section moves). Single uniform default (0.005mm) replaces
+both the config-driven 8-15 range and the hardcoded Python 20.0 defaults
+in decorative Logo/Label call sites (`LabelText`/`ElementLogo`/
+`ElementLabel`/`LogoText`/`build_text_string`). `quality.text_fn` (a
+already-dead v2 leftover, confirmed unused in both `hammond.py` and
+`hammond_split.py` before this session) was NOT touched - it was never
+the live knob and this change doesn't revive it.
+
+`lib/contour_inspect.py` and `lib/heightfield_poc.py` (this session's two
+prototype/diagnostic files) are kept as-is per explicit user direction -
+investigation history, not production code, not deleted.
+
+## 71. Y-breakpoint mechanism (part 70) built, then removed again - the real platen boolean cut didn't need help after all (2026-07-26)
+
+Follow-up to part 70's "sail/spike" finding and fix. After landing the
+shared `platen_y_breakpoints()`/`insert_y_breakpoints()` mechanism and
+iterating on its spacing rule twice (uniform angle-step, then a Z-interval
+step per explicit user direction - "near platen tangent is long edge
+since its near flat, then...gets more and more frequent" - confirmed
+numerically: first interval ~0.40mm at the tangent shrinking to ~0.03mm
+by dy~3mm), a NEW problem was found: the breakpoint insertion caused a
+fan of degenerate thin triangles in the flat 2D cap triangulation
+wherever a long breakpoint-dense edge met an already-dense original
+curve region (a serif/curl - confirmed visually on AverageMono 'l' via a
+direct matplotlib plot of `classify_and_triangulate`'s own output).
+Root cause: `insert_y_breakpoints` only adds an isolated vertex to
+whichever single boundary edge crosses a breakpoint - it never
+constrains the interior triangulation to connect a left-side breakpoint
+to its corresponding right-side one (no "rung"), so Delaunay is left to
+improvise the interior and does it badly under locally mismatched point
+density. Attempted mitigation (skip breakpoint insertion on edges below
+a length threshold) reduced but did not eliminate this, since the
+LONG edges immediately adjacent to a dense curve region still got
+breakpoints, so the density mismatch just moved one edge over.
+
+User then asked for a genuine clean-slate re-derivation: removed the
+whole `platen_y_breakpoints`/`insert_y_breakpoints` mechanism and its
+call site from `build_glyph()` entirely (function definitions deleted,
+not just disabled), keeping only the validated adaptive contour tracing
+(part 70's real, independent win) and the ORIGINAL, byte-identical
+real-boolean-cylinder-subtraction platen mechanism - confirmed via `git
+show main:v4/lib/glyph_poc.py` diff that this scallop-carving block was
+never touched at any point this session. `simplify()` stays disabled at
+all 4 call sites (3 in `glyph_poc.py`, 1 in `spherical_machine.py`) per
+explicit user direction - not restored.
+
+Re-tested the original "sail" concern with NO breakpoints, using a
+properly SIZE-NORMALIZED metric this time (no face's longest edge may
+exceed 1.5x that character's own bounding-box diagonal) instead of an
+absolute-mm threshold - the absolute-threshold version had been flagging
+legitimate large-but-flat wall facets (all 3 vertices sharing the same
+X, i.e. lying entirely within one flat vertical wall plane, confirmed by
+the user directly inspecting the STL in F3D: "that is fine, its the side
+of the leg") as false positives. With the size-normalized check: **0
+flagged faces**, all watertight/`is_volume`/winding-consistent, across
+every character in BOTH:
+- the cylinder family (AverageMono via `glyph_poc.build_glyph` directly,
+  the same 58-character sweep that found the original concern), and
+- the spherical family (FreeSans via `spherical_machine.SingleMinkowskiChar`,
+  configured through the real `selectric12.yaml`, tested directly since
+  this module has its own independent copy of the platen-cut/Minkowski
+  logic - never shares code with `glyph_poc.build_glyph`).
+
+Also directly confirmed via a wireframe render (`--edges` in f3d) that
+the real boolean cut subdivides a stem's wall finely wherever the platen
+curve actually changes, and leaves it as one larger (but still correctly
+in-silhouette, still flat) facet wherever the curve doesn't change -
+exactly the adaptive behavior wanted, for free, with no pre-conditioning
+of the input contour at all. This fully validates the user's original
+instinct ("since that's platen cut's job") over the mid-session
+breakpoint detour.
+
+**Current final state**: adaptive/flatness-tolerance contour tracing
+(part 70, kept), real boolean platen cut (unchanged from `main` this
+whole session), `simplify()` disabled at all 4 call sites (kept
+disabled), no Y-breakpoint mechanism (built then fully removed). No
+commits made yet - everything is still uncommitted working-tree state in
+the `worktree-contour-inspect` worktree.
+
+### Resuming later
+
+1. Hard-gate verification sweep (all 42 configs, `--no-minkowski`,
+   before/after against this session's own pre-edit baseline in
+   `/tmp/hf_baseline`) has NOT been completed - explicitly paused by the
+   user mid-session ("stop making all 40 configs") in favor of targeted
+   single-character/single-config checks instead. Whether to still run
+   the full sweep before committing is an open question, not a decision
+   already made.
+2. Whether a narrower `simplify()` tolerance could safely come back is
+   moot for now - explicit user direction this round was to leave it
+   disabled, not revisit.
+3. Nothing has been committed yet. `lib/contour_inspect.py`/`lib/
+   heightfield_poc.py` are intentionally kept; several stray `out_*.stl`/
+   `out_contour_*.png` test-output files under `lib/` from ad hoc testing
+   this session are NOT meant to be kept and should be cleaned up before
+   any commit.
+
+## 72. Dead `quality.*` parameter cleanup (2026-07-26)
+
+Full audit of every `quality.*` key across all 42 configs, cross-
+referenced against real consumption in `lib/*.py` and `tune.py`'s 7
+`QUALITY_FIELDS_*` lists. Two genuinely dead parameters found and
+removed entirely (config lines, lib assignment lines, tune.py field
+tuples where present):
+
+- **`quality.text_fn`** (7 configs: `hammond.yaml`,
+  `hammond_alma_mono.yaml`, `hammond_century_schoolbook_mono.yaml`,
+  `hammond_comic_mono.yaml`, `hammond_compagnon.yaml`,
+  `hammond_iosevka_fixed_slab.yaml`, `hammond_split.yaml`) - a v2 leftover
+  (`Text_Fn`/`Text_2D_Fn`) assigned in `hammond.py`/`hammond_split.py`'s
+  `configure()` but never read by any geometry function since v4's
+  freetype pipeline uses `flatness_tolerance_mm` instead, not an `$fn`-
+  style facet count. `hammond_split`'s tune.py tooltip already disclosed
+  this ("Not currently consumed"); `hammond`'s own tune.py tooltip did
+  NOT ("Glyph curve smoothness" - misleadingly implied it was live) -
+  both field tuples removed from `tune.py` entirely rather than just
+  documented as dead.
+- **`quality.resin_fn`** (6 non-split hammond configs) - a pure orphan
+  duplicate of the real, live `resin.resin_fn` (which every machine
+  actually reads); never referenced anywhere in code, never exposed in
+  `tune.py` at all. Config-only cleanup, no lib/tune.py changes needed.
+
+Every other `quality.*` key across the fleet (`cyl_fn`, `surface_fn`,
+`groove_fn`, `alignment_hole_fn`, `minkowski_fn`, `platen_fn`,
+`body_fn`) confirmed genuinely live via direct trace into a real
+geometry call (e.g. `sections=Body_Fn`, `circular_segments=Platen_Fn`) -
+no further action needed on those.
+
+Verified: all 42 configs still parse as valid YAML, `hammond.yaml` and
+`hammond_split.yaml` both still build successfully end-to-end
+(`generate.py ... --no-minkowski`) post-removal.
+
+## 73. All remaining `simplify()` calls disabled fleet-wide; the one "load-bearing" exception turned out to be moot (2026-07-27)
+
+User: "disable all simplification." Found and disabled the two remaining
+active call sites this session had missed: `spherical_machine.
+SingleMinkowskiChar()`'s pre-Minkowski call (previously left alone,
+documented as load-bearing for a 552x speedup avoiding a 2206s-per-
+character regression on Alma Mono 'M'), and `hammond_split.
+_letter_text_drafted()`'s post-Minkowski call (never touched at all
+this session - found via a full `grep -rn "\.simplify("` sweep of
+`lib/*.py`, not previously known about).
+
+Re-tested the specific regression case the pre-Minkowski call was
+protecting against, now with zero `simplify()` calls anywhere in the
+call chain: `SingleMinkowskiChar('M', ..., font=Alma Mono, minkowski_
+enabled=True)` completes in **5.75s** (was 2206s before ANY of this
+session's changes, with the old `points_per_mm` contour scheme).
+Confirms the adaptive contour tracing (part 70) already fixes the root
+cause that call existed to work around - the old fixed-rate scheme
+produced a boolean-cut mesh bloated with CSG noise (666 faces, 164
+real) that exploded through `minkowski_sum`; the adaptive contour's
+much sparser, cleaner base mesh doesn't have that problem to begin with,
+so the workaround is no longer needed either.
+
+`grep -rn "\.simplify(" lib/*.py` now shows zero active (non-commented)
+calls anywhere in the codebase.
+
+User independently confirmed in real use (via `tune.py`, own testing):
+full-font builds (all characters, real Minkowski enabled) for the
+cylinder family complete in under a minute at `flatness_tolerance_mm
+=0.01`.
