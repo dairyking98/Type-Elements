@@ -5002,3 +5002,56 @@ User independently confirmed in real use (via `tune.py`, own testing):
 full-font builds (all characters, real Minkowski enabled) for the
 cylinder family complete in under a minute at `flatness_tolerance_mm
 =0.01`.
+
+## 74. Cylinder-vs-sphere render speed investigation; a real fix landed, but the original "24x slower" signal didn't hold up at scale (2026-07-27)
+
+User asked why spherical renders were much slower than cylinder renders
+at the same font/quality settings. Initial single-character timing tests
+(Alma Mono 'M'/'O' via `spherical_machine.SingleMinkowskiChar`) showed a
+dramatic ~24x gap (6.7s/9.4s vs cylinder's 0.28s/0.39s). Root-caused via
+a controlled reproduction: `SingleMinkowskiChar` rotates its draft cone
+into real sphere position (`sp.scad_transform(cone_hull, ("rotate", [90
+- latitude, 0, 90 + longitude]))`) BEFORE calling `minkowski_sum`, while
+`cylinder_machine`/`build_glyph` always sums with a Z-up, un-rotated
+cone and only rotates the FINISHED result afterward (`place_on_cylinder`,
+a separate later step). Confirmed on an isolated reproduction: identical
+base mesh, rotated cone = 3.5s/11262 faces, axis-aligned cone =
+0.17s/1424 faces - a real, ~20x, reproducible effect in isolation.
+
+Implemented the fix: instead of rotating the cone into position, rotate
+`scalloped` by the INVERSE of that same rotation into the cone's
+canonical frame, sum with the untouched axis-aligned cone, then rotate
+the SUM forward by the original rotation - mathematically exact for any
+single rigid rotation R applied identically to both operands (R(A) (+)
+R(B) = R(A (+) B)). Verified correctness directly: byte-identical
+volumes and vertex/face counts against the pre-fix code across all 26
+uppercase Alma Mono characters.
+
+**However**: re-measured across the FULL uppercase alphabet (not just
+one or two characters) and the dramatic slowdown did not reproduce at
+all - old and new code both totaled ~6.07s/6.08s (1.00x, no measurable
+difference), and neither 'M' nor 'O' individually showed anything close
+to their original 6.7s/9.4s single-character measurements this time
+either (both back to ~0.2-0.5s). The original 24x signal looks like it
+was an anomaly in those specific single-character test runs (system
+noise, first-call warm-up, or similar), not a real, systematic per-
+character cost - my isolated reproduction was measuring something real
+in isolation, but that effect doesn't dominate the ACTUAL end-to-end
+cost once embedded in the real pipeline/call pattern.
+
+Clean, direct full-alphabet comparison (cylinder vs already-fixed
+spherical, same font, same run methodology): cylinder 4.41s, spherical
+6.11s - a real but modest ~1.4x gap, plausibly just inherent to
+spherical's more complex positioning (real spherical trig vs a simple
+translation), larger platen-cutter cylinder (`Cyl_Fn=360` -> 1440
+faces), and fixed 6mm `Character_Block_Height_Mm` block. Not chased
+further - user confirmed real full-font spherical builds (Alma Mono) at
+26s (`flatness_tolerance_mm=0.01`) and 37s (`=0.005`), both comfortably
+fast in absolute terms and consistent with the tighter-tolerance-means-
+more-points-means-slower relationship expected from part 70.
+
+The rotation-avoidance fix is KEPT (correct, harmless, zero regressions
+found) despite not delivering the dramatic win originally expected -
+worth having on general principle (matches cylinder_machine's own
+proven pattern) even without a large measured benefit on this
+particular workload.

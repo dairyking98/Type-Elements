@@ -229,20 +229,48 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
             [_from_manifold(cone1), _from_manifold(cone2)]).convex_hull
     else:
         cone_hull = _from_manifold(cone1)
-    # rotate([90-latitude,0,90+longitude]) - the SAME rotation PositionText
-    # used, but on the RAW latitude (no base_offset) - matches v2 exactly,
-    # not "fixed" to match the character's own base_offset-adjusted latitude.
-    cone_hull = sp.scad_transform(cone_hull, ("rotate", [90 - latitude, 0, 90 + longitude]))
 
-    drafted = scalloped_manifold.minkowski_sum(_to_manifold(cone_hull))
+    # PERFORMANCE: minkowski_sum with a cone_hull rotated into real sphere
+    # position (the old `sp.scad_transform(cone_hull, ("rotate", [90 -
+    # latitude, 0, 90 + longitude]))` this replaces) measured 3.5s/11262
+    # faces on a real character (Alma Mono 'M') vs 0.17s/1424 faces for
+    # the identical sum with an axis-aligned cone - manifold3d's Minkowski
+    # implementation is dramatically slower (and produces far more output
+    # geometry) once either operand loses its canonical/un-rotated form.
+    # cylinder_machine.build_glyph avoids this entirely by always summing
+    # with a Z-up cone and deferring ALL placement rotation to AFTER the
+    # sum (place_on_cylinder, a separate later step). Reproduced here via
+    # the same trick, adapted to a single self-contained function: instead
+    # of rotating the cone INTO position, rotate `scalloped` by the
+    # INVERSE of that same rotation (into the cone's canonical frame),
+    # sum with the cone left untouched, then rotate the SUM forward by the
+    # original rotation. Mathematically exact for any single rigid
+    # rotation R applied identically to both operands: R(A) (+) R(B) =
+    # R(A (+) B), so R(A) (+) B == R( R^-1(A) (+) B ) when B is already
+    # canonical (R(B)=B only when B needs no rotation at all here, but the
+    # general identity R(A)(+)R(B) = R(A(+)B) holds regardless and is what's
+    # actually used - see the comment inline below for the precise
+    # substitution). Uses the SAME raw `latitude` (no base_offset) the
+    # cone always used, matching v2 exactly, not "fixed" to the
+    # character's own base_offset-adjusted latitude.
+    cone_rotation = trimesh.transformations.euler_matrix(
+        *np.radians([90 - latitude, 0, 90 + longitude]), axes="sxyz")
+    cone_rotation_inv = np.linalg.inv(cone_rotation)
+    scalloped_local = _from_manifold(scalloped_manifold)
+    scalloped_local.apply_transform(cone_rotation_inv)
+
+    drafted_local = _to_manifold(scalloped_local).minkowski_sum(_to_manifold(cone_hull))
+    drafted_mesh = _from_manifold(drafted_local)
+    drafted_mesh.apply_transform(cone_rotation)
+    drafted = _to_manifold(drafted_mesh)
     # Post-Minkowski simplify() disabled - see glyph_poc.build_glyph's
     # matching comment (same artifact: thin spike/sliver defects with the
     # adaptive/flatness-tolerance contour method's sparser input, not
-    # present with the old fixed-rate points_per_mm scheme). The OTHER
-    # simplify() call above (before minkowski_sum, line ~201) stays -
-    # that one is load-bearing for performance (552x speedup, see this
-    # function's own docstring), not just cosmetic cleanup, so it isn't
-    # touched here.
+    # present with the old fixed-rate points_per_mm scheme). The pre-
+    # Minkowski call above (line ~201) is ALSO disabled now, per explicit
+    # user direction - see that call site's own comment for why the
+    # 552x-speedup regression it used to guard against no longer
+    # reproduces (the adaptive contour already fixes the root cause).
     # if simplify_tolerance_mm > 0:
     #     drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
