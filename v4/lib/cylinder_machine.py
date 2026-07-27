@@ -40,11 +40,10 @@ guard against anything that happens today.
 
 import time
 
-import freetype
 import numpy as np
 import trimesh
 
-from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance, em_to_mm_scale
+from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance, em_to_mm_scale, load_font_face
 import scad_primitives as sp
 import resin_support
 import build_log
@@ -626,7 +625,7 @@ def build_text_string(text, size, font_path, depth, points_per_mm=20.0):
     _build_text_string); promoted here once Hammond's Label() needed the
     identical derivation, per this repo's "extract shared derivations
     instead of hand-copying them" convention."""
-    face = freetype.Face(font_path)
+    face = load_font_face(font_path)
     scale = em_to_mm_scale(size, face.units_per_EM)
     parts = []
     cursor = 0.0
@@ -870,7 +869,7 @@ def GaugeText(offset):
     label = f"{round(offset, 4):g}"
     size_mm = 3.0
     depth = 4.0
-    face = freetype.Face(LOGO_FONT_PATH)
+    face = load_font_face(LOGO_FONT_PATH)
     scale = em_to_mm_scale(size_mm, face.units_per_EM)
 
     parts = []

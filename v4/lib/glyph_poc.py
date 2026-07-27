@@ -70,6 +70,7 @@ raising outline point density, not adding intermediate Z-layers.
 """
 
 import argparse
+import os
 import numpy as np
 import freetype
 import trimesh
@@ -113,6 +114,22 @@ def em_to_mm_scale(font_size_mm, units_per_em):
     text(size=font_size_mm) output - not a literal em-square=mm read of
     units_per_em (see OPENSCAD_TEXT_DPI_FACTOR)."""
     return font_size_mm * OPENSCAD_TEXT_DPI_FACTOR / units_per_em
+
+
+def load_font_face(font_path):
+    """freetype.Face(font_path) wrapper - a missing/unreadable font file
+    otherwise surfaces as FreeType's own opaque 'FT_Exception: cannot
+    open resource', with no mention of which path it tried. Config font
+    paths (FONT_PATH, logo.font_path, etc.) are absolute and
+    machine-specific, so this is the first thing a config ported to a
+    new machine hits if the font library wasn't copied over too - name
+    the path so that's obvious immediately instead of needing a
+    traceback dive."""
+    if not os.path.isfile(font_path):
+        raise FileNotFoundError(
+            f"font file not found: {font_path!r} - check the font_path (or "
+            f"font2_path/char_mod_font_path/etc.) setting in your config YAML")
+    return freetype.Face(font_path)
 
 # Default separation used by the CLI/build_glyph is intentionally LONGER than
 # the real 0.5mm Char_Protrusion: on a steeply curved element surface a thin
@@ -282,7 +299,7 @@ def get_glyph_contours(char, points_per_mm, scale, font_path=None):
 
 
 def get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=None):
-    face = freetype.Face(font_path or FONT_PATH)
+    face = load_font_face(font_path or FONT_PATH)
     face.set_char_size(face.units_per_EM)
     face.load_char(char, freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING)
     outline = face.glyph.outline
@@ -628,7 +645,7 @@ def build_flat_text(char, points_per_mm, depth, font_size_mm=None, font_path=Non
     alignment across a radial run of characters."""
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
-    face = freetype.Face(fp)
+    face = load_font_face(fp)
     scale = em_to_mm_scale(fs, face.units_per_EM)
     contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
     contours_mm = [c * scale for c in contours_font_units]
@@ -663,7 +680,7 @@ def build_flat_text_drafted(char, points_per_mm, depth, font_size_mm=None, font_
     release, so no platen/mirror complexity is needed."""
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
-    face = freetype.Face(fp)
+    face = load_font_face(fp)
     scale = em_to_mm_scale(fs, face.units_per_EM)
     contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)
     contours_mm = [c * scale for c in contours_font_units]
@@ -785,7 +802,7 @@ def build_glyph(char, points_per_mm, expansion_width_mm=None,
         expansion_width_mm = separation_mm * np.tan(np.radians(draft_angle_deg / 2.0))
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
-    face = freetype.Face(fp)
+    face = load_font_face(fp)
     scale = em_to_mm_scale(fs, face.units_per_EM)
 
     contours_font_units, advance_mm = get_glyph_contours_and_advance(char, points_per_mm, scale, font_path=fp)

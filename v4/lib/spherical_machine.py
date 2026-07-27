@@ -55,10 +55,9 @@ import time
 
 import numpy as np
 import trimesh
-import freetype
 from manifold3d import Manifold, Mesh as ManifoldMesh
 
-from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_x_offset, em_to_mm_scale
+from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_x_offset, em_to_mm_scale, load_font_face
 import scad_primitives as sp
 import resin_support
 import build_log
@@ -116,7 +115,7 @@ def _text2d_contours(char, font_path, font_size_mm, points_per_mm, halign,
     shift-then-mirror convention - see module docstring). Weight
     adjustment (Font_Weight_Offset/X_Weight_Adjustment/Y_Weight_Adjustment)
     not implemented - see module docstring."""
-    face = freetype.Face(font_path)
+    face = load_font_face(font_path)
     scale = em_to_mm_scale(font_size_mm, face.units_per_EM)
     contours_font_units, advance_mm = get_glyph_contours_and_advance(
         char, points_per_mm, scale, font_path=font_path)
@@ -386,7 +385,7 @@ def Labels():
         # convention as cylinder_machine.build_text_string.
         cursor = 0.0
         no_parts = []
-        face = freetype.Face(no_font)
+        face = load_font_face(no_font)
         scale = em_to_mm_scale(No_Label_Size, face.units_per_EM)
         for ch in Label_No:
             try:
@@ -405,7 +404,7 @@ def Labels():
     label_text = Label_Text_Override or FONT_NAME
     cursor = 0.0
     label_parts = []
-    face = freetype.Face(label_font)
+    face = load_font_face(label_font)
     scale = em_to_mm_scale(Font_Label_Size, face.units_per_EM)
     for ch in label_text:
         if ch == " ":
