@@ -74,10 +74,6 @@ def main():
                          help="override build.cone_segments from the config - circular "
                               "segments for the draft's Minkowski cone kernel, trades "
                               "roundness for generation speed")
-    parser.add_argument("--simplify-tolerance-mm", type=float, default=None,
-                         help="override build.simplify_tolerance_mm from the config - "
-                              "collapses manifold3d's minkowski_sum over-triangulation "
-                              "noise on flat regions")
     parser.add_argument("--platen-fn", type=int, default=None,
                          help="override quality.platen_fn from the config - circular "
                               "segments for the real platen cutout cylinder")
@@ -234,7 +230,6 @@ def main():
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
-            simplify_tolerance_mm=args.simplify_tolerance_mm,
             platen_fn=args.platen_fn,
             minkowski_enabled=args.minkowski_enabled,
             draft_angle_deg=args.draft_angle_deg,
@@ -276,7 +271,6 @@ def main():
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
-            simplify_tolerance_mm=args.simplify_tolerance_mm,
             platen_fn=args.platen_fn,
             minkowski_enabled=args.minkowski_enabled,
             draft_angle_deg=args.draft_angle_deg,
@@ -303,7 +297,6 @@ def main():
             separation_mm=args.separation_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
-            simplify_tolerance_mm=args.simplify_tolerance_mm,
             platen_fn=args.platen_fn,
             minkowski_enabled=args.minkowski_enabled,
             draft_angle_deg=args.draft_angle_deg,

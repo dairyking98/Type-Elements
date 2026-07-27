@@ -151,19 +151,8 @@ DEFAULT_SEPARATION_MM = 2.0
 # modest rather than matching Surface_Fn-style smoothness counts elsewhere.
 DEFAULT_CONE_SEGMENTS = 16
 
-# manifold3d's raw minkowski_sum output is drastically over-triangulated on
-# nominally FLAT regions (confirmed: a single straight wall facet came out
-# as ~24 separate near-coplanar micro-triangles whose normals wobble by a
-# fraction of a degree from pure floating-point/algorithmic noise, visible
-# as faceting/rippling on straight edges like 'M's strokes - not a real
-# draft-angle inconsistency). Manifold.simplify(tolerance) collapses this
-# cleanly (2918->182 triangles at even 0.0005mm tolerance in testing,
-# single flat face per straight run) without visibly affecting real
-# curvature (0.005mm is far below any meaningful glyph feature size).
-DEFAULT_SIMPLIFY_TOLERANCE_MM = 0.005
-
 # Max perpendicular deviation (real mm, measured in the same post-scale
-# coordinate space as DEFAULT_SIMPLIFY_TOLERANCE_MM) allowed between a
+# coordinate space) allowed between a
 # flattened glyph-outline segment and the true mathematical curve it
 # approximates - see contour_to_points()'s adaptive/recursive de Casteljau
 # subdivision below. Replaces the old points_per_mm fixed-rate scheme
@@ -723,8 +712,7 @@ def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_
 
 def build_flat_text_drafted(char, flatness_tolerance_mm, depth, font_size_mm=None, font_path=None,
                              align_kwargs=None, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
-                             cone_segments=DEFAULT_CONE_SEGMENTS,
-                             simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM):
+                             cone_segments=DEFAULT_CONE_SEGMENTS):
     """build_flat_text()'s real-draft-cone counterpart, for machines that
     want their engraved Logo/Label text tapered rather than a plain flat
     extrude (Mignon's minkowski_text option - see lib/mignon.py). Same
@@ -762,16 +750,6 @@ def build_flat_text_drafted(char, flatness_tolerance_mm, depth, font_size_mm=Non
     cone = cone.translate([0, 0, -cone_h])
 
     drafted = _to_manifold(prism).minkowski_sum(cone)
-    # Post-Minkowski simplify() disabled - with the adaptive/flatness-
-    # tolerance contour method feeding far fewer base points into the
-    # sum, simplify() was observed producing thin spike/sliver artifacts
-    # (degenerate near-zero-area collapses) it didn't produce against the
-    # old, much denser fixed-rate contour. Commented out rather than
-    # deleted - the over-triangulation this was cleaning up (see
-    # module docstring) may still need addressing some other way, but
-    # simplify() itself is the wrong tool once the input is this sparse.
-    # if simplify_tolerance_mm > 0:
-    #     drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
 
 
@@ -793,7 +771,6 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
                  align_kwargs=None, font_path=None, font_size_mm=None,
                  radius_y_offset_mm=None, platen_radius_mm=None,
                  cone_segments=DEFAULT_CONE_SEGMENTS,
-                 simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM,
                  platen_fn=DEFAULT_PLATEN_FN,
                  minkowski_enabled=DEFAULT_MINKOWSKI_ENABLED,
                  draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG):
@@ -848,9 +825,12 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
     (e.g. 'M's strokes) came out as ~24 separate near-coplanar micro-
     triangles whose normals wobble by a fraction of a degree from pure
     floating-point/algorithmic noise, visible as faceting on straight
-    edges even though the true geometry is flat there. simplify_tolerance_mm
-    (via Manifold.simplify()) collapses this cleanly before it's ever
-    converted back to trimesh.
+    edges even though the true geometry is flat there. The adaptive/
+    flatness-tolerance contour method (DEFAULT_FLATNESS_TOLERANCE_MM's
+    comment) is what actually keeps this in check now - a `Manifold.
+    simplify()` post-pass was tried and removed fleet-wide (see git
+    history) after it was found to reintroduce its own thin spike/sliver
+    defects against this method's sparser input.
 
     Real cost: manifold3d warns Minkowski performance scales with the
     PRODUCT of the two operands' face counts, confirmed empirically at
@@ -1003,29 +983,12 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
         # scalloped block as-is, undrafted (constant cross-section from
         # root to tip). Correct platen curve and glyph footprint/placement,
         # no taper - for quick layout iteration, not a final export.
-        #
-        # simplify() disabled here too (not just the post-Minkowski call
-        # sites) - confirmed via direct measurement that THIS call was
-        # reintroducing a sail/spike artifact on top of an otherwise-clean
-        # platen-cut mesh (worst offending triangle's xy-extent dropped
-        # from 2.10mm to 1.37mm - matching a real, legitimate long
-        # boundary edge - the instant this call was skipped). Whatever
-        # is happening inside Manifold.simplify() with this much sparser
-        # adaptive-contour input, it isn't safe on either side of the
-        # Minkowski sweep, not just after it.
-        # if simplify_tolerance_mm > 0:
-        #     scalloped = scalloped.simplify(simplify_tolerance_mm)
         return _from_manifold(scalloped)
 
     cone = Manifold.cylinder(cone_h, expansion_width_mm, 0.0, circular_segments=cone_segments)
     cone = cone.translate([0, 0, -cone_h])
 
     drafted = scalloped.minkowski_sum(cone)
-    # Post-Minkowski simplify() disabled - see build_flat_text_drafted's
-    # matching comment above (same artifact, same reasoning). Commented
-    # out rather than deleted in case this needs to come back.
-    # if simplify_tolerance_mm > 0:
-    #     drafted = drafted.simplify(simplify_tolerance_mm)
     return _from_manifold(drafted)
 
 
@@ -1070,12 +1033,6 @@ if __name__ == "__main__":
                               "scales with the product of the two operands' "
                               "face counts, so this and --flatness-tolerance-mm both "
                               "matter for generation time).")
-    parser.add_argument("--simplify-tolerance-mm", type=float, default=DEFAULT_SIMPLIFY_TOLERANCE_MM,
-                         help="Manifold.simplify() tolerance applied to the raw "
-                              "minkowski_sum output - collapses the drastic "
-                              "over-triangulation/faceting noise manifold3d "
-                              "produces on flat regions (e.g. straight strokes "
-                              "like 'M's). 0 disables.")
     parser.add_argument("--platen-fn", type=int, default=DEFAULT_PLATEN_FN,
                          help="circular segments for the real platen cutout cylinder.")
     parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false",
@@ -1096,13 +1053,11 @@ if __name__ == "__main__":
     for ch in args.chars:
         mesh = build_glyph(ch, args.flatness_tolerance_mm, expansion_mm, args.separation_mm,
                             cone_segments=args.cone_segments,
-                            simplify_tolerance_mm=args.simplify_tolerance_mm,
                             platen_fn=args.platen_fn,
                             minkowski_enabled=args.minkowski_enabled)
         report(mesh, f"char='{ch}' flatness_tolerance_mm={args.flatness_tolerance_mm} "
                      f"separation_mm={args.separation_mm} draft_angle={args.draft_angle} "
                      f"cone_segments={args.cone_segments} "
-                     f"simplify_tolerance_mm={args.simplify_tolerance_mm} "
                      f"platen_fn={args.platen_fn} minkowski_enabled={args.minkowski_enabled}")
         safe = ch if ch.isalnum() else f"u{ord(ch):04x}"
         mesh.export(f"out_{safe}_ftol{args.flatness_tolerance_mm:.4f}_sep{args.separation_mm:.2f}.stl")

@@ -134,14 +134,6 @@ build:
   # tune.py's Quick Preview button, which always forces minkowski_enabled
   # off (see below) for the fastest possible preview.
   #
-  # manifold3d's raw minkowski_sum output is also drastically over-
-  # triangulated on flat regions (a single straight wall facet came out as
-  # ~24 near-coplanar micro-triangles with slightly wobbling normals -
-  # visible as faceting/rippling on straight strokes like 'M's, not a real
-  # draft-angle problem). Manifold.simplify() at this tolerance collapses
-  # it to a single flat face per straight run; far below any real glyph
-  # feature size, so it doesn't visibly affect real curvature. 0 disables.
-  simplify_tolerance_mm: 0.005
   # false = skip the Minkowski draft sweep entirely (by far the most
   # expensive step) and return each character as an undrafted block:
   # correct platen curve and glyph footprint/placement, no taper. This is

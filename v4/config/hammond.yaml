@@ -240,7 +240,6 @@ build:
   separation_mm: 2.0
   resin_support: true               # Resin_Support (v2:298)
   target: "element"
-  simplify_tolerance_mm: 0.005
   minkowski_enabled: false           # Mink_On default (v2:102)
   draft_angle_deg: 55.0              # Mink_Draft_Angle (v2:106)
 

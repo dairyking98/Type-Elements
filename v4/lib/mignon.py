@@ -43,7 +43,6 @@ from glyph_poc import (
     build_flat_text,
     build_flat_text_drafted,
     DEFAULT_CONE_SEGMENTS as GLYPH_DEFAULT_CONE_SEGMENTS,
-    DEFAULT_SIMPLIFY_TOLERANCE_MM as GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN as GLYPH_DEFAULT_PLATEN_FN,
     DEFAULT_MINKOWSKI_ENABLED as GLYPH_DEFAULT_MINKOWSKI_ENABLED,
     DEFAULT_DRAFT_ANGLE_DEG as GLYPH_DEFAULT_DRAFT_ANGLE_DEG,
@@ -211,7 +210,6 @@ def configure(config_path):
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
     g["DEFAULT_CONE_SEGMENTS"] = q.get("minkowski_fn", GLYPH_DEFAULT_CONE_SEGMENTS)
-    g["DEFAULT_SIMPLIFY_TOLERANCE_MM"] = b.get("simplify_tolerance_mm", GLYPH_DEFAULT_SIMPLIFY_TOLERANCE_MM)
     g["DEFAULT_MINKOWSKI_ENABLED"] = b.get("minkowski_enabled", GLYPH_DEFAULT_MINKOWSKI_ENABLED)
     g["DEFAULT_DRAFT_ANGLE_DEG"] = b.get("draft_angle_deg", GLYPH_DEFAULT_DRAFT_ANGLE_DEG)
 
@@ -332,8 +330,7 @@ def _render_engraved_text(text, text_size, text_spacing, position_offset, height
         if Minkowski_Text:
             mesh = build_flat_text_drafted(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
                                             font_path=font_path, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
-                                            cone_segments=DEFAULT_CONE_SEGMENTS,
-                                            simplify_tolerance_mm=DEFAULT_SIMPLIFY_TOLERANCE_MM)
+                                            cone_segments=DEFAULT_CONE_SEGMENTS)
         else:
             mesh = build_flat_text(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
                                     font_path=font_path)
@@ -422,12 +419,11 @@ def AlignmentPin():
 # ---------------------------------------------------------------- Element
 
 def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
-             simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+             platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None):
     text_ring, char_parts = cylinder_machine.TextRing(
         flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
-        cone_segments=cone_segments, simplify_tolerance_mm=simplify_tolerance_mm,
-        platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+        cone_segments=cone_segments, platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
         placement_protrusion=Placement_Protrusion, angle_half_step=Angle_Half_Step)
     if Cylinder_Shape == 0:
         body = PolygonCylinder()
@@ -448,12 +444,11 @@ def Subtractive(render_core_groove=None):
 
 
 def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
-                 cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+                 cone_segments=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
     _require_configured()
     additive, char_parts = Additive(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
-                                     simplify_tolerance_mm=simplify_tolerance_mm,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                      draft_angle_deg=draft_angle_deg)
     build_log.mesh_report(additive, "Additive")
@@ -477,13 +472,13 @@ def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groo
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
                          flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
-                         cone_segments=None, simplify_tolerance_mm=None, platen_fn=None,
+                         cone_segments=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     text_ring, mapping_lines = cylinder_machine.CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
         reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
-        simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+        platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
         placement_protrusion=Placement_Protrusion, angle_half_step=Angle_Half_Step)
     if Cylinder_Shape == 0:
@@ -499,14 +494,13 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
                         flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
-                        align_kwargs=None, cone_segments=None, simplify_tolerance_mm=None,
-                        platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
+                        align_kwargs=None, cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
     additive, mapping_lines = CalibrationAdditive(
         test_char, vary_baseline, vary_cutout, start, interval,
         reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
-        simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
+        platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
     build_log.mesh_report(additive, "CalibrationAdditive")
     subtractive = Subtractive(render_core_groove)
@@ -551,7 +545,7 @@ def ResinSupport():
 
 
 def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
-               cone_segments=None, simplify_tolerance_mm=None, platen_fn=None, minkowski_enabled=None,
+               cone_segments=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
     """v2/mignon.scad:436-444 - unlike Blickensderfer/Postal's ResinPrint
     (plain union(FullElement(), ResinSupport())), Mignon's FLIPS the whole
@@ -563,7 +557,6 @@ def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groov
     an oversight - ported faithfully."""
     full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
-                                    simplify_tolerance_mm=simplify_tolerance_mm,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)
     flipped = sp.scad_transform(full, ("translate", [0, 0, Element_Height]), ("rotate", [0, 180, 0]))

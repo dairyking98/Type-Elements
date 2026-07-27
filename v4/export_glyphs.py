@@ -43,7 +43,6 @@ def main():
     parser.add_argument("--flatness-tolerance-mm", type=float, default=None)
     parser.add_argument("--separation-mm", type=float, default=None)
     parser.add_argument("--cone-segments", type=int, default=None)
-    parser.add_argument("--simplify-tolerance-mm", type=float, default=None)
     parser.add_argument("--platen-fn", type=int, default=None)
     parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false", default=None)
     args = parser.parse_args()
@@ -53,8 +52,6 @@ def main():
     flatness_tolerance_mm = args.flatness_tolerance_mm or bd.DEFAULT_FLATNESS_TOLERANCE_MM
     separation_mm = args.separation_mm or bd.DEFAULT_SEPARATION_MM
     cone_segments = args.cone_segments or bd.DEFAULT_CONE_SEGMENTS
-    simplify_tolerance_mm = (args.simplify_tolerance_mm if args.simplify_tolerance_mm is not None
-                              else bd.DEFAULT_SIMPLIFY_TOLERANCE_MM)
     platen_fn = args.platen_fn or bd.Platen_Fn
     minkowski_enabled = (args.minkowski_enabled if args.minkowski_enabled is not None
                           else bd.DEFAULT_MINKOWSKI_ENABLED)
@@ -73,8 +70,7 @@ def main():
                     align_kwargs=bd.ALIGN_KWARGS, font_path=bd.FONT_PATH, font_size_mm=bd.FONT_SIZE_MM,
                     radius_y_offset_mm=bd.CUTOUT_ROW[row] - bd.BASELINE_ROW[row],
                     platen_radius_mm=bd.PLATEN_RADIUS_MM, cone_segments=cone_segments,
-                    simplify_tolerance_mm=simplify_tolerance_mm, platen_fn=platen_fn,
-                    minkowski_enabled=minkowski_enabled)
+                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
             except Exception as e:
                 build_log.progress_line("export_glyphs", done, total,
                                          f"row{row}_col{col:02d}_{safe_name(ch)} SKIPPED: {e}")

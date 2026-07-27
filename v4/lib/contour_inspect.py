@@ -129,8 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("chars", nargs="*", default=["A"])
     parser.add_argument("--points-per-mm", type=float, default=8.0)
     parser.add_argument("--tol-mm", type=float, default=0.005,
-                         help="collinearity tolerance for flagging a point removable "
-                              "(default matches glyph_poc.DEFAULT_SIMPLIFY_TOLERANCE_MM).")
+                         help="collinearity tolerance for flagging a point removable.")
     parser.add_argument("--font-path", default=None)
     parser.add_argument("--font-size-mm", type=float, default=None)
     parser.add_argument("--out", default=None,

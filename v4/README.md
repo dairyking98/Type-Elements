@@ -516,17 +516,20 @@ For one character (`build_glyph`):
    islands, arbitrarily narrow gaps - a real Minkowski sum can't fold).
    Skippable via `build.minkowski_enabled: false` (or `--no-minkowski`)
    for a fast, undrafted preview - see "Performance" above.
-6. **`Manifold.simplify(simplify_tolerance_mm)`**: `manifold3d`'s raw
-   `minkowski_sum` output is drastically over-triangulated on flat regions
-   (a single straight wall came out as ~24 near-coplanar micro-triangles
-   with normals wobbling by a fraction of a degree from floating-point
-   noise - visible as faceting on straight strokes). Collapses that
-   cleanly (e.g. `H`: 1156->42 vertices) without visibly affecting real
-   curvature - the tolerance is far below any meaningful glyph feature
-   size.
-7. **`alignment_x_offset`**: horizontal placement within the glyph's own
+6. **`alignment_x_offset`**: horizontal placement within the glyph's own
    advance box (see "Alignment" below) - applied to the contours before
    step 2, not listed in pipeline order above.
+
+`manifold3d`'s raw `minkowski_sum` output is drastically over-triangulated
+on flat regions (a single straight wall came out as ~24 near-coplanar
+micro-triangles with normals wobbling by a fraction of a degree from
+floating-point noise - visible as faceting on straight strokes). A
+`Manifold.simplify()` post-pass was tried to collapse that cleanly, but
+was removed fleet-wide after it was found to reintroduce its own thin
+spike/sliver defects against the adaptive contour method's sparser input
+(see `CLAUDE.md`'s "Geometry invariants" - the adaptive contour tracing
+itself, not a `simplify()` post-pass, is what keeps triangle count in
+check now).
 
 `blickensderfer.TextRing` calls `build_glyph` 84 times (3 rows x 28
 columns) and places each result on the cylinder via `place_on_cylinder`.

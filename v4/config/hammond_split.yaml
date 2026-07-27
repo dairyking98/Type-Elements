@@ -188,8 +188,8 @@ quality:
   minkowski_fn: 20                 # Mink_Fn - renamed from mink_fn to match every other machine's key name
 
 # mesh-pipeline build settings (v4-specific, not real v2 numbers) - see
-# config/hammond.yaml's matching comment. flatness_tolerance_mm/simplify_tolerance_mm
-# feed the freetype contour extraction reused for LetterText() (see
+# config/hammond.yaml's matching comment. flatness_tolerance_mm feeds
+# the freetype contour extraction reused for LetterText() (see
 # lib/hammond_split.py's module docstring on why build_glyph() is reused for
 # the Mink_On=false path but NOT for Mink_On=true).
 build:
@@ -205,7 +205,6 @@ build:
   # machine's real second v2 render target (Render_Mode==0 "Normal", v1
   # GenStyle 0/4/5) - see this file's own header comment.
   target: "element"
-  simplify_tolerance_mm: 0.005
   # Mink_On/Mink_Draft_Angle/Mink_Height - v2:65-73. Mink_Radius is derived
   # (tan(Mink_Draft_Angle/2)*Mink_Height) in lib/hammond_split.py's
   # configure(), not stored here. Mink_Height/Mink_Radius have NO equivalent

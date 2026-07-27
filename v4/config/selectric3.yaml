@@ -119,9 +119,6 @@ build:
   character_block_height_mm: 6.0
   mink_cone_height_mm: 2.0
   resin_support: true
-  # See config/selectric12.yaml's own comment for this key - same knob,
-  # same 552x-on-'M' rationale (spherical_machine.py is shared code).
-  simplify_tolerance_mm: 0.005
   target: "element"
 
 quality:

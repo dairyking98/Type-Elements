@@ -142,7 +142,6 @@ build:
   resin_support: false         # see the resin: section below - v2 never builds any support geometry
   render_core_groove: true     # CoreGrooves() - v4-only, see the core_shaft note above; slow, off for quick iteration
   target: "element"
-  simplify_tolerance_mm: 0.005
   minkowski_enabled: true
   draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated dimension
 

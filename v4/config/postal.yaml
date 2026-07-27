@@ -127,7 +127,6 @@ build:
   render_core_groove: true
   resin_support: true
   target: "element"
-  simplify_tolerance_mm: 0.005
   minkowski_enabled: true
   draft_angle_deg: 55.0
 
