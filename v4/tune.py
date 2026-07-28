@@ -2971,10 +2971,19 @@ class TuneApp(App):
                 yield Button("Change Machine", id="btn-change-machine")
             with TabbedContent():
                 yield from self._compose_section_tab("Font & Alignment")
+                # "Character" - Type Slug family only (which character(s)
+                # get struck - see CHARACTER_FIELDS_WING_SLUG/_BOX_SLUG).
+                if "Character" in self.SECTIONS:
+                    yield from self._compose_section_tab("Character")
                 yield from self._compose_type_test_tab()
                 yield from self._compose_section_tab("Resin")
                 if "Gauge" in self.SECTIONS:
                     yield from self._compose_section_tab("Gauge")
+                # "Ticks" - Gauge Slug only (its tick-mark measuring
+                # ladder - see TICKS_FIELDS_GAUGE_SLUG's own comment for
+                # why this is a separate section from "Gauge" above).
+                if "Ticks" in self.SECTIONS:
+                    yield from self._compose_section_tab("Ticks")
                 # no "Calibration" key for the Selectric family - no
                 # CalibrationElement/CalibrationAdditive implemented yet
                 # (see SECTIONS_BY_MACHINE's Selectric comment).
