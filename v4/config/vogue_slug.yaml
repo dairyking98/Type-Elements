@@ -35,18 +35,26 @@ character:
 logo:
   logo_enabled: false            # v1 SVG_Enable ("True_Vogue" preset: false - the generic AR1 logo isn't used here)
   svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/AR1.svg"
-  scale_mm_per_unit: 0.02
+  # scale_mm_per_unit is shared between the (unused, off) generic AR1
+  # logo above and the real Vogue Foundry mark below - the value here is
+  # tuned for the LATTER (0.0025 gives the combined arrow+V mark a
+  # ~1.6x1.6mm footprint, comfortably inside this config's 2.6mm body
+  # width). config/type_slug.yaml's own 0.02 is unrelated - tuned
+  # separately for AR1.svg's own, much larger viewBox - don't copy that
+  # value here (a real bug once: this field was accidentally left at
+  # 0.02, giving an ~8x oversized, body-engulfing mark before this
+  # comment/fix).
+  scale_mm_per_unit: 0.0025
   logo_depth_mm: 0.05             # v1 SVG_Depth
   location_frac: 0.5         # v1 SVG_Location ("True_Vogue" preset)
   # The real 2-piece Vogue Foundry mark (VogueSlug.scad:109-126) - always
   # on for this machine (v1 SVG_Vogue_Enable=true, VogueSlug.scad:51, not
   # exposed as a per-preset override in the real Customizer JSON either -
-  # it's the whole point of this file). scale_mm_per_unit reuses logo.
-  # scale_mm_per_unit above (v1's own SVG_V1_Scale is likewise a single
-  # shared scale for both the arrow and V pieces, VogueSlug.scad:54-56) -
-  # tuned empirically for a similarly small, legible foundry mark (see
+  # it's the whole point of this file). Uses the SAME scale_mm_per_unit
+  # above (v1's own SVG_V1_Scale is likewise a single shared scale for
+  # both the arrow and V pieces, VogueSlug.scad:54-56) - see
   # lib/svg_import.py's module docstring for why v4 doesn't reproduce
-  # OpenSCAD's own px/DPI SVG-import scaling).
+  # OpenSCAD's own px/DPI SVG-import scaling.
   vogue_enabled: true
   vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-arrow.svg"
   vogue_v_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-v.svg"
