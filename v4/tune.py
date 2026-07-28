@@ -179,8 +179,8 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.css.query import NoMatches
 from textual.events import Resize
-from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select, Static, Switch,
-                              RichLog, TabbedContent, TabPane, TextArea)
+from textual.widgets import (Button, Collapsible, Footer, Header, Input, ProgressBar, Select,
+                              Static, Switch, RichLog, TabbedContent, TabPane, TextArea)
 from textual_fspicker import FileOpen, FileSave, Filters
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -239,6 +239,21 @@ MACHINES = {
     "selectric3": ("Selectric III", os.path.join(REPO_ROOT, "config", "selectric3.yaml")),
     "selectric_composer": ("Selectric Composer", os.path.join(REPO_ROOT, "config", "selectric_composer.yaml")),
 }
+
+# Groups MACHINES by real-world type-element mechanism (not code-sharing -
+# see CLAUDE.md's "Machine taxonomy" section for why those are different
+# axes) so the machine picker can present 3 short categories instead of
+# one flat wall of 10 buttons. Cylinders = type-wheel machines
+# (Blickensderfer/Postal/Mignon/Bennett/Helios, per each module's own
+# "cylinder"/"disk" docstring language); Shuttles = the arc-shaped type
+# shuttle (Hammond/Hammond Split, per lib/hammond.py's and lib/
+# hammond_split.py's own "shuttle" docstrings); Spheres = the IBM/
+# Selectric typeball family (lib/spherical_machine.py's docstring).
+MACHINE_CATEGORIES = [
+    ("Cylinders", ["blickensderfer", "postal", "mignon", "bennett", "helios"]),
+    ("Shuttles", ["hammond", "hammond_split"]),
+    ("Spheres", ["selectric12", "selectric3", "selectric_composer"]),
+]
 
 FONT_FILE_FILTERS = Filters(
     ("Font files", lambda p: p.suffix.lower() in (".ttf", ".otf", ".ttc")),
@@ -1976,10 +1991,11 @@ class TuneApp(App):
     #status-row .browse-btn { margin-left: 0; }
     #btn-reset-defaults { width: 1fr; height: 1; border: none; margin-left: 1; }
     #btn-change-machine { width: 1fr; height: 1; border: none; margin-left: 1; }
-    #machine-picker { width: 100%; height: 100%; align: center middle; }
-    .picker-title { text-style: bold; content-align: center middle; width: auto; margin-bottom: 1; }
-    .picker-subtitle { color: $text-muted; content-align: center middle; width: auto; margin-bottom: 1; }
-    .machine-picker-btn { width: 30; height: 3; margin-bottom: 1; text-style: bold; }
+    #machine-picker { width: 100%; height: 100%; align: center top; padding: 2 0; }
+    #machine-picker Collapsible { width: 40; }
+    .picker-title { text-style: bold; content-align: center middle; width: 40; margin-bottom: 1; }
+    .picker-subtitle { color: $text-muted; content-align: center middle; width: 40; margin-bottom: 1; }
+    .machine-picker-btn { width: 100%; height: 3; margin-bottom: 1; text-style: bold; }
     .advanced-warning { color: $warning; text-style: bold; height: auto; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: auto; }
@@ -2729,14 +2745,22 @@ class TuneApp(App):
     def _compose_machine_picker(self):
         """Shown on startup (unless a config was given on the command
         line) and whenever "Change Machine" is pressed - self.machine is
-        None in both cases. One button per MACHINES entry; picking one
-        loads that machine's config and recomposes into the tuner form
-        (see _select_machine)."""
-        with Vertical(id="machine-picker"):
+        None in both cases. One button per MACHINES entry, grouped into
+        MACHINE_CATEGORIES' 3 real-mechanism categories (Cylinders/
+        Shuttles/Spheres) via collapsed-by-default Collapsible sections -
+        keeps the initial screen short instead of a flat 10-button wall
+        of text, and the whole thing sits in a VerticalScroll so a small
+        terminal window can still reach every machine instead of just
+        clipping the overflow. Picking one loads that machine's config
+        and recomposes into the tuner form (see _select_machine)."""
+        with VerticalScroll(id="machine-picker"):
             yield Static("Type Elements Tuner", classes="picker-title")
             yield Static("Choose a machine to work on:", classes="picker-subtitle")
-            for key, (label, _path) in MACHINES.items():
-                yield Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
+            for category, keys in MACHINE_CATEGORIES:
+                with Collapsible(title=f"{category} ({len(keys)})", collapsed=True):
+                    for key in keys:
+                        label, _path = MACHINES[key]
+                        yield Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
 
     def _compose_tuner_ui(self):
         with Vertical(id="form"):
