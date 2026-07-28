@@ -199,9 +199,13 @@ the cited section for the full incident).
 
 - **Physical form and code-sharing are two separate axes - check both,
   don't infer one from the other.** Ported so far: Blickensderfer,
-  Postal, Mignon, Bennett, Helios Klimax, Hammond, Hammond Split, and
+  Postal, Mignon, Bennett, Helios Klimax, Hammond, Hammond Split,
   IBM/Selectric (split into 3 machines - `selectric12`, `selectric3`,
-  `selectric_composer` - sharing `lib/spherical_machine.py`; see below).
+  `selectric_composer` - sharing `lib/spherical_machine.py`; see below),
+  and the standalone Type Slug family (`type_slug`/`vogue_slug`/
+  `gauge_slug` sharing `lib/wing_slug.py`, `oliver_slug`/`lumi_slug`
+  sharing `lib/box_slug.py` - ground truth v1, not v2, since this family
+  was never carried into v2 at all; see `SESSION_LOG.md` part 75).
   Nothing else remains on the roadmap. All of Blickensderfer/Postal/
   Mignon/Bennett/Helios are cylindrical in outward form, but:
   - **Blickensderfer and Postal are near-twins** - they diverge in code

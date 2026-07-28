@@ -1,0 +1,137 @@
+# Gauge Slug - v1/Type Slugs/GaugeTypeSlugSlug.scad. The one REAL,
+# functional member of this family (see lib/gauge_slug.py's module
+# docstring): no struck character, no logo, just the wing body with a
+# two-row tick-hole ladder, meant to be installed on the real machine
+# and used to measure/calibrate typebar swing and alignment-cut
+# position directly. Shares lib/wing_slug.py's engine with
+# config/type_slug.yaml/vogue_slug.yaml - see that module's docstring
+# for the shared geometry pipeline and the v1-is-ground-truth callout.
+#
+# v1's own customizer block declares character/logo/draft-angle
+# variables (SVG_Enable=true, Lower_Char='e', Draft_Angle=60, ...) that
+# the real MakeSlug-equivalent body in GaugeTypeSlugSlug.scad NEVER
+# actually references (no SVG import, no text() call anywhere in that
+# file's real geometry - only the body hull, the typebar slot, the
+# copyright engraving, and the tick holes). character.enabled/
+# logo.enabled below are set to false to match what v1 ACTUALLY renders,
+# not its inert leftover customizer defaults - a real fidelity choice,
+# not a silent omission.
+
+machine: gauge_slug
+
+font:
+  # Unused (character.enabled/logo.enabled are both false) - present
+  # only because wing_slug._receive_config picks up every capital-
+  # leading global unconditionally, and configure()/Type Test both
+  # still read font.path/size_mm.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/CMU Typewriter Text.ttf"
+  size_mm: 3.0
+  name: "CMU Typewriter Text"
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+character:
+  char_enabled: false            # GaugeTypeSlugSlug.scad's real body never calls text() - see this file's header comment
+  lower_char: "e"
+  upper_char: "E"
+
+logo:
+  logo_enabled: false             # GaugeTypeSlugSlug.scad's real body never imports an SVG either - see this file's header comment
+  svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/AR1.svg"
+  scale_mm_per_unit: 0.02
+  logo_depth_mm: 0.05
+  location_frac: 0.5
+  vogue_enabled: false
+  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-v.svg"
+
+label:
+  text: "© Leonard Chau 2023"          # v1 Copyright_Text (GaugeTypeSlugSlug.scad:63)
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime.ttf"  # v1 Copyright_Font "Courier Prime"
+  label_depth_mm: 0.1                          # v1 Copyright_Depth (:61)
+
+element:
+  body_width_mm: 2.75              # v1 Body_Width (:6)
+  body_length_mm: 12.0             # v1 Body_Length (:8)
+  body_height_mm: 5.0              # v1 Body_Height (:10)
+  face_thickness_mm: 0.5           # v1 Face_Thickness (:12)
+  face_radius_mm: 0.2              # v1 Face_Radius (:14)
+  wing_radius_mm: 2.0              # v1 Wing_Radius (:16)
+  platen_shift_motion_mm: 6.6      # unused (character.enabled: false) - v1 Platen_Shift_Motion (:18)
+  baselines_shift_motion_mm: 6.6   # unused - v1 Baselines_Shift_Motion (:20)
+  body_slot_width_mm: 0.93         # v1 Body_Slot_Width (:22)
+  wing_thickness_mm: 0.5           # v1 Wing_Thickness (:24)
+  aligning_cut_mm: 2.5             # unused - v1 Aligning_Cut (:26)
+  baseline_mm: 2.0                 # unused - v1 Baseline (:28)
+  platen_diameter_mm: 25.4         # unused - v1 Platen_Diameter (:30)
+  bottom_thickness_mm: 1.0         # v1 Bottom_Thickness (:32)
+  upper_wing_angle_deg: 20.0       # v1 Upper_Wing_Angle (:38)
+  lower_wing_angle_deg: 10.0       # v1 Lower_Wing_Angle (:40)
+  # GaugeTypeSlugSlug.scad has no Loop/Post/Side_Hole concept at all -
+  # every flag below is really off, not a placeholder default.
+  loop_enabled: false
+  loop_thickness_mm: 0.75
+  loop_diameter_mm: 2.75
+  loop_rotation_deg: 0.0
+  post_enabled: false
+  post_id_mm: 1.0
+  post_od_mm: 0.5
+  side_hole_enabled: false
+  side_hole_id_mm: 1.0
+  side_hole_height_frac: 0.2
+
+build:
+  flatness_tolerance_mm: 0.01
+  minkowski_enabled: true          # unused (character.enabled/logo.enabled both false, so no Minkowski sweep ever runs)
+  draft_angle_deg: 60.0            # unused - v1 Draft_Angle (:34)
+  engraving_depth_mm: 0.5          # unused - v1 Engraving_Depth (:36)
+  minkowski_multiplier: 1.6        # unused - v1 Minkowski_Multiplier (:68)
+  character_block_height_mm: 2.0   # unused
+  resin_support: false             # GaugeTypeSlugSlug.scad has no resin-support geometry at all
+  target: "element"
+
+quality:
+  corner_fn: 40           # v1 module-level $fn (:4), used by the base-face corner cylinders
+  wing_fn: 360
+  platen_fn: 360           # unused
+  minkowski_fn: 40          # unused
+  loop_fn: 360               # unused
+  loop_tube_fn: 32            # unused - see config/type_slug.yaml's matching comment
+  post_fn: 360                # unused
+  side_hole_fn: 360            # unused
+
+resin:
+  # Unused (build.resin_support is false) - present only because
+  # wing_slug._receive_config picks up every capital-leading global
+  # unconditionally.
+  resin_fn: 40
+  raft_thickness_mm: 2.0
+  wire_thickness_mm: 0.6
+  support_height_mm: 2.0
+  support_pitch_mm: 2.0
+
+gauge:
+  gauge_enabled: true
+  fine_pitch_mm: 0.5        # v1 `for (n=[0:.5:Body_Length])` (GaugeTypeSlugSlug.scad:104)
+  major_pitch_mm: 2.0       # v1 `for (n=[2:2:Body_Length])` (:109)
+  hole_d_mm: 0.5            # v1 both loops' cylinder(d=.5, ...) (:106,111)
+  fine_z_mm: -1.5           # v1 fine row's base_z (:105)
+  major_z_mm: -5.0          # v1 major row's base_z (:110)
+  hole_fn: 40               # v1 module-level $fn (:4) - these holes have no explicit $fn of their own
+
+output:
+  directory: "output"
+  stl_name: "gauge_slug_running.stl"
+
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow

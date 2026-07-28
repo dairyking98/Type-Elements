@@ -5055,3 +5055,170 @@ found) despite not delivering the dramatic win originally expected -
 worth having on general principle (matches cylinder_machine's own
 proven pattern) even without a large measured benefit on this
 particular workload.
+
+## 75. Type Slug family ported - 5 new machines, v1 (not v2) as ground truth (2026-07-28)
+
+User asked to migrate "type slugs" into v4, framing them as "more for
+novelty, not real stuff." These turned out to live ONLY in
+`v1/Type Slugs/*.scad` - standalone decorative type-slug replicas that
+were never carried into v2 at all (unlike every other v4 machine so
+far), so this port's ground truth is v1 directly, a first for this
+codebase - config YAML/lib code below cross-reference v1 line numbers
+the way every other machine cross-references v2 line numbers.
+
+**Taxonomy** (verified function-by-function against both real v1
+sources before writing anything, per CLAUDE.md's own rule): two
+genuinely different body-construction engines, not five independent
+ports or one grab-bag module.
+- **"Wing body" family** (`lib/wing_slug.py` shared engine): rounded
+  hull body (4 corner posts + 2 wing-radius cylinders), real Minkowski-
+  drafted struck text, optional SVG logo, resin support, loop/post/
+  side-hole. Three thin variants: `lib/type_slug.py` (TypeSlug.scad, the
+  generic base engine), `lib/vogue_slug.py` (VogueSlug.scad, carries the
+  real 2-piece "Vogue Foundry" mark + True_Vogue font - the one replica
+  modeled from real drawings), `lib/gauge_slug.py` (GaugeTypeSlugSlug.
+  scad - no text/logo at all, a tick-mark measuring ladder instead; per
+  the user's own clarification, this is the ONE real functional member
+  of the family, meant to install on the machine and measure/calibrate,
+  not a novelty).
+- **"Box body" family** (`lib/box_slug.py` shared engine): plain
+  rectangular body, straight polygon-cut wing tapers, N stacked struck
+  characters (config-driven list length) + N platen cylinders, no logo,
+  no resin support at all. Two thin variants: `lib/oliver_slug.py`
+  (OliverSlug.scad, 3 chars, a real Oliver typewriter slug replica),
+  `lib/lumi_slug.py` (LumiSlug.scad, 4 chars + a loop pendant, pure
+  novelty).
+- Same "shared engine + thin variant" split `lib/spherical_machine.py` +
+  `lib/selectric12.py`/`selectric3.py`/`selectric_composer.py` already
+  established - confirmed applicable here independently, not assumed
+  from that precedent.
+
+**New shared infrastructure, not machine-specific:**
+- `lib/svg_import.py` - v4 had no SVG-import capability at all (v1 relied
+  on OpenSCAD's built-in `import(svg)`). Real from-scratch path-data
+  parser (M/L/H/V/C/S/Q/T/A/Z, absolute+relative) reusing `glyph_poc`'s
+  adaptive de Casteljau bezier flattening for curves and elliptical-arc-
+  to-bezier conversion for `A`, feeding `glyph_poc.classify_and_
+  triangulate()`'s existing nesting-depth hole/island fill logic (same
+  problem a multi-path logo has as a multi-contour glyph). Deliberately
+  does NOT reproduce OpenSCAD's own px/DPI SVG-import scaling convention
+  (would need the same kind of empirical DPI calibration `glyph_poc.
+  OPENSCAD_TEXT_DPI_FACTOR` needed for `text()` - not worth it for a
+  decorative logo mark, not a physically-toleranced struck character) -
+  callers pick their own `logo.scale_mm_per_unit` explicitly instead of
+  inheriting v1's `SVG_Scale=1/40*SVG_Size`.
+- `scad_primitives.torus()` - extracted since `wing_slug.Loop()`/
+  `box_slug.Loop()` both need the exact same torus recipe (byte-
+  identical between TypeSlug.scad's and LumiSlug.scad's real Loop
+  blocks).
+
+**Real bugs found and fixed during this port (not shipped):**
+1. **`sp.scad_transform()` op-ordering, backwards in 5 of 7 initial call
+   sites.** Re-derived the convention carefully against `spherical_
+   machine.py`'s own `PlatenCutout()` (3 chained ops with an explicit
+   "source top-to-bottom" comment matching its ops list order 1:1) -
+   confirmed the rule is ops-list-order = literal source top-to-bottom
+   order (whichever transform is OUTERMOST/appears first in the nested
+   OpenSCAD source goes FIRST in the list). Caught and fixed in
+   `_wing_cyl_verts`, `_platen_cyl_pair`, `CopyrightText`, `PostHole`,
+   `SideHole` before ever running geometry - `Post()`/`Loop()` were
+   already correct. Would have silently produced wrong (but still
+   watertight-looking) part geometry if shipped.
+2. **`scad_primitives.torus()`'s initial single `sections` parameter
+   drove BOTH the tube cross-section AND the sweep resolution** (matching
+   v1's own literal `$fn=360` reused for both `rotate_extrude` and its
+   child `circle()`) - measured a real 129,600-vertex torus for one
+   small keyring loop (confirmed via Lumi Slug's real config values: a
+   66K-vertex FullElement for 4 characters vs Oliver Slug's 630-vertex
+   FullElement for 3, a disproportionate jump that was the actual tell).
+   Split into independent `sections` (sweep, stays 360) and
+   `tube_sections` (new `quality.loop_tube_fn` knob, default 32) -
+   verts dropped ~10x fleet-wide with no visible quality loss, still a
+   real, own config knob per CLAUDE.md's facet-count-in-YAML rule, not a
+   hardcoded reduction.
+3. **`tune.py` FIELDS key collisions** - `character.enabled`/`logo.
+   enabled`/`gauge.enabled` all being the bare YAML key `enabled` (and
+   `logo.depth_mm`/`label.depth_mm` both being `depth_mm`) would have
+   broken `patch_yaml_value()`'s save path, which matches by bare key
+   TEXT across the whole file with no section-scoping at all (confirmed
+   by reading `patch_yaml_value`'s own regex - `^\s*{key}:\s*...`, first
+   match wins). Renamed to `char_enabled`/`logo_enabled`/`gauge_enabled`/
+   `logo_depth_mm`/`label_depth_mm` in all 3 wing-family configs +
+   their `configure()` readers. Verified with a real round-trip test
+   (see below) that catches exactly this class of bug, not just eyeballed.
+
+**Audit against sibling machines/conventions** (per CLAUDE.md's own
+"every machine port gets an explicit audit pass" rule):
+- Entry points match the fleet convention exactly: `configure()`,
+  `_require_configured()`, `FullElement`/`ResinPrint`/`Additive`, all
+  accepting-but-ignoring `separation_mm`/`render_core_groove` (neither
+  concept exists for this form factor - same precedent Selectric already
+  set). `box_slug.py`'s `ResinSupport()`/`ResinPrint()` (real no-op
+  passthrough) matches `lib/helios.py`'s own established pattern for a
+  machine with zero resin-support geometry, including the matching
+  `RESIN_SUPPORT_UNAVAILABLE_NOTE` entries in `tune.py`.
+- `build.resin_support` is a real build-time toggle (`ResinPrint` vs
+  `FullElement` dispatch) for the wing family, NOT baked permanently into
+  the geometry the way v1's single `Resin_Support` variable was - a
+  deliberate structural improvement matching every other v4 machine's
+  own convention, explicitly called out in `config/type_slug.yaml`'s
+  comments rather than silently diverging from v1.
+  `build.minkowski_enabled` similarly defaults to `true` (a real drafted
+  build) on every new config even where v1's own literal default was
+  `Debug_No_Minkowski=true` (Oliver/Lumi) - explicitly noted in both
+  configs' comments as an intentional, fleet-consistency change, not a
+  silent divergence, per CLAUDE.md's "say so explicitly" rule.
+- Dead v1 customizer variables are called out in config comments, not
+  silently dropped or silently wired to a fake no-op parameter:
+  `Side_Hole_Offset` (declared, never referenced by `hole_coords`) and
+  `Lower_Wing_Angle` (declared for Oliver/Lumi, but both real wing-angle
+  cuts use `Upper_Wing_Angle` even for the "lower" cut - a real,
+  preserved v1 quirk, not a transcription choice made here).
+  TypeSlug.scad's own `SVG_Vogue_Enable` branch (a byte-for-byte
+  duplicate of its `SVG_Enable` branch, not the real Vogue mark) is
+  called out as dead/redundant leftover, not ported as a second toggle.
+- New `tune.py` "Slugs" `MACHINE_CATEGORIES` group added (4th column,
+  fully data-driven from the existing generic per-loop composer, no new
+  hardcoded-count literals to fix - this family has no keyboard grid at
+  all, so none of the "9 hardcoded row/column literals" class of bug
+  Mignon's port hit applies). Gauge Slug's tick-mark fields deliberately
+  named `"Ticks"` in `SECTIONS_BY_MACHINE`, NOT `"Gauge"` - the existing
+  `"Gauge"` section name means Blickensderfer/Postal's Shaft Gauge Test
+  build-target option (`_compose_build_tab`'s `has_gauge`/
+  `GaugeTestSet()` dispatch), which `gauge_slug.py` does not implement;
+  reusing that name would have wired a broken "Shaft Gauge" build-target
+  button into the Build tab.
+- No Layout tab (no `layout:` config section at all - `HAS_LAYOUT_TAB`
+  is naturally `False` via the existing `"rows" in layout` check, same
+  mechanism Selectric's own "no editable keyboard-layout concept"
+  already relies on - no new code needed). No Calibration tab either
+  (`CalibrationElement`/`CalibrationAdditive` not implemented for this
+  family, matching `spherical_machine.py`'s own explicit "deferred to a
+  follow-up pass" precedent, not a silent gap).
+
+**Verification performed:**
+- `generate.py` run for all 5 new configs, both `--no-minkowski` and a
+  REAL Minkowski build (the invariant `--no-minkowski` alone can't
+  verify) - every one watertight/winding_consistent/is_volume=True,
+  including Vogue Slug's real 2-piece SVG Minkowski draft and Type
+  Slug's real AR1.svg logo + struck text + loop combined build.
+  Bounding-box sanity-checked against each config's own real Body_Width/
+  Body_Length/Body_Height (caught the scad_transform bug above before
+  it could hide as a false-positive "watertight" pass).
+- `tune.py` headless-tested against SCRATCH copies only (never the real
+  master/running configs, per this file's own part-12 warning) -
+  `TuneApp` construction, `self.SECTIONS`/`self.FIELDS` contents, and a
+  real round-trip `patch_yaml_value()` pass over every field for all 5
+  machines (write each field's own current value back, re-parse, assert
+  identical) - this is what actually caught bug 3 above, not a visual
+  inspection.
+- Existing-config regression check (`bennett.yaml`, `selectric12.yaml`,
+  both `--no-minkowski`): still watertight/winding_consistent/is_volume=
+  True after this session's `scad_primitives.py`/`tune.py` edits (both
+  purely additive - a new `torus()` function, new dict entries/FIELDS
+  lists, no existing function or entry modified).
+
+Not done in this pass (no signal it's wanted, and matches Selectric's
+own precedent of deferring the same feature at first port):
+`CalibrationElement`/`CalibrationAdditive` for any of the 5 new
+machines.

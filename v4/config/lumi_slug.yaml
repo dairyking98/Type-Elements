@@ -1,0 +1,82 @@
+# Lumi Slug - v1/Type Slugs/LumiSlug.scad, a pure novelty item (a
+# 4-character loop pendant - per the user's own framing, same as
+# config/oliver_slug.yaml). Shares lib/box_slug.py's engine with
+# config/oliver_slug.yaml - see that module's docstring for the shared
+# geometry pipeline and the v1-is-ground-truth callout.
+
+machine: lumi_slug
+
+font:
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Erica Type.ttf"
+  size_mm: 3.05           # v1 Type_Size (LumiSlug.scad:25)
+  name: "Erica Type"
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+character:
+  # Bottom to top: Figure_Char, Lower_Char, Upper_Char, fun_char (v1:22-28).
+  chars: ["T", "N", "U", "C"]
+  baseline_mm: 1.0                 # v1 Baseline (:13)
+  baselines_shift_motion_mm: 7.1   # v1 Baselines_Shift_Motion (:9)
+
+element:
+  body_width_mm: 3.2               # v1 Body_Width (:5)
+  body_length_mm: 26.0             # v1 Body_Length (:6)
+  body_height_mm: 5.0              # v1 Body_Height (:7)
+  platen_shift_motion_mm: 7.1      # v1 Platen_Shift_Motion (:8)
+  body_slot_width_mm: 1.2          # v1 Body_Slot_Width (:10)
+  wing_thickness_mm: 1.0           # v1 Wing_Thickness = (Body_Width-Body_Slot_Width)/2 (:11) - explicit value, not derived in code
+  aligning_cut_mm: 1.5             # v1 Aligning_Cut (:12)
+  platen_diameter_mm: 25.4         # v1 Platen_Diameter (:14)
+  bottom_thickness_mm: 1.0         # v1 Bottom_Thickness (:15)
+  # See config/oliver_slug.yaml's matching comment - Lower_Wing_Angle is
+  # dead in the real source, only Upper_Wing_Angle (here 0, commented
+  # out in v1 same as Oliver) is real.
+  upper_wing_angle_deg: 0.0
+  loop_enabled: true               # v1 Loop (:30)
+  loop_thickness_mm: 0.9           # v1 Loop_Thickness (:31)
+  loop_diameter_mm: 3.2            # v1 Loop_Diameter = Body_Width (:32)
+  loop_rotation_deg: 0.0           # v1 Loop_Rotation (:33)
+
+build:
+  flatness_tolerance_mm: 0.01
+  # See config/oliver_slug.yaml's matching comment - v1's own literal
+  # default is Debug_No_Minkowski=true; v4 intentionally defaults to a
+  # real drafted build here instead, matching every sibling config.
+  minkowski_enabled: true
+  draft_angle_deg: 60.0            # v1 Draft_Angle (:16)
+  engraving_depth_mm: 0.7          # v1 Engraving_Depth (:18)
+  minkowski_multiplier: 1.5        # v1's hardcoded cone height factor (LumiSlug.scad:76-77 - "Engraving_Depth*1.5")
+  character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) (:48,50,53,56) - construction margin, config-driven per CLAUDE.md
+  resin_support: false             # LumiSlug.scad has no resin-support geometry at all
+  target: "element"
+
+quality:
+  minkowski_fn: 40         # v1 module-level $fn=40 (:4) - the draft cone has no explicit $fn of its own
+  platen_fn: 360             # v1 explicit $fn=360 on the platen cutout cylinders (:64,66,68,70)
+  loop_fn: 360                # v1 explicit $fn=360 on the loop's rotate_extrude sweep (:116,118)
+  loop_tube_fn: 32             # v1 ALSO uses $fn=360 for the loop's tube cross-section (same lines) - reduced here, see scad_primitives.torus()'s docstring for the measured 100x facet-count blow-up this avoids
+
+resin:
+  # Unused (build.resin_support is false) - present only because
+  # tune.py's Resin tab is shown unconditionally for every machine, same
+  # convention lib/helios.py's own always-declared-but-dead resin
+  # section establishes.
+  resin_fn: 40
+
+output:
+  directory: "output"
+  stl_name: "lumi_slug_running.stl"
+
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow

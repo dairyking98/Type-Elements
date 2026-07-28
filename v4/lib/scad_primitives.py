@@ -175,6 +175,37 @@ def frustum_z(d1, d2, height, sections=128, base_z=0.0):
     return m
 
 
+def torus(center_radius, tube_diameter, sections=128, tube_sections=32):
+    """rotate_extrude(){translate([center_radius,0]) circle(d=tube_diameter);}
+    equivalent - a torus (ring) profile swept around Z, offset outward by
+    center_radius. First shared call sites: lib/wing_slug.py's and lib/
+    box_slug.py's Loop() - the same real torus recipe, byte-identical
+    between v1/Type Slugs/TypeSlug.scad's and LumiSlug.scad's own Loop
+    blocks, extracted here per CLAUDE.md's "when two machines share a
+    derivation, extract it" convention rather than hand-copied twice.
+
+    sections drives the sweep-around-the-ring resolution (matches v1's
+    own rotate_extrude($fn=360)); tube_sections drives the tube's own
+    small-circle cross-section point count SEPARATELY (v1 also uses
+    $fn=360 there - circle(d=tube_diameter, $fn=360) - but reusing one
+    $fn=360 for BOTH axes of a torus this small is a real, measured
+    100x-facet-count blow-up (360*360=129600 vertices for a single
+    keyring-style loop torus, confirmed on Lumi Slug's real config
+    values, vs. the same shape at tube_sections=32: ~11500 - both
+    watertight/valid, only the wasted-density one differs) with no
+    visible quality gain on a sub-1mm tube radius - not ported as a
+    literal 1:1 facet count for that reason, per CLAUDE.md's "if there's
+    no real reason to invent a special-cased number, don't" (here read
+    as: an accidentally-uniform $fn in the real v1 source is not itself
+    a real reason to keep two geometrically independent axes coupled).
+    Exposed as its own config knob (quality.loop_tube_fn) rather than a
+    hardcoded default, same as every other facet count in this
+    pipeline."""
+    theta = np.linspace(0, 2 * np.pi, tube_sections, endpoint=False)
+    profile = [(center_radius + tube_diameter / 2.0 * np.cos(t), tube_diameter / 2.0 * np.sin(t)) for t in theta]
+    return revolve_polygon(profile, sections=sections)
+
+
 def box_centered(extents, center):
     """cube(size, center=true) equivalent placed at an arbitrary center."""
     b = trimesh.creation.box(extents=extents)

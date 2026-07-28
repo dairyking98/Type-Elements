@@ -1,0 +1,147 @@
+# Generic Type Slug - v1/Type Slugs/TypeSlug.scad's own "CMU Typewriter
+# Text" customizer preset (v1/Type Slugs/TypeSlug.json). Novelty/
+# reference replica, not a functional typewriter part - see
+# lib/wing_slug.py's module docstring for the shared wing-body engine
+# this and config/vogue_slug.yaml/gauge_slug.yaml all drive. Ground
+# truth is v1 (this family was never carried into v2), cross-referenced
+# by v1 line number below, same convention v2 line numbers get
+# elsewhere.
+
+machine: type_slug
+
+font:
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/CMU Typewriter Text.ttf"
+  size_mm: 3.3           # v1 Type_Size ("CMU Typewriter Text" preset)
+  name: "CMU Typewriter Text"
+
+alignment:
+  # v1 hardcodes text()'s halign="center" with no left mode/modified-char
+  # concept at all (unlike the cylinder-family machines) - these defaults
+  # reproduce that exactly; real, usable knobs are exposed anyway since
+  # the Font & Alignment tab is shared UI (see lib/wing_slug.py's
+  # DraftText() - alignment_x_offset is a real call here, not decorative).
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+character:
+  char_enabled: true
+  lower_char: "e"          # v1 Lower_Char (TypeSlug.scad:20)
+  upper_char: "E"           # v1 Upper_Char (TypeSlug.scad:22)
+
+logo:
+  # v1's real generic-logo preset (SVG_Enable=true, SVG_File="AR1.svg" -
+  # TypeSlug.json's "CMU Typewriter Text" set). scale_mm_per_unit is a
+  # v4-only knob replacing v1's SVG_Scale=1/40*SVG_Size - see
+  # lib/svg_import.py's module docstring for why v4 doesn't reproduce
+  # OpenSCAD's own px/DPI SVG-import scaling; tuned empirically here to
+  # give AR1.svg a ~2mm span (matching v1's own "SVG_Size=2" naming),
+  # not derived from v1's formula.
+  logo_enabled: true
+  svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/AR1.svg"
+  scale_mm_per_unit: 0.02
+  logo_depth_mm: 0.05             # v1 SVG_Depth
+  location_frac: 0.55        # v1 SVG_Location ("CMU Typewriter Text" preset)
+  # TypeSlug.scad's OWN "SVG_Vogue_Enable" branch (lines 147-157) is a
+  # byte-for-byte duplicate of its SVG_Enable branch above (same
+  # SVG_File, not the real vogue-foundry-*.svg files) - dead/redundant
+  # leftover from when VogueSlug.scad was forked off of it, not a real
+  # second feature - see lib/wing_slug.py's module docstring. Not ported
+  # as a second toggle; vogue_enabled here always stays false for this
+  # machine (config/vogue_slug.yaml is where the REAL 2-piece mark
+  # lives). vogue_arrow_svg_file/vogue_v_svg_file still need real paths
+  # even though unused (wing_slug._receive_config picks up every
+  # capital-leading global unconditionally).
+  vogue_enabled: false
+  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-v.svg"
+
+label:
+  text: "© Leonard Chau 2023"          # v1 Copyright_Text (TypeSlug.scad:44)
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime.ttf"  # v1 Copyright_Font "Courier Prime"
+  label_depth_mm: 0.1                          # v1 Copyright_Depth
+
+element:
+  body_width_mm: 2.75              # v1 Body_Width (TypeSlug.scad:52)
+  body_length_mm: 12.0             # v1 Body_Length (:54)
+  body_height_mm: 5.0              # v1 Body_Height (:56)
+  face_thickness_mm: 0.5           # v1 Face_Thickness (:58)
+  face_radius_mm: 0.2              # v1 Face_Radius (:60)
+  wing_radius_mm: 2.0              # v1 Wing_Radius (:62)
+  platen_shift_motion_mm: 6.6      # v1 Platen_Shift_Motion (:64)
+  baselines_shift_motion_mm: 6.6   # v1 Baselines_Shift_Motion (:66)
+  body_slot_width_mm: 0.93         # v1 Body_Slot_Width (:68)
+  wing_thickness_mm: 0.5           # v1 Wing_Thickness (:70)
+  aligning_cut_mm: 2.5             # v1 Aligning_Cut - "CMU Typewriter Text" preset value (v1 default at :72 is 3.25)
+  baseline_mm: 2.0                 # v1 Baseline (:74)
+  platen_diameter_mm: 25.4         # v1 Platen_Diameter (:76)
+  bottom_thickness_mm: 1.0         # v1 Bottom_Thickness (:78)
+  upper_wing_angle_deg: 20.0       # v1 Upper_Wing_Angle (:16)
+  lower_wing_angle_deg: 10.0       # v1 Lower_Wing_Angle (:18)
+  loop_enabled: true               # v1 Loop (:88)
+  loop_thickness_mm: 0.75          # v1 Loop_Thickness (:89)
+  loop_diameter_mm: 2.75           # v1 Loop_Diameter = Body_Width by default (:90)
+  loop_rotation_deg: 0.0           # v1 Loop_Rotation (:91)
+  post_enabled: false              # v1 Post (:94)
+  post_id_mm: 1.0                  # v1 Post_ID (:95)
+  post_od_mm: 0.5                  # v1 Post_OD (:96)
+  side_hole_enabled: false         # v1 Side_Hole (:99)
+  # v1 Side_Hole_Offset (:100) is declared but never referenced by
+  # hole_coords (:106) - dead in the real source, not ported (see
+  # lib/wing_slug.py's SideHole()).
+  side_hole_id_mm: 1.0             # v1 Side_Hole_ID (:101)
+  side_hole_height_frac: 0.2       # v1 Side_Hole_Height (:102)
+
+build:
+  flatness_tolerance_mm: 0.01
+  minkowski_enabled: true          # v1 !Debug_No_Minkowski ("CMU Typewriter Text" preset: false)
+  draft_angle_deg: 60.0            # v1 Draft_Angle (:12)
+  engraving_depth_mm: 0.5          # v1 Engraving_Depth (:14)
+  minkowski_multiplier: 1.6        # v1 Minkowski_Multiplier (:48)
+  character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) (e.g. :163,165) - construction margin, config-driven per CLAUDE.md
+  resin_support: true              # v1 Resin_Support (:81) - now a build-time toggle (ResinPrint vs FullElement), see lib/wing_slug.py's module docstring
+  target: "element"
+
+quality:
+  corner_fn: 40          # v1 module-level $fn=40 (:5), used by the base-face corner cylinders
+  wing_fn: 360            # v1 explicit $fn=360 on the wing cylinders (e.g. :130)
+  platen_fn: 360           # v1 explicit $fn=360 on the platen cutout cylinders (:172,174)
+  minkowski_fn: 40          # v1 draft cone has no explicit $fn - inherits the module-level default (:5)
+  loop_fn: 360               # v1 explicit $fn=360 on the loop's rotate_extrude sweep (:250)
+  loop_tube_fn: 32            # v1 ALSO uses $fn=360 for the loop's tube cross-section (same line) - reduced here, see scad_primitives.torus()'s docstring for the measured 100x facet-count blow-up this avoids
+  post_fn: 360                # Post has no explicit $fn in v1 either - inherits the module-level default; kept at 360 to stay smooth since it's a real printed boss when enabled
+  side_hole_fn: 360            # v1 explicit $fn=360 on the side-hole cylinder (:284)
+
+resin:
+  resin_fn: 40             # v1's resin support cylinders/spheres have no explicit $fn - inherit the module-level default (:5)
+  raft_thickness_mm: 2.0   # v1 Raft_Thickness (:82)
+  wire_thickness_mm: 0.6   # v1 Wire_Thickness (:83)
+  support_height_mm: 2.0   # v1 Support_Height (:84)
+  support_pitch_mm: 2.0    # v1 Support_Pitch (:85)
+
+# Gauge (the tick-mark measuring ladder) is real geometry only for
+# gauge_slug - see config/gauge_slug.yaml. Present here (disabled) only
+# because wing_slug._receive_config picks up every capital-leading
+# global unconditionally, same reasoning as logo.vogue_* above.
+gauge:
+  gauge_enabled: false
+  fine_pitch_mm: 0.5
+  major_pitch_mm: 2.0
+  hole_d_mm: 0.5
+  fine_z_mm: -1.5
+  major_z_mm: -5.0
+  hole_fn: 40
+
+output:
+  directory: "output"
+  stl_name: "type_slug_running.stl"
+
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow

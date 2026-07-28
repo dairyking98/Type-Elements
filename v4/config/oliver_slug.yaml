@@ -1,0 +1,96 @@
+# Oliver Slug - v1/Type Slugs/OliverSlug.scad, a replica modeled after a
+# real Oliver typewriter type slug (novelty/reference, not a functional
+# part - per the user's own framing). Shares lib/box_slug.py's engine
+# with config/lumi_slug.yaml - see that module's docstring for the
+# shared geometry pipeline and the v1-is-ground-truth callout.
+
+machine: oliver_slug
+
+font:
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Erica Type.ttf"
+  size_mm: 3.05           # v1 Type_Size (OliverSlug.scad:25)
+  name: "Erica Type"
+
+alignment:
+  # v1 hardcodes text()'s halign="center" with no left mode/modified-char
+  # concept at all - these defaults reproduce that exactly; real, usable
+  # knobs are exposed anyway since the Font & Alignment tab is shared UI.
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+character:
+  # Bottom to top: Figure_Char, Lower_Char, Upper_Char (v1:22-24) -
+  # config-driven list length, not a fixed triple (lib/lumi_slug.py's
+  # config has a 4th entry).
+  chars: ["3", "e", "E"]
+  baseline_mm: 1.0                 # v1 Baseline (:13)
+  baselines_shift_motion_mm: 7.1   # v1 Baselines_Shift_Motion (:9)
+
+element:
+  body_width_mm: 3.2               # v1 Body_Width (:5)
+  body_length_mm: 18.2             # v1 Body_Length (:6)
+  body_height_mm: 5.0              # v1 Body_Height (:7)
+  platen_shift_motion_mm: 7.1      # v1 Platen_Shift_Motion (:8)
+  body_slot_width_mm: 1.2          # v1 Body_Slot_Width (:10)
+  wing_thickness_mm: 1.0           # v1 Wing_Thickness = (Body_Width-Body_Slot_Width)/2 (:11) - explicit value, not derived in code
+  aligning_cut_mm: 1.5             # v1 Aligning_Cut (:12)
+  platen_diameter_mm: 25.4         # v1 Platen_Diameter (:14)
+  bottom_thickness_mm: 1.0         # v1 Bottom_Thickness (:15)
+  # v1's own Upper_Wing_Angle/Lower_Wing_Angle (:19-20) are both
+  # commented down to 0 ("// 12;//gamma" / "// 10;//roh") - AND
+  # Lower_Wing_Angle is never referenced anywhere in the real geometry
+  # even when non-zero (both wing-angle cuts use Upper_Wing_Angle - see
+  # lib/box_slug.py's module docstring) - so only one real angle exists
+  # here, not ported as a separate dead key.
+  upper_wing_angle_deg: 0.0
+  loop_enabled: false              # OliverSlug.scad has no Loop concept at all
+  loop_thickness_mm: 0.75
+  loop_diameter_mm: 3.2
+  loop_rotation_deg: 0.0
+
+build:
+  flatness_tolerance_mm: 0.01
+  # v1's own literal default is Debug_No_Minkowski=true (fast/undrafted
+  # preview - OliverSlug.scad is a single-render script, not a
+  # Customizer project with a saved "real" preset the way TypeSlug.scad
+  # has). v4 intentionally resolves this differently: true here, so
+  # config's build.minkowski_enabled means the same thing (the real,
+  # final drafted output) on every v4 machine, matching every sibling
+  # config's own default - a deliberate, noted change, not a silent
+  # divergence (v1's literal default is still reachable via
+  # --no-minkowski).
+  minkowski_enabled: true
+  draft_angle_deg: 60.0            # v1 Draft_Angle (:16)
+  engraving_depth_mm: 0.7          # v1 Engraving_Depth (:18)
+  minkowski_multiplier: 1.5        # v1's hardcoded cone height factor (OliverSlug.scad:63-64 - "Engraving_Depth*1.5", not a customizable variable in v1, still config-driven here per CLAUDE.md)
+  character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) (:40,42,45) - construction margin, config-driven per CLAUDE.md
+  resin_support: false             # OliverSlug.scad has no resin-support geometry at all
+  target: "element"
+
+quality:
+  minkowski_fn: 40         # v1 module-level $fn=40 (:4) - the draft cone has no explicit $fn of its own
+  platen_fn: 360             # v1 explicit $fn=360 on the platen cutout cylinders (:53,55,57)
+  loop_fn: 360                # unused (element.loop_enabled: false)
+  loop_tube_fn: 32             # unused - see config/type_slug.yaml's matching comment
+
+resin:
+  # Unused (build.resin_support is false) - present only because
+  # tune.py's Resin tab is shown unconditionally for every machine, same
+  # convention lib/helios.py's own always-declared-but-dead resin
+  # section establishes (see tune.py's RESIN_FIELDS_HELIOS).
+  resin_fn: 40
+
+output:
+  directory: "output"
+  stl_name: "oliver_slug_running.stl"
+
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow
