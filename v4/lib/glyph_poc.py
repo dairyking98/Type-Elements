@@ -506,12 +506,19 @@ def _polygon_parts(geom):
     return []
 
 
-def classify_and_triangulate(contours_mm):
-    """Mirrors MeshMaker.py: classify each closed contour as outer island
-    or hole via containment, boolean-compose them into real filled
-    polygons (union same-depth material, subtract same-depth holes,
-    ascending by nesting depth), triangulate, concatenate. Returns a flat
-    (z=0) trimesh.
+def compose_glyph_polygon(contours_mm):
+    """The classification/boolean-composition half of classify_and_
+    triangulate() below, split out on its own - returns the composed
+    shapely (Multi)Polygon directly, untriangulated (None if the input
+    reduces to nothing drawable). lib/mignon_legend.py needs exactly
+    this and nothing past it: it draws characters as flat 2D SVG shapes,
+    never triangulates/extrudes them to a mesh. See classify_and_
+    triangulate()'s docstring below for why this composition
+    (nesting-depth parity, not single-level containment) is needed at
+    all - every consideration there (nested holes, overlapping outer
+    islands, self-intersecting contours, sub-3-point debris contours)
+    applies here identically, since this IS that same logic, just
+    stopped one step earlier.
 
     His original (and this port's first pass) only handled ONE level of
     nesting: "contained by something -> hole". That breaks on genuinely
@@ -583,8 +590,21 @@ def classify_and_triangulate(contours_mm):
         else:
             result = result.difference(level_union)  # odd depth: a hole
 
+    if result is None or result.is_empty:
+        return None
+    return _open_touching_geometry(result)
+
+
+def classify_and_triangulate(contours_mm):
+    """Mirrors MeshMaker.py: classify each closed contour as outer island
+    or hole via containment, boolean-compose them into real filled
+    polygons (union same-depth material, subtract same-depth holes,
+    ascending by nesting depth) via compose_glyph_polygon() above,
+    triangulate, concatenate. Returns a flat (z=0) trimesh."""
+    result = compose_glyph_polygon(contours_mm)
+    if result is None:
+        return None
     mesh_compound = None
-    result = _open_touching_geometry(result)
     for poly in _polygon_parts(result):
         vertices, faces = trimesh.creation.triangulate_polygon(
             poly, triangle_args='p', engine="triangle")
