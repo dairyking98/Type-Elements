@@ -43,7 +43,7 @@ def configure(config_path):
     Core_ID_Offset`), unlike Blickensderfer's dedicated
     Drive_Pin_Width_Offset key."""
     global _configured
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     g = globals()

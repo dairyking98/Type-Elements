@@ -90,7 +90,7 @@ def configure(config_path):
     blickensderfer.configure()'s docstring for the general scheme."""
     global _configured
     import yaml
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     g = globals()

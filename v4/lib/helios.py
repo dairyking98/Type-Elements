@@ -105,7 +105,7 @@ def configure(config_path):
     (see the module docstring's "DELIBERATE v4-only ENHANCEMENT" note)."""
     global _configured
     import yaml
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     g = globals()

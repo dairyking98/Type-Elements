@@ -42,7 +42,7 @@ def configure(config_path):
     same way v2/blickensderfer.scad (and lib/core_shaft.scad,
     lib/resin_support.scad) derive them from their own base parameters."""
     global _configured
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     g = globals()

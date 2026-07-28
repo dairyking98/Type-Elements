@@ -62,7 +62,7 @@ def configure(config_path):
     clip/drive-pin keys at all - see the module docstring for why)."""
     global _configured
     import yaml
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     g = globals()
