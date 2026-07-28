@@ -179,8 +179,8 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.css.query import NoMatches
 from textual.events import Resize
-from textual.widgets import (Button, Collapsible, Footer, Header, Input, ProgressBar, Select,
-                              Static, Switch, RichLog, TabbedContent, TabPane, TextArea)
+from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select, Static, Switch,
+                              RichLog, TabbedContent, TabPane, TextArea)
 from textual_fspicker import FileOpen, FileSave, Filters
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -1991,10 +1991,13 @@ class TuneApp(App):
     #status-row .browse-btn { margin-left: 0; }
     #btn-reset-defaults { width: 1fr; height: 1; border: none; margin-left: 1; }
     #btn-change-machine { width: 1fr; height: 1; border: none; margin-left: 1; }
-    #machine-picker { width: 100%; height: 100%; align: center top; padding: 2 0; }
-    #machine-picker Collapsible { width: 40; }
-    .picker-title { text-style: bold; content-align: center middle; width: 40; margin-bottom: 1; }
-    .picker-subtitle { color: $text-muted; content-align: center middle; width: 40; margin-bottom: 1; }
+    #machine-picker { width: 100%; height: 100%; align: center top; padding: 2 1; }
+    #machine-picker-columns { width: auto; max-width: 100%; height: auto; align: center top; }
+    .machine-picker-column { width: 26; height: auto; margin: 0 1; }
+    .machine-picker-column-title { text-style: bold; content-align: center middle; width: 100%;
+        border-bottom: solid $accent; margin-bottom: 1; padding-bottom: 1; }
+    .picker-title { text-style: bold; content-align: center middle; width: auto; margin-bottom: 1; }
+    .picker-subtitle { color: $text-muted; content-align: center middle; width: auto; margin-bottom: 1; }
     .machine-picker-btn { width: 100%; height: 3; margin-bottom: 1; text-style: bold; }
     .advanced-warning { color: $warning; text-style: bold; height: auto; padding: 0 0 1 0; }
     .picker-row { height: 3; }
@@ -2745,22 +2748,23 @@ class TuneApp(App):
     def _compose_machine_picker(self):
         """Shown on startup (unless a config was given on the command
         line) and whenever "Change Machine" is pressed - self.machine is
-        None in both cases. One button per MACHINES entry, grouped into
-        MACHINE_CATEGORIES' 3 real-mechanism categories (Cylinders/
-        Shuttles/Spheres) via collapsed-by-default Collapsible sections -
-        keeps the initial screen short instead of a flat 10-button wall
-        of text, and the whole thing sits in a VerticalScroll so a small
+        None in both cases. One button per MACHINES entry, laid out as
+        3 side-by-side columns (one per MACHINE_CATEGORIES entry -
+        Cylinders/Shuttles/Spheres) instead of one flat 10-button wall of
+        text, and the whole thing sits in a VerticalScroll so a small
         terminal window can still reach every machine instead of just
         clipping the overflow. Picking one loads that machine's config
         and recomposes into the tuner form (see _select_machine)."""
         with VerticalScroll(id="machine-picker"):
             yield Static("Type Elements Tuner", classes="picker-title")
             yield Static("Choose a machine to work on:", classes="picker-subtitle")
-            for category, keys in MACHINE_CATEGORIES:
-                with Collapsible(title=f"{category} ({len(keys)})", collapsed=True):
-                    for key in keys:
-                        label, _path = MACHINES[key]
-                        yield Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
+            with Horizontal(id="machine-picker-columns"):
+                for category, keys in MACHINE_CATEGORIES:
+                    with Vertical(classes="machine-picker-column"):
+                        yield Static(category, classes="machine-picker-column-title")
+                        for key in keys:
+                            label, _path = MACHINES[key]
+                            yield Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
 
     def _compose_tuner_ui(self):
         with Vertical(id="form"):
