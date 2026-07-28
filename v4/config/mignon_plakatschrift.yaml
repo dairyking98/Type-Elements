@@ -257,16 +257,21 @@ legend:
   # negative=thinner, 0=v1's real default behavior.
   weight_adjustment_mm: 0.0
   # v1 Character_Modifieds/Character_Modifieds_Offset (:61-72) - per-
-  # character baseline nudge groups.
+  # character baseline nudge groups. Offsets default to 0.0 here, NOT
+  # v1's customizer-comment values (1.0/0.4/0.4/-0.5) - confirmed via a
+  # real openscad-nightly render that v1's own indexing bug
+  # (MignonIndex.scad:464 - see lib/mignon_legend.py's module docstring)
+  # makes this a no-op in v1's actual output. The mechanism itself works
+  # correctly here (unlike v1) - raise these above 0.0 to really use it.
   height_offset_groups:
     underscore_chars: "_"
-    underscore_offset_mm: 1.0
+    underscore_offset_mm: 0.0
     descender_chars: "pgqjy"
-    descender_offset_mm: 0.4
+    descender_offset_mm: 0.0
     parenthesis_chars: "()"
-    parenthesis_offset_mm: 0.4
+    parenthesis_offset_mm: 0.0
     ascender_chars: "fbldtkh"
-    ascender_offset_mm: -0.5
+    ascender_offset_mm: 0.0
   # v1 NormalCircleFillArray/NormalBackgroundFillArray/NormalSolidFillAray
   # (:126-151) - only the Normal* arrays: v1's own Plakat* variants of
   # these 3 arrays (:96-123) are dead code, never assigned to

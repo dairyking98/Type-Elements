@@ -19,39 +19,65 @@ point (mirrors generate.py's shape, but this is a completely separate,
 
 Ported from v1/Mignon/MignonIndex.scad's ACTUAL live code path -
 Array2(), the module actually invoked by the file's own closing
-statement. Array1()/CenterRectangle()/LiningRectangle()/LiningCircle()
-are dead code in v1 (defined, never called from Array2() or anywhere
-else) and are NOT ported here. Every function below is named after and
-mirrors its v1 counterpart 1:1 (RadiusRectangle/CheckerPattern/
+statement - and checked directly against a REAL openscad-nightly render
+of that exact file (Layout_Selection=5, matching this config's own
+default layout), not just read off the source: reading OpenSCAD source
+and predicting its behavior turned out to be unreliable here (see the
+two real bugs documented below, both only found by actually rendering
+it), so ground truth for this port is the rendered SVG, not the
+customizer comments. Array1()/CenterRectangle()/LiningRectangle()/
+LiningCircle() are dead code in v1 (defined, never called from Array2()
+or anywhere else) and are NOT ported here. Every function below is named
+after and mirrors its v1 counterpart 1:1 (RadiusRectangle/CheckerPattern/
 ClearHoles/ClearShape/LineCircles/SolidShape/ArrangeText), including the
-grid math (LocateCenter/LocateBaseline) and, most importantly, the
-mirrored-column/unmirrored-character-index split that shows up
-throughout Array2()'s tree: a cell's occupied-or-blank check and its
-displayed CHARACTER both read array index c, but the cell's drawn
-POSITION uses the mirrored index (N_COLS-1-c), and the character glyph
-itself is additionally x-mirrored (v1's 2DText() mirror([1,0,0])) - the
-same struck-element mirroring invariant CLAUDE.md documents for
-build_glyph() ("a physical type-slug reads as a mirror image of the
-printed character"), applied here to a REFERENCE card instead of an
-extruded element. This is transcribed exactly as v1 has it, not
-rationalized into a simpler indexing scheme.
+grid math (LocateCenter/LocateBaseline) and the mirrored-column/
+unmirrored-character-index split that shows up throughout Array2()'s
+tree: a cell's occupied-or-blank check and its displayed CHARACTER both
+read array index c, but the cell's drawn POSITION uses the mirrored
+index (N_COLS-1-c) - confirmed directly against the real render (e.g.
+its physical "B A N I V" / "M T E D L" rows are exactly layout.rows[2]
+[1:6] / layout.rows[3][1:6] read in reverse column order, landing at
+physical columns 6-10).
 
-Deliberate simplifications from v1 (documented, not silent divergence):
-- v1's Weight_Adj mechanism (Horizontal_Weight_Adj/Vertical_Weight_Adj/
-  Weight_Adj_Mode/Weight_Adj_Shape, MignonIndex.scad:52-59) is a
-  Minkowski-based glyph-bolding knob whose own code contradicts its
-  customizer comment about which mode number means Additive vs
-  Subtractive (line 57's comment says 0=Subtractive/1=Additive; the
-  actual branches at lines 466-483 do the opposite - 1=Subtractive,
-  2=Additive, with 1 the real default), and its real default magnitude
-  (.001mm) is visually a no-op regardless of which branch runs. Replaced
-  with one config knob, legend.weight_adjustment_mm, applied as a plain
-  shapely buffer() on the composed glyph polygon (positive=bolder,
-  negative=thinner, 0=v1's real default behavior - a true no-op, not an
-  approximation of one).
-- v1's Scale_Multiplier/Scale_Multiplier_Text ("." only, MignonIndex.
-  scad:83-84) is unported - both its real default values (1.0, ".")
-  make it a no-op in every real config.
+Two real, confirmed v1 bugs, found only by rendering the actual file
+(not visible from reading the customizer source alone) - NOT ported:
+- 2DText()'s mirror([1,0,0]) (MignonIndex.scad:465) does NOT produce
+  mirrored/backwards letters in the real render - its own SVG output
+  reads with plain, correctly-oriented text throughout (directly
+  confirmed: "B A N I V"/"M T E D L" etc. read normally, not reversed).
+  Whatever v1's actual net transform chain does, the observable result
+  is unmirrored, so _glyph_polygon() below does not mirror either - see
+  its own docstring for why that's also the geometrically sensible
+  choice for a card meant to be read directly (unlike a struck element).
+- Character_Modifieds_Offset (the per-character baseline nudge for
+  underscore/descenders/parentheses/ascenders, MignonIndex.scad:61-72)
+  is applied WITHOUT indexing by the search() result at line 464
+  (`translate([0, Character_Modifieds_Offset, 0])`, not
+  `Character_Modifieds_Offset[y[0]]`) - openscad-nightly emits "WARNING:
+  Unable to convert translate(...) parameter to a vec3" for exactly this
+  and the offset has no visible effect in the real render. legend.
+  height_offset_groups below defaults every offset to 0.0 (v1's REAL
+  behavior) rather than the nonzero values the customizer comments
+  imply - the mechanism itself still works correctly here (unlike v1),
+  so it's left as a real, working, opt-in config knob rather than
+  deleted, but its ported default matches what v1 actually renders, not
+  what its source claims to do.
+
+Deliberate simplification from v1 (documented, not silent divergence):
+v1's Weight_Adj mechanism (Horizontal_Weight_Adj/Vertical_Weight_Adj/
+Weight_Adj_Mode/Weight_Adj_Shape, MignonIndex.scad:52-59) is a
+Minkowski-based glyph-bolding knob whose own code contradicts its
+customizer comment about which mode number means Additive vs Subtractive
+(line 57's comment says 0=Subtractive/1=Additive; the actual branches at
+lines 466-483 do the opposite - 1=Subtractive, 2=Additive, with 1 the
+real default), and its real default magnitude (.001mm) is visually a
+no-op regardless of which branch runs. Replaced with one config knob,
+legend.weight_adjustment_mm, applied as a plain shapely buffer() on the
+composed glyph polygon (positive=bolder, negative=thinner, 0=v1's real
+default behavior - a true no-op, not an approximation of one). v1's
+Scale_Multiplier/Scale_Multiplier_Text ("." only, MignonIndex.scad:83-84)
+is separately unported - both its real default values (1.0, ".") make it
+a no-op in every real config, same reasoning.
 
 All real numbers (card dimensions, circle/line sizes, the 3 fill-pattern
 arrays, character height-offset groups) live in config YAML under
@@ -228,10 +254,21 @@ def _char_height_offset(ch):
 def _glyph_polygon(ch):
     """v1's 2DText() (MignonIndex.scad:461-485) minus the dead Weight_Adj
     branches (see module docstring) - a composed, centered (v1's
-    halign="center"), MIRRORED (v1's mirror([1,0,0]) - x -> -x, applied
-    LAST, matching v1's transform order) shapely polygon for one
-    character, baseline at y=0. None for a space or an empty/undrawable
-    glyph."""
+    halign="center") shapely polygon for one character, baseline at
+    y=0. None for a space or an empty/undrawable glyph.
+
+    NOT glyph-mirrored, despite v1's own mirror([1,0,0]) call at line
+    465 - verified against a REAL openscad-nightly render of the actual
+    v1 source (MignonIndex.scad, Layout_Selection=5): its own SVG output
+    reads with plain, correctly-oriented letters (confirmed directly,
+    e.g. row2's physical "B A N I V"/row3's "M T E D L" block both read
+    normally, not backwards) despite that mirror() call in the source.
+    This is a reference LEGEND, meant to be read directly by a person -
+    unlike build_glyph()'s struck-character mirroring (a real physical
+    type-slug reads backwards, like a stamp), there is no equivalent
+    physical reason for a card meant to be read straight to show
+    reversed text, and the real v1 render doesn't. Do not reintroduce
+    this without re-checking against a real render first."""
     if ch == " ":
         return None
     face = load_font_face(FONT_PATH)
@@ -241,8 +278,8 @@ def _glyph_polygon(ch):
     if not contours_mm:
         return None
     x_shift = -advance_mm / 2.0
-    mirrored = [c * np.array([-1.0, 1.0]) + np.array([x_shift, 0.0]) for c in contours_mm]
-    poly = compose_glyph_polygon(mirrored)
+    centered = [c + np.array([x_shift, 0.0]) for c in contours_mm]
+    poly = compose_glyph_polygon(centered)
     if poly is None or poly.is_empty:
         return None
     if Weight_Adjustment:
