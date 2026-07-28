@@ -337,3 +337,31 @@ calibration:
   vary_cutout: false
   start: -0.7
   interval: 0.05
+
+# The flat 2D "index" reference card - v1/Hammond/HammondIndex.scad
+# ported to lib/hammond_legend.py (SVG output via generate_legend.py,
+# entirely separate from the 3D element build above - see that module's
+# docstring). Every number below is v1's real customizer default
+# (HammondIndex.scad line cited), not invented. Displays layout.rows
+# above as a conventional QWERTY-style 3-row x 10-column reference,
+# reading the real 30-key shuttle arc.
+legend:
+  qp_length_mm: 178.0                # v1 QP_Length (:30)
+  z_exclamation_length_mm: 200.4      # v1 ZExclamation_Length (:31)
+  center_to_center_height_mm: 40.0    # v1 Center_to_Center_Height (:32)
+  margin_mm: 5.0                      # v1's hardcoded "+5" plate padding (:200)
+  circle_id_mm: 14.0                  # v1 Circle_ID (:60)
+  circle_thickness_mm: 0.5            # v1 Circle_Thickness (:61)
+  cap_size_mm: 6.0                    # v1 CAP_Size (:54)
+  fig_size_mm: 4.0                    # v1 FIG_Size (:56) - also reused for the lowercase/punctuation label (v1 does the same, :135/181)
+  capfig_mod_size_mm: 4.0             # v1 CAPFIG_ModSize (:58)
+  fig_offset_mm: 2.5                  # v1 FIG_Offset (:40)
+  lowercase_offset_mm: -5.5           # v1 Lowercase_Offset (:42)
+  cap_offset_mm: -4.5                 # v1 CAP_Offset (:44)
+  fig_dupe_offset_mm: 3.0             # v1 FIG_Dupe_Offset (:46)
+  capfig_offset_mm: -1.5              # v1 CAPFIG_Offset (:48)
+  capfig_mod_chars: "!:?-\"&"         # v1 CAPFIG_Mod (:21)
+  lowercase_mod_chars: ";,'"          # v1 Lowercase_Mod (:23) - minus the literal "☺" (a real character in v1's string, but not a meaningful key on any of this config's real layout.rows - see lib/hammond_legend.py if you need to add it back for a custom layout)
+  fig_dupe_chars: "."                 # v1 FIG_Dupe (:25)
+  circle_segments: 32                 # v4-only - shapely buffer() quad_segs for every circle (v1 used OpenSCAD's default $fn)
+  flatness_tolerance_mm: 0.01         # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
