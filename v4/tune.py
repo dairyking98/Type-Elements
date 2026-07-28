@@ -2493,12 +2493,22 @@ class TuneApp(App):
                     yield from self._compose_legend_extra()
 
     def _compose_legend_extra(self):
-        """The Legend tab's own action button + status line, appended
-        after its generic LEGEND_FIELDS_*/_compose_section_tab fields -
-        same trailing-content pattern as Element's _compose_baseline_
-        cutout_fields() above. Generates a standalone SVG (lib/<machine>_
-        legend.py via generate_legend.py), not an STL - entirely separate
-        from Preview/Render/the f3d window."""
+        """The Legend tab's own background picker + action button +
+        status line, appended after its generic LEGEND_FIELDS_*/
+        _compose_section_tab fields - same trailing-content pattern as
+        Element's _compose_baseline_cutout_fields() above. Generates a
+        standalone SVG (lib/<machine>_legend.py via generate_legend.py),
+        not an STL - entirely separate from Preview/Render/the f3d
+        window, so this bespoke Select (like Build tab's own dropdowns)
+        isn't in self.FIELDS - _collect_values/_save_to_yaml/
+        _refresh_widgets_from_cfg handle it explicitly."""
+        background_now = str(self.cfg.get("legend", {}).get("background", "transparent"))
+        if background_now not in ("transparent", "white"):
+            background_now = "transparent"
+        with Horizontal(classes="picker-row"):
+            yield Static("Background", classes="field-label")
+            yield Select([("Transparent", "transparent"), ("White", "white")],
+                         value=background_now, id="legend-background", allow_blank=False)
         yield Button("GENERATE LEGEND SVG", id="btn-generate-legend", variant="success")
         yield Static("", id="legend-status", classes="field-help")
 
@@ -2968,6 +2978,11 @@ class TuneApp(App):
         else:
             values["target"] = self.query_one("#build-select", Select).value
         values["resin_support"] = self.query_one("#build-resin-support", Switch).value
+        if "Legend" in self.SECTIONS:
+            # legend.background - bespoke Legend-tab Select (see
+            # _compose_legend_extra), same treatment as Hammond's
+            # orientation/horizontal_method above.
+            values["background"] = self.query_one("#legend-background", Select).value
         if self.machine == "hammond":
             # orientation/horizontal_method - moved off the Resin tab onto
             # the Build tab (see _compose_build_tab) - not in self.FIELDS
@@ -3146,6 +3161,10 @@ class TuneApp(App):
                 target_now = "element"
             self.query_one("#build-select", Select).value = target_now
         self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])
+        if "Legend" in self.SECTIONS:
+            background_now = str(self.cfg.get("legend", {}).get("background", "transparent"))
+            self.query_one("#legend-background", Select).value = (
+                background_now if background_now in ("transparent", "white") else "transparent")
         if self.machine == "hammond":
             orientation_now = str(self.cfg.get("resin", {}).get("orientation", "vertical"))
             self.query_one("#build-orientation", Select).value = (

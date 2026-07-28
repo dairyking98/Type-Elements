@@ -264,6 +264,11 @@ legend:
   # Off by default (matching v1's real behavior of never drawing it) -
   # turn on for an explicit border around the interior circle grid.
   inner_border: false
+  # v4-only, not a v1 concept - SVG canvas background: "transparent"
+  # (default, no backing rect) or "white" (an opaque backing rect, e.g.
+  # for viewers/pipelines that composite onto a dark background and
+  # would otherwise show every checker/circle hole as see-through).
+  background: "transparent"
   # v1 Character_Modifieds/Character_Modifieds_Offset (:61-72) - per-
   # character baseline nudge groups. Offsets default to 0.0 here, NOT
   # v1's customizer-comment values (1.0/0.4/0.4/-0.5) - confirmed via a

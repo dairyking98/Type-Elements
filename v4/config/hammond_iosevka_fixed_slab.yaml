@@ -375,3 +375,6 @@ legend:
   fig_dupe_chars: "."                 # v1 FIG_Dupe (:25)
   circle_segments: 32                 # v4-only - shapely buffer() quad_segs for every circle (v1 used OpenSCAD's default $fn)
   legend_flatness_tolerance_mm: 0.01         # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
+  # v4-only, not a v1 concept - SVG canvas background: "transparent"
+  # (default, no backing rect) or "white" (an opaque backing rect).
+  background: "transparent"

@@ -183,6 +183,14 @@ def configure(config_path):
     g["Circle_Segments"] = lg.get("circle_segments", 32)
     g["Weight_Adjustment"] = lg.get("weight_adjustment_mm", 0.0)
     g["Inner_Border"] = lg.get("inner_border", False)
+    # v4-only - not a v1 concept at all (v1's SVG export has no notion of
+    # a background fill, it's just whatever geometry got exported).
+    # "transparent" (default) omits any background shape entirely (the
+    # card silhouette floats on nothing, same as every render before this
+    # option existed); "white" adds an opaque backing rect, e.g. for
+    # viewers/pipelines that composite onto a dark background and would
+    # otherwise show the checker/circle holes as see-through.
+    g["Background_Mode"] = lg.get("background", "transparent")
     g["Circle_Fill"] = lg.get("circle_fill", _DEFAULT_CIRCLE_FILL)
     g["Background_Fill"] = lg.get("background_fill", _DEFAULT_BACKGROUND_FILL)
     g["Solid_Fill"] = lg.get("solid_fill", _DEFAULT_SOLID_FILL)
@@ -527,17 +535,27 @@ def _geometry_path_d(geom):
     return " ".join(parts)
 
 
-def render_svg(fill="#000000"):
+def render_svg(fill="#000000", background=None):
     """Serializes build_legend_geometry() to a self-contained SVG string
     (mm units, viewBox sized to Length x Width). Wrapped in a <g
     transform> that flips Y (shapely/v1-OpenSCAD are Y-up; SVG is
-    Y-down) instead of flipping every coordinate by hand."""
+    Y-down) instead of flipping every coordinate by hand.
+
+    background: "transparent" (no backing rect - the default, and every
+    render before this option existed) or "white" (an opaque backing
+    rect behind the card). None (the default here) reads legend.
+    background from the config; pass an explicit value to override it,
+    same convention as the fill parameter."""
+    background = Background_Mode if background is None else background
     geom = build_legend_geometry()
     d = _geometry_path_d(geom)
+    bg_rect = (f'  <rect x="0" y="0" width="{Length}" height="{Width}" fill="#ffffff"/>\n'
+               if background == "white" else "")
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{Length}mm" height="{Width}mm" '
         f'viewBox="0 0 {Length} {Width}">\n'
+        f'{bg_rect}'
         f'  <g transform="translate(0,{Width}) scale(1,-1)">\n'
         f'    <path d="{d}" fill="{fill}" fill-rule="evenodd"/>\n'
         '  </g>\n'

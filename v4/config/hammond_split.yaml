@@ -305,3 +305,4 @@ legend:
   fig_dupe_chars: "."
   circle_segments: 32
   legend_flatness_tolerance_mm: 0.01
+  background: "transparent"

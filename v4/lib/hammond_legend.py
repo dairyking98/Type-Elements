@@ -133,6 +133,9 @@ def configure(config_path):
     g["FIG_Dupe"] = lg.get("fig_dupe_chars", ".")
     g["Circle_Segments"] = lg.get("circle_segments", 32)
     g["FLATNESS_TOLERANCE_MM"] = lg.get("legend_flatness_tolerance_mm", 0.01)
+    # v4-only, not a v1 concept - see mignon_legend.configure()'s matching
+    # comment. "transparent" (default, no backing rect) or "white".
+    g["Background_Mode"] = lg.get("background", "transparent")
 
     g["QW_Spacing"] = QP_Length / 9.0
     g["Y_Spacing"] = Center_to_Center_Height / 2.0
@@ -273,24 +276,32 @@ def _geometry_path_d(geom):
     return " ".join(parts)
 
 
-def render_svg(fill="#000000"):
+def render_svg(fill="#000000", background=None):
     """Serializes build_legend_geometry() to a self-contained SVG string,
     padded by (Circle_ID+Margin)/2 around the real content bounds (v1's
     own cube() padding, HammondIndex.scad:200 - `+Circle_ID+5` around
     ZExclamation_Length/Center_to_Center_Height) rather than v1's exact
     plate dimensions, since this module's content bounds already reflect
     the real taper (see _locate()) and don't need re-deriving from
-    QP_Length/ZExclamation_Length a second time."""
+    QP_Length/ZExclamation_Length a second time.
+
+    background: see mignon_legend.render_svg()'s matching docstring -
+    same "transparent"/"white" convention, None reads legend.background
+    from the config."""
+    background = Background_Mode if background is None else background
     geom = build_legend_geometry()
     minx, miny, maxx, maxy = geom.bounds
     pad = (Circle_ID + Margin) / 2.0
     minx, miny, maxx, maxy = minx - pad, miny - pad, maxx + pad, maxy + pad
     width, height = maxx - minx, maxy - miny
     d = _geometry_path_d(geom)
+    bg_rect = (f'  <rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff"/>\n'
+               if background == "white" else "")
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}mm" height="{height}mm" '
         f'viewBox="0 0 {width} {height}">\n'
+        f'{bg_rect}'
         f'  <g transform="translate({-minx},{maxy}) scale(1,-1)">\n'
         f'    <path d="{d}" fill="{fill}" fill-rule="evenodd"/>\n'
         '  </g>\n'
