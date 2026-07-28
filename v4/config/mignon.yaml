@@ -245,7 +245,20 @@ legend:
   line_width_mm: 0.3            # v1 Line_Width (:35) - ring/border stroke width
   square_pattern_size_mm: 0.5   # v1 Square_Pattern_Size (:43) - Checker only
   square_pattern_pitch_mm: 0.8  # v1 Square_Pattern_Pitch (:45) - Checker only
-  checker: false                # v1 Checker (:47) - off by default, v1's own comment: "slow - do last"
+  # v1 Checker (:47) - the raw customizer DEFAULT is false ("slow - do
+  # last"), but this is not what a real, finished card actually looks
+  # like: MignonIndex.json's "New set 3" and its unnamed final preset
+  # both match this config's own dimensions/layout exactly (Layout_
+  # Selection=5, Length=133, Width=83) and both have Checker=true -
+  # confirmed correct (not just visually similar) against a direct
+  # openscad-nightly render, comparing actual SVG path vertex coordinates
+  # point-by-point, not just a raster screenshot - an earlier raster/
+  # crop-based comparison gave a false positive for a packing/density
+  # bug that turned out not to be real once checked this way. See lib/
+  # mignon_legend.py's _checker_pattern() docstring for the actual real
+  # bug that WAS found and fixed alongside this (a corner-vs-center
+  # rotation pivot).
+  checker: true
   type_size_mm: 5.0             # v1 Type_Size (:51) - a paper/laser-cut card, unrelated to font.size_mm's 2.45mm engraved element size
   legend_height_offset_mm: 2.1         # v1 Height_Offset (:63) - circle center to text baseline
   circle_segments: 32           # v4-only - shapely buffer() quad_segs for every circle/ellipse (v1 used $fn=$preview?30:60, :79)

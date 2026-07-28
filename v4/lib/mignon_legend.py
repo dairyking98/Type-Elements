@@ -304,19 +304,38 @@ def _radius_rectangle():
 
 def _checker_pattern():
     """v1 CheckerPattern() (MignonIndex.scad:214-224) - off by default
-    (v1's own comment: "Apply Checker Border? (slow - do last)")."""
+    (v1's own comment: "Apply Checker Border? (slow - do last)"), but
+    several of v1's own REAL presets turn it on (MignonIndex.json's
+    "New set 3" - matching this config's own Layout_Selection=5/Length=
+    133/Width=83 exactly - and others), confirmed by directly rendering
+    v1 with Checker=true via openscad-nightly: a fine grid of small
+    diamond-shaped perforations cut through the card's solid background,
+    not a plain alternating black/white checkerboard.
+
+    v1's square(Square_Pattern_Size) is NOT centered (OpenSCAD's
+    default) - it spans (0,0) to (size,size), a CORNER at the local
+    origin - and `translate([x,y]) rotate([0,0,45]) square(size)`
+    rotates that corner-anchored square 45 degrees about its own local
+    origin BEFORE translating to the grid point (x,y), same as
+    _radius_rectangle()'s corner circles above use Point(corner).buffer()
+    (not a centered box) for the same reason: matching v1's real anchor
+    point matters, not just the square's size. Building a centered box
+    and rotating about ITS OWN center (this function's first, wrong,
+    attempt) silently changes where each diamond's centroid ends up
+    relative to the (x,y) grid - confirmed visibly wrong (denser/larger-
+    looking holes) against a real openscad-nightly render before this
+    fix."""
     if not Checker:
         return None
     s = Square_Pattern_Size
-    base = box(-s / 2, -s / 2, s / 2, s / 2)
+    base = box(0, 0, s, s)
+    rotated_unit = shapely_rotate(base, 45, origin=(0, 0))
     squares = []
     x = 0.0
     while x <= Length:
         y = 0.0
         while y <= Width:
-            sq = shapely_translate(base, x, y)
-            sq = shapely_rotate(sq, 45, origin=(x, y))
-            squares.append(sq)
+            squares.append(shapely_translate(rotated_unit, x, y))
             y += Square_Pattern_Pitch
         x += Square_Pattern_Pitch
     return unary_union(squares) if squares else None
