@@ -1163,10 +1163,15 @@ SECTIONS_BY_MACHINE = {
                 "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
                 "Element": ELEMENT_FIELDS_BENNETT},
     # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
-    # scad's own header: "Sections with no Helios equivalent (Logo, Print
-    # Tolerances, Shaft Gauge Test) are omitted"). No "Logo"/"Label" key
-    # either - same header, no engraved-text feature at all.
-    "helios": {**SECTIONS_COMMON, "Quality": QUALITY_FIELDS_HELIOS, "Resin": RESIN_FIELDS_HELIOS,
+    # scad's own header: "Sections with no Helios equivalent (..., Print
+    # Tolerances, Shaft Gauge Test) are omitted"). No "Label" key - Helios
+    # has only the one engraved-text feature (Logo), unlike Bennett/
+    # Hammond's Label-only convention. "Logo" reuses LOGO_FIELDS_BLICKPOSTAL
+    # as-is (not a separate LOGO_FIELDS_HELIOS) - v4-only addition, same
+    # schema/mechanism (cylinder_machine.LogoText()) as Blickensderfer/
+    # Postal, see lib/helios.py's module docstring.
+    "helios": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+               "Quality": QUALITY_FIELDS_HELIOS, "Resin": RESIN_FIELDS_HELIOS,
                "Element": ELEMENT_FIELDS_HELIOS},
     # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
     # module docstring) - its two whole-string engraved labels are the
@@ -1573,11 +1578,21 @@ LAYOUT_PRESETS_BENNETT = {
     ],
 }
 
-# Helios's 2 inline layout arrays from v2/heliosklimax.scad's [Key
-# Mapping] section - GERMAN and GERMAN_MOD (LAYOUT=GERMAN_MOD is what v2
+# Helios's layout arrays - GERMAN and GERMAN_MOD are from v2/
+# heliosklimax.scad's [Key Mapping] section (LAYOUT=GERMAN_MOD is what v2
 # actually assigns/uses; GERMAN is a real, if superseded, second array in
 # the source, exposed here the same way Bennett's redundant CUSTOM preset
-# is). Both share the same 4-row/21-column structure and identity
+# is). ROTUNDA is a third real preset, NOT from v2 (v2 only ever carried
+# GERMAN/GERMAN_MOD forward) - it's from v1/HeliosKlimax/
+# HeliosKlimaxTester.scad's own Layouts=[GERMAN, GERMAN_MOD, ROTUNDA]
+# (a real, live Layout_Selection=0/1/2 option there, not dead code - see
+# lib/helios.py's module docstring for why Tester.scad is a real, richer
+# source alongside Element.scad, not just a superseded prototype). Row 2
+# differs by one real character (a long-s "$" stand-in for Rotunda
+# blackletter's lowercase s at column 12, vs GERMAN_MOD's plain "s") and
+# row 4 differs by one real character (XYÓß vs XY¢ß/XY₰ß) - transcribed
+# exactly as v1 has them, not normalized to match the other two rows.
+# All three share the same 4-row/21-column structure and identity
 # placement_map (Physical_Layout=LAYOUT directly, no CharLegend remap).
 LAYOUT_PRESETS_HELIOS = {
     "GERMAN_MOD": [
@@ -1591,6 +1606,12 @@ LAYOUT_PRESETS_HELIOS = {
         "WERTUIONKLPASDCFGHBVM",
         "'!+züjö.:xyä23456789q",
         "\"()Z⅟J=,;XY₰ß&%/-_§?Q",
+    ],
+    "ROTUNDA": [
+        "wertuionklpa$dcfghbvm",
+        "WERTUIONKLPASDCFGHBVM",
+        "'!+züjö.:xyä23456789q",
+        "\"()Z⅟J=,;XYÓß&%/-_§?Q",
     ],
 }
 

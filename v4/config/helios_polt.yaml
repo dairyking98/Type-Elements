@@ -4,15 +4,18 @@
 #
 # Helios's v2 source has NO SecondaryCore/CoreGrooves/CoreChamfer/
 # CoreEllipses system at all (its shaft bore was originally a plain
-# rotate_extrude() hull profile, HollowingElement() in lib/helios.py), NO
-# Logo/Label engraved-text feature, and NO Shaft Gauge Test - v2's own
-# header: "Sections with no Helios equivalent (Logo, Print Tolerances,
-# Shaft Gauge Test) are omitted rather than left empty." Its clip/wire-bite
-# mechanism (WireClip() below) is structurally similar in spirit to
-# Blickensderfer/Postal's own local (never-shared-to-a-lib) clip/wire-bite,
-# but built from plain hulled cylinders rather than core_shaft.scad
-# concepts - see lib/helios.py's module docstring for the full
-# function-by-function comparison against cylinder_machine.py.
+# rotate_extrude() hull profile, HollowingElement() in lib/helios.py) and
+# NO Shaft Gauge Test - v2's own header: "Sections with no Helios
+# equivalent (..., Print Tolerances, Shaft Gauge Test) are omitted rather
+# than left empty." Its clip/wire-bite mechanism (WireClip() below) is
+# structurally similar in spirit to Blickensderfer/Postal's own local
+# (never-shared-to-a-lib) clip/wire-bite, but built from plain hulled
+# cylinders rather than core_shaft.scad concepts - see lib/helios.py's
+# module docstring for the full function-by-function comparison against
+# cylinder_machine.py.
+#
+# Logo (below) IS a v4 addition, not a v2 port - see lib/helios.py's
+# module docstring's "Logo" note.
 #
 # DELIBERATE v4-only ENHANCEMENT (explicit user direction, not a v2 port):
 # the shaft bore now reuses lib/cylinder_machine.py's shared core_shaft
@@ -42,6 +45,18 @@ font:
   # needed here; this profile inherits master's (v2's real) GERMAN_MOD.
   path: "/home/lchau/fonts/Library/Typewriter & Monospace/Noto Sans Mono-Light.ttf"
   size_mm: 2.85          # v1 'Polt' Type_Size
+
+# v4-only - see helios.yaml's matching comment/lib/helios.py's module
+# docstring. Same real mechanism (cylinder_machine.LogoText()), inherited
+# defaults rather than re-deriving Polt-specific numbers.
+logo:
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  text: "Leonard Chau 2026"
+  text_size_mm: 2.0
+  text_spacing: 8.0
+  position_offset_deg: 180.0
+  text_offset_deg: 180.0
+  radial_offset_mm: 1.5
 
 element:
   platen_diameter: 30

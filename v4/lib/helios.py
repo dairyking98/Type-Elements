@@ -70,14 +70,32 @@ cut, THEN union the bosses); FullElement's own final difference is only
 the genuine outer-scope cut (AlignmentPinHole/WireClip/the core_shaft
 family - see _final_cut()).
 
-No Logo/Label engraved text, no Shaft Gauge Test (v2's own header:
-"Sections with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge
-Test) are omitted"). v2 also declares Resin_Support/Resin_Support_*
-parameters but never builds any support geometry with them (v2's own
-header, confirmed: no ResinRod/CutGroove-equivalent module anywhere in
-the file) - ResinSupport()/ResinPrint() below are a no-op/alias to
-FullElement(), matching that reality rather than inventing a resin-support
-system that was never there.
+No Shaft Gauge Test (v2's own header: "Sections with no Helios equivalent
+(..., Print Tolerances, Shaft Gauge Test) are omitted"). v2 also declares
+Resin_Support/Resin_Support_* parameters but never builds any support
+geometry with them (v2's own header, confirmed: no ResinRod/CutGroove-
+equivalent module anywhere in the file) - ResinSupport()/ResinPrint()
+below are a no-op/alias to FullElement(), matching that reality rather
+than inventing a resin-support system that was never there.
+
+Logo: v2/heliosklimax.scad's real ground truth (HeliosKlimaxElement.scad)
+has no engraved text at all - the "No Logo" note above used to be
+correct. v1/HeliosKlimax/HeliosKlimaxTester.scad (a separate, fuller v1
+file - see SESSION_LOG.md's audit chapter) does have real engraved text
+(Element_Label/Element_Label2) and an imported SVG logo, but neither of
+those is the convention this fleet uses elsewhere (every other machine's
+Logo is procedurally-engraved text via cylinder_machine.LogoText(), never
+an imported image) - added here as a real, working Logo feature using
+that SAME shared function/config convention (logo.font_path/text/
+text_size_mm/text_spacing/position_offset_deg/text_offset_deg/
+radial_offset_mm, Logo_Radius=Element_Diameter/2-2.0 - byte-identical
+formula to Blickensderfer/Postal's), not a port of Tester.scad's own
+SVG-import mechanism. Cut into the flat top face as part of the final
+outer-scope difference (_final_cut()), the same subtractive placement
+Blickensderfer/Postal's own Subtractive() uses it for - Helios has a
+flat top face there too (ClipRetainer() sits on it), not Mignon's angled
+chamfer, so the shared function's own flat-XY-plane placement applies
+unmodified.
 """
 
 import trimesh
@@ -115,12 +133,28 @@ def configure(config_path):
     g["FONT_PATH"] = font["path"]
     g["FONT_SIZE_MM"] = font["size_mm"]
 
+    # Logo - v4-only addition (see module docstring) - same schema/
+    # loading as Blickensderfer/Postal's logo: section, reusing
+    # cylinder_machine.LogoText() directly.
+    logo = cfg["logo"]
+    g["LOGO_FONT_PATH"] = logo["font_path"]
+    g["Logo_Text"] = logo["text"]
+    g["Logo_Text_Size"] = logo["text_size_mm"]
+    g["Logo_Text_Spacing"] = logo["text_spacing"]
+    g["Logo_Position_Offset"] = logo["position_offset_deg"]
+    g["Logo_Text_Offset"] = logo["text_offset_deg"]
+    g["Logo_Radial_Offset"] = logo.get("radial_offset_mm", 1.5)
+
     e = cfg["element"]
     # v2/heliosklimax.scad:59 - z=.01, same magnitude as Blickensderfer/
     # Postal (not Mignon/Bennett's 0.001) - no divergence to explain.
     g["z"] = 0.01
     g["Platen_Diameter"] = e["platen_diameter"]
     g["Element_Diameter"] = e["element_diameter"]
+    # Logo_Radius - byte-identical formula to Blickensderfer/Postal's
+    # (see the module docstring's Logo note) - needs Element_Diameter,
+    # set just above.
+    g["Logo_Radius"] = g["Element_Diameter"] / 2 - 2.0
     g["Min_Final_Character_Diameter"] = e["min_final_character_diameter"]
     g["Char_Protrusion"] = (e["min_final_character_diameter"] - e["element_diameter"]) / 2.0
     g["Element_Height"] = e["element_height"]
@@ -399,6 +433,7 @@ def _final_cut(render_core_groove=None):
         cylinder_machine.CoreChamfer(0),
         cylinder_machine.SecondaryCore(0),
         cylinder_machine.CoreEllipses(),
+        cylinder_machine.LogoText(),
     ]
     if render_core_groove:
         parts.append(cylinder_machine.CoreGrooves(0))
