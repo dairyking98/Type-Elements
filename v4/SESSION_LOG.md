@@ -5222,3 +5222,30 @@ Not done in this pass (no signal it's wanted, and matches Selectric's
 own precedent of deferring the same feature at first port):
 `CalibrationElement`/`CalibrationAdditive` for any of the 5 new
 machines.
+
+**Correction, found by the user running the real TUI (not caught by
+this part's own "headless-tested" verification claim above):**
+`_compose_tuner_ui()` never actually called `_compose_section_tab
+("Character")`/`("Ticks")` for the two new section names this port
+added - `self.FIELDS` (built by flattening `SECTIONS_BY_MACHINE`)
+included their fields regardless, so `self.inputs` (populated only by
+`_compose_section_tab` actually running) was missing entries for them,
+crashing on `self.inputs[key]` (`KeyError: 'char_enabled'`) the moment
+any generic FIELDS loop touched one - reproduced live via "Reset to
+Defaults". The headless test this part described above only exercised
+`TuneApp.__init__` (SECTIONS/FIELDS construction, `patch_yaml_value()`
+round-trips against raw config values) - it never actually mounted the
+app, so it could not have caught a missing-`_compose_section_tab()`-call
+bug like this one. Fixed by adding the two missing `if "Character"/
+"Ticks" in self.SECTIONS: yield from self._compose_section_tab(...)`
+calls. Re-verified properly this time using Textual's own
+`App.run_test()` harness (which DOES mount the app for real) - confirms
+every one of the 5 new machines' `self.FIELDS` now has a real widget in
+`self.inputs`, and reproduces+confirms-fixed the exact `action_reset_
+defaults()` crash path the user hit; also re-ran the same `run_test()`
+check against `bennett`/`selectric12` to confirm the two new
+conditional blocks don't affect any existing machine. Lesson for next
+time: a "headless" tune.py test that never calls `run_test()`/mounts
+the app cannot verify anything about widget composition or `self.
+inputs` - construction-only testing of `TuneApp` is real but partial
+coverage, not a substitute for actually mounting it.
