@@ -364,4 +364,4 @@ legend:
   lowercase_mod_chars: ";,'"          # v1 Lowercase_Mod (:23) - minus the literal "☺" (a real character in v1's string, but not a meaningful key on any of this config's real layout.rows - see lib/hammond_legend.py if you need to add it back for a custom layout)
   fig_dupe_chars: "."                 # v1 FIG_Dupe (:25)
   circle_segments: 32                 # v4-only - shapely buffer() quad_segs for every circle (v1 used OpenSCAD's default $fn)
-  flatness_tolerance_mm: 0.01         # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
+  legend_flatness_tolerance_mm: 0.01         # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element

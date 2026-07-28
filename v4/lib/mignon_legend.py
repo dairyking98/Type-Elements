@@ -179,13 +179,13 @@ def configure(config_path):
     g["Square_Pattern_Pitch"] = lg.get("square_pattern_pitch_mm", 0.8)
     g["Checker"] = lg.get("checker", False)
     g["Type_Size"] = lg.get("type_size_mm", 5.0)
-    g["Height_Offset"] = lg.get("height_offset_mm", 2.1)
+    g["Height_Offset"] = lg.get("legend_height_offset_mm", 2.1)
     g["Circle_Segments"] = lg.get("circle_segments", 32)
     g["Weight_Adjustment"] = lg.get("weight_adjustment_mm", 0.0)
     g["Circle_Fill"] = lg.get("circle_fill", _DEFAULT_CIRCLE_FILL)
     g["Background_Fill"] = lg.get("background_fill", _DEFAULT_BACKGROUND_FILL)
     g["Solid_Fill"] = lg.get("solid_fill", _DEFAULT_SOLID_FILL)
-    g["FLATNESS_TOLERANCE_MM"] = lg.get("flatness_tolerance_mm", 0.01)
+    g["FLATNESS_TOLERANCE_MM"] = lg.get("legend_flatness_tolerance_mm", 0.01)
 
     hg = lg.get("height_offset_groups", {})
     g["HEIGHT_OFFSET_GROUPS"] = [

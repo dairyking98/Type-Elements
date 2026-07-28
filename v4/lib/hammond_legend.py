@@ -132,7 +132,7 @@ def configure(config_path):
     g["Lowercase_Mod"] = lg.get("lowercase_mod_chars", ";,'")
     g["FIG_Dupe"] = lg.get("fig_dupe_chars", ".")
     g["Circle_Segments"] = lg.get("circle_segments", 32)
-    g["FLATNESS_TOLERANCE_MM"] = lg.get("flatness_tolerance_mm", 0.01)
+    g["FLATNESS_TOLERANCE_MM"] = lg.get("legend_flatness_tolerance_mm", 0.01)
 
     g["QW_Spacing"] = QP_Length / 9.0
     g["Y_Spacing"] = Center_to_Center_Height / 2.0

@@ -297,4 +297,4 @@ legend:
   lowercase_mod_chars: ";,'"
   fig_dupe_chars: "."
   circle_segments: 32
-  flatness_tolerance_mm: 0.01
+  legend_flatness_tolerance_mm: 0.01

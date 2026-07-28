@@ -249,7 +249,7 @@ legend:
   square_pattern_pitch_mm: 0.8  # v1 Square_Pattern_Pitch (:45) - Checker only
   checker: false                # v1 Checker (:47) - off by default, v1's own comment: "slow - do last"
   type_size_mm: 5.0             # v1 Type_Size (:51) - a paper/laser-cut card, unrelated to font.size_mm's 2.45mm engraved element size
-  height_offset_mm: 2.1         # v1 Height_Offset (:63) - circle center to text baseline
+  legend_height_offset_mm: 2.1         # v1 Height_Offset (:63) - circle center to text baseline
   circle_segments: 32           # v4-only - shapely buffer() quad_segs for every circle/ellipse (v1 used $fn=$preview?30:60, :79)
   # v1's Weight_Adj mechanism is unported (self-contradictory in v1, real
   # default value a no-op regardless) - see lib/mignon_legend.py's module
@@ -302,4 +302,4 @@ legend:
     - [0,0,0,0,0,0,1,1,1,1,1,0]
     - [0,0,0,0,0,0,1,1,1,1,1,0]
     - [0,0,0,0,0,0,0,0,0,0,0,0]
-  flatness_tolerance_mm: 0.01   # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
+  legend_flatness_tolerance_mm: 0.01   # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
