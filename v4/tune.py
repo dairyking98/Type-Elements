@@ -505,6 +505,10 @@ LEGEND_FIELDS_MIGNON = [
      "Replaces v1's own self-contradictory/no-op-by-default bolding knob."),
     ("circle_segments", ["legend", "circle_segments"], int, "Circle segments", ""),
     ("legend_flatness_tolerance_mm", ["legend", "legend_flatness_tolerance_mm"], float, "Glyph outline tolerance (mm)", ""),
+    ("inner_border", ["legend", "inner_border"], bool, "Inner border",
+     "Draws an explicit border around the interior circle grid (v1's own "
+     "LiningRectangle() - real geometry, but dead code in v1's actual "
+     "output, off by default here too)."),
 ]
 
 QUALITY_FIELDS_MIGNON = [

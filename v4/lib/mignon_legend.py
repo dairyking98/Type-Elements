@@ -182,6 +182,7 @@ def configure(config_path):
     g["Height_Offset"] = lg.get("legend_height_offset_mm", 2.1)
     g["Circle_Segments"] = lg.get("circle_segments", 32)
     g["Weight_Adjustment"] = lg.get("weight_adjustment_mm", 0.0)
+    g["Inner_Border"] = lg.get("inner_border", False)
     g["Circle_Fill"] = lg.get("circle_fill", _DEFAULT_CIRCLE_FILL)
     g["Background_Fill"] = lg.get("background_fill", _DEFAULT_BACKGROUND_FILL)
     g["Solid_Fill"] = lg.get("solid_fill", _DEFAULT_SOLID_FILL)
@@ -224,6 +225,40 @@ def _cell_size():
     """v1's XY (MignonIndex.scad:169) - one grid cell's [width, height]."""
     return ((Length - 2 * Edge_to_Column) / (N_COLS - 1),
             (Width - 2 * Edge_to_Row) / (N_ROWS - 1))
+
+
+def _inner_border():
+    """v1 LiningRectangle() (MignonIndex.scad:260-267) - a thin rectangular
+    ring border around the interior 5x10 grid (the area with a visible
+    left/right edge where the checker-textured border frame stops and
+    the plain interior begins). This is real v1 geometry, but v1's own
+    Array2() (the file's actual live output) never calls it - Array1()
+    is the only caller, and Array1() is itself dead code (see the
+    module docstring) - so v1 never actually draws this border in any
+    real output. Exposed here as a genuine, real, OFF-BY-DEFAULT opt-in
+    feature (legend.inner_border) rather than silently left out, since
+    the underlying geometry is real (not invented) and some users may
+    want the explicit border v1's own dead code would have drawn.
+
+    mid_x/mid_y (v1:73-74) - the interior rectangle's edge sits halfway
+    between the border column/row (c/r=0) and the first interior column/
+    row (c/r=1); mid_xl/mid_yw (v1:76-77) is the interior rectangle's
+    full width/height. v1's own hardcoded 11/6 divisors are again N_COLS-1/
+    N_ROWS-1 here, matching every other grid-math function in this
+    module."""
+    if not Inner_Border:
+        return None
+    step_x, step_y = _cell_size()
+    mid_x = Edge_to_Column + step_x / 2.0
+    mid_y = Edge_to_Row + step_y / 2.0
+    mid_xl = Length - 2 * mid_x
+    mid_yw = Width - 2 * mid_y
+    cx, cy = Length / 2.0, Width / 2.0
+    outer = box(cx - (mid_xl + Line_Width) / 2.0, cy - (mid_yw + Line_Width) / 2.0,
+                cx + (mid_xl + Line_Width) / 2.0, cy + (mid_yw + Line_Width) / 2.0)
+    inner = box(cx - (mid_xl - Line_Width) / 2.0, cy - (mid_yw - Line_Width) / 2.0,
+                cx + (mid_xl - Line_Width) / 2.0, cy + (mid_yw - Line_Width) / 2.0)
+    return outer.difference(inner)
 
 
 def _circle_yfact():
@@ -445,6 +480,11 @@ def build_legend_geometry():
             difference(RadiusRectangle(), CheckerPattern(), ClearHoles(), ClearShape()),
             LineCircles(), ArrangeText(), SolidShape())
 
+    plus _inner_border() - real v1 geometry (LiningRectangle()) that's
+    dead code in v1's own actual output, added here as a genuine,
+    off-by-default opt-in (legend.inner_border) - see that function's
+    docstring.
+
     Returns one shapely (Multi)Polygon - the whole card as a single flat
     silhouette, exactly like v1's single extruded 2D shape."""
     _require_configured()
@@ -452,7 +492,7 @@ def build_legend_geometry():
     for cutter in (_checker_pattern(), _clear_holes(), _clear_shape()):
         if cutter is not None:
             base = base.difference(cutter)
-    additions = [g for g in (_line_circles(), _arrange_text(), _solid_shape()) if g is not None]
+    additions = [g for g in (_line_circles(), _arrange_text(), _solid_shape(), _inner_border()) if g is not None]
     return unary_union([base] + additions)
 
 

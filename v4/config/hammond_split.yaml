@@ -294,7 +294,14 @@ legend:
   fig_dupe_offset_mm: 3.0
   capfig_offset_mm: -1.5
   capfig_mod_chars: "!:?-\"&"
-  lowercase_mod_chars: ";,'"
+  # v1 Lowercase_Mod (see config/hammond.yaml's matching comment) plus
+  # "?"/"."/ ":" - this config's own real layout.rows[0] (the lowercase
+  # row) has these 3 as genuine standalone characters at their own key
+  # (not the lowercase form of that key's own CAP letter - e.g. idx 0 is
+  # "?" over CAP "!", not "!"'s lowercase form), so they'd otherwise be
+  # silently dropped the same way Hammond's own dash was - see that
+  # config's comment for the same reasoning/fix.
+  lowercase_mod_chars: ";,'?.:"
   fig_dupe_chars: "."
   circle_segments: 32
   legend_flatness_tolerance_mm: 0.01
