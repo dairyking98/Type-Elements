@@ -44,13 +44,13 @@ character:
 
 logo:
   logo_enabled: false             # GaugeTypeSlugSlug.scad's real body never imports an SVG either - see this file's header comment
-  svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/AR1.svg"
+  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/AR1.svg"
   scale_mm_per_unit: 0.02
   logo_depth_mm: 0.05
   location_frac: 0.5
   vogue_enabled: false
-  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-arrow.svg"
-  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-v.svg"
+  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
 
 label:
   text: "© Leonard Chau 2023"          # v1 Copyright_Text (GaugeTypeSlugSlug.scad:63)

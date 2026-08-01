@@ -70,9 +70,17 @@ cut, THEN union the bosses); FullElement's own final difference is only
 the genuine outer-scope cut (AlignmentPinHole/WireClip/the core_shaft
 family - see _final_cut()).
 
-No Logo/Label engraved text, no Shaft Gauge Test (v2's own header:
+No Logo/Label engraved TEXT, no Shaft Gauge Test (v2's own header:
 "Sections with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge
-Test) are omitted"). v2 also declares Resin_Support/Resin_Support_*
+Test) are omitted"). Logo() below IS a real feature despite that - v1's
+separate SVG_Logo mark (HeliosKlimaxTester.scad:103-104/365-368, an
+imported vector image cut into the top face, not engraved text) never
+existed in v2 either, so it's a DELIBERATE v1-sourced, not-a-v2-port
+addition, same category as the core_shaft enhancement above - see
+config/helios.yaml's logo: section for the full derivation (scale_mm_
+per_unit had to be re-derived against a real openscad-nightly render,
+not copied from v1's raw SVG_Scale=.03 - see lib/svg_import.py's module
+docstring for why). v2 also declares Resin_Support/Resin_Support_*
 parameters but never builds any support geometry with them (v2's own
 header, confirmed: no ResinRod/CutGroove-equivalent module anywhere in
 the file) - ResinSupport()/ResinPrint() below are a no-op/alias to
@@ -91,6 +99,7 @@ from glyph_poc import (
 import scad_primitives as sp
 import cylinder_machine
 import build_log
+import svg_import
 
 _configured = False
 
@@ -212,6 +221,15 @@ def configure(config_path):
     # transform in both v2 and v4 - no two-independent-transforms issue
     # here) - still threaded through as an explicit override.
     g["Angle_Half_Step"] = 0.0
+
+    # SVG Logo - v4-only addition, not a v2 port. See config/helios.yaml's
+    # logo: section comment and the module docstring's "Logo() below" note.
+    logo = cfg.get("logo", {})
+    g["Logo_Enabled"] = logo.get("logo_enabled", False)
+    g["Logo_Svg_File"] = logo.get("svg_file", "")
+    g["Logo_Scale_Mm_Per_Unit"] = logo.get("scale_mm_per_unit", 0.01)
+    g["Logo_Depth_Mm"] = logo.get("logo_depth_mm", 0.3)
+    g["Logo_X_Offset_Mm"] = logo.get("x_offset_mm", -6.25)
 
     align = cfg["alignment"]
     g["ALIGN_KWARGS"] = {
@@ -390,6 +408,25 @@ def _assemble(text_ring):
     return sp.union_all([stage1_body, ClipRetainer()])
 
 
+def Logo():
+    """"SVG Logo" (v1/HeliosKlimax/HeliosKlimaxTester.scad:365-368,
+    SVG_Logo toggle) - DELIBERATE v4-only ADDITION, not a v2 port (v2 has
+    no Logo concept for Helios at all - see the module docstring and
+    config/helios.yaml's logo: section). Cut into the top face, same as
+    v1: `translate([x_offset,0,Element_Height-depth]) rotate([0,0,90])
+    linear_extrude(depth+z) scale(...) import(svg, center=true)` - no
+    Minkowski draft (v1's own SVG_Logo is a plain linear_extrude, not
+    drafted like struck text)."""
+    flat = svg_import.build_svg_logo_mesh_2d(
+        [Logo_Svg_File], DEFAULT_FLATNESS_TOLERANCE_MM, Logo_Scale_Mm_Per_Unit)
+    prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces, Logo_Depth_Mm + z)
+    return sp.scad_transform(
+        prism,
+        ("translate", [Logo_X_Offset_Mm, 0, Element_Height - Logo_Depth_Mm]),
+        ("rotate", [0, 0, 90]),
+    )
+
+
 def _final_cut(render_core_groove=None):
     render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
     parts = [
@@ -402,6 +439,8 @@ def _final_cut(render_core_groove=None):
     ]
     if render_core_groove:
         parts.append(cylinder_machine.CoreGrooves(0))
+    if Logo_Enabled:
+        parts.append(Logo())
     return sp.union_all(parts)
 
 

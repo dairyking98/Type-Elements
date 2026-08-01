@@ -42,7 +42,7 @@ logo:
   # give AR1.svg a ~2mm span (matching v1's own "SVG_Size=2" naming),
   # not derived from v1's formula.
   logo_enabled: true
-  svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/AR1.svg"
+  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/AR1.svg"
   scale_mm_per_unit: 0.02
   logo_depth_mm: 0.05             # v1 SVG_Depth
   location_frac: 0.55        # v1 SVG_Location ("CMU Typewriter Text" preset)
@@ -57,8 +57,8 @@ logo:
   # even though unused (wing_slug._receive_config picks up every
   # capital-leading global unconditionally).
   vogue_enabled: false
-  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-arrow.svg"
-  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v1/Type Slugs/vogue-foundry-v.svg"
+  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
 
 label:
   text: "© Leonard Chau 2023"          # v1 Copyright_Text (TypeSlug.scad:44)

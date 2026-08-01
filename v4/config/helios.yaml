@@ -5,9 +5,12 @@
 # Helios's v2 source has NO SecondaryCore/CoreGrooves/CoreChamfer/
 # CoreEllipses system at all (its shaft bore was originally a plain
 # rotate_extrude() hull profile, HollowingElement() in lib/helios.py), NO
-# Logo/Label engraved-text feature, and NO Shaft Gauge Test - v2's own
+# Logo/Label engraved-TEXT feature, and NO Shaft Gauge Test - v2's own
 # header: "Sections with no Helios equivalent (Logo, Print Tolerances,
-# Shaft Gauge Test) are omitted rather than left empty." Its clip/wire-bite
+# Shaft Gauge Test) are omitted rather than left empty." (v1's separate
+# SVG_Logo mark - an imported vector image, not engraved text - IS ported
+# below as a deliberate v1-sourced, not-a-v2-port addition; see the
+# logo: section's own comment.) Its clip/wire-bite
 # mechanism (WireClip() below) is structurally similar in spirit to
 # Blickensderfer/Postal's own local (never-shared-to-a-lib) clip/wire-bite,
 # but built from plain hulled cylinders rather than core_shaft.scad
@@ -123,6 +126,44 @@ alignment:
   modified_left_offset_mm: 0.0
   modified_right_chars: ""
   modified_right_offset_mm: 0.0
+
+# SVG Logo - DELIBERATE v4-only ADDITION, not a v2 port (v2's own header
+# explicitly has no Logo concept for Helios at all - see this file's own
+# header above). Ground truth is v1/HeliosKlimax/HeliosKlimaxTester.scad's
+# SVG_Logo/SVG_Scale toggle instead (lines 103-104, 365-368) - the one
+# real Logo mechanism v1 ever had for this machine, engraved into the top
+# face in the same difference()-stage v1 cuts it in alongside Cutting
+# Center Shaft Hole/Cutting Wire Clip/Cutting Top Speed Holes - see
+# lib/helios.py's Logo()/_final_cut(). Source artwork copied from v1/
+# HeliosKlimax/helios-klimax.svg to assets/svg/helios-klimax.svg (see
+# lib/svg_import.py) - v1's own SVG_Scale=.03 is an OpenSCAD-import-space
+# value (that importer's own baked-in px/DPI convention - see
+# lib/svg_import.py's module docstring for why v4 doesn't reproduce it)
+# and does NOT mean the same thing as v4's real-mm scale_mm_per_unit
+# below. scale_mm_per_unit=0.010583 was derived by cross-checking v1's
+# actual rendered size with the real openscad-nightly binary (per this
+# file's own top-level CLAUDE.md "OpenSCAD binary" note):
+#   linear_extrude(0.31) scale([.03,.03])
+#   import("helios-klimax.svg", center=true)
+# renders a real 19.83mm x 7.27mm bounding box; scale_mm_per_unit is that
+# same physical size divided by the SVG's own raw path-unit extents
+# (~1873.5 x 687.3, post the file's internal <g transform="translate(0,
+# 906) scale(0.1,-0.1)">, which lib/svg_import.py now parses - a
+# potrace-style export convention AR1.svg/vogue-foundry-*.svg don't use).
+#
+# logo_enabled defaults OFF: SVG_Logo lived only in the experimental
+# Tester customizer (HeliosKlimaxTester.scad), never in the polished
+# HeliosKlimaxElement.scad, and its real size (19.8mm x 7.3mm) is large
+# relative to element.element_diameter=27.15mm - dial in logo_enabled/
+# x_offset_mm/scale_mm_per_unit against the real part before printing,
+# the same way every other estimate-not-measured value in this file
+# (core_chamfer etc., see the header note above) is meant to be.
+logo:
+  logo_enabled: false
+  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/helios-klimax.svg"
+  scale_mm_per_unit: 0.010583
+  logo_depth_mm: 0.3            # v1 Element_Label_Depth
+  x_offset_mm: -6.25            # v1's fixed translate([-6.25, 0, ...]) - see lib/helios.py's Logo()
 
 # mesh-pipeline build settings (v4-specific). placement_protrusion is left
 # at its default (Char_Protrusion) - NOT v2's raw Letter_Placement_

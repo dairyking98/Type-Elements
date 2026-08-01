@@ -5249,3 +5249,96 @@ time: a "headless" tune.py test that never calls `run_test()`/mounts
 the app cannot verify anything about widget composition or `self.
 inputs` - construction-only testing of `TuneApp` is real but partial
 coverage, not a substitute for actually mounting it.
+
+## 76. Part 75's branch merged to main; all repo SVGs relocated into `v4/assets/svg/`; `svg_import.py` gained real `<g transform>` support; Helios gets its own v1-sourced SVG logo (2026-07-31)
+
+Part 75's Type Slug port had been sitting on an unmerged branch
+(`worktree-hidden-bubbling-frog`) - user noticed the "Type Slugs" v1
+folder existed and asked to check for prior work before assuming it
+needed porting from scratch. `main` hadn't moved since that branch's
+merge-base, so it merged as a pure fast-forward (`git merge --ff-only`,
+zero conflicts).
+
+**SVG relocation.** That branch's configs (`type_slug.yaml`/
+`vogue_slug.yaml`/`gauge_slug.yaml`) referenced `v1/Type Slugs/*.svg`
+directly by absolute path rather than copying assets into `v4`. Per
+explicit user direction ("move all the svgs to v4"), all 6 repo SVGs
+(`helios-klimax.svg`, `Leo.svg`, `AR1.svg`, `vogue-foundry-arrow.svg`,
+`vogue-foundry-v.svg`, `vogue-foundry-complete.svg`) were copied to a
+new `v4/assets/svg/` directory and the 3 configs' `svg_file`/
+`vogue_arrow_svg_file`/`vogue_v_svg_file` paths repointed there. This is
+NOT the same move as fonts staying external in `/home/lchau/fonts/` -
+these SVGs already lived inside this same git repo (sibling `v1/`
+directory), so relocating them is an internal reorg, not a duplication
+of a genuinely-external asset library; the font convention was not
+changed. Regression-checked (`--no-minkowski`, verts/faces/volume
+identical before/after) for `type_slug`/`vogue_slug`. `Leo.svg` is
+copied but wired to nothing - grepping all of `v1` found no `.scad` that
+ever imports it; it appears to be unused standalone art even in v1.
+
+**`svg_import.py` bug found while porting Helios's own logo.** Attempting
+to reuse `lib/svg_import.py` (part 75) for `v1/HeliosKlimax/
+HeliosKlimaxTester.scad`'s `SVG_Logo` feature (`helios-klimax.svg`,
+lines 103-104/365-368 - a real feature, "Logo" not "log": user's
+original ask was misheard/mistyped as implementing "the log the same as
+v1", corrected mid-conversation once they clarified) surfaced a real
+gap: `helios-klimax.svg` (a potrace-style export) wraps its paths in
+`<g transform="translate(0,906) scale(0.1,-0.1)">`, which `parse_svg_
+contours_mm` silently ignored (module docstring claimed "no <g
+transform=...> content... confirmed by inspection" - true only for the
+two files actually in use at the time, AR1.svg/vogue-foundry-*.svg,
+which happen to have no such wrapper). Ignoring it produced raw contours
+10x too large. Fixed by adding a real `_parse_transform()`
+(translate/scale/rotate/matrix, chained, SVG-spec composition order) and
+walking the tree with accumulated transforms instead of a flat
+`root.iter()` for `<path>` tags. Verified two ways: (1) parsed
+`helios-klimax.svg`'s raw contour bbox now comes out ~1873x687, in the
+right ballpark of its own 1936x906 viewBox (was 18735x6873, 10x off,
+before the fix); (2) `type_slug`/`vogue_slug`/`gauge_slug` re-ran
+byte-identical (same verts/faces/volume) after the change, confirming no
+regression for files with no `<g transform>`.
+
+**Helios's own SVG logo.** Ported as a DELIBERATE v1-sourced addition,
+not a v2 port - v2/heliosklimax.scad's own header explicitly has no Logo
+concept for Helios at all (a fact `lib/helios.py`'s docstring, `config/
+helios.yaml`'s header, and `tune.py`'s SECTIONS comment all previously
+asserted unconditionally; all three corrected to distinguish "no
+engraved TEXT" (still true, v2-sourced) from "no SVG mark" (now false,
+v1-sourced) rather than silently contradicting the new code). v1's own
+`SVG_Scale=.03` is meaningless in v4 (OpenSCAD's `import()` bakes in its
+own px/DPI convention `svg_import.py` deliberately doesn't reproduce -
+see that module's docstring) - so the real physical size v1 actually
+produces had to be independently established: rendered `linear_extrude
+(0.31) scale([.03,.03]) import("helios-klimax.svg", center=true)`
+through the real `openscad-nightly` binary (this repo's own top-level
+CLAUDE.md "OpenSCAD binary" cross-check technique), measured a real
+19.83mm x 7.27mm bounding box, and divided by the SVG's own raw
+path-unit extents to get `scale_mm_per_unit=0.010583`. New `config/
+helios.yaml` `logo:` section (`logo_enabled` default **false**,
+`svg_file`, `scale_mm_per_unit`, `logo_depth_mm`, `x_offset_mm`); new
+`lib/helios.py` `Logo()` (flat SVG -> `extrude_triangulation` -> `sp.
+scad_transform` translate-then-rotate, matching v1's real transform
+order - no Minkowski draft, v1's own SVG_Logo isn't drafted either),
+wired into `_final_cut()` gated on `Logo_Enabled` (same difference()
+stage v1 cuts it in, alongside Cutting Center Shaft Hole/Wire Clip/Speed
+Holes); new `tune.py` `LOGO_FIELDS_HELIOS`/`"Logo"` SECTIONS_BY_MACHINE
+entry, same generic-FIELDS convention as the Type Slug family's `Logo`
+tab.
+
+Defaulted OFF, unlike v1: `SVG_Logo=true` was v1's own Tester-customizer
+default, but that feature only ever lived in the experimental `HeliosKlimaxTester.scad`, never in the polished `HeliosKlimaxElement.scad`,
+and its real size (19.8mm x 7.3mm) is large relative to `element.
+element_diameter=27.15mm` - directly confirmed by dumping `Logo()`'s
+mesh bounds (`x:[-9.89,-2.61] y:[-9.91,9.91]`), whose corners fall
+slightly outside the element's own radius (13.575mm). Left enabled for
+the user to dial in `x_offset_mm`/`scale_mm_per_unit` against the real
+part, the same "estimate, not measured" treatment this same config file
+already gives `core_chamfer` etc.
+
+**Hard-gate verification**: `helios.yaml` with `logo_enabled: false`
+(the new default) reproduces the pre-change baseline exactly (`verts=
+118755 faces=237534 volume=4201.434mm3`, `--no-minkowski`). With `logo_
+enabled: true`, still watertight/winding_consistent/is_volume=True,
+volume drops to 4196.183mm3 (~5.25mm3 removed by the engraving cut, a
+plausible order of magnitude for a shallow 0.3mm-deep mark of this
+size).

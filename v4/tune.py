@@ -610,10 +610,13 @@ ELEMENT_FIELDS_BENNETT = [
 ]
 
 # Helios-specific tabs - see lib/helios.py's module docstring for why
-# these can't share any other machine's field lists. No "Logo"/"Label" key
-# at all (v2 has no engraved-text feature - v2's own header: "Sections
-# with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge Test) are
-# omitted"), no "Gauge" key (same reason).
+# these can't share any other machine's field lists. No "Label" key (v2
+# has no engraved-TEXT feature - v2's own header: "Sections with no
+# Helios equivalent (Logo, Print Tolerances, Shaft Gauge Test) are
+# omitted"), no "Gauge" key (same reason). "Logo" IS present below -
+# unlike v2, v1's separate SVG_Logo mark (an imported vector image, not
+# engraved text) was ported as a deliberate v1-sourced addition - see
+# LOGO_FIELDS_HELIOS and config/helios.yaml's logo: section.
 QUALITY_FIELDS_HELIOS = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
@@ -646,6 +649,16 @@ RESIN_FIELDS_HELIOS = [
      "Support spacing (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
     ("resin_support_contact_radius", ["resin", "resin_support_contact_radius"], float,
      "Support contact radius (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+]
+
+LOGO_FIELDS_HELIOS = [
+    ("logo_enabled", ["logo", "logo_enabled"], bool, "SVG logo enabled",
+     "v1's SVG_Logo mark, cut into the top face - defaults off, see config/helios.yaml's logo: section for why."),
+    ("svg_file", ["logo", "svg_file"], str, "Logo SVG file", ""),
+    ("scale_mm_per_unit", ["logo", "scale_mm_per_unit"], float, "Logo scale (mm per SVG unit)",
+     "v4-only knob - see lib/svg_import.py's module docstring for why this isn't a port of v1's own SVG_Scale."),
+    ("logo_depth_mm", ["logo", "logo_depth_mm"], float, "Logo engraving depth (mm)", "v1 Element_Label_Depth."),
+    ("x_offset_mm", ["logo", "x_offset_mm"], float, "Logo X offset (mm)", "v1's fixed translate([x_offset,0,...])."),
 ]
 
 ELEMENT_FIELDS_HELIOS = [
@@ -1244,10 +1257,12 @@ SECTIONS_BY_MACHINE = {
                 "Element": ELEMENT_FIELDS_BENNETT},
     # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
     # scad's own header: "Sections with no Helios equivalent (Logo, Print
-    # Tolerances, Shaft Gauge Test) are omitted"). No "Logo"/"Label" key
-    # either - same header, no engraved-text feature at all.
-    "helios": {**SECTIONS_COMMON, "Quality": QUALITY_FIELDS_HELIOS, "Resin": RESIN_FIELDS_HELIOS,
-               "Element": ELEMENT_FIELDS_HELIOS},
+    # Tolerances, Shaft Gauge Test) are omitted"). No "Label" key either -
+    # same header, no engraved-TEXT feature at all. "Logo" key IS present
+    # (LOGO_FIELDS_HELIOS) - v1's separate SVG_Logo mark, a deliberate
+    # v1-sourced addition v2 never had - see that list's own comment.
+    "helios": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
+               "Resin": RESIN_FIELDS_HELIOS, "Element": ELEMENT_FIELDS_HELIOS},
     # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
     # module docstring) - its two whole-string engraved labels are the
     # "Label" tab instead, same convention as Bennett.

@@ -8,14 +8,30 @@ this is a real, from-scratch path-data parser, not a shortcut - per
 CLAUDE.md's geometry invariants, the logo still has to go through the
 same real Minkowski/boolean pipeline as every struck character.
 
-Scope: only <path d="..."> elements are read (every hand-drawn SVG this
-repo actually uses - AR1.svg, vogue-foundry-*.svg - is a flat list of
-<path>s with no <rect>/<circle>/<use>/<g transform=...>/gradient/clip
-content - confirmed by inspection), across the standard SVG path command
-set (M/L/H/V/C/S/Q/T/A, upper absolute + lower relative, Z close). Curve
-flattening reuses glyph_poc's adaptive de Casteljau subdivision
-(flatten_cubic/flatten_quadratic) - same flatness_tolerance_mm knob,
-same technique, not a separate/second curve-flattening scheme.
+Scope: only <path d="..."> elements are read (no <rect>/<circle>/<use>/
+gradient/clip content in any SVG this repo actually uses - AR1.svg,
+vogue-foundry-*.svg, helios-klimax.svg - confirmed by inspection), across
+the standard SVG path command set (M/L/H/V/C/S/Q/T/A, upper absolute +
+lower relative, Z close). Curve flattening reuses glyph_poc's adaptive de
+Casteljau subdivision (flatten_cubic/flatten_quadratic) - same
+flatness_tolerance_mm knob, same technique, not a separate/second
+curve-flattening scheme.
+
+<g transform="..."> IS handled (translate/scale/rotate/matrix, chained,
+inherited down the tree) - added when porting Helios's logo
+(helios-klimax.svg, a potrace-style export) surfaced a real case: its
+paths sit inside `<g transform="translate(0,906) scale(0.1,-0.1)">`, a
+10x-oversized-then-rescaled-and-Y-flipped coordinate convention common to
+potrace/Illustrator output. AR1.svg/vogue-foundry-*.svg happen to have no
+such wrapper (flat <path> list, identity transform), which is why the
+original "confirmed by inspection" scope note above didn't catch this -
+inspect the SPECIFIC file being ported, not just the two already in use,
+before assuming this stays true for a new one. flatness_tolerance_mm's
+conversion to raw-unit tolerance (see parse_svg_contours_mm) only
+accounts for scale_mm_per_unit, not any additional <g> scale - a nested
+group scale just means curves get flattened a bit finer than strictly
+necessary, never coarser/wrong, so this is a performance nit, not a
+correctness gap.
 
 Coordinate convention: SVG authoring space is Y-DOWN; this module
 returns Y-UP mm contours (negates Y after scaling) so a parsed logo
@@ -42,10 +58,49 @@ from glyph_poc import flatten_cubic, flatten_quadratic
 
 
 _TOKEN_RE = re.compile(r"[MmLlHhVvCcSsQqTtAaZz]|-?\d*\.?\d+(?:[eE][-+]?\d+)?")
+_TRANSFORM_FN_RE = re.compile(r"(\w+)\s*\(([^)]*)\)")
 
 
 def _tokenize(d):
     return _TOKEN_RE.findall(d)
+
+
+def _parse_transform(s):
+    """SVG transform="..." -> 3x3 homogeneous 2D affine matrix. Supports
+    translate/scale/rotate/matrix (every function actually seen in this
+    repo's SVGs), applied left-to-right per the SVG spec (each function
+    right-multiplies onto the accumulated matrix, same composition order
+    as nesting that many individual <g> elements)."""
+    m = np.eye(3)
+    for name, args in _TRANSFORM_FN_RE.findall(s):
+        vals = [float(v) for v in re.split(r"[,\s]+", args.strip()) if v]
+        if name == "translate":
+            tx, ty = vals[0], (vals[1] if len(vals) > 1 else 0.0)
+            f = np.array([[1.0, 0.0, tx], [0.0, 1.0, ty], [0.0, 0.0, 1.0]])
+        elif name == "scale":
+            sx = vals[0]
+            sy = vals[1] if len(vals) > 1 else sx
+            f = np.array([[sx, 0.0, 0.0], [0.0, sy, 0.0], [0.0, 0.0, 1.0]])
+        elif name == "rotate":
+            a = np.radians(vals[0])
+            cx, cy = (vals[1], vals[2]) if len(vals) > 2 else (0.0, 0.0)
+            c, sn = np.cos(a), np.sin(a)
+            rot = np.array([[c, -sn, 0.0], [sn, c, 0.0], [0.0, 0.0, 1.0]])
+            to_origin = np.array([[1.0, 0.0, -cx], [0.0, 1.0, -cy], [0.0, 0.0, 1.0]])
+            back = np.array([[1.0, 0.0, cx], [0.0, 1.0, cy], [0.0, 0.0, 1.0]])
+            f = back @ rot @ to_origin
+        elif name == "matrix":
+            a, b, c, d, e, ff = vals
+            f = np.array([[a, c, e], [b, d, ff], [0.0, 0.0, 1.0]])
+        else:
+            continue
+        m = m @ f
+    return m
+
+
+def _apply_affine(pts, m):
+    homo = np.concatenate([pts, np.ones((len(pts), 1))], axis=1)
+    return (homo @ m.T)[:, :2]
 
 
 def _flatten_arc(p0, rx, ry, phi_deg, large_arc, sweep, p1, tol):
@@ -284,17 +339,24 @@ def parse_svg_contours_mm(svg_path, flatness_tolerance_mm, scale_mm_per_unit, ce
     tree = ET.parse(svg_path)
     root = tree.getroot()
     contours = []
-    for elem in root.iter():
+    tol_units = flatness_tolerance_mm / scale_mm_per_unit
+
+    def walk(elem, parent_m):
         tag = elem.tag.split("}")[-1]
-        if tag != "path":
-            continue
-        d = elem.get("d")
-        if not d:
-            continue
-        for contour in _parse_path_d(d, flatness_tolerance_mm / scale_mm_per_unit):
-            pts = contour * scale_mm_per_unit
-            pts[:, 1] *= -1.0
-            contours.append(pts)
+        t = elem.get("transform")
+        m = parent_m @ _parse_transform(t) if t else parent_m
+        if tag == "path":
+            d = elem.get("d")
+            if d:
+                for contour in _parse_path_d(d, tol_units):
+                    contour = _apply_affine(contour, m)
+                    pts = contour * scale_mm_per_unit
+                    pts[:, 1] *= -1.0
+                    contours.append(pts)
+        for child in elem:
+            walk(child, m)
+
+    walk(root, np.eye(3))
     if center and contours:
         all_pts = np.concatenate(contours, axis=0)
         bbox_center = (all_pts.min(axis=0) + all_pts.max(axis=0)) / 2.0
