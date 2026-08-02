@@ -545,6 +545,12 @@ LABEL_FIELDS_BENNETT = [
     ("label2", ["label", "label2"], str, "Label 2 (left group)", "Shuttle_Label2 - e.g. a year."),
     ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", ""),
     ("depth_mm", ["label", "depth_mm"], float, "Label depth offset (mm)", "Added to Bottom_Countersink_Depth for the cut's Z start."),
+    ("label1a_radial_mm", ["label", "label1a_radial_mm"], float, "Label 1a radial distance (mm)",
+     "World-X distance of label1a's text from the shaft center. Independent of label1b/label2 - see LabelText()'s docstring."),
+    ("label1b_radial_mm", ["label", "label1b_radial_mm"], float, "Label 1b radial distance (mm)",
+     "World-X distance of label1b's text from the shaft center. Independent of label1a/label2 - see LabelText()'s docstring."),
+    ("label2_radial_mm", ["label", "label2_radial_mm"], float, "Label 2 radial distance (mm)",
+     "World-X distance of label2's text from the shaft center (negative = opposite side from label1a/1b)."),
 ]
 
 QUALITY_FIELDS_BENNETT = [
@@ -1121,13 +1127,17 @@ LOGO_FIELDS_SLUG = [
      "The AR1.svg-style single-mark logo - off for Vogue Slug/Gauge Slug (see vogue_enabled below for Vogue Slug's own real logo)."),
     ("svg_file", ["logo", "svg_file"], str, "Logo SVG file", ""),
     ("scale_mm_per_unit", ["logo", "scale_mm_per_unit"], float, "Logo scale (mm per SVG unit)",
-     "v4-only knob - see lib/svg_import.py's module docstring for why this isn't a port of v1's own SVG_Scale."),
+     "v4-only knob - see lib/svg_import.py's module docstring for why this isn't a port of v1's own SVG_Scale. "
+     "AR1.svg's own value - a DIFFERENT SVG viewBox/scale than the Vogue Foundry mark below, not interchangeable."),
     ("logo_depth_mm", ["logo", "logo_depth_mm"], float, "Logo engraving depth (mm)", ""),
     ("location_frac", ["logo", "location_frac"], float, "Logo position (fraction of body length)", ""),
     ("vogue_enabled", ["logo", "vogue_enabled"], bool, "Vogue Foundry mark enabled",
      "The real 2-piece arrow+V mark - only ever on for Vogue Slug."),
     ("vogue_arrow_svg_file", ["logo", "vogue_arrow_svg_file"], str, "Vogue arrow SVG file", ""),
     ("vogue_v_svg_file", ["logo", "vogue_v_svg_file"], str, "Vogue V SVG file", ""),
+    ("vogue_scale_mm_per_unit", ["logo", "vogue_scale_mm_per_unit"], float, "Vogue mark scale (mm per SVG unit)",
+     "The Vogue Foundry mark's OWN scale - separate from scale_mm_per_unit above (AR1.svg has a much larger "
+     "viewBox than the arrow/V marks; v1 itself uses two different scale variables here, SVG_Scale vs SVG_V1_Scale)."),
 ]
 
 LABEL_FIELDS_SLUG = [
@@ -1746,6 +1756,31 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
     },
 }
 
+# Two real "Ideal_Element" variants for the figures row's £/⅌ position -
+# see SESSION_LOG.md part 77's archaeology. v1's oldest source
+# (HammondSplitShuttle.scad, Feb 2024) had a commented-out "Layout as
+# 'stamped'" figures row using ⅌ (the per-unit sign - also Char_Mod's
+# own default value, config/hammond_split.yaml's char_mod.char) in place
+# of £ at the same position; every later revision (HammondSplitShuttle2.
+# scad onward, including v2/hammond_split.scad and v4's shipped default)
+# uses £ there instead, with no trace of the ⅌ variant left in the
+# source. Both are real historical values, not invented - installed as
+# two selectable presets (per explicit user request) rather than picking
+# one. Rows 0/1 are identical between them; only row 2's one £/⅌
+# character differs.
+LAYOUT_PRESETS_HAMMOND_SPLIT = {
+    "IDEAL (£)": [
+        "?zxqkjgdmpcfld,.taherisounwyv:",
+        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+        "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔",
+    ],
+    "IDEAL (⅌)": [
+        "?zxqkjgdmpcfld,.taherisounwyv:",
+        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+        "¾%⅞⅝½⅜1⅛2¢3⅌4$56“7”8’9[0]¼*⅓†⅔",
+    ],
+}
+
 # The 3 Selectric machines' layout.rows is 8 rows (4 lowercase then 4
 # uppercase, keyboard reading order) instead of the cylinder family's
 # 3-4 shift-row shape - see config/selectric12.yaml's layout.rows comment
@@ -1853,6 +1888,7 @@ LAYOUT_PRESETS_BY_MACHINE = {
     "bennett": LAYOUT_PRESETS_BENNETT,
     "helios": LAYOUT_PRESETS_HELIOS,
     "hammond": LAYOUT_PRESETS_HAMMOND,
+    "hammond_split": LAYOUT_PRESETS_HAMMOND_SPLIT,
     "selectric12": LAYOUT_PRESETS_SELECTRIC12,
     "selectric3": LAYOUT_PRESETS_SELECTRIC3,
     "selectric_composer": LAYOUT_PRESETS_SELECTRIC_COMPOSER,
@@ -1898,6 +1934,13 @@ LAYOUT_PICKER_HELP = {
         "not a separate toggle), and resizes baseline_row/cutout_row to "
         "match. Both are real v2 presets - v1's original source has "
         "nothing extra beyond these two."
+    ),
+    "hammond_split": (
+        "IDEAL (£) is the shipped default; IDEAL (⅌) swaps in the "
+        "per-unit sign at that same figures-row position instead - both "
+        "are real values found in the source history (see SESSION_LOG.md "
+        "part 77). Char_Mod (Font & Alignment tab) only has an effect "
+        "under IDEAL (⅌), since ⅌ isn't in IDEAL (£)'s rows at all."
     ),
     "selectric12": (
         "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
@@ -2937,11 +2980,24 @@ class TuneApp(App):
                     classes="picker-help")
                 yield Static("Test text", classes="field-label")
                 yield TextArea(self.cfg["type_test"]["text"], id="type-test-text")
-                with Vertical(classes="field-row"):
-                    with Horizontal():
-                        yield Static("CPI", classes="field-label")
-                        yield Input(value=str(self.cfg["type_test"]["cpi"]), id="type-test-cpi")
-                    yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
+                if self.machine == "selectric_composer":
+                    yield Static(
+                        "Selectric Composer used real proportional spacing, not fixed-pitch "
+                        "CPI - each character has its own width in Units (Composer_Pitch_List), "
+                        "converted to mm via Units/inch below (72/84/96 - v2's Red/Yellow/Blue "
+                        "wheel). LPI still sets line spacing.",
+                        classes="picker-help")
+                    with Vertical(classes="field-row"):
+                        with Horizontal():
+                            yield Static("Units/inch", classes="field-label")
+                            yield Input(value=str(self.cfg["type_test"]["units_per_inch"]), id="type-test-units-per-inch")
+                        yield Static("v2's Units_Per_Inch - 72 (Red), 84 (Yellow), or 96 (Blue).", classes="field-help")
+                else:
+                    with Vertical(classes="field-row"):
+                        with Horizontal():
+                            yield Static("CPI", classes="field-label")
+                            yield Input(value=str(self.cfg["type_test"]["cpi"]), id="type-test-cpi")
+                        yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
                 with Vertical(classes="field-row"):
                     with Horizontal():
                         yield Static("LPI", classes="field-label")
@@ -3103,14 +3159,29 @@ class TuneApp(App):
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
         # patch_yaml_value's one-token regex doesn't apply)
-        cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
         lpi_raw = self.query_one("#type-test-lpi", Input).value.strip()
         try:
-            values["cpi"] = float(cpi_raw)
             values["lpi"] = float(lpi_raw)
         except ValueError:
-            self.log_line(f"[red]bad Type Test CPI/LPI value: {cpi_raw!r}/{lpi_raw!r} (expected numbers)[/red]")
+            self.log_line(f"[red]bad Type Test LPI value: {lpi_raw!r} (expected a number)[/red]")
             return None
+        if self.machine == "selectric_composer":
+            units_raw = self.query_one("#type-test-units-per-inch", Input).value.strip()
+            try:
+                values["units_per_inch"] = float(units_raw)
+            except ValueError:
+                self.log_line(f"[red]bad Units/inch value: {units_raw!r} (expected a number)[/red]")
+                return None
+        else:
+            # CPI doesn't apply to Composer - real proportional spacing
+            # (Units/inch above) replaces it entirely, so its widget isn't
+            # composed for that machine (see _compose_type_test_tab).
+            cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
+            try:
+                values["cpi"] = float(cpi_raw)
+            except ValueError:
+                self.log_line(f"[red]bad Type Test CPI value: {cpi_raw!r} (expected a number)[/red]")
+                return None
         # layout.baseline_row/cutout_row per-row fields (Element tab) -
         # bespoke like everything above, since they're list elements, not
         # standalone scalar YAML keys - see BASELINE_CUTOUT_KEYS/
@@ -3248,8 +3319,11 @@ class TuneApp(App):
             b = self.cfg.get("build", {})
             self.query_one("#build-render-left", Switch).value = bool(b.get("render_left", True))
             self.query_one("#build-render-right", Switch).value = bool(b.get("render_right", True))
-        self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
+        if self.machine == "selectric_composer":
+            self.query_one("#type-test-units-per-inch", Input).value = str(self.cfg["type_test"]["units_per_inch"])
+        else:
+            self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
         if self.HAS_LAYOUT_TAB:
             display_rows = self._display_rows_for_preset()
@@ -3537,12 +3611,19 @@ class TuneApp(App):
         self._save_to_yaml(values)
 
         text = self.query_one("#type-test-text", TextArea).text
-        cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
-        try:
-            cpi = float(cpi_raw)
-        except ValueError:
-            self.log_line(f"[red]bad CPI value: {cpi_raw!r}[/red]")
-            return
+        if self.machine == "selectric_composer":
+            # No CPI widget for Composer (see _compose_type_test_tab) -
+            # real proportional spacing (Units/inch, --composer-config
+            # below) replaces it entirely, so the value passed here is
+            # never actually used by build_type_test_line.
+            cpi = self.cfg["type_test"]["cpi"]
+        else:
+            cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
+            try:
+                cpi = float(cpi_raw)
+            except ValueError:
+                self.log_line(f"[red]bad CPI value: {cpi_raw!r}[/red]")
+                return
         lpi_raw = self.query_one("#type-test-lpi", Input).value.strip()
         try:
             lpi = float(lpi_raw)
@@ -3590,6 +3671,26 @@ class TuneApp(App):
             cmd += ["--modified-right-chars=" + self.inputs["modified_right_chars"].value]
         if "modified_right_offset_mm" in self.inputs:
             cmd += ["--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value]
+        # Hammond Split's Char_Mod (per-character font/size override,
+        # FONT_FIELDS_HAMMOND_SPLIT's "char"/"char_mod_font_path"/
+        # "char_mod_size_mm" fields) - no other machine's field list uses
+        # the "char" key, so this is a no-op everywhere else. Without this,
+        # Type Test always rendered every character in the base font/size,
+        # never honoring Char_Mod the way the real element's TextAssemble()
+        # does per character.
+        if "char" in self.inputs and self.inputs["char"].value:
+            cmd += ["--mod-chars=" + self.inputs["char"].value,
+                    "--mod-font-path", self.inputs["char_mod_font_path"].value,
+                    "--mod-font-size-mm", self.inputs["char_mod_size_mm"].value]
+        # Selectric Composer's real proportional-spacing convention
+        # (Composer_Pitch_List/cumulativeSum - see type_test.py's
+        # --composer-config docstring) - self.config_path was already
+        # rewritten by _save_to_yaml above (including the just-edited
+        # Units/inch widget), so type_test.py reads type_test.pitch_list/
+        # units_per_inch/default_units straight off disk. No-op for every
+        # other machine.
+        if self.machine == "selectric_composer":
+            cmd += ["--composer-config", self.config_path]
         cmd += ["--out", out_path]
         returncode = await self._stream_subprocess(cmd)
         if returncode == 0:

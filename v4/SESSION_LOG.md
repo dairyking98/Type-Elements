@@ -5342,3 +5342,242 @@ enabled: true`, still watertight/winding_consistent/is_volume=True,
 volume drops to 4196.183mm3 (~5.25mm3 removed by the engraving cut, a
 plausible order of magnitude for a shallow 0.3mm-deep mark of this
 size).
+
+## 77. Bennett: 3 independent label radial distances exposed; Hammond Split Type Test now honors Char_Mod; ⅌ layout archaeology; TODO logged for fleet-wide Char_Mod (2026-08-01)
+
+**Bennett label radial distances.** `LabelText()` (`lib/bennett.py`)
+used to nest Shuttle_Label1a inside Shuttle_Label1b's group, sharing ONE
+group `translate`/`rotate` with Label1a further offset by a local
+`translate([0,2.25,0])` - since the shared `rotate([180,0,90])` maps
+local `(x,y,z)` to world `(y,x,-z)`, that nested local-y offset actually
+landed entirely in world X (radial direction), meaning v2's Label1a and
+Label1b were always two independent radial numbers (3.45mm/5.70mm at
+stock `Shaft_Diameter=3.4`), just expressed as one offset nested inside
+another. Split into three flat, independently configurable values -
+`label.label1a_radial_mm`/`label1b_radial_mm`/`label2_radial_mm` - each
+label now gets its own `scad_transform` instead of sharing a group.
+Added to `config/bennett.yaml` and all 4 font-variant profiles plus
+`bennett.running.yaml`, and to `tune.py`'s `LABEL_FIELDS_BENNETT` (Label
+tab). Hard-gate verified: `generate.py --no-minkowski` on all 5 configs
+produces byte-identical `verts/faces/watertight/volume` before and after
+(compared via `git stash` for the pre-change baseline) - a pure
+refactor, not a behavior change, at the defaults.
+
+**Hammond Split Type Test didn't honor Char_Mod.** User reported "modified
+characters" seemed broken; investigation of the real per-character
+font/size-swap path (`TextAssemble()`'s `is_mod = char in Char_Mod`)
+showed it working correctly in isolation (different bbox/volume when
+forced). The real bug: `type_test.py` (the flat CPI/LPI preview `tune.py`'s
+"Type Test" button drives) applies ONE font/size to every character in
+the test string - it has no concept of Char_Mod at all, unlike
+`TextAssemble()`. Fixed by adding optional `mod_chars`/`mod_font_path`/
+`mod_font_size_mm` params to `build_type_test_line()` (same `ch in
+mod_chars` check, no-op when `mod_chars=""`) and `--mod-chars`/
+`--mod-font-path`/`--mod-font-size-mm` CLI flags; `tune.py`'s
+`action_render_type_test` now passes Hammond Split's `char_mod.char`/
+`char_mod_font_path`/`char_mod_size_mm` fields through, gated on the
+`"char"` input key (unique to `FONT_FIELDS_HAMMOND_SPLIT`, so a no-op
+for every other machine). Verified: a forced mod char now produces
+different verts/volume in the Type Test output; the no-`--mod-*`-flags
+path is byte-identical to before the change.
+
+**⅌ (per-unit sign) archaeology - not a bug, a real author decision,
+left as-is.** User asked to check v1-v4 for any layout that actually
+contains `Char_Mod`'s default character (⅌) - it's genuinely absent
+from every version's ACTIVE default layout (`Ideal_Element`/`IDEAL`/
+`idealElement`, `Layout_Selection=0` in every version including v4's
+`config/hammond_split.yaml`), confirmed byte-for-byte. It only appears
+in the unwired `Qwerty_Element` alternate (all versions) - so `Char_Mod`
+has been a no-op under the shipped default in every version, not just
+v4. One real historical trace found: `v1/Hammond/
+HammondSplitShuttle.scad:22` (Feb 17 2024, the oldest version) has a
+COMMENTED-OUT `LAYOUT` array labeled "Layout as 'stamped'" whose figures
+row has ⅌ in place of £ at the same position - i.e. an earlier draft's
+"real machine" layout DID include ⅌ where the shipped `IDEAL` array now
+has £. But by `HammondSplitShuttle2.scad` (Jan 14 2026, the direct
+ancestor of `v2/hammond_split.scad` and everything after), that
+commented alternate is gone entirely, with no trace - £ has been the
+sole, uncommented figures-row value at that position across every
+version since. Read together: this looks like a deliberate real-machine
+correction made early in v1 (the physical Hammond's actual stamped key
+may print £ there, not ⅌) that was carried forward cleanly for two
+years and two full rewrites, with `Char_Mod="⅌"`/`CharMod`/`charMod`
+left unchanged alongside it the entire time - not a copy-paste drop.
+Not changed here; flagging the evidence for the user to decide (leave
+`Char_Mod` as a dead-by-default example value, repoint it at a character
+that's actually in `Ideal_Element`, or wire up `Qwerty_Element` as a
+real second layout preset).
+
+**Follow-up (same session): both £/⅌ variants installed as real,
+selectable presets**, per explicit user direction ("there is a version
+that contains the per symbol. i want to install both layouts, the one
+with and one without"). New `LAYOUT_PRESETS_HAMMOND_SPLIT` in `tune.py`
+(`"IDEAL (£)"` - the shipped default, byte-identical to `config/
+hammond_split.yaml`'s on-disk rows - and `"IDEAL (⅌)"` - identical rows
+0/1, row 2's one £/⅌ character swapped per the v1 archaeology above),
+wired into `LAYOUT_PRESETS_BY_MACHINE["hammond_split"]` and a new
+`LAYOUT_PICKER_HELP["hammond_split"]` banner noting Char_Mod only has an
+effect under the ⅌ variant. hammond_split previously had NO named-layout
+picker at all (only "Modify glyphs" freehand editing) - this is the
+first one. Verified both build clean: default config unchanged
+(confirms the `tune.py`-only change has no effect until someone actually
+picks the ⅌ preset and saves), and a scratch copy with row 2's £
+swapped for ⅌ builds watertight/winding_consistent/is_volume=True with
+a real (if small) volume delta - confirming Char_Mod actually engages
+end-to-end once ⅌ is present in the active layout.
+
+**TODO (explicit user request, not started): generalize Char_Mod
+(per-character font/size override) to every other machine.** Currently
+Hammond Split-only (`config/hammond_split.yaml`'s `char_mod:` section,
+`lib/hammond_split.py`'s `TextAssemble()`/`LetterText()`, `tune.py`'s
+`FONT_FIELDS_HAMMOND_SPLIT`, and now `type_test.py`'s `--mod-*` flags
+above). No other machine's config/lib/tune.py has an equivalent concept
+- every other machine's glyph loop (`cylinder_machine.TextRing`,
+`spherical_machine`'s per-side loops, the Type Slug family) calls a
+single shared `font_path`/`font_size_mm` for every character with no
+per-character override hook at all. Before starting: check whether any
+other machine's real v2/v1 source has its own equivalent concept (this
+repo's "always diff against the real v2 source before porting/adding a
+feature" rule) rather than assuming Hammond Split's exact shape
+(single `char_mod.char` string + one alternate font/size) is the right
+generalization for every machine - a machine with its own from-scratch
+glyph loop (like Hammond Split) will need this wired by hand the way
+`build_log` progress instrumentation did (see "Porting a new machine" /
+"TUI (tune.py)" sections of `CLAUDE.md`), while a machine that already
+reuses `cylinder_machine.TextRing`/`place_on_cylinder` will need the
+override threaded through that shared path instead - almost certainly
+NOT a copy-paste of Hammond Split's own code.
+
+## 78. Selectric Composer's real proportional-spacing Type Test ported (2026-08-01)
+
+User flagged "composer type test is very special, v1 maybe v2" -
+confirmed identical in both `v1/IBM/IBM2.scad` and `v2/ibm.scad` (+
+`v2/lib/layouts/ibm_layouts.scad`), and already noted as a deferred gap
+in `lib/selectric_composer.py`'s own docstring from the original
+Selectric port (part 65). Unlike every other machine's Type Test (and
+Selectric I/II/III's own `TextGauge()`), which use fixed monospace CPI
+slots, the real Composer used genuine proportional/justified-typesetting
+spacing: `Composer_Pitch_List` gives each character an integer UNIT
+width (3-9 units - `'M'/'W'/'m'`=9 down to punctuation/space=3, the
+real Composer's historical escapement-unit convention), converted to mm
+via `25.4/Units_Per_Inch` (72/84/96 - the "Red/Yellow/Blue wheel"
+setting), and `cumulativeSum()` of those per-character units drives each
+character's x-position - entirely different geometry per line than a
+uniform slot width.
+
+**Ported the core mechanic, not v2's specific keyboard-gauge UI around
+it.** v2's `TextGaugeComposerLine2` defaults to printing the ENTIRE
+88-char keyboard (`KBSTRING = CASES88[0]+CASES88[1]`) auto-wrapped into
+8 rows via hardcoded index breakpoints (`GetRow()`), with a
+`CUSTOM_TEST_STRING` toggle to swap in one unwrapped line instead. v4's
+Type Test box already lets the user free-type arbitrary (optionally
+multi-line via literal `\n`) text for every machine, so that convention
+was kept as-is rather than porting `KBSTRING`/`GetRow`/the toggle -
+Composer's line just uses proportional per-character spacing instead of
+fixed CPI, same free-typed content model as every other machine. Line
+spacing still comes from the existing `lpi` field (v2 instead hardcodes
+`Font_Size_Selected*2*row`, tied to `KBSTRING`'s fixed-row layout - not
+meaningful for freeform text).
+
+**Data**: `Composer_Pitch_List` (121 real `[char, units]` pairs,
+extracted verbatim from `v2/ibm.scad:94-111` via script, not
+hand-transcribed) lives in `config/selectric_composer.yaml` (+
+`.running.yaml`)'s `type_test.pitch_list`, per this repo's "real machine
+numbers live in config YAML" rule - kept as an ORDERED LIST, not a dict:
+v2's `search()`-based lookup returns the FIRST match, and `ü`/`ö`/`(`
+legitimately appear twice in the real table with different unit values
+at each occurrence - a dict would silently keep whichever duplicate key
+YAML parsing happens to keep last, backwards from v2's real semantics.
+`type_test.units_per_inch` already existed (stubbed in during the
+original Selectric port, comment said "not wired up yet"); added
+`type_test.default_units: 9` for v2's `SearchChar(...)==undef?9:...`
+fallback.
+
+**Code**: `type_test.py` gained `_composer_unit_width()` (linear
+first-match scan over the ordered pitch list, mirroring `search()`
+exactly) and `build_type_test_line()` grew optional `composer_pitch_list`/
+`composer_units_per_inch`/`composer_default_units` params - when given,
+each line's per-character x position becomes `(cumulative units before
+char + this char's own units/2 - line's total units/2) * unit_dist_mm`,
+the direct proportional generalization of the existing fixed-CPI
+centering formula (verified algebraically identical to the old formula
+when every character's width is forced equal). `None` (the default)
+keeps the exact old fixed-CPI behavior - a no-op for every other
+machine. New `--composer-config <path>` CLI flag loads
+`type_test.pitch_list`/`units_per_inch`/`default_units` from a machine
+YAML directly (loading the whole section rather than serializing 121
+pairs onto the command line). `tune.py`'s Type Test tab gained a
+Composer-only "Units/inch" field (bespoke widget, same pattern as the
+existing cpi/lpi fields - `type_test.pitch_list` itself stays YAML-only,
+no widget, same "list-valued key needs an explicit decision" treatment
+as `layout.placement_map` elsewhere) and `action_render_type_test` now
+passes `--composer-config self.config_path` when `self.machine ==
+"selectric_composer"`, a no-op everywhere else.
+
+**Verified**: `iMiM` (`i`=3 units, `M`=9 units - a maximally different
+pair) renders to a 7.68mm-wide block under proportional spacing vs.
+8.95mm under fixed CPI at the same CPI/font settings - confirms real,
+different geometry, not just a pass-through. An unlisted character
+(tested with an emoji) falls back to `default_units=9` without
+crashing. Both `config/selectric_composer.yaml` and `.running.yaml`
+verified to parse with all 121 pitch_list entries intact.
+
+## 79. Vogue Slug: AR1 logo scale fixed for real - the earlier "fix" (commit 4aade67) had re-broken it the other way (2026-08-01)
+
+User reported the AR1 logo's scale was off on Vogue Slug. Root cause:
+`logo.scale_mm_per_unit` was a SINGLE config field shared between two
+genuinely different real v1 values - `v1/Type Slugs/VogueSlug.scad`
+has `SVG_Scale=1/40*SVG_Size` for AR1/`Logo()` and a separate
+`SVG_V1_Scale=1/80*SVG_V1_Size` for the real 2-piece Vogue Foundry mark
+(`VogueMark()`) - never the same variable in the source (:55-56). A
+prior session (commit 4aade67, "fix vogue_slug.yaml - logo.
+scale_mm_per_unit left at wrong value") fixed this field FOR the Vogue
+mark (0.0025, giving it a correct ~1.6x1.6mm footprint) by re-tuning
+the one shared number - which necessarily left AR1 wrong instead
+whenever it's enabled (0.0025 is ~8x too small for AR1.svg's own much
+larger viewBox), since only one real value can live in one shared field.
+Confirmed AR1's real target size independently: `v1/Type Slugs/
+TypeSlug.scad`'s own `SVG_Scale` formula uses the byte-identical
+`SVG_Size=2`, so `config/type_slug.yaml`'s own empirically-tuned
+`scale_mm_per_unit: 0.02` (~2mm AR1 span) is the same real target Vogue
+Slug's AR1 needs, not a coincidence to re-derive from scratch.
+
+**Real fix: split into two fields**, matching v1's own two-variable
+reality instead of re-tuning one shared number again (which would just
+move the bug back to whichever logo is OFF at any given moment - same
+failure mode, different value). `config/vogue_slug.yaml` (+`.running.
+yaml`)/`type_slug.yaml`/`gauge_slug.yaml`'s `logo:` section: `scale_mm_
+per_unit` stays AR1-only (reverted to `0.02`, matching `type_slug.yaml`
+exactly); new `vogue_scale_mm_per_unit` (`0.0025`) is Vogue-mark-only -
+added to type_slug/gauge_slug too even though `vogue_enabled: false`
+there (same "populate even when unused" treatment `vogue_arrow_svg_
+file`/`vogue_v_svg_file` already get, since `wing_slug._receive_config`
+picks up every capital-leading global unconditionally regardless of
+which logo is enabled). `lib/wing_slug.py`'s `VogueMark()` now reads a
+new `Vogue_Scale_Mm_Per_Unit` global instead of reusing `Logo_Scale_Mm_
+Per_Unit`; all three sibling `configure()`s (`lib/vogue_slug.py`/
+`type_slug.py`/`gauge_slug.py`) set it from `logo["vogue_scale_mm_per_
+unit"]`. `tune.py`'s shared `LOGO_FIELDS_SLUG` gained the new field.
+
+`config/vogue_slug.running.yaml` needed care, not a blind copy from
+master: it had live user session state (`logo_enabled: true`, `vogue_
+enabled: false` - the user had isolated AR1 alone to see the bad scale,
+matching their report) that must not be clobbered, plus what looks like
+a partial external auto-sync of this session's master-file edit (a
+duplicate `vogue_scale_mm_per_unit` block prepended above the OLD,
+still-unfixed `scale_mm_per_unit: 0.0025`/stale comment) that needed
+cleaning up rather than re-applying on top. Fixed in place: kept both
+live toggles, fixed `scale_mm_per_unit` to `0.02`, de-duplicated the
+comment block.
+
+**Verified** via direct `wing_slug.Logo()`/`VogueMark()` calls against
+`vogue_slug.running.yaml` (master's own `font.path` turned out to be a
+separate, pre-existing dangling reference to a deleted `~/Downloads/`
+file, unrelated to this fix - `.running.yaml`'s own font path is real
+and was used instead): AR1 now spans 1.97x2.09mm (matches `type_slug`'s
+own real AR1 output), Vogue mark independently spans 1.64x1.62mm
+(matches its own documented ~1.6x1.6mm target) - both correct
+simultaneously for the first time. `type_slug`/`gauge_slug` (`vogue_
+enabled: false` in both, `scale_mm_per_unit` unchanged at `0.02`) hard-
+gate re-verified byte-identical (`--no-minkowski`) to confirm zero side
+effects on the two machines that weren't the point of this fix.

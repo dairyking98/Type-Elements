@@ -280,7 +280,8 @@ def _minkowski_draft_flat2d(flat_mesh, block_height_mm, minkowski_enabled, cone_
 def Logo(flatness_tolerance_mm=None, minkowski_enabled=None, cone_segments=None, draft_angle_deg=None):
     """"SVG Logo" (v1:135-146) - one imported SVG, scaled/positioned along
     the body's centerline at Body_Length*SVG_Location, Minkowski-drafted
-    same as the struck text."""
+    same as the struck text. Uses Logo_Scale_Mm_Per_Unit - see VogueMark()'s
+    docstring for why that's a DIFFERENT global than the one it uses."""
     _require_configured()
     flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
     minkowski_enabled = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
@@ -296,13 +297,20 @@ def VogueMark(flatness_tolerance_mm=None, minkowski_enabled=None, cone_segments=
     2-piece arrow+V mark, each with its own offset, drafted together as
     ONE combined swept solid (see svg_import.build_svg_logo_mesh_2d's own
     docstring for why the offsets are applied before triangulation, not
-    after)."""
+    after). Uses its OWN Vogue_Scale_Mm_Per_Unit, not Logo_Scale_Mm_Per_Unit -
+    v1 itself has two genuinely different scale variables here (SVG_Scale=
+    1/40*SVG_Size for AR1/Logo() vs SVG_V1_Scale=1/80*SVG_V1_Size for this
+    mark, VogueSlug.scad:55-56) - a real, if small, self-contained SVG with
+    a very different raw-path-unit size than AR1.svg's own much larger
+    viewBox. A single shared field here previously gave whichever logo
+    WASN'T tuned an ~8x wrong scale - see config/vogue_slug.yaml's logo.
+    vogue_scale_mm_per_unit comment."""
     _require_configured()
     flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
     minkowski_enabled = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
     y0 = Body_Length * Logo_Location
     flat = svg_import.build_svg_logo_mesh_2d(
-        [Vogue_Arrow_Svg_File, Vogue_V_Svg_File], flatness_tolerance_mm, Logo_Scale_Mm_Per_Unit,
+        [Vogue_Arrow_Svg_File, Vogue_V_Svg_File], flatness_tolerance_mm, Vogue_Scale_Mm_Per_Unit,
         offsets=[(0.2, y0 - 0.5), (-0.5, y0 - 1.2)])
     return _minkowski_draft_flat2d(flat, Logo_Depth_Mm, minkowski_enabled,
                                     cone_segments=cone_segments, draft_angle_deg=draft_angle_deg)

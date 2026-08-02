@@ -35,29 +35,38 @@ character:
 logo:
   logo_enabled: false            # v1 SVG_Enable ("True_Vogue" preset: false - the generic AR1 logo isn't used here)
   svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/AR1.svg"
-  # scale_mm_per_unit is shared between the (unused, off) generic AR1
-  # logo above and the real Vogue Foundry mark below - the value here is
-  # tuned for the LATTER (0.0025 gives the combined arrow+V mark a
-  # ~1.6x1.6mm footprint, comfortably inside this config's 2.6mm body
-  # width). config/type_slug.yaml's own 0.02 is unrelated - tuned
-  # separately for AR1.svg's own, much larger viewBox - don't copy that
-  # value here (a real bug once: this field was accidentally left at
-  # 0.02, giving an ~8x oversized, body-engulfing mark before this
-  # comment/fix).
-  scale_mm_per_unit: 0.0025
+  # v1 has TWO real, genuinely different scale variables here - SVG_Scale=
+  # 1/40*SVG_Size for THIS (AR1/Logo()) vs SVG_V1_Scale=1/80*SVG_V1_Size
+  # for the Vogue Foundry mark below (VogueSlug.scad:55-56, vogue_
+  # scale_mm_per_unit) - v1's own SVG_Size=2 here is BYTE-IDENTICAL to
+  # config/type_slug.yaml's ("CMU Typewriter Text" preset, TypeSlug.scad's
+  # own SVG_Size=2) - same file, same v1 scale multiplier, same real
+  # target size - so this reuses that config's own empirically-tuned
+  # 0.02 (~2mm AR1 span) directly rather than re-deriving it. A real bug
+  # once: this single field was shared between AR1 and the Vogue mark
+  # below, so whichever one WASN'T the currently-tuned value came out
+  # ~8x wrong scale the moment it was enabled (this field itself was
+  # briefly left at the Vogue-tuned 0.0025, making AR1 ~8x undersized if
+  # enabled here) - split into two real fields to fix it structurally,
+  # not just re-tune one shared number.
+  scale_mm_per_unit: 0.02
   logo_depth_mm: 0.05             # v1 SVG_Depth
   location_frac: 0.5         # v1 SVG_Location ("True_Vogue" preset)
   # The real 2-piece Vogue Foundry mark (VogueSlug.scad:109-126) - always
   # on for this machine (v1 SVG_Vogue_Enable=true, VogueSlug.scad:51, not
   # exposed as a per-preset override in the real Customizer JSON either -
-  # it's the whole point of this file). Uses the SAME scale_mm_per_unit
-  # above (v1's own SVG_V1_Scale is likewise a single shared scale for
-  # both the arrow and V pieces, VogueSlug.scad:54-56) - see
-  # lib/svg_import.py's module docstring for why v4 doesn't reproduce
-  # OpenSCAD's own px/DPI SVG-import scaling.
+  # it's the whole point of this file).
   vogue_enabled: true
   vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
   vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
+  # vogue_scale_mm_per_unit (v1 SVG_V1_Scale, see scale_mm_per_unit's own
+  # comment above for why this is a SEPARATE field, not scale_mm_per_unit
+  # reused) - tuned empirically for the arrow+V mark's own much smaller
+  # SVG viewBox: 0.0025 gives the combined mark a ~1.6x1.6mm footprint,
+  # comfortably inside this config's 2.6mm body width. Not derived from
+  # v1's own formula - see lib/svg_import.py's module docstring for why
+  # v4 doesn't reproduce OpenSCAD's px/DPI SVG-import scaling.
+  vogue_scale_mm_per_unit: 0.0025
 
 label:
   text: "☺ Leonard Chau 2023"          # v1 Copyright_Text (VogueSlug.scad:66)

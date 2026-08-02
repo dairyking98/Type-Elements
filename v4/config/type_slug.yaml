@@ -59,6 +59,14 @@ logo:
   vogue_enabled: false
   vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
   vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
+  # vogue_scale_mm_per_unit - unused here (vogue_enabled: false above),
+  # but a real config key needed unconditionally (wing_slug._receive_
+  # config picks up every capital-leading global regardless of which
+  # logo is enabled) - same treatment as vogue_arrow_svg_file/
+  # vogue_v_svg_file above. Real value copied from config/vogue_slug.yaml
+  # (the machine that actually uses it) rather than left at a guess -
+  # see that file's own comment for the derivation.
+  vogue_scale_mm_per_unit: 0.0025
 
 label:
   text: "© Leonard Chau 2023"          # v1 Copyright_Text (TypeSlug.scad:44)

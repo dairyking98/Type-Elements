@@ -55,6 +55,7 @@ def configure(config_path):
     g["Logo_Vogue_Enabled"] = logo["vogue_enabled"]
     g["Vogue_Arrow_Svg_File"] = logo["vogue_arrow_svg_file"]
     g["Vogue_V_Svg_File"] = logo["vogue_v_svg_file"]
+    g["Vogue_Scale_Mm_Per_Unit"] = logo["vogue_scale_mm_per_unit"]
 
     lbl = cfg["label"]
     g["Copyright_Text"] = lbl["text"]

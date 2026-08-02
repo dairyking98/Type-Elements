@@ -51,6 +51,10 @@ logo:
   vogue_enabled: false
   vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
   vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
+  # vogue_scale_mm_per_unit - unused (vogue_enabled: false), but required
+  # unconditionally by wing_slug._receive_config - see config/type_slug.
+  # yaml's matching comment. Real value copied from config/vogue_slug.yaml.
+  vogue_scale_mm_per_unit: 0.0025
 
 label:
   text: "© Leonard Chau 2023"          # v1 Copyright_Text (GaugeTypeSlugSlug.scad:63)

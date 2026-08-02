@@ -50,6 +50,20 @@ label:
   # Z offset added to Bottom_Countersink_Depth for where the (fixed 2mm
   # deep, not itself configurable in v2 - see LabelText()) cut starts.
   depth_mm: 0.2          # Shuttle_Label_Depth
+  # Radial (world X) distance of each label's text from the shaft center,
+  # positive = same side as label1a/label1b, negative = opposite side
+  # (label2). v2 only ever wrote label1a/label1b as one shared group
+  # offset with label1a further nested 2.25mm inside it - see
+  # lib/bennett.py's LabelText() docstring for why that nesting was
+  # actually two independent radial numbers all along, not a stacking
+  # offset. Defaults below reproduce v2's geometry exactly at the stock
+  # element.shaft_diameter=3.4 (Shaft_Diameter/2+1.5+.25[+2.25 for 1a] /
+  # -(Shaft_Diameter/2+1.75+.5) for label2) but - unlike v2 - no longer
+  # move automatically if shaft_diameter changes, since they're now each
+  # a real independent config value rather than a shaft-relative formula.
+  label1a_radial_mm: 5.70   # Shuttle_Label1a_Radial - v2 line 419+422
+  label1b_radial_mm: 3.45   # Shuttle_Label1b_Radial - v2 line 419
+  label2_radial_mm: -3.95   # Shuttle_Label2_Radial - v2 line 427
 
 element:
   platen_diameter: 30

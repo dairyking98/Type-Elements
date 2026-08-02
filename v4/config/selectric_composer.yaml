@@ -147,17 +147,162 @@ output:
 
 # Composer's OWN pica/units type-test system (TextGaugeComposerLine2,
 # Composer_Pitch_List) is genuinely different from Selectric I/II & III's
-# CPI TextGauge - NOT wired into type_test.py yet in this pass (deferred,
-# same as Calibration/drain holes for the other two Selectric machines -
-# doesn't affect FullElement/ResinPrint, only a separate print-test-gauge
-# render variant). units_per_inch below is kept for when that lands.
+# CPI TextGauge - wired into type_test.py via --composer-config (see
+# SESSION_LOG.md's entry for this). The port keeps the real proportional
+# per-character unit-width spacing (Composer_Pitch_List/cumulativeSum,
+# type_test.pitch_list/units_per_inch below) but does NOT port v2's
+# KBSTRING default content (the full 88-char keyboard string, auto-
+# wrapped into 8 rows via hardcoded GetRow() breakpoints) or the
+# CUSTOM_TEST_STRING toggle - v4's Type Test box already lets the user
+# type arbitrary (optionally multi-line, via literal \n) text for every
+# machine, so that's reused as-is; Composer's line spacing still comes
+# from lpi below (v2 instead hardcodes 2x Font_Size_Selected per line,
+# tied to KBSTRING's fixed-row layout, not applicable to freeform text).
+# Doesn't affect FullElement/ResinPrint either way - Type Test is always
+# a separate, print-unrelated flat preview.
 type_test:
   units_per_inch: 72     # v2 Units_Per_Inch (ibm.scad:261) - [72:Red, 84:Yellow, 96:Blue]
   # cpi/lpi: tune.py's generic Type Test tab convention (a v4-only flat
   # CPI/LPI preview shared by every machine, independent of the real
-  # element pipeline) - not the same as units_per_inch above (Composer's
-  # own real pica/units type-test system, not wired up yet).
+  # element pipeline). cpi is UNUSED for Composer - proportional_spacing
+  # below (units_per_inch + pitch_list) replaces fixed-CPI slot spacing
+  # entirely once wired in (see type_test.py's --composer-config), same
+  # as every other machine's fixed-pitch cpi field is unused once that
+  # machine has its own special-case. lpi still applies (line spacing).
   cpi: 10.0
   lpi: 6.0
+  # Composer_Pitch_List (v2/ibm.scad:94-111) - each character's real
+  # proportional-spacing width, in UNITS (Units_Per_Inch above converts
+  # units->mm: 25.4/units_per_inch per unit). Kept as an ORDERED LIST of
+  # [char, units] pairs, not a dict: v2's search()-based lookup returns
+  # the FIRST match, and "ü"/"ö"/"(" legitimately appear twice in the
+  # real source with different unit values at each occurrence (6 then 5
+  # for ü/ö, 4 both times for "(" - harmless) - a dict would silently
+  # keep whichever occurrence YAML parses last, backwards from v2's
+  # first-match-wins search() semantics. A character with no entry here
+  # falls back to default_units below (v2: SearchChar(...)==undef?9:...).
+  default_units: 9
+  pitch_list:
+    - ["M", 9]
+    - ["W", 9]
+    - ["m", 9]
+    - ["A", 8]
+    - ["D", 8]
+    - ["G", 8]
+    - ["H", 8]
+    - ["K", 8]
+    - ["N", 8]
+    - ["O", 8]
+    - ["Q", 8]
+    - ["R", 8]
+    - ["U", 8]
+    - ["V", 8]
+    - ["X", 8]
+    - ["Y", 8]
+    - ["w", 8]
+    - ["¾", 8]
+    - ["½", 8]
+    - ["&", 8]
+    - ["%", 8]
+    - ["@", 8]
+    - ["¼", 8]
+    - ["–", 8]
+    - ["Ö", 8]
+    - ["Ä", 8]
+    - ["Å", 8]
+    - ["Ü", 8]
+    - ["Ñ", 8]
+    - ["¨", 8]
+    - ["`", 8]
+    - ["Ø", 8]
+    - ["—", 8]
+    - ["€", 8]
+    - ["B", 7]
+    - ["C", 7]
+    - ["E", 7]
+    - ["F", 7]
+    - ["L", 7]
+    - ["T", 7]
+    - ["Z", 7]
+    - ["P", 6]
+    - ["S", 6]
+    - ["b", 6]
+    - ["d", 6]
+    - ["h", 6]
+    - ["k", 6]
+    - ["n", 6]
+    - ["o", 6]
+    - ["p", 6]
+    - ["q", 6]
+    - ["u", 6]
+    - ["x", 6]
+    - ["y", 6]
+    - ["*", 6]
+    - ["†", 6]
+    - ["$", 6]
+    - ["+", 6]
+    - ["=", 6]
+    - ["0", 6]
+    - ["1", 6]
+    - ["2", 6]
+    - ["3", 6]
+    - ["4", 6]
+    - ["5", 6]
+    - ["6", 6]
+    - ["7", 6]
+    - ["8", 6]
+    - ["9", 6]
+    - ["]", 6]
+    - ["ñ", 6]
+    - ["ø", 6]
+    - ["ü", 6]
+    - ["ß", 6]
+    - ["¡", 6]
+    - ["¿", 6]
+    - ["ö", 6]
+    - ["£", 6]
+    - ["§", 6]
+    - ["J", 5]
+    - ["a", 5]
+    - ["c", 5]
+    - ["e", 5]
+    - ["g", 5]
+    - ["v", 5]
+    - ["?", 5]
+    - ["[", 5]
+    - ["z", 5]
+    - ["ˆ", 5]
+    - ["´", 5]
+    - ["ü", 5]
+    - ["ö", 5]
+    - ["ä", 5]
+    - ["å", 5]
+    - ["ç", 5]
+    - ["I", 4]
+    - ["f", 4]
+    - ["r", 4]
+    - ["s", 4]
+    - ["t", 4]
+    - [":", 4]
+    - ["(", 4]
+    - [")", 4]
+    - ["!", 4]
+    - ["/", 4]
+    - ["(", 4]
+    - ["ı", 4]
+    - ["Æ", 4]
+    - ["»", 4]
+    - ["i", 3]
+    - ["j", 3]
+    - ["l", 3]
+    - [".", 3]
+    - [",", 3]
+    - [";", 3]
+    - ["’", 3]
+    - ["‘", 3]
+    - ["-", 3]
+    - ["'", 3]
+    - ["æ", 3]
+    - [" ", 3]
   text: |-
     Sphinx of black quartz, judge my vow
