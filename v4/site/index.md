@@ -14,6 +14,10 @@ abandoned). Every part of the assembly - characters onto the cylinder,
 the platen cutout, the final `Additive - Subtractive` - is a real
 `manifold3d` boolean too.
 
+> Want the story behind this — collaborators, real prints, photos of the
+> restored machines? See
+> [leonardchau.com/Type-Elements](https://leonardchau.com/Type-Elements).
+
 - **[How it works](how-it-works)** - the Minkowski draft sum, real
   booleans, adaptive glyph outline sampling, and the geometry invariants
   that keep the pipeline correct.
