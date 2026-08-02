@@ -1,0 +1,28 @@
+title: v4 Type Elements
+description: >-
+  Minkowski-draft type element pipeline for 3D-printed typewriter type
+  elements - real manifold3d booleans, adaptive glyph outline sampling,
+  and a config-driven port of every supported machine.
+baseurl: "/Type-Elements"
+theme: minima
+markdown: kramdown
+permalink: pretty
+
+minima:
+  skin: dark
+  date_format: "%Y-%m-%d"
+
+header_pages:
+  - how-it-works.md
+  - machines.md
+  - accessories.md
+  - behind-the-scenes.md
+  - roadmap.md
+  - changelog.md
+  - readme.md
+
+exclude:
+  - sync_docs.sh
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
