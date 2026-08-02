@@ -230,6 +230,9 @@ def configure(config_path):
     g["Resin_Rod_Raft"] = False
     g["Resin_Support_Height"] = r["support_height"]
     g["Resin_Support_Thickness"] = r["support_thickness"]
+    # v4-only print orientation toggle - see ResinPrint()/ResinSupportShaftEnd().
+    g["Resin_Orientation"] = r.get("orientation", "upside_down")
+    g["Resin_Notch_Gap_Deg"] = r.get("notch_gap_deg", 8.0)
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
     g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]
@@ -544,6 +547,51 @@ def ResinSupport():
     return sp.union_all(parts)
 
 
+def ResinSupportShaftEnd():
+    """v4-only - no v2 equivalent. Resin support for the "right_side_up"
+    print orientation (see ResinPrint()/resin.orientation): the shaft/
+    mechanical end (Z=0, no flip) sits at the build plate instead of the
+    label end ResinSupport() attaches to. Same raft-ring-plus-rods shape
+    as ResinSupport(), adapted to this face's own radii (Cylinder_Bottom_
+    Shaft_Diameter/2, the HollowBody bore's rim at Z=0, instead of
+    Cylinder_Top_Shaft_Diameter/2's boss step) - no second, smaller-radius
+    rod ring, since the shaft end has no boss feature to justify one.
+
+    AlignmentPin() cuts a radial keyway through this exact face at
+    theta=0 (confirmed: its world bounds are x=[0, Cylinder_Bottom_Shaft_
+    Diameter/2+Pin_Depth], y=+/-Pin_Width/2, i.e. a slot from the center
+    out past the bore rim, centered on the +X axis) - placing a rod's
+    contact point on or near it would land the support on the alignment
+    pin's precision-fit surface. So the one rod that would normally fall
+    at theta=0 (n=11 of the evenly-spaced ring below) is skipped, and a
+    flanking pair is placed at +/-Resin_Notch_Gap_Deg instead - the same
+    avoidance pattern spherical_machine.ResinRodAssemble() uses around
+    Selectric's Drive_Notch_Theta (its Tip_Notch_Offset)."""
+    _require_configured()
+    base_z = -Resin_Support_Height + z
+    raft_profile = [
+        (Element_Diameter / 2, 0),
+        (Cylinder_Bottom_Shaft_Diameter / 2, 0),
+        (Cylinder_Bottom_Shaft_Diameter / 2, Resin_Support_Thickness),
+        (Element_Diameter / 2 + Resin_Support_Thickness, Resin_Support_Thickness),
+    ]
+    parts = [sp.translate(sp.revolve_polygon(raft_profile, sections=Resin_Fn), [0, 0, base_z])]
+    r1 = (Element_Diameter + Cylinder_Bottom_Shaft_Diameter) / 4 - 0.1
+    thetas = []
+    for n in range(12):
+        theta = 360.0 / 12 * n + 360.0 / 12
+        delta = min(theta % 360, 360 - theta % 360)
+        if delta < Resin_Notch_Gap_Deg:
+            continue
+        thetas.append(theta)
+    thetas.extend([Resin_Notch_Gap_Deg, -Resin_Notch_Gap_Deg])
+    for theta in thetas:
+        rod = cylinder_machine._resin_rod(Resin_Support_Height)
+        angle = np.radians(theta)
+        parts.append(sp.translate(rod, [r1 * np.cos(angle), r1 * np.sin(angle), base_z]))
+    return sp.union_all(parts)
+
+
 def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
@@ -553,15 +601,24 @@ def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groov
     rotate([0,180,0])) before adding supports - the decorative/label end
     ends up facing the build plate (where ResinSupport() attaches, below
     the new z=0), the shaft-bore/mechanical end faces up, away from
-    supports. A real, deliberate part of Mignon's print orientation, not
-    an oversight - ported faithfully."""
+    supports. A real, deliberate part of Mignon's print orientation,
+    ported faithfully as the "upside_down" (default) resin.orientation.
+
+    "right_side_up" is a v4-only addition (no v2 equivalent): skips the
+    flip entirely and uses ResinSupportShaftEnd() instead, so the shaft/
+    mechanical end sits at the build plate and the label end faces up."""
     full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)
-    flipped = sp.scad_transform(full, ("translate", [0, 0, Element_Height]), ("rotate", [0, 180, 0]))
-    support = ResinSupport()
-    build_log.mesh_report(support, "ResinSupport")
-    combined = sp.union_all([flipped, support])
+    if Resin_Orientation == "right_side_up":
+        support = ResinSupportShaftEnd()
+        build_log.mesh_report(support, "ResinSupportShaftEnd")
+        combined = sp.union_all([full, support])
+    else:
+        flipped = sp.scad_transform(full, ("translate", [0, 0, Element_Height]), ("rotate", [0, 180, 0]))
+        support = ResinSupport()
+        build_log.mesh_report(support, "ResinSupport")
+        combined = sp.union_all([flipped, support])
     combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
     return combined, char_parts
