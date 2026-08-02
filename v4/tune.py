@@ -500,6 +500,10 @@ RESIN_FIELDS_MIGNON = [
     ("support_height", ["resin", "support_height"], float, "Support height (mm)",
      "Raft ring's Z offset below the element, and the outer ring of rods' base height."),
     ("support_thickness", ["resin", "support_thickness"], float, "Support thickness (mm)", "Raft ring thickness."),
+    ("rod_count", ["resin", "rod_count"], int, "Rod count",
+     "Number of evenly-spaced rods around the support ring, either print orientation (see the Build "
+     "tab's Print orientation). Upside down also adds half this many more, on alternating sectors, at "
+     "a second radius near the top boss."),
 ]
 
 ELEMENT_FIELDS_MIGNON = [
