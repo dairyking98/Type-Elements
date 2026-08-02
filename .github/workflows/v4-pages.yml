@@ -9,6 +9,7 @@ on:
       - "v4/SESSION_LOG.md"
       - "v4/PACKAGING_PLAN.md"
       - "v4/docs/**"
+      - "v4/example_renders/**"
       - ".github/workflows/v4-pages.yml"
   workflow_dispatch: {}
 

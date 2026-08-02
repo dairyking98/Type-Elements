@@ -26,3 +26,12 @@ for f in docs/*.md; do
   title=$(basename "$f" .md | tr '_-' '  ')
   inject "$f" "$SITE/accessories/$base" "$title"
 done
+
+# example_renders/*.stl: one example STL per machine, published as-is so
+# leonardchau.com's portfolio page can load them cross-origin instead of
+# keeping its own duplicate copies.
+mkdir -p "$SITE/assets/models"
+for f in example_renders/*.stl; do
+  [ -e "$f" ] || continue
+  cp "$f" "$SITE/assets/models/$(basename "$f")"
+done
