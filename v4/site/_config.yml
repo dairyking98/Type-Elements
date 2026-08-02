@@ -3,7 +3,8 @@ description: >-
   Minkowski-draft type element pipeline for 3D-printed typewriter type
   elements - real manifold3d booleans, adaptive glyph outline sampling,
   and a config-driven port of every supported machine.
-baseurl: "/Type-Elements"
+url: "https://type-elements.leonardchau.com"
+baseurl: ""
 theme: minima
 markdown: kramdown
 permalink: pretty
