@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.0 -->
+<title>Packaging Plan | v4 Type Elements</title>
+<meta name="generator" content="Jekyll v4.4.1" />
+<meta property="og:title" content="Packaging Plan" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<meta name="twitter:description" property="og:description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<link rel="canonical" href="https://type-elements.leonardchau.com/roadmap-packaging/" />
+<meta property="og:url" content="https://type-elements.leonardchau.com/roadmap-packaging/" />
+<meta property="og:site_name" content="v4 Type Elements" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Packaging Plan" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.","headline":"Packaging Plan","url":"https://type-elements.leonardchau.com/roadmap-packaging/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://type-elements.leonardchau.com/feed.xml" title="v4 Type Elements" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">v4 Type Elements</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Packaging Plan</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="packaging-plan-portable-single-executable-v4-linux--windows--macos">Packaging plan: portable single-executable v4 (Linux / Windows / macOS)</h1>
+
+<p>Status: <strong>planned, not started.</strong> Revisit when actually ready to begin
+packaging work - not a near-term priority as of 2026-07-22.</p>
+
+<h2 id="goal">Goal</h2>
+
+<p>Ship v4 as a single portable executable per platform (Linux binary,
+Windows <code class="language-plaintext highlighter-rouge">.exe</code>, macOS binary/app) that needs no <code class="language-plaintext highlighter-rouge">.venv</code>/repo checkout to
+run. On first launch it creates its own working directories next to the
+executable and downloads a pinned <code class="language-plaintext highlighter-rouge">f3d</code> binary if missing - true
+portable/USB-stick semantics, not an installed app scattering files into
+OS user-data dirs.</p>
+
+<h2 id="current-state-why-this-isnt-a-small-change">Current state (why this isn’t a small change)</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">tune.py</code>/<code class="language-plaintext highlighter-rouge">generate.py</code> resolve <code class="language-plaintext highlighter-rouge">config/</code>, <code class="language-plaintext highlighter-rouge">output/</code>,
+<code class="language-plaintext highlighter-rouge">f3d_top_view_cmds.txt</code> relative to <code class="language-plaintext highlighter-rouge">REPO_ROOT = dirname(__file__)</code>
+(<code class="language-plaintext highlighter-rouge">tune.py:179</code>). That assumption breaks the moment the app is a frozen
+single-file exe instead of a checked-out repo.</li>
+  <li><code class="language-plaintext highlighter-rouge">tune.py</code> shells out to <code class="language-plaintext highlighter-rouge">f3d</code> assumed present on <code class="language-plaintext highlighter-rouge">$PATH</code>
+(<code class="language-plaintext highlighter-rouge">tune.py:2631</code>, <code class="language-plaintext highlighter-rouge">subprocess.Popen(["f3d", "--watch", ...])</code>).</li>
+  <li><code class="language-plaintext highlighter-rouge">tune.py</code> drives <code class="language-plaintext highlighter-rouge">generate.py</code>/<code class="language-plaintext highlighter-rouge">type_test.py</code> as <strong>separate subprocess
+script files</strong> (<code class="language-plaintext highlighter-rouge">subprocess.Popen([sys.executable, ".../generate.py",
+...])</code>, built at <code class="language-plaintext highlighter-rouge">tune.py:2652</code>/<code class="language-plaintext highlighter-rouge">2764</code>) with <strong>live async-piped log
+streaming</strong> into the TUI’s log pane (<code class="language-plaintext highlighter-rouge">asyncio.create_subprocess_exec</code>
+at <code class="language-plaintext highlighter-rouge">tune.py:2910-2912</code>). This is a real feature (live progress in the
+log pane during Render), not incidental - any packaging approach that
+collapses this to an in-process call would need to solve streaming
+output some other way.</li>
+  <li><code class="language-plaintext highlighter-rouge">lin_start.sh</code>/<code class="language-plaintext highlighter-rouge">win_start.bat</code> (<code class="language-plaintext highlighter-rouge">.venv</code>-based) are dev-only; irrelevant
+to the packaged app and don’t need to change.</li>
+  <li><code class="language-plaintext highlighter-rouge">f3d</code> (the external viewer, invoked via <code class="language-plaintext highlighter-rouge">f3d --watch</code>) is
+<a href="https://github.com/f3d-app/f3d/blob/master/LICENSE.md">BSD-3-Clause</a> -
+no licensing obstacle to redistributing/fetching its binary
+alongside v4; only obligation is including its license text
+somewhere in the distribution.</li>
+</ul>
+
+<h2 id="plan-phased-so-each-step-is-independently-verifiable">Plan, phased so each step is independently verifiable</h2>
+
+<p>Each phase should be checked against the CLAUDE.md geometry hard-gate
+(<code class="language-plaintext highlighter-rouge">generate.py ... --out /tmp/check.stl</code>, compare summary line) since
+none of this is <em>supposed</em> to touch geometry code - if a phase changes
+the summary line for any config, that’s a regression to chase down.</p>
+
+<ol>
+  <li><strong><code class="language-plaintext highlighter-rouge">lib/app_paths.py</code></strong> (new file, not edits to existing modules -
+keeps this refactor additive and easy to back out). Single source of
+truth for where config/output/f3d-cache live.
+    <ul>
+      <li>Dev mode: unchanged, repo-relative (today’s behavior, via
+<code class="language-plaintext highlighter-rouge">REPO_ROOT</code>).</li>
+      <li>Frozen mode: everything next to the exe (<code class="language-plaintext highlighter-rouge">./config/</code>, <code class="language-plaintext highlighter-rouge">./output/</code>,
+<code class="language-plaintext highlighter-rouge">./f3d/</code>). On first run, creates those dirs and seeds <code class="language-plaintext highlighter-rouge">config/</code>
+from the bundled defaults if absent.</li>
+      <li><code class="language-plaintext highlighter-rouge">tune.py</code>/<code class="language-plaintext highlighter-rouge">generate.py</code> swap their raw <code class="language-plaintext highlighter-rouge">REPO_ROOT</code> joins for calls
+into this module - mechanical call-site edits, not a rewrite.</li>
+    </ul>
+  </li>
+  <li>
+    <p><strong><code class="language-plaintext highlighter-rouge">lib/f3d_bootstrap.py</code></strong> (new file) - checks the cache dir for the
+pinned f3d version; downloads the matching platform asset from a
+pinned GitHub release tag (e.g.
+<code class="language-plaintext highlighter-rouge">https://github.com/f3d-app/f3d/releases/download/vX.Y.Z/...</code>) if
+missing, verifies it, <code class="language-plaintext highlighter-rouge">chmod +x</code> on Linux/Mac, returns its path.
+<code class="language-plaintext highlighter-rouge">tune.py</code>’s hardcoded <code class="language-plaintext highlighter-rouge">"f3d"</code> becomes <code class="language-plaintext highlighter-rouge">f3d_bootstrap.ensure_f3d_path()</code>,
+streamed through the existing <code class="language-plaintext highlighter-rouge">log_line()</code> pane so a first-run
+download isn’t silent. Pin to a specific tagged release (not
+“latest”) and bump deliberately when choosing to upgrade.</p>
+  </li>
+  <li><strong>Keep the subprocess architecture - don’t collapse it to in-process
+calls</strong>, to preserve live log streaming. Use a <strong>self-re-exec
+sentinel</strong>: the packaged binary’s true entry point checks for
+<code class="language-plaintext highlighter-rouge">sys.argv[1] in ("--internal-generate", "--internal-typetest")</code> and
+dispatches straight to <code class="language-plaintext highlighter-rouge">generate.main()</code> / a new <code class="language-plaintext highlighter-rouge">type_test.main()</code>
+before touching Textual, so <code class="language-plaintext highlighter-rouge">tune.py</code>’s
+<code class="language-plaintext highlighter-rouge">subprocess.Popen([sys.executable, "--internal-generate", ...])</code>
+keeps working unmodified with no separate script files inside the
+bundle.
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">generate.py</code> already has a clean <code class="language-plaintext highlighter-rouge">main()</code> behind
+<code class="language-plaintext highlighter-rouge">if __name__ == "__main__"</code> - no change needed there beyond calling
+it.</li>
+      <li><code class="language-plaintext highlighter-rouge">type_test.py</code> currently has its argparse logic directly under
+<code class="language-plaintext highlighter-rouge">if __name__ == "__main__"</code> with no <code class="language-plaintext highlighter-rouge">main()</code> - needs one extracted
+(trivial mechanical refactor).</li>
+    </ul>
+  </li>
+  <li>
+    <p><strong>PyInstaller, onefile, per-OS.</strong> PyInstaller doesn’t cross-compile,
+so use a GitHub Actions build matrix
+(<code class="language-plaintext highlighter-rouge">ubuntu-latest</code>/<code class="language-plaintext highlighter-rouge">windows-latest</code>/<code class="language-plaintext highlighter-rouge">macos-latest</code>); each runner does
+<code class="language-plaintext highlighter-rouge">pip install -r requirements.txt</code> + PyInstaller, uploads the artifact
+to a GitHub Release on tag push. <code class="language-plaintext highlighter-rouge">f3d</code> is <strong>not</strong> bundled at build
+time - fetched lazily per phase 2, keeping build artifacts small and
+decoupled from f3d’s own release cadence.</p>
+  </li>
+  <li><strong>Smoke test each platform</strong>: fresh empty directory, run the exe,
+confirm it creates <code class="language-plaintext highlighter-rouge">config/</code>/<code class="language-plaintext highlighter-rouge">output/</code>/<code class="language-plaintext highlighter-rouge">f3d/</code>, downloads f3d, and
+completes a Preview end-to-end.</li>
+</ol>
+
+<h2 id="open-caveats-not-blockers-just-known-rough-edges">Open caveats (not blockers, just known rough edges)</h2>
+
+<ul>
+  <li>Unsigned macOS <code class="language-plaintext highlighter-rouge">.app</code>/binaries get Gatekeeper-quarantined - first run
+needs a right-click-Open, not a blocker unless distributing to
+non-technical users.</li>
+  <li><code class="language-plaintext highlighter-rouge">tune.py</code>’s <code class="language-plaintext highlighter-rouge">wmctrl -a f3d</code> window-raise call (<code class="language-plaintext highlighter-rouge">tune.py:2639</code>) is
+Linux/X11-only; already best-effort/non-fatal (<code class="language-plaintext highlighter-rouge">subprocess.run</code> to
+<code class="language-plaintext highlighter-rouge">DEVNULL</code>), so it should degrade gracefully (silently no-op) on
+Windows/Mac without further changes - worth confirming during phase 5
+smoke testing, not assumed.</li>
+  <li>Decide at phase 1 time whether <code class="language-plaintext highlighter-rouge">lib/app_paths.py</code>’s frozen-mode
+detection uses <code class="language-plaintext highlighter-rouge">sys.frozen</code> (PyInstaller’s own flag) vs. some other
+signal - <code class="language-plaintext highlighter-rouge">sys.frozen</code> is the standard PyInstaller convention and
+should be the default choice absent a reason otherwise.</li>
+</ul>
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">v4 Type Elements</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">v4 Type Elements</li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
