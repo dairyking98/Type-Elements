@@ -500,6 +500,10 @@ RESIN_FIELDS_MIGNON = [
     ("support_height", ["resin", "support_height"], float, "Support height (mm)",
      "Raft ring's Z offset below the element, and the outer ring of rods' base height."),
     ("support_thickness", ["resin", "support_thickness"], float, "Support thickness (mm)", "Raft ring thickness."),
+    ("rod_count", ["resin", "rod_count"], int, "Rod count",
+     "Number of evenly-spaced rods around the support ring, either print orientation (see the Build "
+     "tab's Print orientation). Upside down also adds half this many more, on alternating sectors, at "
+     "a second radius near the top boss."),
 ]
 
 ELEMENT_FIELDS_MIGNON = [
@@ -2822,6 +2826,7 @@ class TuneApp(App):
         has_calibration = "Calibration" in self.SECTIONS
         is_hammond = self.machine == "hammond"
         is_hammond_split = self.machine == "hammond_split"
+        is_mignon = self.machine == "mignon"
         hammond_parts = ("none",) if is_hammond else ()
         hammond_split_normal_target = ("normal",) if is_hammond_split else ()
         valid_targets = (("element",) + (("calibration",) if has_calibration else ())
@@ -2925,6 +2930,22 @@ class TuneApp(App):
                         'along the outer wall instead. Independent of Build target above - whenever '
                         'it builds a body with a rib ("Shuttle with Rib"), its own resin-rod supports '
                         "are always added too, regardless of this setting.",
+                        classes="field-help")
+
+                if is_mignon:
+                    orientation_now = str(self.cfg.get("resin", {}).get("orientation", "upside_down"))
+                    if orientation_now not in ("upside_down", "right_side_up"):
+                        orientation_now = "upside_down"
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Print orientation", classes="field-label")
+                        yield Select([("Upside down", "upside_down"), ("Right side up", "right_side_up")],
+                                     value=orientation_now, id="build-orientation", allow_blank=False)
+                    yield Static(
+                        '"Upside down" (default) is the original v1/v2 orientation - the '
+                        "label end sits at the build plate, supports attach there. "
+                        '"Right side up" skips that flip: the shaft/keyway end sits at the '
+                        "build plate instead, with its own support layout that keeps clear "
+                        "of the AlignmentPin notch. Only matters while Resin supports is on.",
                         classes="field-help")
 
                 if is_hammond_split:
@@ -3144,6 +3165,11 @@ class TuneApp(App):
             # for the same reason as groove above.
             values["orientation"] = self.query_one("#build-orientation", Select).value
             values["horizontal_method"] = self.query_one("#build-horizontal-method", Select).value
+        if self.machine == "mignon":
+            # orientation - same bespoke Build-tab treatment as Hammond's
+            # above (see _compose_build_tab's is_mignon branch); Mignon has
+            # no horizontal_method equivalent.
+            values["orientation"] = self.query_one("#build-orientation", Select).value
         if self.machine == "hammond_split":
             # render_left/render_right - bespoke Build-tab widgets (see
             # _compose_build_tab's is_hammond_split branch), same treatment
@@ -3315,6 +3341,10 @@ class TuneApp(App):
             hm_now = str(self.cfg.get("resin", {}).get("horizontal_method", "resin_rod"))
             self.query_one("#build-horizontal-method", Select).value = (
                 hm_now if hm_now in ("cut_groove", "resin_rod") else "resin_rod")
+        if self.machine == "mignon":
+            orientation_now = str(self.cfg.get("resin", {}).get("orientation", "upside_down"))
+            self.query_one("#build-orientation", Select).value = (
+                orientation_now if orientation_now in ("upside_down", "right_side_up") else "upside_down")
         if self.machine == "hammond_split":
             b = self.cfg.get("build", {})
             self.query_one("#build-render-left", Switch).value = bool(b.get("render_left", True))
