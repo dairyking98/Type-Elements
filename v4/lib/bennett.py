@@ -107,6 +107,9 @@ def configure(config_path):
     g["Shuttle_Label2"] = label["label2"]
     g["Shuttle_Label_Size"] = label["label_size_mm"]
     g["Shuttle_Label_Depth"] = label["depth_mm"]
+    g["Shuttle_Label1a_Radial"] = label["label1a_radial_mm"]
+    g["Shuttle_Label1b_Radial"] = label["label1b_radial_mm"]
+    g["Shuttle_Label2_Radial"] = label["label2_radial_mm"]
 
     e = cfg["element"]
     g["z"] = 0.001
@@ -434,35 +437,51 @@ def AlignmentHoles():
 
 
 def LabelText(flatness_tolerance_mm=0.005):
-    """v2/bennett.scad:418-432 - two independent flat engraved-text groups
-    cut into the bottom face near the shaft (SUBTRACTED in Assemble(), not
-    additive like every other machine's decorative text - Bennett has no
-    ring-wrapped/chamfer-mounted text at all). Right group: Shuttle_
-    Label1b at local y=0, Shuttle_Label1a at local y=2.25 (two-line
-    "Chau"/"Leonard" stack, matching v2's own linear_extrude(){text();
-    translate([0,2.25,0])text();} nesting exactly). Left group: Shuttle_
-    Label2 alone. The 2mm extrude depth is a literal in v2 (never a
-    customizer slider), kept as a code literal here too. Uses
-    cylinder_machine.build_text_string() (shared with Hammond's Label() -
-    see that function's docstring for the full derivation, originally
-    written here before being promoted to the shared module)."""
-    right_1b = cylinder_machine.build_text_string(Shuttle_Label1b, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm)
-    right_1a = sp.translate(
+    """v2/bennett.scad:418-432 - three independent flat engraved-text
+    groups cut into the bottom face near the shaft (SUBTRACTED in
+    Assemble(), not additive like every other machine's decorative text -
+    Bennett has no ring-wrapped/chamfer-mounted text at all). v2 nests
+    Shuttle_Label1b/Shuttle_Label1a into one translate([Shaft_Diameter/2+
+    1.5+.25,...])rotate([180,0,90]) group with Label1a further offset by
+    translate([0,2.25,0]) in local space BEFORE that shared rotate/
+    translate - since rotate([180,0,90]) maps local (x,y,z) to world
+    (y,x,-z), that nested local-y offset lands entirely in world X (i.e.
+    it's a second radial offset stacked on top of the group's own, not a
+    height/stacking offset) - so v2's Label1a and Label1b were always two
+    numerically-independent radial distances (3.45mm and 5.70mm at
+    stock Shaft_Diameter=3.4), just expressed as one offset nested inside
+    another instead of two flat numbers. Exposed here as three flat,
+    independently configurable radial distances (Shuttle_Label1a_Radial/
+    Shuttle_Label1b_Radial/Shuttle_Label2_Radial, config `label.
+    label1a_radial_mm`/`label1b_radial_mm`/`label2_radial_mm`) - each
+    text is transformed on its own rather than sharing a group translate,
+    which reproduces v2's geometry bit-for-bit at the config defaults
+    (label1a_radial_mm=5.70 = old Shaft_Diameter/2+1.5+.25+2.25,
+    label1b_radial_mm=3.45 = old Shaft_Diameter/2+1.5+.25, label2_radial_mm
+    =-3.95 = old -(Shaft_Diameter/2+1.75+.5)) while letting each move
+    independently of Shaft_Diameter and of each other. The 2mm extrude
+    depth is a literal in v2 (never a customizer slider), kept as a code
+    literal here too. Uses cylinder_machine.build_text_string() (shared
+    with Hammond's Label() - see that function's docstring for the full
+    derivation, originally written here before being promoted to the
+    shared module)."""
+    z_offset = Bottom_Countersink_Depth + Shuttle_Label_Depth
+    label1b = sp.scad_transform(
+        cylinder_machine.build_text_string(Shuttle_Label1b, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm),
+        ("translate", [Shuttle_Label1b_Radial, 0, z_offset]),
+        ("rotate", [180, 0, 90]),
+    )
+    label1a = sp.scad_transform(
         cylinder_machine.build_text_string(Shuttle_Label1a, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm),
-        [0, 2.25, 0])
-    right = sp.union_all([right_1b, right_1a])
-    right = sp.scad_transform(
-        right,
-        ("translate", [Shaft_Diameter / 2 + 1.5 + 0.25, 0, Bottom_Countersink_Depth + Shuttle_Label_Depth]),
+        ("translate", [Shuttle_Label1a_Radial, 0, z_offset]),
         ("rotate", [180, 0, 90]),
     )
-    left = cylinder_machine.build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm)
-    left = sp.scad_transform(
-        left,
-        ("translate", [-Shaft_Diameter / 2 - 1.75 - 0.5, 0, Bottom_Countersink_Depth + Shuttle_Label_Depth]),
+    label2 = sp.scad_transform(
+        cylinder_machine.build_text_string(Shuttle_Label2, Shuttle_Label_Size, LABEL_FONT_PATH, 2.0, flatness_tolerance_mm),
+        ("translate", [Shuttle_Label2_Radial, 0, z_offset]),
         ("rotate", [180, 0, 90]),
     )
-    return sp.union_all([right, left])
+    return sp.union_all([label1b, label1a, label2])
 
 
 def SpeedHoles():
