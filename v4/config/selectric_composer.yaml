@@ -17,7 +17,7 @@
 machine: selectric_composer
 
 font:
-  path: "/home/lchau/fonts/Library/Sans Text/FreeSans.ttf"   # substitute for v2's "Arial", same as config/selectric12.yaml
+  path: "/home/lchau/fonts/Library/Display, Decorative & Stencil/Glass Antiqua.ttf"   # substitute for v2's "Arial", same as config/selectric12.yaml
   # Composer sizes type by CAP HEIGHT (in points), not direct point size -
   # v2: Font_Size_Selected = Composer_Cap_Height/2.834 (ibm.scad:186,190).
   # This is a fixed numeric conversion (matches v2 exactly), not a real
@@ -30,7 +30,7 @@ font2:
   # (tune.py's patch_yaml_value matches by bare key across the whole
   # file, not by section - same reasoning as config/selectric12.yaml).
   font2_path: "/home/lchau/fonts/Library/Serif Text/FreeSerif.ttf"  # substitute for v2's "Times New Roman"
-  font2_composer_cap_height: 7.0   # v2 Composer2_Cap_Height (ibm.scad:198)
+  font2_composer_cap_height: 5.0   # v2 Composer2_Cap_Height (ibm.scad:198)
   font2_chars: ""                  # v2 Font2_Chars (ibm.scad:205)
 
 alignment:
@@ -120,7 +120,7 @@ build:
   minkowski_enabled: true
   character_block_height_mm: 6.0
   mink_cone_height_mm: 2.0
-  resin_support: true
+  resin_support: false
   target: "element"
 
 quality:
@@ -306,3 +306,7 @@ type_test:
     - [" ", 3]
   text: |-
     Sphinx of black quartz, judge my vow
+    MMMMM
+    M.
+    Hi
+    hintiiiii
