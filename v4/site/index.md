@@ -16,7 +16,7 @@ the platen cutout, the final `Additive - Subtractive` - is a real
 
 > Want the story behind this — collaborators, real prints, photos of the
 > restored machines? See
-> [leonardchau.com/Type-Elements](https://leonardchau.com/Type-Elements).
+> [leonardchau.com/projects/type-elements](https://leonardchau.com/projects/type-elements/).
 
 - **[How it works](how-it-works)** - the Minkowski draft sum, real
   booleans, adaptive glyph outline sampling, and the geometry invariants
