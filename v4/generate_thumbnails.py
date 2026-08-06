@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Generate static thumbnails for every model in example_renders/, rendered
+Generate static thumbnails for every model in example_renders/ (recursing
+into subdirectories, e.g. example_renders/resin_support_renders/), rendered
 through the same Three.js scene as the live interactive viewer (see
 thumbnail_harness.html, which mirrors dairyking98.github.io's
 assets/js/stl-viewer.js: dark charcoal part, white background) rather than
@@ -95,7 +96,11 @@ def main():
     os.makedirs(THUMBNAILS_DIR, exist_ok=True)
     chrome_path = find_chrome()
 
-    stls = sorted(f for f in os.listdir(MODELS_DIR) if f.endswith(".stl"))
+    stls = sorted(
+        os.path.relpath(os.path.join(dirpath, f), MODELS_DIR)
+        for dirpath, _, filenames in os.walk(MODELS_DIR)
+        for f in filenames if f.endswith(".stl")
+    )
     if args.only:
         wanted = set(args.only)
         stls = [f for f in stls if f[:-4] in wanted]
@@ -106,10 +111,11 @@ def main():
     server = start_server()
     port = server.server_address[1]
     try:
-        for stl_name in stls:
-            model = stl_name[:-4]
+        for stl_rel in stls:
+            model = stl_rel[:-4]
             out_path = os.path.join(THUMBNAILS_DIR, f"{model}.png")
-            render_thumbnail(chrome_path, port, stl_name, out_path)
+            os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            render_thumbnail(chrome_path, port, stl_rel, out_path)
             print(f"rendered {model} -> {os.path.relpath(out_path, REPO_ROOT)}")
     finally:
         server.shutdown()
