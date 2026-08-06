@@ -33,12 +33,17 @@ def _cylinder_family_supports(mod):
 
 
 def _hammond_split_supports(mod):
-    """Both halves, print-oriented and separated - same layout as
-    AssembleResin(), just without each half's AssembleSide() body."""
-    left = sp.scad_transform(mod.ResPrintOrient(mod.ResinSupports(0), 0),
-                              ("translate", [0, 7, 0]), ("rotate", [0, 0, -90]))
-    right = sp.scad_transform(mod.ResPrintOrient(mod.ResinSupports(1), 1),
-                               ("translate", [0, -7, 0]), ("rotate", [0, 0, 90]))
+    """Both halves, separated - same outer layout as AssembleResin(), just
+    without each half's AssembleSide() body unioned in first. ResinSupports()
+    is already built directly in the final print-position frame (see
+    ResinPrintHalf()) - it does NOT go through ResPrintOrient() the way the
+    body does, only the shared left/right placement transform does. An
+    earlier version of this function wrongly ran ResPrintOrient() on the
+    supports too, which put the lattice at the wrong position/orientation
+    relative to where the real body ends up - caught because the standalone
+    render didn't match the arrangement of a real Render w/ resin supports."""
+    left = sp.scad_transform(mod.ResinSupports(0), ("translate", [0, 7, 0]), ("rotate", [0, 0, -90]))
+    right = sp.scad_transform(mod.ResinSupports(1), ("translate", [0, -7, 0]), ("rotate", [0, 0, 90]))
     return sp.union_all([left, right])
 
 
