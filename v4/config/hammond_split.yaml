@@ -277,3 +277,42 @@ calibration:
   vary_cutout: false
   start: -0.7
   interval: 0.05
+
+# The flat 2D "index" reference card - see config/hammond.yaml's matching
+# comment/lib/hammond_legend.py's module docstring for what this is and
+# where the numbers come from. Unlike hammond.yaml, there is no dedicated
+# v1 "HammondSplitIndex.scad" (confirmed absent from v1/Hammond/ - Hammond
+# Split's own module docstring already establishes it shares nothing else
+# with plain Hammond either), so this reuses v1/Hammond/HammondIndex.
+# scad's real numbers as a placeholder for the same 3-row/30-column
+# shuttle-arc card shape - adjust qp_length_mm/z_exclamation_length_mm/
+# center_to_center_height_mm here if Hammond Split's real physical
+# shuttle dimensions differ.
+legend:
+  qp_length_mm: 178.0
+  z_exclamation_length_mm: 200.4
+  center_to_center_height_mm: 40.0
+  margin_mm: 5.0
+  circle_id_mm: 14.0
+  circle_thickness_mm: 0.5
+  cap_size_mm: 6.0
+  fig_size_mm: 4.0
+  capfig_mod_size_mm: 4.0
+  fig_offset_mm: 2.5
+  lowercase_offset_mm: -5.5
+  cap_offset_mm: -4.5
+  fig_dupe_offset_mm: 3.0
+  capfig_offset_mm: -1.5
+  capfig_mod_chars: "!:?-\"&"
+  # v1 Lowercase_Mod (see config/hammond.yaml's matching comment) plus
+  # "?"/"."/ ":" - this config's own real layout.rows[0] (the lowercase
+  # row) has these 3 as genuine standalone characters at their own key
+  # (not the lowercase form of that key's own CAP letter - e.g. idx 0 is
+  # "?" over CAP "!", not "!"'s lowercase form), so they'd otherwise be
+  # silently dropped the same way Hammond's own dash was - see that
+  # config's comment for the same reasoning/fix.
+  lowercase_mod_chars: ";,'?.:"
+  fig_dupe_chars: "."
+  circle_segments: 32
+  legend_flatness_tolerance_mm: 0.01
+  background: "transparent"

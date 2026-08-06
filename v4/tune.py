@@ -481,6 +481,46 @@ LABEL_FIELDS_MIGNON = [
      "a thin 0.09mm."),
 ]
 
+# lib/mignon_legend.py's flat 2D SVG reference card (see its module
+# docstring - a v1/Mignon/MignonIndex.scad port, unrelated to the 3D
+# element above). legend_height_offset_mm/legend_flatness_tolerance_mm
+# are renamed from the bare height_offset_mm/flatness_tolerance_mm the
+# YAML comments describe them as ported from - patch_yaml_value matches
+# by bare key text across the WHOLE file, and logo.height_offset_mm/
+# build.flatness_tolerance_mm already own those literal names (same
+# collision label_*/GAUGE_FIELDS already had to avoid - see those
+# fields' own comments). The 3 fill-pattern arrays (legend.circle_fill/
+# background_fill/solid_fill) and legend.height_offset_groups are
+# deliberately NOT exposed here (list/nested-dict values, don't fit this
+# generic scalar mechanism - edit them directly in the YAML, same
+# treatment as layout.placement_map/char_legend).
+LEGEND_FIELDS_MIGNON = [
+    ("length_mm", ["legend", "length_mm"], float, "Card length (mm)", ""),
+    ("width_mm", ["legend", "width_mm"], float, "Card width (mm)", ""),
+    ("corner_radius_mm", ["legend", "corner_radius_mm"], float, "Corner radius (mm)", ""),
+    ("edge_to_column_mm", ["legend", "edge_to_column_mm"], float, "Edge to column center (mm)", ""),
+    ("edge_to_row_mm", ["legend", "edge_to_row_mm"], float, "Edge to row center (mm)", ""),
+    ("circle_diameter_mm", ["legend", "circle_diameter_mm"], float, "Circle diameter (mm)", ""),
+    ("circle_height_bump_mm", ["legend", "circle_height_bump_mm"], float, "Circle height bump (mm)",
+     "Every circle/ellipse is squished taller than wide by this much extra."),
+    ("line_width_mm", ["legend", "line_width_mm"], float, "Ring/border line width (mm)", ""),
+    ("checker", ["legend", "checker"], bool, "Checkerboard border", "Slow decorative fill - off by default, matching v1."),
+    ("square_pattern_size_mm", ["legend", "square_pattern_size_mm"], float, "Checker square size (mm)", "Checkerboard border only."),
+    ("square_pattern_pitch_mm", ["legend", "square_pattern_pitch_mm"], float, "Checker square pitch (mm)", "Checkerboard border only."),
+    ("type_size_mm", ["legend", "type_size_mm"], float, "Character size (mm)",
+     "A paper/laser-cut card, unrelated to the Font tab's engraved-element size."),
+    ("legend_height_offset_mm", ["legend", "legend_height_offset_mm"], float, "Circle center to baseline (mm)", ""),
+    ("weight_adjustment_mm", ["legend", "weight_adjustment_mm"], float, "Character bolding (mm)",
+     "Plain outline buffer, positive=bolder, negative=thinner, 0=off. "
+     "Replaces v1's own self-contradictory/no-op-by-default bolding knob."),
+    ("circle_segments", ["legend", "circle_segments"], int, "Circle segments", ""),
+    ("legend_flatness_tolerance_mm", ["legend", "legend_flatness_tolerance_mm"], float, "Glyph outline tolerance (mm)", ""),
+    ("inner_border", ["legend", "inner_border"], bool, "Inner border",
+     "Draws an explicit border around the interior circle grid (v1's own "
+     "LiningRectangle() - real geometry, but dead code in v1's actual "
+     "output, off by default here too)."),
+]
+
 QUALITY_FIELDS_MIGNON = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
@@ -767,6 +807,45 @@ LABEL_FIELDS_HAMMOND = [
     ("label2", ["label", "label2"], str, "Label 2", "Shuttle_Label2 - e.g. a year."),
     ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", ""),
     ("depth_mm", ["label", "depth_mm"], float, "Label depth (mm)", "Shuttle_Label_Depth."),
+]
+
+# lib/hammond_legend.py's flat 2D SVG reference card (see its module
+# docstring - a v1/Hammond/HammondIndex.scad port, unrelated to the 3D
+# shuttle above). Shared as-is by both "hammond" and "hammond_split" (see
+# SECTIONS_BY_MACHINE) - same field set, same lib/hammond_legend.py
+# module, just a different config's layout.rows/legend: values.
+# legend_flatness_tolerance_mm is renamed from the bare
+# flatness_tolerance_mm QUALITY_FIELDS_HAMMOND below already owns (same
+# global-bare-key-text collision LABEL_FIELDS_MIGNON's own comment
+# explains) - every other key here has no such collision.
+LEGEND_FIELDS_HAMMOND = [
+    ("qp_length_mm", ["legend", "qp_length_mm"], float, "Q-to-P span (mm)", "Base column pitch = this / 9."),
+    ("z_exclamation_length_mm", ["legend", "z_exclamation_length_mm"], float, "Z-to-! span (mm)",
+     "The real shuttle's widest (bottom FIG/number) row - drives the taper term added to narrower rows."),
+    ("center_to_center_height_mm", ["legend", "center_to_center_height_mm"], float, "Row pitch (mm)", ""),
+    ("margin_mm", ["legend", "margin_mm"], float, "Card margin (mm)", "Padding around the key grid."),
+    ("circle_id_mm", ["legend", "circle_id_mm"], float, "Circle diameter (mm)", ""),
+    ("circle_thickness_mm", ["legend", "circle_thickness_mm"], float, "Circle ring thickness (mm)", ""),
+    ("cap_size_mm", ["legend", "cap_size_mm"], float, "CAP letter size (mm)", "The big central character on each key."),
+    ("fig_size_mm", ["legend", "fig_size_mm"], float, "FIG/lowercase char size (mm)",
+     "Used for both the small FIG label above and the lowercase/punctuation label below."),
+    ("capfig_mod_size_mm", ["legend", "capfig_mod_size_mm"], float, "CAPFIG-mod char size (mm)",
+     "Size for a CAP-row character that's actually a symbol (see capfig_mod_chars)."),
+    ("fig_offset_mm", ["legend", "fig_offset_mm"], float, "FIG label offset (mm)", "Height above center."),
+    ("lowercase_offset_mm", ["legend", "lowercase_offset_mm"], float, "Lowercase label offset (mm)", "Height above center (negative = below)."),
+    ("cap_offset_mm", ["legend", "cap_offset_mm"], float, "CAP label offset (mm)", "Height above center (negative = below)."),
+    ("fig_dupe_offset_mm", ["legend", "fig_dupe_offset_mm"], float, "FIG-dupe extra offset (mm)",
+     "Added to the CAP label's offset when this key's FIG position is blanked (a duplicate marker, see fig_dupe_chars)."),
+    ("capfig_offset_mm", ["legend", "capfig_offset_mm"], float, "CAPFIG-mod offset (mm)",
+     "Used instead of the normal CAP offset when this key's CAP position is actually a symbol."),
+    ("capfig_mod_chars", ["legend", "capfig_mod_chars"], str, "CAPFIG-mod characters",
+     "CAP-row characters treated as symbols (smaller size, different vertical offset) rather than real letters."),
+    ("lowercase_mod_chars", ["legend", "lowercase_mod_chars"], str, "Lowercase-mod characters",
+     "The only lowercase-row characters actually drawn as a separate small label - everything else in that row is blank (redundant with the CAP letter above it)."),
+    ("fig_dupe_chars", ["legend", "fig_dupe_chars"], str, "FIG-dupe characters",
+     "FIG-row characters treated as a blank placeholder rather than a real character."),
+    ("circle_segments", ["legend", "circle_segments"], int, "Circle segments", ""),
+    ("legend_flatness_tolerance_mm", ["legend", "legend_flatness_tolerance_mm"], float, "Glyph outline tolerance (mm)", ""),
 ]
 
 QUALITY_FIELDS_HAMMOND = [
@@ -1263,7 +1342,7 @@ SECTIONS_BY_MACHINE = {
     # option accordingly, rather than every machine being forced to have one.
     "mignon": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
                "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
-               "Element": ELEMENT_FIELDS_MIGNON},
+               "Element": ELEMENT_FIELDS_MIGNON, "Legend": LEGEND_FIELDS_MIGNON},
     # no "Gauge" key - Bennett has no Shaft Gauge Test either (v2/bennett.
     # scad:24: "Sections with no Bennett equivalent (Print Tolerances,
     # Shaft Gauge Test) are omitted"). No "Logo" key - its one engraved-
@@ -1285,14 +1364,18 @@ SECTIONS_BY_MACHINE = {
     # "Label" tab instead, same convention as Bennett.
     "hammond": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
-                "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND},
+                "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND,
+                "Legend": LEGEND_FIELDS_HAMMOND},
     # no "Gauge"/"Logo" key - same reasons as Hammond above. "Font &
     # Alignment" is overridden (not the shared SECTIONS_COMMON one) - see
     # FONT_FIELDS_HAMMOND_SPLIT's own comment for why (no draft_angle_deg
-    # field here, plus the char_mod fields no other machine has).
+    # field here, plus the char_mod fields no other machine has). "Legend"
+    # reuses LEGEND_FIELDS_HAMMOND/lib/hammond_legend.py as-is - see that
+    # module's docstring for why the same card shape applies to both.
     "hammond_split": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_HAMMOND_SPLIT,
                        "Label": LABEL_FIELDS_HAMMOND_SPLIT, "Quality": QUALITY_FIELDS_HAMMOND_SPLIT,
-                       "Resin": RESIN_FIELDS_HAMMOND_SPLIT, "Element": ELEMENT_FIELDS_HAMMOND_SPLIT},
+                       "Resin": RESIN_FIELDS_HAMMOND_SPLIT, "Element": ELEMENT_FIELDS_HAMMOND_SPLIT,
+                       "Legend": LEGEND_FIELDS_HAMMOND},
     # No SECTIONS_COMMON reuse at all - Selectric's alignment/calibration
     # schema doesn't match the cylinder family's (see FONT_FIELDS_
     # SELECTRIC12's own comment above). No "Gauge"/"Logo"/"Calibration"
@@ -1342,6 +1425,12 @@ SECTIONS_BY_MACHINE = {
 SECTION_INTROS = {
     "Element": ("ADVANCED - real machine dimensions. Rarely need changing.",
                 "advanced-warning"),
+    "Legend": (
+        "A flat 2D reference card - which key produces which character - "
+        "not part of the 3D element/build above. Generates a standalone "
+        ".svg file, not an STL; press Generate Legend SVG below (also "
+        "saves this tab's fields first, like Render/Preview do).",
+        "picker-help"),
     "Rib": ("v4-specific FDM print-fit tuning, not real machine dimensions - these values are "
             "for Build target Rib only (the standalone printed flange), never the fused "
             "Shuttle with Rib resin print or the Shuttle body itself.",
@@ -1704,11 +1793,21 @@ LAYOUT_PRESETS_BENNETT = {
     ],
 }
 
-# Helios's 2 inline layout arrays from v2/heliosklimax.scad's [Key
-# Mapping] section - GERMAN and GERMAN_MOD (LAYOUT=GERMAN_MOD is what v2
+# Helios's layout arrays - GERMAN and GERMAN_MOD are from v2/
+# heliosklimax.scad's [Key Mapping] section (LAYOUT=GERMAN_MOD is what v2
 # actually assigns/uses; GERMAN is a real, if superseded, second array in
 # the source, exposed here the same way Bennett's redundant CUSTOM preset
-# is). Both share the same 4-row/21-column structure and identity
+# is). ROTUNDA is a third real preset, NOT from v2 (v2 only ever carried
+# GERMAN/GERMAN_MOD forward) - it's from v1/HeliosKlimax/
+# HeliosKlimaxTester.scad's own Layouts=[GERMAN, GERMAN_MOD, ROTUNDA]
+# (a real, live Layout_Selection=0/1/2 option there, not dead code - see
+# lib/helios.py's module docstring for why Tester.scad is a real, richer
+# source alongside Element.scad, not just a superseded prototype). Row 2
+# differs by one real character (a long-s "$" stand-in for Rotunda
+# blackletter's lowercase s at column 12, vs GERMAN_MOD's plain "s") and
+# row 4 differs by one real character (XYÓß vs XY¢ß/XY₰ß) - transcribed
+# exactly as v1 has them, not normalized to match the other two rows.
+# All three share the same 4-row/21-column structure and identity
 # placement_map (Physical_Layout=LAYOUT directly, no CharLegend remap).
 LAYOUT_PRESETS_HELIOS = {
     "GERMAN_MOD": [
@@ -1722,6 +1821,12 @@ LAYOUT_PRESETS_HELIOS = {
         "WERTUIONKLPASDCFGHBVM",
         "'!+züjö.:xyä23456789q",
         "\"()Z⅟J=,;XY₰ß&%/-_§?Q",
+    ],
+    "ROTUNDA": [
+        "wertuionklpa$dcfghbvm",
+        "WERTUIONKLPASDCFGHBVM",
+        "'!+züjö.:xyä23456789q",
+        "\"()Z⅟J=,;XYÓß&%/-_§?Q",
     ],
 }
 
@@ -2661,6 +2766,28 @@ class TuneApp(App):
                             yield Static(help_text, classes="field-help")
                 if section == "Element":
                     yield from self._compose_baseline_cutout_fields()
+                if section == "Legend":
+                    yield from self._compose_legend_extra()
+
+    def _compose_legend_extra(self):
+        """The Legend tab's own background picker + action button +
+        status line, appended after its generic LEGEND_FIELDS_*/
+        _compose_section_tab fields - same trailing-content pattern as
+        Element's _compose_baseline_cutout_fields() above. Generates a
+        standalone SVG (lib/<machine>_legend.py via generate_legend.py),
+        not an STL - entirely separate from Preview/Render/the f3d
+        window, so this bespoke Select (like Build tab's own dropdowns)
+        isn't in self.FIELDS - _collect_values/_save_to_yaml/
+        _refresh_widgets_from_cfg handle it explicitly."""
+        background_now = str(self.cfg.get("legend", {}).get("background", "transparent"))
+        if background_now not in ("transparent", "white"):
+            background_now = "transparent"
+        with Horizontal(classes="picker-row"):
+            yield Static("Background", classes="field-label")
+            yield Select([("Transparent", "transparent"), ("White", "white")],
+                         value=background_now, id="legend-background", allow_blank=False)
+        yield Button("GENERATE LEGEND SVG", id="btn-generate-legend", variant="success")
+        yield Static("", id="legend-status", classes="field-help")
 
     # layout.baseline_row/cutout_row - per-row (lowercase/uppercase/figs)
     # inline numeric arrays, calibrated via the Calibration tab (see
@@ -3099,6 +3226,11 @@ class TuneApp(App):
                 yield from self._compose_section_tab("Element")
                 if "Rib" in self.SECTIONS:
                     yield from self._compose_section_tab("Rib")
+                # only machines with an actual v1 index/legend card ported
+                # (see lib/mignon_legend.py/lib/hammond_legend.py) get this
+                # tab - not every machine has one.
+                if "Legend" in self.SECTIONS:
+                    yield from self._compose_section_tab("Legend")
 
             with Vertical(id="buttons"):
                 # short, wide, and OUTSIDE the TabbedContent (unlike the
@@ -3162,6 +3294,11 @@ class TuneApp(App):
         else:
             values["target"] = self.query_one("#build-select", Select).value
         values["resin_support"] = self.query_one("#build-resin-support", Switch).value
+        if "Legend" in self.SECTIONS:
+            # legend.background - bespoke Legend-tab Select (see
+            # _compose_legend_extra), same treatment as Hammond's
+            # orientation/horizontal_method above.
+            values["background"] = self.query_one("#legend-background", Select).value
         if self.machine == "hammond":
             # orientation/horizontal_method - moved off the Resin tab onto
             # the Build tab (see _compose_build_tab) - not in self.FIELDS
@@ -3295,6 +3432,29 @@ class TuneApp(App):
     def action_preview(self):
         self.run_worker(self._run_build(fast=True), exclusive=True)
 
+    def action_generate_legend(self):
+        self.run_worker(self._run_generate_legend(), exclusive=True)
+
+    async def _run_generate_legend(self):
+        """Legend tab's "Generate Legend SVG" button - saves the whole
+        form first (same as Preview/Render, so this tab's own edits
+        aren't lost/left stale on disk), then shells out to generate_
+        legend.py the same way _run_build shells out to generate.py.
+        Output is a standalone .svg (lib/<machine>_legend.py, see its
+        module docstring) - no f3d/mesh involvement at all, so this
+        reuses _stream_subprocess's shared progress/elapsed widgets and
+        log but overrides its default f3d-flavored success message."""
+        values = self._collect_values()
+        if values is None:
+            return
+        self._save_to_yaml(values)
+        self.log_line("[bold]--- Generate Legend SVG ---[/bold]")
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "generate_legend.py"), self.config_path]
+        status = self.query_one("#legend-status", Static)
+        status.update("generating...")
+        returncode = await self._stream_subprocess(cmd, success_message="see the printed path above")
+        status.update("done - see log above" if returncode == 0 else f"failed (exit {returncode}) - see log above")
+
     def _refresh_widgets_from_cfg(self):
         """(Re)populate every widget from self.cfg. Shared by Reload
         (re-read the running config), Reset to Defaults (overwrite
@@ -3337,6 +3497,10 @@ class TuneApp(App):
                 target_now = "element"
             self.query_one("#build-select", Select).value = target_now
         self.query_one("#build-resin-support", Switch).value = bool(self.cfg["build"]["resin_support"])
+        if "Legend" in self.SECTIONS:
+            background_now = str(self.cfg.get("legend", {}).get("background", "transparent"))
+            self.query_one("#legend-background", Select).value = (
+                background_now if background_now in ("transparent", "white") else "transparent")
         if self.machine == "hammond":
             orientation_now = str(self.cfg.get("resin", {}).get("orientation", "vertical"))
             self.query_one("#build-orientation", Select).value = (
@@ -3843,7 +4007,7 @@ class TuneApp(App):
             return
         self.query_one("#build-progress", ProgressBar).update(progress=min(95.0, 95.0 * n / total))
 
-    async def _stream_subprocess(self, cmd):
+    async def _stream_subprocess(self, cmd, success_message=None):
         t0 = time.time()
         self.query_one("#build-progress", ProgressBar).update(progress=0)
         elapsed = self.query_one("#build-elapsed", Static)
@@ -3870,7 +4034,8 @@ class TuneApp(App):
         elapsed.update(f"{dt:.1f}s")
         if proc.returncode == 0:
             self.query_one("#build-progress", ProgressBar).update(progress=100)
-            self.log_line(f"[green]done in {dt:.1f}s[/green] - f3d (if running with --watch) should refresh")
+            msg = success_message or "f3d (if running with --watch) should refresh"
+            self.log_line(f"[green]done in {dt:.1f}s[/green] - {msg}")
         else:
             self.log_line(f"[red]exited {proc.returncode} after {dt:.1f}s[/red]")
         return proc.returncode
@@ -3931,6 +4096,8 @@ class TuneApp(App):
             self.action_render()
         elif button_id == "btn-preview":
             self.action_preview()
+        elif button_id == "btn-generate-legend":
+            self.action_generate_legend()
         elif button_id == "btn-save":
             self.run_worker(self.action_save(), exclusive=True)
         elif button_id == "btn-render-test-text":

@@ -248,3 +248,102 @@ calibration:
   vary_cutout: true
   start: -0.5
   interval: 0.1
+
+# The flat 2D "index" reference card - v1/Mignon/MignonIndex.scad ported
+# to lib/mignon_legend.py (SVG output via generate_legend.py, entirely
+# separate from the 3D element build above - see that module's
+# docstring). Every number below is v1's real customizer default
+# (MignonIndex.scad line cited), not invented. Displays layout.rows
+# above (raw keyboard-legend order, not the char_legend-remapped
+# DHIATENSOR the element itself is struck with).
+legend:
+  length_mm: 133.0             # v1 Length (:19, "Index Length")
+  width_mm: 83.0                # v1 Width (:21, "Index Width")
+  corner_radius_mm: 9.0         # v1 Corner_Radius (:37)
+  edge_to_column_mm: 10.5       # v1 Edge_to_Column (:39)
+  edge_to_row_mm: 9.5           # v1 Edge_to_Row (:41)
+  circle_diameter_mm: 8.0       # v1 Circle_Diameter (:31)
+  circle_height_bump_mm: 0.8    # v1 Circle_Height_Bump (:33) - Y-squish of every circle/ellipse
+  line_width_mm: 0.3            # v1 Line_Width (:35) - ring/border stroke width
+  square_pattern_size_mm: 0.5   # v1 Square_Pattern_Size (:43) - Checker only
+  square_pattern_pitch_mm: 0.8  # v1 Square_Pattern_Pitch (:45) - Checker only
+  # v1 Checker (:47) - the raw customizer DEFAULT is false ("slow - do
+  # last"), but this is not what a real, finished card actually looks
+  # like: MignonIndex.json's "New set 3" and its unnamed final preset
+  # both match this config's own dimensions/layout exactly (Layout_
+  # Selection=5, Length=133, Width=83) and both have Checker=true -
+  # confirmed correct (not just visually similar) against a direct
+  # openscad-nightly render, comparing actual SVG path vertex coordinates
+  # point-by-point, not just a raster screenshot - an earlier raster/
+  # crop-based comparison gave a false positive for a packing/density
+  # bug that turned out not to be real once checked this way. See lib/
+  # mignon_legend.py's _checker_pattern() docstring for the actual real
+  # bug that WAS found and fixed alongside this (a corner-vs-center
+  # rotation pivot).
+  checker: true
+  type_size_mm: 5.0             # v1 Type_Size (:51) - a paper/laser-cut card, unrelated to font.size_mm's 2.45mm engraved element size
+  legend_height_offset_mm: 2.1         # v1 Height_Offset (:63) - circle center to text baseline
+  circle_segments: 32           # v4-only - shapely buffer() quad_segs for every circle/ellipse (v1 used $fn=$preview?30:60, :79)
+  # v1's Weight_Adj mechanism is unported (self-contradictory in v1, real
+  # default value a no-op regardless) - see lib/mignon_legend.py's module
+  # docstring. This replaces it: a plain outline buffer, positive=bolder,
+  # negative=thinner, 0=v1's real default behavior.
+  weight_adjustment_mm: 0.0
+  # v1 LiningRectangle() (:260-267) - real geometry, but dead code in
+  # v1's own actual output (only Array1() calls it, and Array1() itself
+  # is never invoked - see lib/mignon_legend.py's module docstring).
+  # Off by default (matching v1's real behavior of never drawing it) -
+  # turn on for an explicit border around the interior circle grid.
+  inner_border: false
+  # v4-only, not a v1 concept - SVG canvas background: "transparent"
+  # (default, no backing rect) or "white" (an opaque backing rect, e.g.
+  # for viewers/pipelines that composite onto a dark background and
+  # would otherwise show every checker/circle hole as see-through).
+  background: "transparent"
+  # v1 Character_Modifieds/Character_Modifieds_Offset (:61-72) - per-
+  # character baseline nudge groups. Offsets default to 0.0 here, NOT
+  # v1's customizer-comment values (1.0/0.4/0.4/-0.5) - confirmed via a
+  # real openscad-nightly render that v1's own indexing bug
+  # (MignonIndex.scad:464 - see lib/mignon_legend.py's module docstring)
+  # makes this a no-op in v1's actual output. The mechanism itself works
+  # correctly here (unlike v1) - raise these above 0.0 to really use it.
+  height_offset_groups:
+    underscore_chars: "_"
+    underscore_offset_mm: 0.0
+    descender_chars: "pgqjy"
+    descender_offset_mm: 0.0
+    parenthesis_chars: "()"
+    parenthesis_offset_mm: 0.0
+    ascender_chars: "fbldtkh"
+    ascender_offset_mm: 0.0
+  # v1 NormalCircleFillArray/NormalBackgroundFillArray/NormalSolidFillAray
+  # (:126-151) - only the Normal* arrays: v1's own Plakat* variants of
+  # these 3 arrays (:96-123) are dead code, never assigned to
+  # CircleFillArray/BackgroundFillArray/SolidFillArray anywhere in the
+  # file (only the Normal* arrays are, unconditionally, at :155-157) -
+  # not ported. 7 rows x 12 cols, same grid layout.rows uses above.
+  circle_fill:      # 1 = a solid dark disc with the character cut OUT as a hole (reads as reversed/light-on-dark once filled - see mignon_legend.render_svg())
+    - [0,0,0,0,0,0,0,0,0,0,0,0]
+    - [0,1,1,1,1,1,0,0,0,0,0,0]
+    - [0,1,1,1,1,1,0,0,0,0,0,0]
+    - [0,1,1,1,1,1,0,0,0,0,0,0]
+    - [0,1,1,1,1,1,0,0,0,0,0,0]
+    - [0,1,1,1,1,1,0,0,0,0,0,0]
+    - [0,0,0,0,0,0,0,0,0,0,0,0]
+  background_fill:  # 0 = cut away entirely (leaves the border frame + isolated circles standing)
+    - [1,1,1,1,1,1,1,1,1,1,1,1]
+    - [1,0,0,0,0,0,0,0,0,0,0,1]
+    - [1,0,0,0,0,0,0,0,0,0,0,1]
+    - [1,0,0,0,0,0,0,0,0,0,0,1]
+    - [1,0,0,0,0,0,0,0,0,0,0,1]
+    - [1,0,0,0,0,0,0,0,0,0,0,1]
+    - [1,1,1,1,1,1,1,1,1,1,1,1]
+  solid_fill:       # 1 = a solid background square (with the same circle cut through it) behind an outlined-ring cell
+    - [0,0,0,0,0,0,0,0,0,0,0,0]
+    - [0,0,0,0,0,0,1,1,1,1,1,0]
+    - [0,0,0,0,0,0,1,1,1,1,1,0]
+    - [0,0,0,0,0,0,1,1,1,1,1,0]
+    - [0,0,0,0,0,0,1,1,1,1,1,0]
+    - [0,0,0,0,0,0,1,1,1,1,1,0]
+    - [0,0,0,0,0,0,0,0,0,0,0,0]
+  legend_flatness_tolerance_mm: 0.01   # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
