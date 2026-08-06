@@ -6,3 +6,16 @@ output/
 # bootstrapped from and never affecting its master (see TuneApp.__init__)
 config/*.running.yaml
 config/*.running.yml
+
+# site/: Jekyll build output and the docs it syncs in at build time
+# (sync_docs.sh) - never committed, only the hand-written source pages are.
+site/_site/
+site/.jekyll-cache/
+site/.bundle/
+site/vendor/
+site/Gemfile.lock
+site/readme.md
+site/changelog.md
+site/roadmap-packaging.md
+site/accessories/*.md
+site/assets/models/

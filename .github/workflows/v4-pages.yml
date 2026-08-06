@@ -1,0 +1,51 @@
+name: v4 site → GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "v4/site/**"
+      - "v4/README.md"
+      - "v4/SESSION_LOG.md"
+      - "v4/PACKAGING_PLAN.md"
+      - "v4/docs/**"
+      - "v4/example_renders/**"
+      - ".github/workflows/v4-pages.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: v4/site
+
+      - name: Sync docs into site source
+        run: ./sync_docs.sh
+        working-directory: v4/site
+
+      - name: Build with Jekyll
+        run: bundle exec jekyll build --destination ../../_site
+        working-directory: v4/site
+        env:
+          JEKYLL_ENV: production
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          cname: type-elements.leonardchau.com

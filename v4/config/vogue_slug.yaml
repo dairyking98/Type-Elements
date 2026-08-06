@@ -1,0 +1,159 @@
+# Vogue Slug - v1/Type Slugs/VogueSlug.scad's own "True_Vogue" customizer
+# preset (v1/Type Slugs/VogueSlug.json), the faithful replica modeled
+# from real drawings, carrying the real 2-piece "Vogue Foundry" mark
+# (vogue-foundry-arrow.svg + vogue-foundry-v.svg). Shares
+# lib/wing_slug.py's engine with config/type_slug.yaml/gauge_slug.yaml -
+# see that module's docstring for the shared geometry pipeline and the
+# v1-is-ground-truth callout. VogueSlug.scad itself has no resin-
+# support/loop/post/side-hole concept at all (unlike TypeSlug.scad) -
+# every element.*_enabled/build.resin_support flag below is really off,
+# not a placeholder.
+
+machine: vogue_slug
+
+font:
+  # The real "True_Vogue" font Leo built for this replica (confirmed via
+  # its own embedded family name, not a filename guess).
+  path: "/home/lchau/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf"
+  size_mm: 3.15           # v1 Type_Size ("True_Vogue" preset)
+  name: "True_Vogue"
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+
+character:
+  char_enabled: true
+  lower_char: "e"          # v1 Lower_Char (VogueSlug.scad:42)
+  upper_char: "E"           # v1 Upper_Char (VogueSlug.scad:44)
+
+logo:
+  logo_enabled: false            # v1 SVG_Enable ("True_Vogue" preset: false - the generic AR1 logo isn't used here)
+  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/AR1.svg"
+  # v1 has TWO real, genuinely different scale variables here - SVG_Scale=
+  # 1/40*SVG_Size for THIS (AR1/Logo()) vs SVG_V1_Scale=1/80*SVG_V1_Size
+  # for the Vogue Foundry mark below (VogueSlug.scad:55-56, vogue_
+  # scale_mm_per_unit) - v1's own SVG_Size=2 here is BYTE-IDENTICAL to
+  # config/type_slug.yaml's ("CMU Typewriter Text" preset, TypeSlug.scad's
+  # own SVG_Size=2) - same file, same v1 scale multiplier, same real
+  # target size - so this reuses that config's own empirically-tuned
+  # 0.02 (~2mm AR1 span) directly rather than re-deriving it. A real bug
+  # once: this single field was shared between AR1 and the Vogue mark
+  # below, so whichever one WASN'T the currently-tuned value came out
+  # ~8x wrong scale the moment it was enabled (this field itself was
+  # briefly left at the Vogue-tuned 0.0025, making AR1 ~8x undersized if
+  # enabled here) - split into two real fields to fix it structurally,
+  # not just re-tune one shared number.
+  scale_mm_per_unit: 0.02
+  logo_depth_mm: 0.05             # v1 SVG_Depth
+  location_frac: 0.5         # v1 SVG_Location ("True_Vogue" preset)
+  # The real 2-piece Vogue Foundry mark (VogueSlug.scad:109-126) - always
+  # on for this machine (v1 SVG_Vogue_Enable=true, VogueSlug.scad:51, not
+  # exposed as a per-preset override in the real Customizer JSON either -
+  # it's the whole point of this file).
+  vogue_enabled: true
+  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
+  # vogue_scale_mm_per_unit (v1 SVG_V1_Scale, see scale_mm_per_unit's own
+  # comment above for why this is a SEPARATE field, not scale_mm_per_unit
+  # reused) - tuned empirically for the arrow+V mark's own much smaller
+  # SVG viewBox: 0.0025 gives the combined mark a ~1.6x1.6mm footprint,
+  # comfortably inside this config's 2.6mm body width. Not derived from
+  # v1's own formula - see lib/svg_import.py's module docstring for why
+  # v4 doesn't reproduce OpenSCAD's px/DPI SVG-import scaling.
+  vogue_scale_mm_per_unit: 0.0025
+
+label:
+  text: "☺ Leonard Chau 2023"          # v1 Copyright_Text (VogueSlug.scad:66)
+  # v1 Copyright_Font "Courier New" (VogueSlug.scad:68) isn't installed
+  # here - substituted with Courier Prime, the same metric-compatible
+  # typewriter-style substitute config/postal.yaml's FreeMono swap
+  # already establishes as this fleet's convention for a missing font.
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime.ttf"
+  label_depth_mm: 0.1                          # v1 Copyright_Depth
+
+element:
+  body_width_mm: 2.6               # v1 Body_Width ("True_Vogue" preset)
+  body_length_mm: 11.75            # v1 Body_Length ("True_Vogue" preset)
+  body_height_mm: 5.5              # v1 Body_Height ("True_Vogue" preset)
+  face_thickness_mm: 0.5           # v1 Face_Thickness
+  face_radius_mm: 0.2              # v1 Face_Radius
+  wing_radius_mm: 2.0              # v1 Wing_Radius
+  platen_shift_motion_mm: 6.6      # v1 Platen_Shift_Motion
+  baselines_shift_motion_mm: 6.6   # v1 Baselines_Shift_Motion
+  body_slot_width_mm: 1.0          # v1 Body_Slot_Width ("True_Vogue" preset)
+  wing_thickness_mm: 0.5           # v1 Wing_Thickness
+  aligning_cut_mm: 2.5             # v1 Aligning_Cut ("True_Vogue" preset)
+  baseline_mm: 0.7                 # v1 Baseline ("True_Vogue" preset)
+  platen_diameter_mm: 25.4         # v1 Platen_Diameter
+  bottom_thickness_mm: 1.0         # v1 Bottom_Thickness
+  upper_wing_angle_deg: 10.0       # v1 Upper_Wing_Angle ("True_Vogue" preset)
+  lower_wing_angle_deg: 10.0       # v1 Lower_Wing_Angle
+  # VogueSlug.scad has no Loop/Post/Side_Hole concept at all (see this
+  # file's own header comment) - every flag below is really off, not a
+  # placeholder default.
+  loop_enabled: false
+  loop_thickness_mm: 0.75
+  loop_diameter_mm: 2.6
+  loop_rotation_deg: 0.0
+  post_enabled: false
+  post_id_mm: 1.0
+  post_od_mm: 0.5
+  side_hole_enabled: false
+  side_hole_id_mm: 1.0
+  side_hole_height_frac: 0.2
+
+build:
+  flatness_tolerance_mm: 0.01
+  minkowski_enabled: true          # v1 !Debug_No_Minkowski ("True_Vogue" preset: false)
+  draft_angle_deg: 60.0            # v1 Draft_Angle
+  engraving_depth_mm: 0.5          # v1 Engraving_Depth
+  minkowski_multiplier: 1.6        # v1 Minkowski_Multiplier
+  character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) - construction margin, config-driven per CLAUDE.md
+  resin_support: false             # VogueSlug.scad has no resin-support geometry at all
+  target: "element"
+
+quality:
+  corner_fn: 40
+  wing_fn: 360
+  platen_fn: 360
+  minkowski_fn: 40
+  loop_fn: 360
+  loop_tube_fn: 32           # unused (element.loop_enabled: false) - see config/type_slug.yaml's matching comment
+  post_fn: 360
+  side_hole_fn: 360
+
+resin:
+  # Unused (element.loop/post/side_hole are all off and build.
+  # resin_support is false for this machine) - present only because
+  # wing_slug._receive_config picks up every capital-leading global
+  # unconditionally, same reasoning as logo.vogue_* fields elsewhere.
+  resin_fn: 40
+  raft_thickness_mm: 2.0
+  wire_thickness_mm: 0.6
+  support_height_mm: 2.0
+  support_pitch_mm: 2.0
+
+gauge:
+  gauge_enabled: false
+  fine_pitch_mm: 0.5
+  major_pitch_mm: 2.0
+  hole_d_mm: 0.5
+  fine_z_mm: -1.5
+  major_z_mm: -5.0
+  hole_fn: 40
+
+output:
+  directory: "output"
+  stl_name: "vogue_slug_running.stl"
+
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    Sphinx of black quartz, judge my vow

@@ -70,32 +70,22 @@ cut, THEN union the bosses); FullElement's own final difference is only
 the genuine outer-scope cut (AlignmentPinHole/WireClip/the core_shaft
 family - see _final_cut()).
 
-No Shaft Gauge Test (v2's own header: "Sections with no Helios equivalent
-(..., Print Tolerances, Shaft Gauge Test) are omitted"). v2 also declares
-Resin_Support/Resin_Support_* parameters but never builds any support
-geometry with them (v2's own header, confirmed: no ResinRod/CutGroove-
-equivalent module anywhere in the file) - ResinSupport()/ResinPrint()
-below are a no-op/alias to FullElement(), matching that reality rather
-than inventing a resin-support system that was never there.
-
-Logo: v2/heliosklimax.scad's real ground truth (HeliosKlimaxElement.scad)
-has no engraved text at all - the "No Logo" note above used to be
-correct. v1/HeliosKlimax/HeliosKlimaxTester.scad (a separate, fuller v1
-file - see SESSION_LOG.md's audit chapter) does have real engraved text
-(Element_Label/Element_Label2) and an imported SVG logo, but neither of
-those is the convention this fleet uses elsewhere (every other machine's
-Logo is procedurally-engraved text via cylinder_machine.LogoText(), never
-an imported image) - added here as a real, working Logo feature using
-that SAME shared function/config convention (logo.font_path/text/
-text_size_mm/text_spacing/position_offset_deg/text_offset_deg/
-radial_offset_mm, Logo_Radius=Element_Diameter/2-2.0 - byte-identical
-formula to Blickensderfer/Postal's), not a port of Tester.scad's own
-SVG-import mechanism. Cut into the flat top face as part of the final
-outer-scope difference (_final_cut()), the same subtractive placement
-Blickensderfer/Postal's own Subtractive() uses it for - Helios has a
-flat top face there too (ClipRetainer() sits on it), not Mignon's angled
-chamfer, so the shared function's own flat-XY-plane placement applies
-unmodified.
+No Logo/Label engraved TEXT, no Shaft Gauge Test (v2's own header:
+"Sections with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge
+Test) are omitted"). Logo() below IS a real feature despite that - v1's
+separate SVG_Logo mark (HeliosKlimaxTester.scad:103-104/365-368, an
+imported vector image cut into the top face, not engraved text) never
+existed in v2 either, so it's a DELIBERATE v1-sourced, not-a-v2-port
+addition, same category as the core_shaft enhancement above - see
+config/helios.yaml's logo: section for the full derivation (scale_mm_
+per_unit had to be re-derived against a real openscad-nightly render,
+not copied from v1's raw SVG_Scale=.03 - see lib/svg_import.py's module
+docstring for why). v2 also declares Resin_Support/Resin_Support_*
+parameters but never builds any support geometry with them (v2's own
+header, confirmed: no ResinRod/CutGroove-equivalent module anywhere in
+the file) - ResinSupport()/ResinPrint() below are a no-op/alias to
+FullElement(), matching that reality rather than inventing a resin-support
+system that was never there.
 """
 
 import trimesh
@@ -109,6 +99,7 @@ from glyph_poc import (
 import scad_primitives as sp
 import cylinder_machine
 import build_log
+import svg_import
 
 _configured = False
 
@@ -133,28 +124,12 @@ def configure(config_path):
     g["FONT_PATH"] = font["path"]
     g["FONT_SIZE_MM"] = font["size_mm"]
 
-    # Logo - v4-only addition (see module docstring) - same schema/
-    # loading as Blickensderfer/Postal's logo: section, reusing
-    # cylinder_machine.LogoText() directly.
-    logo = cfg["logo"]
-    g["LOGO_FONT_PATH"] = logo["font_path"]
-    g["Logo_Text"] = logo["text"]
-    g["Logo_Text_Size"] = logo["text_size_mm"]
-    g["Logo_Text_Spacing"] = logo["text_spacing"]
-    g["Logo_Position_Offset"] = logo["position_offset_deg"]
-    g["Logo_Text_Offset"] = logo["text_offset_deg"]
-    g["Logo_Radial_Offset"] = logo.get("radial_offset_mm", 1.5)
-
     e = cfg["element"]
     # v2/heliosklimax.scad:59 - z=.01, same magnitude as Blickensderfer/
     # Postal (not Mignon/Bennett's 0.001) - no divergence to explain.
     g["z"] = 0.01
     g["Platen_Diameter"] = e["platen_diameter"]
     g["Element_Diameter"] = e["element_diameter"]
-    # Logo_Radius - byte-identical formula to Blickensderfer/Postal's
-    # (see the module docstring's Logo note) - needs Element_Diameter,
-    # set just above.
-    g["Logo_Radius"] = g["Element_Diameter"] / 2 - 2.0
     g["Min_Final_Character_Diameter"] = e["min_final_character_diameter"]
     g["Char_Protrusion"] = (e["min_final_character_diameter"] - e["element_diameter"]) / 2.0
     g["Element_Height"] = e["element_height"]
@@ -246,6 +221,15 @@ def configure(config_path):
     # transform in both v2 and v4 - no two-independent-transforms issue
     # here) - still threaded through as an explicit override.
     g["Angle_Half_Step"] = 0.0
+
+    # SVG Logo - v4-only addition, not a v2 port. See config/helios.yaml's
+    # logo: section comment and the module docstring's "Logo() below" note.
+    logo = cfg.get("logo", {})
+    g["Logo_Enabled"] = logo.get("logo_enabled", False)
+    g["Logo_Svg_File"] = logo.get("svg_file", "")
+    g["Logo_Scale_Mm_Per_Unit"] = logo.get("scale_mm_per_unit", 0.01)
+    g["Logo_Depth_Mm"] = logo.get("logo_depth_mm", 0.3)
+    g["Logo_X_Offset_Mm"] = logo.get("x_offset_mm", -6.25)
 
     align = cfg["alignment"]
     g["ALIGN_KWARGS"] = {
@@ -424,6 +408,25 @@ def _assemble(text_ring):
     return sp.union_all([stage1_body, ClipRetainer()])
 
 
+def Logo():
+    """"SVG Logo" (v1/HeliosKlimax/HeliosKlimaxTester.scad:365-368,
+    SVG_Logo toggle) - DELIBERATE v4-only ADDITION, not a v2 port (v2 has
+    no Logo concept for Helios at all - see the module docstring and
+    config/helios.yaml's logo: section). Cut into the top face, same as
+    v1: `translate([x_offset,0,Element_Height-depth]) rotate([0,0,90])
+    linear_extrude(depth+z) scale(...) import(svg, center=true)` - no
+    Minkowski draft (v1's own SVG_Logo is a plain linear_extrude, not
+    drafted like struck text)."""
+    flat = svg_import.build_svg_logo_mesh_2d(
+        [Logo_Svg_File], DEFAULT_FLATNESS_TOLERANCE_MM, Logo_Scale_Mm_Per_Unit)
+    prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces, Logo_Depth_Mm + z)
+    return sp.scad_transform(
+        prism,
+        ("translate", [Logo_X_Offset_Mm, 0, Element_Height - Logo_Depth_Mm]),
+        ("rotate", [0, 0, 90]),
+    )
+
+
 def _final_cut(render_core_groove=None):
     render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
     parts = [
@@ -433,10 +436,11 @@ def _final_cut(render_core_groove=None):
         cylinder_machine.CoreChamfer(0),
         cylinder_machine.SecondaryCore(0),
         cylinder_machine.CoreEllipses(),
-        cylinder_machine.LogoText(),
     ]
     if render_core_groove:
         parts.append(cylinder_machine.CoreGrooves(0))
+    if Logo_Enabled:
+        parts.append(Logo())
     return sp.union_all(parts)
 
 

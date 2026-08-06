@@ -5055,3 +5055,529 @@ found) despite not delivering the dramatic win originally expected -
 worth having on general principle (matches cylinder_machine's own
 proven pattern) even without a large measured benefit on this
 particular workload.
+
+## 75. Type Slug family ported - 5 new machines, v1 (not v2) as ground truth (2026-07-28)
+
+User asked to migrate "type slugs" into v4, framing them as "more for
+novelty, not real stuff." These turned out to live ONLY in
+`v1/Type Slugs/*.scad` - standalone decorative type-slug replicas that
+were never carried into v2 at all (unlike every other v4 machine so
+far), so this port's ground truth is v1 directly, a first for this
+codebase - config YAML/lib code below cross-reference v1 line numbers
+the way every other machine cross-references v2 line numbers.
+
+**Taxonomy** (verified function-by-function against both real v1
+sources before writing anything, per CLAUDE.md's own rule): two
+genuinely different body-construction engines, not five independent
+ports or one grab-bag module.
+- **"Wing body" family** (`lib/wing_slug.py` shared engine): rounded
+  hull body (4 corner posts + 2 wing-radius cylinders), real Minkowski-
+  drafted struck text, optional SVG logo, resin support, loop/post/
+  side-hole. Three thin variants: `lib/type_slug.py` (TypeSlug.scad, the
+  generic base engine), `lib/vogue_slug.py` (VogueSlug.scad, carries the
+  real 2-piece "Vogue Foundry" mark + True_Vogue font - the one replica
+  modeled from real drawings), `lib/gauge_slug.py` (GaugeTypeSlugSlug.
+  scad - no text/logo at all, a tick-mark measuring ladder instead; per
+  the user's own clarification, this is the ONE real functional member
+  of the family, meant to install on the machine and measure/calibrate,
+  not a novelty).
+- **"Box body" family** (`lib/box_slug.py` shared engine): plain
+  rectangular body, straight polygon-cut wing tapers, N stacked struck
+  characters (config-driven list length) + N platen cylinders, no logo,
+  no resin support at all. Two thin variants: `lib/oliver_slug.py`
+  (OliverSlug.scad, 3 chars, a real Oliver typewriter slug replica),
+  `lib/lumi_slug.py` (LumiSlug.scad, 4 chars + a loop pendant, pure
+  novelty).
+- Same "shared engine + thin variant" split `lib/spherical_machine.py` +
+  `lib/selectric12.py`/`selectric3.py`/`selectric_composer.py` already
+  established - confirmed applicable here independently, not assumed
+  from that precedent.
+
+**New shared infrastructure, not machine-specific:**
+- `lib/svg_import.py` - v4 had no SVG-import capability at all (v1 relied
+  on OpenSCAD's built-in `import(svg)`). Real from-scratch path-data
+  parser (M/L/H/V/C/S/Q/T/A/Z, absolute+relative) reusing `glyph_poc`'s
+  adaptive de Casteljau bezier flattening for curves and elliptical-arc-
+  to-bezier conversion for `A`, feeding `glyph_poc.classify_and_
+  triangulate()`'s existing nesting-depth hole/island fill logic (same
+  problem a multi-path logo has as a multi-contour glyph). Deliberately
+  does NOT reproduce OpenSCAD's own px/DPI SVG-import scaling convention
+  (would need the same kind of empirical DPI calibration `glyph_poc.
+  OPENSCAD_TEXT_DPI_FACTOR` needed for `text()` - not worth it for a
+  decorative logo mark, not a physically-toleranced struck character) -
+  callers pick their own `logo.scale_mm_per_unit` explicitly instead of
+  inheriting v1's `SVG_Scale=1/40*SVG_Size`.
+- `scad_primitives.torus()` - extracted since `wing_slug.Loop()`/
+  `box_slug.Loop()` both need the exact same torus recipe (byte-
+  identical between TypeSlug.scad's and LumiSlug.scad's real Loop
+  blocks).
+
+**Real bugs found and fixed during this port (not shipped):**
+1. **`sp.scad_transform()` op-ordering, backwards in 5 of 7 initial call
+   sites.** Re-derived the convention carefully against `spherical_
+   machine.py`'s own `PlatenCutout()` (3 chained ops with an explicit
+   "source top-to-bottom" comment matching its ops list order 1:1) -
+   confirmed the rule is ops-list-order = literal source top-to-bottom
+   order (whichever transform is OUTERMOST/appears first in the nested
+   OpenSCAD source goes FIRST in the list). Caught and fixed in
+   `_wing_cyl_verts`, `_platen_cyl_pair`, `CopyrightText`, `PostHole`,
+   `SideHole` before ever running geometry - `Post()`/`Loop()` were
+   already correct. Would have silently produced wrong (but still
+   watertight-looking) part geometry if shipped.
+2. **`scad_primitives.torus()`'s initial single `sections` parameter
+   drove BOTH the tube cross-section AND the sweep resolution** (matching
+   v1's own literal `$fn=360` reused for both `rotate_extrude` and its
+   child `circle()`) - measured a real 129,600-vertex torus for one
+   small keyring loop (confirmed via Lumi Slug's real config values: a
+   66K-vertex FullElement for 4 characters vs Oliver Slug's 630-vertex
+   FullElement for 3, a disproportionate jump that was the actual tell).
+   Split into independent `sections` (sweep, stays 360) and
+   `tube_sections` (new `quality.loop_tube_fn` knob, default 32) -
+   verts dropped ~10x fleet-wide with no visible quality loss, still a
+   real, own config knob per CLAUDE.md's facet-count-in-YAML rule, not a
+   hardcoded reduction.
+3. **`tune.py` FIELDS key collisions** - `character.enabled`/`logo.
+   enabled`/`gauge.enabled` all being the bare YAML key `enabled` (and
+   `logo.depth_mm`/`label.depth_mm` both being `depth_mm`) would have
+   broken `patch_yaml_value()`'s save path, which matches by bare key
+   TEXT across the whole file with no section-scoping at all (confirmed
+   by reading `patch_yaml_value`'s own regex - `^\s*{key}:\s*...`, first
+   match wins). Renamed to `char_enabled`/`logo_enabled`/`gauge_enabled`/
+   `logo_depth_mm`/`label_depth_mm` in all 3 wing-family configs +
+   their `configure()` readers. Verified with a real round-trip test
+   (see below) that catches exactly this class of bug, not just eyeballed.
+
+**Audit against sibling machines/conventions** (per CLAUDE.md's own
+"every machine port gets an explicit audit pass" rule):
+- Entry points match the fleet convention exactly: `configure()`,
+  `_require_configured()`, `FullElement`/`ResinPrint`/`Additive`, all
+  accepting-but-ignoring `separation_mm`/`render_core_groove` (neither
+  concept exists for this form factor - same precedent Selectric already
+  set). `box_slug.py`'s `ResinSupport()`/`ResinPrint()` (real no-op
+  passthrough) matches `lib/helios.py`'s own established pattern for a
+  machine with zero resin-support geometry, including the matching
+  `RESIN_SUPPORT_UNAVAILABLE_NOTE` entries in `tune.py`.
+- `build.resin_support` is a real build-time toggle (`ResinPrint` vs
+  `FullElement` dispatch) for the wing family, NOT baked permanently into
+  the geometry the way v1's single `Resin_Support` variable was - a
+  deliberate structural improvement matching every other v4 machine's
+  own convention, explicitly called out in `config/type_slug.yaml`'s
+  comments rather than silently diverging from v1.
+  `build.minkowski_enabled` similarly defaults to `true` (a real drafted
+  build) on every new config even where v1's own literal default was
+  `Debug_No_Minkowski=true` (Oliver/Lumi) - explicitly noted in both
+  configs' comments as an intentional, fleet-consistency change, not a
+  silent divergence, per CLAUDE.md's "say so explicitly" rule.
+- Dead v1 customizer variables are called out in config comments, not
+  silently dropped or silently wired to a fake no-op parameter:
+  `Side_Hole_Offset` (declared, never referenced by `hole_coords`) and
+  `Lower_Wing_Angle` (declared for Oliver/Lumi, but both real wing-angle
+  cuts use `Upper_Wing_Angle` even for the "lower" cut - a real,
+  preserved v1 quirk, not a transcription choice made here).
+  TypeSlug.scad's own `SVG_Vogue_Enable` branch (a byte-for-byte
+  duplicate of its `SVG_Enable` branch, not the real Vogue mark) is
+  called out as dead/redundant leftover, not ported as a second toggle.
+- New `tune.py` "Slugs" `MACHINE_CATEGORIES` group added (4th column,
+  fully data-driven from the existing generic per-loop composer, no new
+  hardcoded-count literals to fix - this family has no keyboard grid at
+  all, so none of the "9 hardcoded row/column literals" class of bug
+  Mignon's port hit applies). Gauge Slug's tick-mark fields deliberately
+  named `"Ticks"` in `SECTIONS_BY_MACHINE`, NOT `"Gauge"` - the existing
+  `"Gauge"` section name means Blickensderfer/Postal's Shaft Gauge Test
+  build-target option (`_compose_build_tab`'s `has_gauge`/
+  `GaugeTestSet()` dispatch), which `gauge_slug.py` does not implement;
+  reusing that name would have wired a broken "Shaft Gauge" build-target
+  button into the Build tab.
+- No Layout tab (no `layout:` config section at all - `HAS_LAYOUT_TAB`
+  is naturally `False` via the existing `"rows" in layout` check, same
+  mechanism Selectric's own "no editable keyboard-layout concept"
+  already relies on - no new code needed). No Calibration tab either
+  (`CalibrationElement`/`CalibrationAdditive` not implemented for this
+  family, matching `spherical_machine.py`'s own explicit "deferred to a
+  follow-up pass" precedent, not a silent gap).
+
+**Verification performed:**
+- `generate.py` run for all 5 new configs, both `--no-minkowski` and a
+  REAL Minkowski build (the invariant `--no-minkowski` alone can't
+  verify) - every one watertight/winding_consistent/is_volume=True,
+  including Vogue Slug's real 2-piece SVG Minkowski draft and Type
+  Slug's real AR1.svg logo + struck text + loop combined build.
+  Bounding-box sanity-checked against each config's own real Body_Width/
+  Body_Length/Body_Height (caught the scad_transform bug above before
+  it could hide as a false-positive "watertight" pass).
+- `tune.py` headless-tested against SCRATCH copies only (never the real
+  master/running configs, per this file's own part-12 warning) -
+  `TuneApp` construction, `self.SECTIONS`/`self.FIELDS` contents, and a
+  real round-trip `patch_yaml_value()` pass over every field for all 5
+  machines (write each field's own current value back, re-parse, assert
+  identical) - this is what actually caught bug 3 above, not a visual
+  inspection.
+- Existing-config regression check (`bennett.yaml`, `selectric12.yaml`,
+  both `--no-minkowski`): still watertight/winding_consistent/is_volume=
+  True after this session's `scad_primitives.py`/`tune.py` edits (both
+  purely additive - a new `torus()` function, new dict entries/FIELDS
+  lists, no existing function or entry modified).
+
+Not done in this pass (no signal it's wanted, and matches Selectric's
+own precedent of deferring the same feature at first port):
+`CalibrationElement`/`CalibrationAdditive` for any of the 5 new
+machines.
+
+**Correction, found by the user running the real TUI (not caught by
+this part's own "headless-tested" verification claim above):**
+`_compose_tuner_ui()` never actually called `_compose_section_tab
+("Character")`/`("Ticks")` for the two new section names this port
+added - `self.FIELDS` (built by flattening `SECTIONS_BY_MACHINE`)
+included their fields regardless, so `self.inputs` (populated only by
+`_compose_section_tab` actually running) was missing entries for them,
+crashing on `self.inputs[key]` (`KeyError: 'char_enabled'`) the moment
+any generic FIELDS loop touched one - reproduced live via "Reset to
+Defaults". The headless test this part described above only exercised
+`TuneApp.__init__` (SECTIONS/FIELDS construction, `patch_yaml_value()`
+round-trips against raw config values) - it never actually mounted the
+app, so it could not have caught a missing-`_compose_section_tab()`-call
+bug like this one. Fixed by adding the two missing `if "Character"/
+"Ticks" in self.SECTIONS: yield from self._compose_section_tab(...)`
+calls. Re-verified properly this time using Textual's own
+`App.run_test()` harness (which DOES mount the app for real) - confirms
+every one of the 5 new machines' `self.FIELDS` now has a real widget in
+`self.inputs`, and reproduces+confirms-fixed the exact `action_reset_
+defaults()` crash path the user hit; also re-ran the same `run_test()`
+check against `bennett`/`selectric12` to confirm the two new
+conditional blocks don't affect any existing machine. Lesson for next
+time: a "headless" tune.py test that never calls `run_test()`/mounts
+the app cannot verify anything about widget composition or `self.
+inputs` - construction-only testing of `TuneApp` is real but partial
+coverage, not a substitute for actually mounting it.
+
+## 76. Part 75's branch merged to main; all repo SVGs relocated into `v4/assets/svg/`; `svg_import.py` gained real `<g transform>` support; Helios gets its own v1-sourced SVG logo (2026-07-31)
+
+Part 75's Type Slug port had been sitting on an unmerged branch
+(`worktree-hidden-bubbling-frog`) - user noticed the "Type Slugs" v1
+folder existed and asked to check for prior work before assuming it
+needed porting from scratch. `main` hadn't moved since that branch's
+merge-base, so it merged as a pure fast-forward (`git merge --ff-only`,
+zero conflicts).
+
+**SVG relocation.** That branch's configs (`type_slug.yaml`/
+`vogue_slug.yaml`/`gauge_slug.yaml`) referenced `v1/Type Slugs/*.svg`
+directly by absolute path rather than copying assets into `v4`. Per
+explicit user direction ("move all the svgs to v4"), all 6 repo SVGs
+(`helios-klimax.svg`, `Leo.svg`, `AR1.svg`, `vogue-foundry-arrow.svg`,
+`vogue-foundry-v.svg`, `vogue-foundry-complete.svg`) were copied to a
+new `v4/assets/svg/` directory and the 3 configs' `svg_file`/
+`vogue_arrow_svg_file`/`vogue_v_svg_file` paths repointed there. This is
+NOT the same move as fonts staying external in `/home/lchau/fonts/` -
+these SVGs already lived inside this same git repo (sibling `v1/`
+directory), so relocating them is an internal reorg, not a duplication
+of a genuinely-external asset library; the font convention was not
+changed. Regression-checked (`--no-minkowski`, verts/faces/volume
+identical before/after) for `type_slug`/`vogue_slug`. `Leo.svg` is
+copied but wired to nothing - grepping all of `v1` found no `.scad` that
+ever imports it; it appears to be unused standalone art even in v1.
+
+**`svg_import.py` bug found while porting Helios's own logo.** Attempting
+to reuse `lib/svg_import.py` (part 75) for `v1/HeliosKlimax/
+HeliosKlimaxTester.scad`'s `SVG_Logo` feature (`helios-klimax.svg`,
+lines 103-104/365-368 - a real feature, "Logo" not "log": user's
+original ask was misheard/mistyped as implementing "the log the same as
+v1", corrected mid-conversation once they clarified) surfaced a real
+gap: `helios-klimax.svg` (a potrace-style export) wraps its paths in
+`<g transform="translate(0,906) scale(0.1,-0.1)">`, which `parse_svg_
+contours_mm` silently ignored (module docstring claimed "no <g
+transform=...> content... confirmed by inspection" - true only for the
+two files actually in use at the time, AR1.svg/vogue-foundry-*.svg,
+which happen to have no such wrapper). Ignoring it produced raw contours
+10x too large. Fixed by adding a real `_parse_transform()`
+(translate/scale/rotate/matrix, chained, SVG-spec composition order) and
+walking the tree with accumulated transforms instead of a flat
+`root.iter()` for `<path>` tags. Verified two ways: (1) parsed
+`helios-klimax.svg`'s raw contour bbox now comes out ~1873x687, in the
+right ballpark of its own 1936x906 viewBox (was 18735x6873, 10x off,
+before the fix); (2) `type_slug`/`vogue_slug`/`gauge_slug` re-ran
+byte-identical (same verts/faces/volume) after the change, confirming no
+regression for files with no `<g transform>`.
+
+**Helios's own SVG logo.** Ported as a DELIBERATE v1-sourced addition,
+not a v2 port - v2/heliosklimax.scad's own header explicitly has no Logo
+concept for Helios at all (a fact `lib/helios.py`'s docstring, `config/
+helios.yaml`'s header, and `tune.py`'s SECTIONS comment all previously
+asserted unconditionally; all three corrected to distinguish "no
+engraved TEXT" (still true, v2-sourced) from "no SVG mark" (now false,
+v1-sourced) rather than silently contradicting the new code). v1's own
+`SVG_Scale=.03` is meaningless in v4 (OpenSCAD's `import()` bakes in its
+own px/DPI convention `svg_import.py` deliberately doesn't reproduce -
+see that module's docstring) - so the real physical size v1 actually
+produces had to be independently established: rendered `linear_extrude
+(0.31) scale([.03,.03]) import("helios-klimax.svg", center=true)`
+through the real `openscad-nightly` binary (this repo's own top-level
+CLAUDE.md "OpenSCAD binary" cross-check technique), measured a real
+19.83mm x 7.27mm bounding box, and divided by the SVG's own raw
+path-unit extents to get `scale_mm_per_unit=0.010583`. New `config/
+helios.yaml` `logo:` section (`logo_enabled` default **false**,
+`svg_file`, `scale_mm_per_unit`, `logo_depth_mm`, `x_offset_mm`); new
+`lib/helios.py` `Logo()` (flat SVG -> `extrude_triangulation` -> `sp.
+scad_transform` translate-then-rotate, matching v1's real transform
+order - no Minkowski draft, v1's own SVG_Logo isn't drafted either),
+wired into `_final_cut()` gated on `Logo_Enabled` (same difference()
+stage v1 cuts it in, alongside Cutting Center Shaft Hole/Wire Clip/Speed
+Holes); new `tune.py` `LOGO_FIELDS_HELIOS`/`"Logo"` SECTIONS_BY_MACHINE
+entry, same generic-FIELDS convention as the Type Slug family's `Logo`
+tab.
+
+Defaulted OFF, unlike v1: `SVG_Logo=true` was v1's own Tester-customizer
+default, but that feature only ever lived in the experimental `HeliosKlimaxTester.scad`, never in the polished `HeliosKlimaxElement.scad`,
+and its real size (19.8mm x 7.3mm) is large relative to `element.
+element_diameter=27.15mm` - directly confirmed by dumping `Logo()`'s
+mesh bounds (`x:[-9.89,-2.61] y:[-9.91,9.91]`), whose corners fall
+slightly outside the element's own radius (13.575mm). Left enabled for
+the user to dial in `x_offset_mm`/`scale_mm_per_unit` against the real
+part, the same "estimate, not measured" treatment this same config file
+already gives `core_chamfer` etc.
+
+**Hard-gate verification**: `helios.yaml` with `logo_enabled: false`
+(the new default) reproduces the pre-change baseline exactly (`verts=
+118755 faces=237534 volume=4201.434mm3`, `--no-minkowski`). With `logo_
+enabled: true`, still watertight/winding_consistent/is_volume=True,
+volume drops to 4196.183mm3 (~5.25mm3 removed by the engraving cut, a
+plausible order of magnitude for a shallow 0.3mm-deep mark of this
+size).
+
+## 77. Bennett: 3 independent label radial distances exposed; Hammond Split Type Test now honors Char_Mod; ⅌ layout archaeology; TODO logged for fleet-wide Char_Mod (2026-08-01)
+
+**Bennett label radial distances.** `LabelText()` (`lib/bennett.py`)
+used to nest Shuttle_Label1a inside Shuttle_Label1b's group, sharing ONE
+group `translate`/`rotate` with Label1a further offset by a local
+`translate([0,2.25,0])` - since the shared `rotate([180,0,90])` maps
+local `(x,y,z)` to world `(y,x,-z)`, that nested local-y offset actually
+landed entirely in world X (radial direction), meaning v2's Label1a and
+Label1b were always two independent radial numbers (3.45mm/5.70mm at
+stock `Shaft_Diameter=3.4`), just expressed as one offset nested inside
+another. Split into three flat, independently configurable values -
+`label.label1a_radial_mm`/`label1b_radial_mm`/`label2_radial_mm` - each
+label now gets its own `scad_transform` instead of sharing a group.
+Added to `config/bennett.yaml` and all 4 font-variant profiles plus
+`bennett.running.yaml`, and to `tune.py`'s `LABEL_FIELDS_BENNETT` (Label
+tab). Hard-gate verified: `generate.py --no-minkowski` on all 5 configs
+produces byte-identical `verts/faces/watertight/volume` before and after
+(compared via `git stash` for the pre-change baseline) - a pure
+refactor, not a behavior change, at the defaults.
+
+**Hammond Split Type Test didn't honor Char_Mod.** User reported "modified
+characters" seemed broken; investigation of the real per-character
+font/size-swap path (`TextAssemble()`'s `is_mod = char in Char_Mod`)
+showed it working correctly in isolation (different bbox/volume when
+forced). The real bug: `type_test.py` (the flat CPI/LPI preview `tune.py`'s
+"Type Test" button drives) applies ONE font/size to every character in
+the test string - it has no concept of Char_Mod at all, unlike
+`TextAssemble()`. Fixed by adding optional `mod_chars`/`mod_font_path`/
+`mod_font_size_mm` params to `build_type_test_line()` (same `ch in
+mod_chars` check, no-op when `mod_chars=""`) and `--mod-chars`/
+`--mod-font-path`/`--mod-font-size-mm` CLI flags; `tune.py`'s
+`action_render_type_test` now passes Hammond Split's `char_mod.char`/
+`char_mod_font_path`/`char_mod_size_mm` fields through, gated on the
+`"char"` input key (unique to `FONT_FIELDS_HAMMOND_SPLIT`, so a no-op
+for every other machine). Verified: a forced mod char now produces
+different verts/volume in the Type Test output; the no-`--mod-*`-flags
+path is byte-identical to before the change.
+
+**⅌ (per-unit sign) archaeology - not a bug, a real author decision,
+left as-is.** User asked to check v1-v4 for any layout that actually
+contains `Char_Mod`'s default character (⅌) - it's genuinely absent
+from every version's ACTIVE default layout (`Ideal_Element`/`IDEAL`/
+`idealElement`, `Layout_Selection=0` in every version including v4's
+`config/hammond_split.yaml`), confirmed byte-for-byte. It only appears
+in the unwired `Qwerty_Element` alternate (all versions) - so `Char_Mod`
+has been a no-op under the shipped default in every version, not just
+v4. One real historical trace found: `v1/Hammond/
+HammondSplitShuttle.scad:22` (Feb 17 2024, the oldest version) has a
+COMMENTED-OUT `LAYOUT` array labeled "Layout as 'stamped'" whose figures
+row has ⅌ in place of £ at the same position - i.e. an earlier draft's
+"real machine" layout DID include ⅌ where the shipped `IDEAL` array now
+has £. But by `HammondSplitShuttle2.scad` (Jan 14 2026, the direct
+ancestor of `v2/hammond_split.scad` and everything after), that
+commented alternate is gone entirely, with no trace - £ has been the
+sole, uncommented figures-row value at that position across every
+version since. Read together: this looks like a deliberate real-machine
+correction made early in v1 (the physical Hammond's actual stamped key
+may print £ there, not ⅌) that was carried forward cleanly for two
+years and two full rewrites, with `Char_Mod="⅌"`/`CharMod`/`charMod`
+left unchanged alongside it the entire time - not a copy-paste drop.
+Not changed here; flagging the evidence for the user to decide (leave
+`Char_Mod` as a dead-by-default example value, repoint it at a character
+that's actually in `Ideal_Element`, or wire up `Qwerty_Element` as a
+real second layout preset).
+
+**Follow-up (same session): both £/⅌ variants installed as real,
+selectable presets**, per explicit user direction ("there is a version
+that contains the per symbol. i want to install both layouts, the one
+with and one without"). New `LAYOUT_PRESETS_HAMMOND_SPLIT` in `tune.py`
+(`"IDEAL (£)"` - the shipped default, byte-identical to `config/
+hammond_split.yaml`'s on-disk rows - and `"IDEAL (⅌)"` - identical rows
+0/1, row 2's one £/⅌ character swapped per the v1 archaeology above),
+wired into `LAYOUT_PRESETS_BY_MACHINE["hammond_split"]` and a new
+`LAYOUT_PICKER_HELP["hammond_split"]` banner noting Char_Mod only has an
+effect under the ⅌ variant. hammond_split previously had NO named-layout
+picker at all (only "Modify glyphs" freehand editing) - this is the
+first one. Verified both build clean: default config unchanged
+(confirms the `tune.py`-only change has no effect until someone actually
+picks the ⅌ preset and saves), and a scratch copy with row 2's £
+swapped for ⅌ builds watertight/winding_consistent/is_volume=True with
+a real (if small) volume delta - confirming Char_Mod actually engages
+end-to-end once ⅌ is present in the active layout.
+
+**TODO (explicit user request, not started): generalize Char_Mod
+(per-character font/size override) to every other machine.** Currently
+Hammond Split-only (`config/hammond_split.yaml`'s `char_mod:` section,
+`lib/hammond_split.py`'s `TextAssemble()`/`LetterText()`, `tune.py`'s
+`FONT_FIELDS_HAMMOND_SPLIT`, and now `type_test.py`'s `--mod-*` flags
+above). No other machine's config/lib/tune.py has an equivalent concept
+- every other machine's glyph loop (`cylinder_machine.TextRing`,
+`spherical_machine`'s per-side loops, the Type Slug family) calls a
+single shared `font_path`/`font_size_mm` for every character with no
+per-character override hook at all. Before starting: check whether any
+other machine's real v2/v1 source has its own equivalent concept (this
+repo's "always diff against the real v2 source before porting/adding a
+feature" rule) rather than assuming Hammond Split's exact shape
+(single `char_mod.char` string + one alternate font/size) is the right
+generalization for every machine - a machine with its own from-scratch
+glyph loop (like Hammond Split) will need this wired by hand the way
+`build_log` progress instrumentation did (see "Porting a new machine" /
+"TUI (tune.py)" sections of `CLAUDE.md`), while a machine that already
+reuses `cylinder_machine.TextRing`/`place_on_cylinder` will need the
+override threaded through that shared path instead - almost certainly
+NOT a copy-paste of Hammond Split's own code.
+
+## 78. Selectric Composer's real proportional-spacing Type Test ported (2026-08-01)
+
+User flagged "composer type test is very special, v1 maybe v2" -
+confirmed identical in both `v1/IBM/IBM2.scad` and `v2/ibm.scad` (+
+`v2/lib/layouts/ibm_layouts.scad`), and already noted as a deferred gap
+in `lib/selectric_composer.py`'s own docstring from the original
+Selectric port (part 65). Unlike every other machine's Type Test (and
+Selectric I/II/III's own `TextGauge()`), which use fixed monospace CPI
+slots, the real Composer used genuine proportional/justified-typesetting
+spacing: `Composer_Pitch_List` gives each character an integer UNIT
+width (3-9 units - `'M'/'W'/'m'`=9 down to punctuation/space=3, the
+real Composer's historical escapement-unit convention), converted to mm
+via `25.4/Units_Per_Inch` (72/84/96 - the "Red/Yellow/Blue wheel"
+setting), and `cumulativeSum()` of those per-character units drives each
+character's x-position - entirely different geometry per line than a
+uniform slot width.
+
+**Ported the core mechanic, not v2's specific keyboard-gauge UI around
+it.** v2's `TextGaugeComposerLine2` defaults to printing the ENTIRE
+88-char keyboard (`KBSTRING = CASES88[0]+CASES88[1]`) auto-wrapped into
+8 rows via hardcoded index breakpoints (`GetRow()`), with a
+`CUSTOM_TEST_STRING` toggle to swap in one unwrapped line instead. v4's
+Type Test box already lets the user free-type arbitrary (optionally
+multi-line via literal `\n`) text for every machine, so that convention
+was kept as-is rather than porting `KBSTRING`/`GetRow`/the toggle -
+Composer's line just uses proportional per-character spacing instead of
+fixed CPI, same free-typed content model as every other machine. Line
+spacing still comes from the existing `lpi` field (v2 instead hardcodes
+`Font_Size_Selected*2*row`, tied to `KBSTRING`'s fixed-row layout - not
+meaningful for freeform text).
+
+**Data**: `Composer_Pitch_List` (121 real `[char, units]` pairs,
+extracted verbatim from `v2/ibm.scad:94-111` via script, not
+hand-transcribed) lives in `config/selectric_composer.yaml` (+
+`.running.yaml`)'s `type_test.pitch_list`, per this repo's "real machine
+numbers live in config YAML" rule - kept as an ORDERED LIST, not a dict:
+v2's `search()`-based lookup returns the FIRST match, and `ü`/`ö`/`(`
+legitimately appear twice in the real table with different unit values
+at each occurrence - a dict would silently keep whichever duplicate key
+YAML parsing happens to keep last, backwards from v2's real semantics.
+`type_test.units_per_inch` already existed (stubbed in during the
+original Selectric port, comment said "not wired up yet"); added
+`type_test.default_units: 9` for v2's `SearchChar(...)==undef?9:...`
+fallback.
+
+**Code**: `type_test.py` gained `_composer_unit_width()` (linear
+first-match scan over the ordered pitch list, mirroring `search()`
+exactly) and `build_type_test_line()` grew optional `composer_pitch_list`/
+`composer_units_per_inch`/`composer_default_units` params - when given,
+each line's per-character x position becomes `(cumulative units before
+char + this char's own units/2 - line's total units/2) * unit_dist_mm`,
+the direct proportional generalization of the existing fixed-CPI
+centering formula (verified algebraically identical to the old formula
+when every character's width is forced equal). `None` (the default)
+keeps the exact old fixed-CPI behavior - a no-op for every other
+machine. New `--composer-config <path>` CLI flag loads
+`type_test.pitch_list`/`units_per_inch`/`default_units` from a machine
+YAML directly (loading the whole section rather than serializing 121
+pairs onto the command line). `tune.py`'s Type Test tab gained a
+Composer-only "Units/inch" field (bespoke widget, same pattern as the
+existing cpi/lpi fields - `type_test.pitch_list` itself stays YAML-only,
+no widget, same "list-valued key needs an explicit decision" treatment
+as `layout.placement_map` elsewhere) and `action_render_type_test` now
+passes `--composer-config self.config_path` when `self.machine ==
+"selectric_composer"`, a no-op everywhere else.
+
+**Verified**: `iMiM` (`i`=3 units, `M`=9 units - a maximally different
+pair) renders to a 7.68mm-wide block under proportional spacing vs.
+8.95mm under fixed CPI at the same CPI/font settings - confirms real,
+different geometry, not just a pass-through. An unlisted character
+(tested with an emoji) falls back to `default_units=9` without
+crashing. Both `config/selectric_composer.yaml` and `.running.yaml`
+verified to parse with all 121 pitch_list entries intact.
+
+## 79. Vogue Slug: AR1 logo scale fixed for real - the earlier "fix" (commit 4aade67) had re-broken it the other way (2026-08-01)
+
+User reported the AR1 logo's scale was off on Vogue Slug. Root cause:
+`logo.scale_mm_per_unit` was a SINGLE config field shared between two
+genuinely different real v1 values - `v1/Type Slugs/VogueSlug.scad`
+has `SVG_Scale=1/40*SVG_Size` for AR1/`Logo()` and a separate
+`SVG_V1_Scale=1/80*SVG_V1_Size` for the real 2-piece Vogue Foundry mark
+(`VogueMark()`) - never the same variable in the source (:55-56). A
+prior session (commit 4aade67, "fix vogue_slug.yaml - logo.
+scale_mm_per_unit left at wrong value") fixed this field FOR the Vogue
+mark (0.0025, giving it a correct ~1.6x1.6mm footprint) by re-tuning
+the one shared number - which necessarily left AR1 wrong instead
+whenever it's enabled (0.0025 is ~8x too small for AR1.svg's own much
+larger viewBox), since only one real value can live in one shared field.
+Confirmed AR1's real target size independently: `v1/Type Slugs/
+TypeSlug.scad`'s own `SVG_Scale` formula uses the byte-identical
+`SVG_Size=2`, so `config/type_slug.yaml`'s own empirically-tuned
+`scale_mm_per_unit: 0.02` (~2mm AR1 span) is the same real target Vogue
+Slug's AR1 needs, not a coincidence to re-derive from scratch.
+
+**Real fix: split into two fields**, matching v1's own two-variable
+reality instead of re-tuning one shared number again (which would just
+move the bug back to whichever logo is OFF at any given moment - same
+failure mode, different value). `config/vogue_slug.yaml` (+`.running.
+yaml`)/`type_slug.yaml`/`gauge_slug.yaml`'s `logo:` section: `scale_mm_
+per_unit` stays AR1-only (reverted to `0.02`, matching `type_slug.yaml`
+exactly); new `vogue_scale_mm_per_unit` (`0.0025`) is Vogue-mark-only -
+added to type_slug/gauge_slug too even though `vogue_enabled: false`
+there (same "populate even when unused" treatment `vogue_arrow_svg_
+file`/`vogue_v_svg_file` already get, since `wing_slug._receive_config`
+picks up every capital-leading global unconditionally regardless of
+which logo is enabled). `lib/wing_slug.py`'s `VogueMark()` now reads a
+new `Vogue_Scale_Mm_Per_Unit` global instead of reusing `Logo_Scale_Mm_
+Per_Unit`; all three sibling `configure()`s (`lib/vogue_slug.py`/
+`type_slug.py`/`gauge_slug.py`) set it from `logo["vogue_scale_mm_per_
+unit"]`. `tune.py`'s shared `LOGO_FIELDS_SLUG` gained the new field.
+
+`config/vogue_slug.running.yaml` needed care, not a blind copy from
+master: it had live user session state (`logo_enabled: true`, `vogue_
+enabled: false` - the user had isolated AR1 alone to see the bad scale,
+matching their report) that must not be clobbered, plus what looks like
+a partial external auto-sync of this session's master-file edit (a
+duplicate `vogue_scale_mm_per_unit` block prepended above the OLD,
+still-unfixed `scale_mm_per_unit: 0.0025`/stale comment) that needed
+cleaning up rather than re-applying on top. Fixed in place: kept both
+live toggles, fixed `scale_mm_per_unit` to `0.02`, de-duplicated the
+comment block.
+
+**Verified** via direct `wing_slug.Logo()`/`VogueMark()` calls against
+`vogue_slug.running.yaml` (master's own `font.path` turned out to be a
+separate, pre-existing dangling reference to a deleted `~/Downloads/`
+file, unrelated to this fix - `.running.yaml`'s own font path is real
+and was used instead): AR1 now spans 1.97x2.09mm (matches `type_slug`'s
+own real AR1 output), Vogue mark independently spans 1.64x1.62mm
+(matches its own documented ~1.6x1.6mm target) - both correct
+simultaneously for the first time. `type_slug`/`gauge_slug` (`vogue_
+enabled: false` in both, `scale_mm_per_unit` unchanged at `0.02`) hard-
+gate re-verified byte-identical (`--no-minkowski`) to confirm zero side
+effects on the two machines that weren't the point of this fix.

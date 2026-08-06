@@ -67,6 +67,16 @@ label:
   label2: "2025"                   # Logo_Text_2
   label_size_mm: 1.9               # Logo_Size
   depth_mm: 0.3                    # Logo_Depth
+  # Radial distance (mm, from the hub axis) both label lines are
+  # halign=center-anchored on, along the first inner spoke's own
+  # centerline - v2/v1's literal translate([16,...]) in Logo() (v2:479).
+  # v4 fixed Logo()'s angle to actually track a real spoke (see
+  # lib/hammond_split.py's Logo() docstring - v2/v1's own folderArcStart
+  # placement didn't track any real spoke and left the label cutting into
+  # open air past the center hub) - this radial anchor stays independently
+  # tunable since the usable span differs per spoke/config (currently
+  # ~0mm-35.9mm = Arc_OD/2-Arc_Thickness for the master config).
+  radial_offset_mm: 22.5           # Logo_Radial_Offset
 
 # Key Mapping (v2:75-87) - Ideal_Element (Layout_Selection=0, the real v2
 # default) is the only layout ported; Qwerty_Element (Layout_Selection=1)
@@ -196,7 +206,7 @@ build:
   flatness_tolerance_mm: 0.005
   render_left: true                # Render_Left
   render_right: true                # Render_Right
-  resin_support: true
+  resin_support: false
   # target - tune.py Build-tab UI state only (element/calibration/normal),
   # same convention as every other machine's build.target - not read by
   # lib/hammond_split.py itself (generate.py's --calibrate/--hammond-split-
@@ -204,7 +214,7 @@ build:
   # as every other machine's own alternate-target flags). "normal" is this
   # machine's real second v2 render target (Render_Mode==0 "Normal", v1
   # GenStyle 0/4/5) - see this file's own header comment.
-  target: "element"
+  target: "normal"
   # Mink_On/Mink_Draft_Angle/Mink_Height - v2:65-73. Mink_Radius is derived
   # (tan(Mink_Draft_Angle/2)*Mink_Height) in lib/hammond_split.py's
   # configure(), not stored here. Mink_Height/Mink_Radius have NO equivalent

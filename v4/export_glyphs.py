@@ -9,6 +9,7 @@ what you see here matches what ends up on the actual element.
 Usage:
     python3 export_glyphs.py config/blickensderfer.yaml
     python3 export_glyphs.py config/blickensderfer.yaml --out-dir output/glyphs --flatness-tolerance-mm 0.005 --cone-segments 12
+    python3 export_glyphs.py config/blickensderfer.yaml --char A --no-minkowski --out-dir example_renders
 """
 
 import argparse
@@ -45,6 +46,10 @@ def main():
     parser.add_argument("--cone-segments", type=int, default=None)
     parser.add_argument("--platen-fn", type=int, default=None)
     parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false", default=None)
+    parser.add_argument("--char", default=None,
+                         help="export only this one character (its first occurrence in the layout) "
+                              "instead of every character - names the output <char>.stl with no "
+                              "row/col prefix")
     args = parser.parse_args()
 
     bd = _load_machine(args.config)
@@ -59,26 +64,39 @@ def main():
     out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.out_dir)
     os.makedirs(out_dir, exist_ok=True)
 
-    total = sum(len(row) for row in bd.DHIATENSOR)
+    if args.char is not None:
+        targets = []
+        for row, row_chars in enumerate(bd.DHIATENSOR):
+            for col, ch in enumerate(row_chars):
+                if ch == args.char:
+                    targets.append((row, col, ch))
+                    break
+            if targets:
+                break
+        if not targets:
+            raise SystemExit(f"{args.char!r} not found in {args.config}'s layout")
+    else:
+        targets = [(row, col, ch) for row, row_chars in enumerate(bd.DHIATENSOR)
+                   for col, ch in enumerate(row_chars)]
+
+    total = len(targets)
     done = 0
-    for row, row_chars in enumerate(bd.DHIATENSOR):
-        for col, ch in enumerate(row_chars):
-            done += 1
-            try:
-                mesh = build_glyph(
-                    ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
-                    align_kwargs=bd.ALIGN_KWARGS, font_path=bd.FONT_PATH, font_size_mm=bd.FONT_SIZE_MM,
-                    radius_y_offset_mm=bd.CUTOUT_ROW[row] - bd.BASELINE_ROW[row],
-                    platen_radius_mm=bd.PLATEN_RADIUS_MM, cone_segments=cone_segments,
-                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
-            except Exception as e:
-                build_log.progress_line("export_glyphs", done, total,
-                                         f"row{row}_col{col:02d}_{safe_name(ch)} SKIPPED: {e}")
-                continue
-            fname = f"row{row}_col{col:02d}_{safe_name(ch)}.stl"
-            build_log.atomic_export(mesh, os.path.join(out_dir, fname))
-            flag = "" if mesh.is_watertight and mesh.is_volume else " <-- NOT watertight/is_volume!"
-            build_log.mesh_report(mesh, f"[{done}/{total}] {fname}{flag}")
+    for row, col, ch in targets:
+        done += 1
+        fname = f"{safe_name(ch)}.stl" if args.char is not None else f"row{row}_col{col:02d}_{safe_name(ch)}.stl"
+        try:
+            mesh = build_glyph(
+                ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
+                align_kwargs=bd.ALIGN_KWARGS, font_path=bd.FONT_PATH, font_size_mm=bd.FONT_SIZE_MM,
+                radius_y_offset_mm=bd.CUTOUT_ROW[row] - bd.BASELINE_ROW[row],
+                platen_radius_mm=bd.PLATEN_RADIUS_MM, cone_segments=cone_segments,
+                platen_fn=platen_fn, minkowski_enabled=minkowski_enabled)
+        except Exception as e:
+            build_log.progress_line("export_glyphs", done, total, f"{fname} SKIPPED: {e}")
+            continue
+        build_log.atomic_export(mesh, os.path.join(out_dir, fname))
+        flag = "" if mesh.is_watertight and mesh.is_volume else " <-- NOT watertight/is_volume!"
+        build_log.mesh_report(mesh, f"[{done}/{total}] {fname}{flag}")
 
     print(f"\nwrote {total} files to {out_dir}", flush=True)
 

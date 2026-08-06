@@ -199,6 +199,28 @@ resin:
   raft_thickness: 0.0
   support_height: 4.0
   support_thickness: 2.0
+  # v4-only - v2 hardcodes 12 evenly-spaced rods (v2/mignon.scad:341's
+  # for(n=[0:11])) in both ResinSupport() and ResinSupportShaftEnd().
+  # Increase to add more rods (both print orientations use this same
+  # count); ResinSupport() (upside_down) also adds half this many more, on
+  # alternating sectors, at a second radius near the top boss.
+  rod_count: 12
+  # [upside_down, right_side_up] - v4-only, no v2 equivalent. upside_down
+  # (default) is v1/v2's original ResinPrint() flip (translate then
+  # rotate([0,180,0]) - label end down at the build plate, see lib/
+  # mignon.py's ResinPrint() docstring). right_side_up skips the flip: the
+  # shaft/keyway end (AlignmentPin, CenterShaft bore) sits at the build
+  # plate instead - see lib/mignon.py's ResinSupportShaftEnd().
+  orientation: upside_down
+  # Half-angle (degrees) around the AlignmentPin keyway (theta=0, see
+  # AlignmentPin()) that ResinSupportShaftEnd() keeps clear of rod contact
+  # points, placing a flanking pair at +/-notch_gap_deg instead of a rod
+  # at 0 - same avoidance pattern spherical_machine.ResinRodAssemble()
+  # uses around Selectric's Drive_Notch_Theta (its Tip_Notch_Offset). The
+  # keyway itself spans about +/-6.2deg at the rod ring's radius
+  # (atan((pin_width/2)/r1), r1=8.21mm) - 8.0 adds a small margin. Only
+  # used when orientation is right_side_up.
+  notch_gap_deg: 8.0
 
 output:
   directory: "output"

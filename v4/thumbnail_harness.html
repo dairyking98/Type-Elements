@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  Static one-shot render harness for generate_thumbnails.py. Mirrors the
+  camera-fit/lighting/material setup in dairyking98.github.io's
+  assets/js/stl-viewer.js (the live interactive viewer) minus the
+  interactive bits (OrbitControls, lazy IntersectionObserver load, status
+  text) that a single screenshot doesn't need - kept in sync by hand since
+  the two live in separate repos. If stl-viewer.js's look changes, update
+  the constants below to match.
+
+  Usage: serve this file (and the STL it points at) over http://, then
+  navigate a headless browser to
+  thumbnail_harness.html?src=<relative-or-absolute-STL-url>&w=<px>&h=<px>
+-->
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #ffffff; }
+  #stage { width: 100vw; height: 100vh; display: block; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+const params = new URLSearchParams(location.search);
+const src = params.get('src');
+const width = parseInt(params.get('w') || '1600', 10);
+const height = parseInt(params.get('h') || '1200', 10);
+
+const canvas = document.getElementById('stage');
+canvas.width = width;
+canvas.height = height;
+canvas.style.width = width + 'px';
+canvas.style.height = height + 'px';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 10000);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(1);
+renderer.setSize(width, height, false);
+renderer.setClearColor(0xffffff, 1);
+
+// Same light rig as stl-viewer.js.
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const key = new THREE.DirectionalLight(0xffffff, 4);
+key.position.set(1, 1.4, 1);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.66);
+fill.position.set(-1, -0.5, -1);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 4);
+rim.position.set(0, 2, -2);
+scene.add(rim);
+
+const loader = new STLLoader();
+loader.load(
+  src,
+  (geometry) => {
+    // STL exports are Z-up; three.js is Y-up.
+    geometry.rotateX(-Math.PI / 2);
+    geometry.computeBoundingBox();
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x8c877c,
+      roughness: 0.59,
+      metalness: 0.56,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+
+    const box = geometry.boundingBox;
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    mesh.position.sub(center);
+    scene.add(mesh);
+
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    const radius = sphere.radius || 1;
+    camera.position.set(radius * 1.6, radius * 1.2, radius * 1.6);
+    camera.near = radius / 100;
+    camera.far = radius * 100;
+    camera.updateProjectionMatrix();
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+    document.title = 'RENDER_COMPLETE';
+  },
+  undefined,
+  (error) => {
+    console.error('STL load failed for', src, error);
+    document.title = 'RENDER_FAILED';
+  }
+);
+</script>
+</body></html>

@@ -184,6 +184,7 @@ def configure(config_path):
     g["Logo_Text_2"] = label["label2"]
     g["Logo_Size"] = label["label_size_mm"]
     g["Logo_Depth"] = label["depth_mm"]
+    g["Logo_Radial_Offset"] = label["radial_offset_mm"]
 
     g["Layout"] = cfg["layout"]["rows"]
     # Baselines[row] (v2:103-107, Baseline_Gaps[row]+Baseline_Offset) -
@@ -624,19 +625,47 @@ def Logo(side):
     build_text_string(), which already stays at baseline (y=0) instead of
     attempting true valign=center - the same accepted simplification
     LogoText()/mignon.ElementLabel()/hammond.Label() already make for
-    decorative text, per that function's own docstring."""
+    decorative text, per that function's own docstring.
+
+    Deliberate v4 deviation from v2:478's literal angle
+    (Folder_Arc_Start, ~3deg) - characters run radially outward from the
+    hub along this angle (see build_text_string's halign=center-on-advance
+    convention), but Folder_Arc_Start doesn't correspond to any actual
+    spoke: real material beyond the Folder_OD/2 (10.5mm) center hub only
+    exists at the 5 discrete SpokeArranged() angles
+    (Folder_Degree_Offset + i*Spoke_Spacing), each only Spoke_Thickness
+    (2.2mm) wide tangentially. Confirmed numerically pre-fix: the engraving
+    only overlapped solid material from x=6.68 to x=15.07mm even though
+    the label text itself spans x=6.68 to x=25.31mm - it stops dead
+    mid-word, exactly the "vanishes going radially outward" symptom.
+    Fixed by running the label along the FIRST inner spoke's own centerline
+    (theta=Folder_Degree_Offset, i=0) instead, so material is continuously
+    present for the label's whole radial reach, then nudging the whole
+    label tangentially by (Spoke_Thickness/2 - Logo_Depth) so the
+    engraving's outer edge sits flush with that spoke's physical tangential
+    surface - an inward-cut engraving from one real face, rather than a
+    channel straddling the middle of a 2.2mm-wide rod. The tangential nudge
+    is sign-flipped between sides (-edge_offset for side 0, +edge_offset
+    for side 1) - side 1's sign alone landed correctly by construction, but
+    side 0 needed the mirror since it isn't produced via _mirror_side()/a
+    real geometric mirror() the way the rest of this machine's side==1
+    pieces are - Logo() encodes both sides' placement directly (see the
+    angle/z_rot2 side switches above), so nothing else flips this offset
+    for it automatically."""
     depth = Logo_Depth * 2.0
     line1 = cylinder_machine.build_text_string(Logo_Text_1, Logo_Size, LOGO_FONT_PATH, depth)
     line2 = cylinder_machine.build_text_string(Logo_Text_2, Logo_Size, LOGO_FONT_PATH, depth)
     line2 = sp.translate(line2, [0, -2.0, 0])
     combined = sp.union_all([line1, line2])
     combined = sp.translate(combined, [0, 0, -depth / 2.0])  # linear_extrude(...,center=true)
-    angle = Folder_Arc_Start if side == 0 else -Folder_Arc_Start
+    angle = Folder_Degree_Offset if side == 0 else -Folder_Degree_Offset
+    edge_offset = Spoke_Thickness / 2.0 - Logo_Depth
+    y_offset = -edge_offset if side == 0 else edge_offset
     z_rot2 = 0.0 if side == 0 else 180.0
     return sp.scad_transform(
         combined,
         ("rotate", [0, 0, angle]),
-        ("translate", [16.0, 0, Folder_Thickness / 2.0]),
+        ("translate", [Logo_Radial_Offset, y_offset, Folder_Thickness / 2.0]),
         ("rotate", [90, 0, z_rot2]),
     )
 

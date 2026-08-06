@@ -238,21 +238,31 @@ MACHINES = {
     "selectric12": ("Selectric I/II", os.path.join(REPO_ROOT, "config", "selectric12.yaml")),
     "selectric3": ("Selectric III", os.path.join(REPO_ROOT, "config", "selectric3.yaml")),
     "selectric_composer": ("Selectric Composer", os.path.join(REPO_ROOT, "config", "selectric_composer.yaml")),
+    "type_slug": ("Type Slug", os.path.join(REPO_ROOT, "config", "type_slug.yaml")),
+    "vogue_slug": ("Vogue Slug", os.path.join(REPO_ROOT, "config", "vogue_slug.yaml")),
+    "gauge_slug": ("Gauge Slug", os.path.join(REPO_ROOT, "config", "gauge_slug.yaml")),
+    "oliver_slug": ("Oliver Slug", os.path.join(REPO_ROOT, "config", "oliver_slug.yaml")),
+    "lumi_slug": ("Lumi Slug", os.path.join(REPO_ROOT, "config", "lumi_slug.yaml")),
 }
 
 # Groups MACHINES by real-world type-element mechanism (not code-sharing -
 # see CLAUDE.md's "Machine taxonomy" section for why those are different
-# axes) so the machine picker can present 3 short categories instead of
-# one flat wall of 10 buttons. Cylinders = type-wheel machines
+# axes) so the machine picker can present short categories instead of
+# one flat wall of buttons. Cylinders = type-wheel machines
 # (Blickensderfer/Postal/Mignon/Bennett/Helios, per each module's own
 # "cylinder"/"disk" docstring language); Shuttles = the arc-shaped type
 # shuttle (Hammond/Hammond Split, per lib/hammond.py's and lib/
 # hammond_split.py's own "shuttle" docstrings); Spheres = the IBM/
-# Selectric typeball family (lib/spherical_machine.py's docstring).
+# Selectric typeball family (lib/spherical_machine.py's docstring);
+# Slugs = the standalone novelty/reference type-slug replicas (lib/
+# wing_slug.py's/lib/box_slug.py's own docstrings) - not full keyboard/
+# typewriter assemblies like the other three groups, one small element
+# each.
 MACHINE_CATEGORIES = [
     ("Cylinders", ["blickensderfer", "postal", "mignon", "bennett", "helios"]),
     ("Shuttles", ["hammond", "hammond_split"]),
     ("Spheres", ["selectric12", "selectric3", "selectric_composer"]),
+    ("Slugs", ["type_slug", "vogue_slug", "gauge_slug", "oliver_slug", "lumi_slug"]),
 ]
 
 FONT_FILE_FILTERS = Filters(
@@ -530,6 +540,10 @@ RESIN_FIELDS_MIGNON = [
     ("support_height", ["resin", "support_height"], float, "Support height (mm)",
      "Raft ring's Z offset below the element, and the outer ring of rods' base height."),
     ("support_thickness", ["resin", "support_thickness"], float, "Support thickness (mm)", "Raft ring thickness."),
+    ("rod_count", ["resin", "rod_count"], int, "Rod count",
+     "Number of evenly-spaced rods around the support ring, either print orientation (see the Build "
+     "tab's Print orientation). Upside down also adds half this many more, on alternating sectors, at "
+     "a second radius near the top boss."),
 ]
 
 ELEMENT_FIELDS_MIGNON = [
@@ -575,6 +589,12 @@ LABEL_FIELDS_BENNETT = [
     ("label2", ["label", "label2"], str, "Label 2 (left group)", "Shuttle_Label2 - e.g. a year."),
     ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", ""),
     ("depth_mm", ["label", "depth_mm"], float, "Label depth offset (mm)", "Added to Bottom_Countersink_Depth for the cut's Z start."),
+    ("label1a_radial_mm", ["label", "label1a_radial_mm"], float, "Label 1a radial distance (mm)",
+     "World-X distance of label1a's text from the shaft center. Independent of label1b/label2 - see LabelText()'s docstring."),
+    ("label1b_radial_mm", ["label", "label1b_radial_mm"], float, "Label 1b radial distance (mm)",
+     "World-X distance of label1b's text from the shaft center. Independent of label1a/label2 - see LabelText()'s docstring."),
+    ("label2_radial_mm", ["label", "label2_radial_mm"], float, "Label 2 radial distance (mm)",
+     "World-X distance of label2's text from the shaft center (negative = opposite side from label1a/1b)."),
 ]
 
 QUALITY_FIELDS_BENNETT = [
@@ -640,10 +660,13 @@ ELEMENT_FIELDS_BENNETT = [
 ]
 
 # Helios-specific tabs - see lib/helios.py's module docstring for why
-# these can't share any other machine's field lists. No "Logo"/"Label" key
-# at all (v2 has no engraved-text feature - v2's own header: "Sections
-# with no Helios equivalent (Logo, Print Tolerances, Shaft Gauge Test) are
-# omitted"), no "Gauge" key (same reason).
+# these can't share any other machine's field lists. No "Label" key (v2
+# has no engraved-TEXT feature - v2's own header: "Sections with no
+# Helios equivalent (Logo, Print Tolerances, Shaft Gauge Test) are
+# omitted"), no "Gauge" key (same reason). "Logo" IS present below -
+# unlike v2, v1's separate SVG_Logo mark (an imported vector image, not
+# engraved text) was ported as a deliberate v1-sourced addition - see
+# LOGO_FIELDS_HELIOS and config/helios.yaml's logo: section.
 QUALITY_FIELDS_HELIOS = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
@@ -676,6 +699,16 @@ RESIN_FIELDS_HELIOS = [
      "Support spacing (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
     ("resin_support_contact_radius", ["resin", "resin_support_contact_radius"], float,
      "Support contact radius (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+]
+
+LOGO_FIELDS_HELIOS = [
+    ("logo_enabled", ["logo", "logo_enabled"], bool, "SVG logo enabled",
+     "v1's SVG_Logo mark, cut into the top face - defaults off, see config/helios.yaml's logo: section for why."),
+    ("svg_file", ["logo", "svg_file"], str, "Logo SVG file", ""),
+    ("scale_mm_per_unit", ["logo", "scale_mm_per_unit"], float, "Logo scale (mm per SVG unit)",
+     "v4-only knob - see lib/svg_import.py's module docstring for why this isn't a port of v1's own SVG_Scale."),
+    ("logo_depth_mm", ["logo", "logo_depth_mm"], float, "Logo engraving depth (mm)", "v1 Element_Label_Depth."),
+    ("x_offset_mm", ["logo", "x_offset_mm"], float, "Logo X offset (mm)", "v1's fixed translate([x_offset,0,...])."),
 ]
 
 ELEMENT_FIELDS_HELIOS = [
@@ -950,6 +983,9 @@ LABEL_FIELDS_HAMMOND_SPLIT = [
     ("label2", ["label", "label2"], str, "Label 2", "Logo_Text_2 - e.g. a year."),
     ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", "Logo_Size."),
     ("depth_mm", ["label", "depth_mm"], float, "Label depth (mm)", "Logo_Depth."),
+    ("radial_offset_mm", ["label", "radial_offset_mm"], float, "Radial offset (mm)",
+     "Logo_Radial_Offset - distance from the hub axis both label lines are center-anchored on, "
+     "along the first inner spoke's own centerline."),
 ]
 
 QUALITY_FIELDS_HAMMOND_SPLIT = [
@@ -1140,6 +1176,159 @@ ELEMENT_FIELDS_SELECTRIC = [
      "v2's own measured reference value, not derived from other fields here."),
 ]
 
+# --- Type Slug family (lib/wing_slug.py + lib/type_slug.py/vogue_slug.py/
+# gauge_slug.py, and lib/box_slug.py + lib/oliver_slug.py/lumi_slug.py) -
+# small standalone novelty/reference type-slug replicas, ground truth is
+# v1 not v2 (see lib/wing_slug.py's/lib/box_slug.py's own module
+# docstrings). No Layout tab (no `layout:` config section - HAS_LAYOUT_
+# TAB is naturally False, same mechanism Selectric's own "no editable
+# keyboard-layout concept" already relies on) and no Calibration tab
+# (CalibrationElement/CalibrationAdditive aren't implemented for this
+# family either - same "deferred" precedent lib/spherical_machine.py's
+# own module docstring sets), so these reuse SECTIONS_COMMON's "Font &
+# Alignment" list ONLY (schema matches exactly - font.path/size_mm,
+# alignment.*, build.draft_angle_deg), not the whole dict spread (which
+# would also pull in "Calibration").
+CHARACTER_FIELDS_WING_SLUG = [
+    ("char_enabled", ["character", "char_enabled"], bool, "Character enabled",
+     "Off for Gauge Slug - no struck character exists in that real v1 source at all."),
+    ("lower_char", ["character", "lower_char"], str, "Lower character", ""),
+    ("upper_char", ["character", "upper_char"], str, "Upper character", ""),
+]
+
+# character.chars (oliver_slug/lumi_slug) is a list (3 items for Oliver,
+# 4 for Lumi, bottom-to-top stack order) - deliberately YAML-only, no
+# tune.py field, per CLAUDE.md's "list-valued config key" convention
+# (option (b): a one-line comment here stands in for the explicit
+# decision, same as layout.placement_map/char_legend elsewhere). Only
+# the two scalar siblings are exposed.
+CHARACTER_FIELDS_BOX_SLUG = [
+    ("baseline_mm", ["character", "baseline_mm"], float, "Baseline (mm)", ""),
+    ("baselines_shift_motion_mm", ["character", "baselines_shift_motion_mm"], float,
+     "Baseline shift per character (mm)", ""),
+]
+
+LOGO_FIELDS_SLUG = [
+    ("logo_enabled", ["logo", "logo_enabled"], bool, "Generic SVG logo enabled",
+     "The AR1.svg-style single-mark logo - off for Vogue Slug/Gauge Slug (see vogue_enabled below for Vogue Slug's own real logo)."),
+    ("svg_file", ["logo", "svg_file"], str, "Logo SVG file", ""),
+    ("scale_mm_per_unit", ["logo", "scale_mm_per_unit"], float, "Logo scale (mm per SVG unit)",
+     "v4-only knob - see lib/svg_import.py's module docstring for why this isn't a port of v1's own SVG_Scale. "
+     "AR1.svg's own value - a DIFFERENT SVG viewBox/scale than the Vogue Foundry mark below, not interchangeable."),
+    ("logo_depth_mm", ["logo", "logo_depth_mm"], float, "Logo engraving depth (mm)", ""),
+    ("location_frac", ["logo", "location_frac"], float, "Logo position (fraction of body length)", ""),
+    ("vogue_enabled", ["logo", "vogue_enabled"], bool, "Vogue Foundry mark enabled",
+     "The real 2-piece arrow+V mark - only ever on for Vogue Slug."),
+    ("vogue_arrow_svg_file", ["logo", "vogue_arrow_svg_file"], str, "Vogue arrow SVG file", ""),
+    ("vogue_v_svg_file", ["logo", "vogue_v_svg_file"], str, "Vogue V SVG file", ""),
+    ("vogue_scale_mm_per_unit", ["logo", "vogue_scale_mm_per_unit"], float, "Vogue mark scale (mm per SVG unit)",
+     "The Vogue Foundry mark's OWN scale - separate from scale_mm_per_unit above (AR1.svg has a much larger "
+     "viewBox than the arrow/V marks; v1 itself uses two different scale variables here, SVG_Scale vs SVG_V1_Scale)."),
+]
+
+LABEL_FIELDS_SLUG = [
+    ("text", ["label", "text"], str, "Copyright text", ""),
+    ("font_path", ["label", "font_path"], str, "Copyright font path", ""),
+    ("label_depth_mm", ["label", "label_depth_mm"], float, "Copyright engraving depth (mm)", ""),
+]
+
+ELEMENT_FIELDS_WING_SLUG = [
+    ("body_width_mm", ["element", "body_width_mm"], float, "Body width (mm)", "v1 Body_Width."),
+    ("body_length_mm", ["element", "body_length_mm"], float, "Body length (mm)", "v1 Body_Length."),
+    ("body_height_mm", ["element", "body_height_mm"], float, "Body height (mm)", "v1 Body_Height."),
+    ("face_thickness_mm", ["element", "face_thickness_mm"], float, "Face thickness (mm)", "v1 Face_Thickness."),
+    ("face_radius_mm", ["element", "face_radius_mm"], float, "Face corner radius (mm)", "v1 Face_Radius."),
+    ("wing_radius_mm", ["element", "wing_radius_mm"], float, "Wing radius (mm)", "v1 Wing_Radius."),
+    ("platen_shift_motion_mm", ["element", "platen_shift_motion_mm"], float, "Platen shift motion (mm)", "v1 Platen_Shift_Motion."),
+    ("baselines_shift_motion_mm", ["element", "baselines_shift_motion_mm"], float, "Baseline shift motion (mm)", "v1 Baselines_Shift_Motion."),
+    ("body_slot_width_mm", ["element", "body_slot_width_mm"], float, "Typebar slot width (mm)", "v1 Body_Slot_Width."),
+    ("wing_thickness_mm", ["element", "wing_thickness_mm"], float, "Wing minimum thickness (mm)", "v1 Wing_Thickness."),
+    ("aligning_cut_mm", ["element", "aligning_cut_mm"], float, "Aligning cut position (mm)", "v1 Aligning_Cut."),
+    ("baseline_mm", ["element", "baseline_mm"], float, "Baseline (mm)", "v1 Baseline."),
+    ("platen_diameter_mm", ["element", "platen_diameter_mm"], float, "Platen diameter (mm)", "v1 Platen_Diameter."),
+    ("bottom_thickness_mm", ["element", "bottom_thickness_mm"], float, "Bottom thickness (mm)", "v1 Bottom_Thickness."),
+    ("upper_wing_angle_deg", ["element", "upper_wing_angle_deg"], float, "Upper wing angle (deg)", "v1 Upper_Wing_Angle."),
+    ("lower_wing_angle_deg", ["element", "lower_wing_angle_deg"], float, "Lower wing angle (deg)", "v1 Lower_Wing_Angle."),
+    ("loop_enabled", ["element", "loop_enabled"], bool, "Loop enabled", "v1 Loop."),
+    ("loop_thickness_mm", ["element", "loop_thickness_mm"], float, "Loop tube thickness (mm)", "v1 Loop_Thickness."),
+    ("loop_diameter_mm", ["element", "loop_diameter_mm"], float, "Loop outer diameter (mm)", "v1 Loop_Diameter."),
+    ("loop_rotation_deg", ["element", "loop_rotation_deg"], float, "Loop rotation (deg)", "v1 Loop_Rotation."),
+    ("post_enabled", ["element", "post_enabled"], bool, "Mounting post enabled", "v1 Post."),
+    ("post_id_mm", ["element", "post_id_mm"], float, "Post hole ID (mm)", "v1 Post_ID."),
+    ("post_od_mm", ["element", "post_od_mm"], float, "Post boss OD (mm)", "v1 Post_OD."),
+    ("side_hole_enabled", ["element", "side_hole_enabled"], bool, "Side hole enabled", "v1 Side_Hole."),
+    ("side_hole_id_mm", ["element", "side_hole_id_mm"], float, "Side hole diameter (mm)", "v1 Side_Hole_ID."),
+    ("side_hole_height_frac", ["element", "side_hole_height_frac"], float, "Side hole height (fraction of body height)", "v1 Side_Hole_Height."),
+]
+
+ELEMENT_FIELDS_BOX_SLUG = [
+    ("body_width_mm", ["element", "body_width_mm"], float, "Body width (mm)", "v1 Body_Width."),
+    ("body_length_mm", ["element", "body_length_mm"], float, "Body length (mm)", "v1 Body_Length."),
+    ("body_height_mm", ["element", "body_height_mm"], float, "Body height (mm)", "v1 Body_Height."),
+    ("platen_shift_motion_mm", ["element", "platen_shift_motion_mm"], float, "Platen shift motion (mm)", "v1 Platen_Shift_Motion."),
+    ("body_slot_width_mm", ["element", "body_slot_width_mm"], float, "Typebar slot width (mm)", "v1 Body_Slot_Width."),
+    ("wing_thickness_mm", ["element", "wing_thickness_mm"], float, "Wing taper thickness (mm)", "v1 Wing_Thickness."),
+    ("aligning_cut_mm", ["element", "aligning_cut_mm"], float, "Aligning cut position (mm)", "v1 Aligning_Cut."),
+    ("platen_diameter_mm", ["element", "platen_diameter_mm"], float, "Platen diameter (mm)", "v1 Platen_Diameter."),
+    ("bottom_thickness_mm", ["element", "bottom_thickness_mm"], float, "Bottom thickness (mm)", "v1 Bottom_Thickness."),
+    ("upper_wing_angle_deg", ["element", "upper_wing_angle_deg"], float, "Wing angle (deg)",
+     "v1 Upper_Wing_Angle - used for BOTH wing-angle cuts (Lower_Wing_Angle is dead in the real v1 source, see lib/box_slug.py's module docstring)."),
+    ("loop_enabled", ["element", "loop_enabled"], bool, "Loop enabled", "v1 Loop - Lumi Slug only, Oliver Slug has no Loop concept at all."),
+    ("loop_thickness_mm", ["element", "loop_thickness_mm"], float, "Loop tube thickness (mm)", "v1 Loop_Thickness."),
+    ("loop_diameter_mm", ["element", "loop_diameter_mm"], float, "Loop outer diameter (mm)", "v1 Loop_Diameter."),
+    ("loop_rotation_deg", ["element", "loop_rotation_deg"], float, "Loop rotation (deg)", "v1 Loop_Rotation."),
+]
+
+RESIN_FIELDS_WING_SLUG = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin support facets", ""),
+    ("raft_thickness_mm", ["resin", "raft_thickness_mm"], float, "Raft thickness (mm)", "v1 Raft_Thickness."),
+    ("wire_thickness_mm", ["resin", "wire_thickness_mm"], float, "Wire thickness (mm)", "v1 Wire_Thickness."),
+    ("support_height_mm", ["resin", "support_height_mm"], float, "Support height (mm)", "v1 Support_Height."),
+    ("support_pitch_mm", ["resin", "support_pitch_mm"], float, "Support pitch (mm)", "v1 Support_Pitch."),
+]
+
+RESIN_FIELDS_BOX_SLUG = [
+    ("resin_fn", ["resin", "resin_fn"], int, "Resin support facets",
+     "Declared but not wired to any geometry - Oliver Slug/Lumi Slug have no resin-support geometry at all, see lib/box_slug.py's ResinSupport()."),
+]
+
+QUALITY_FIELDS_WING_SLUG = [
+    ("corner_fn", ["quality", "corner_fn"], int, "Body corner facets", ""),
+    ("wing_fn", ["quality", "wing_fn"], int, "Wing cylinder facets", ""),
+    ("platen_fn", ["quality", "platen_fn"], int, "Platen cutout facets", ""),
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Draft cone facets", ""),
+    ("loop_fn", ["quality", "loop_fn"], int, "Loop sweep facets", ""),
+    ("loop_tube_fn", ["quality", "loop_tube_fn"], int, "Loop tube cross-section facets",
+     "Kept independent from Loop sweep facets - see scad_primitives.torus()'s docstring."),
+    ("post_fn", ["quality", "post_fn"], int, "Post facets", ""),
+    ("side_hole_fn", ["quality", "side_hole_fn"], int, "Side hole facets", ""),
+]
+
+QUALITY_FIELDS_BOX_SLUG = [
+    ("minkowski_fn", ["quality", "minkowski_fn"], int, "Draft cone facets", ""),
+    ("platen_fn", ["quality", "platen_fn"], int, "Platen cutout facets", ""),
+    ("loop_fn", ["quality", "loop_fn"], int, "Loop sweep facets", ""),
+    ("loop_tube_fn", ["quality", "loop_tube_fn"], int, "Loop tube cross-section facets",
+     "Kept independent from Loop sweep facets - see scad_primitives.torus()'s docstring."),
+]
+
+# Named "Ticks", NOT "Gauge" - deliberately avoids colliding with the
+# existing Blickensderfer/Postal "Gauge" concept (a Shaft Gauge Test
+# CALIBRATION PRINT, gated by has_gauge/GaugeTestSet() in
+# _compose_build_tab). Gauge Slug's ticks are real element geometry
+# (gauge_slug.py's own Ticks(), gated by gauge.gauge_enabled), not a
+# build-target option - reusing "Gauge" here would make
+# _compose_build_tab wrongly offer a "Shaft Gauge" build target that
+# calls a GaugeTestSet() gauge_slug.py doesn't implement.
+TICKS_FIELDS_GAUGE_SLUG = [
+    ("fine_pitch_mm", ["gauge", "fine_pitch_mm"], float, "Fine tick pitch (mm)", "v1 GaugeTypeSlugSlug.scad's fine-row loop step."),
+    ("major_pitch_mm", ["gauge", "major_pitch_mm"], float, "Major tick pitch (mm)", "v1 GaugeTypeSlugSlug.scad's major-row loop step."),
+    ("hole_d_mm", ["gauge", "hole_d_mm"], float, "Tick hole diameter (mm)", ""),
+    ("fine_z_mm", ["gauge", "fine_z_mm"], float, "Fine row Z position (mm)", ""),
+    ("major_z_mm", ["gauge", "major_z_mm"], float, "Major row Z position (mm)", ""),
+    ("hole_fn", ["gauge", "hole_fn"], int, "Tick hole facets", ""),
+]
+
 SECTIONS_BY_MACHINE = {
     "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
@@ -1163,16 +1352,13 @@ SECTIONS_BY_MACHINE = {
                 "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
                 "Element": ELEMENT_FIELDS_BENNETT},
     # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
-    # scad's own header: "Sections with no Helios equivalent (..., Print
-    # Tolerances, Shaft Gauge Test) are omitted"). No "Label" key - Helios
-    # has only the one engraved-text feature (Logo), unlike Bennett/
-    # Hammond's Label-only convention. "Logo" reuses LOGO_FIELDS_BLICKPOSTAL
-    # as-is (not a separate LOGO_FIELDS_HELIOS) - v4-only addition, same
-    # schema/mechanism (cylinder_machine.LogoText()) as Blickensderfer/
-    # Postal, see lib/helios.py's module docstring.
-    "helios": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
-               "Quality": QUALITY_FIELDS_HELIOS, "Resin": RESIN_FIELDS_HELIOS,
-               "Element": ELEMENT_FIELDS_HELIOS},
+    # scad's own header: "Sections with no Helios equivalent (Logo, Print
+    # Tolerances, Shaft Gauge Test) are omitted"). No "Label" key either -
+    # same header, no engraved-TEXT feature at all. "Logo" key IS present
+    # (LOGO_FIELDS_HELIOS) - v1's separate SVG_Logo mark, a deliberate
+    # v1-sourced addition v2 never had - see that list's own comment.
+    "helios": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
+               "Resin": RESIN_FIELDS_HELIOS, "Element": ELEMENT_FIELDS_HELIOS},
     # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
     # module docstring) - its two whole-string engraved labels are the
     # "Label" tab instead, same convention as Bennett.
@@ -1203,6 +1389,35 @@ SECTIONS_BY_MACHINE = {
     "selectric_composer": {"Font & Alignment": FONT_FIELDS_SELECTRIC_COMPOSER, "Label": LABEL_FIELDS_SELECTRIC,
                            "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
                            "Element": ELEMENT_FIELDS_SELECTRIC},
+    # Type Slug family (see the FIELDS block comment above this dict) -
+    # "Font & Alignment" reuses ONLY that one SECTIONS_COMMON list (not
+    # the whole dict spread, which would also pull in "Calibration" -
+    # not implemented for this family). No "Gauge"/"Calibration" key.
+    "type_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
+                  "Character": CHARACTER_FIELDS_WING_SLUG, "Logo": LOGO_FIELDS_SLUG,
+                  "Label": LABEL_FIELDS_SLUG, "Quality": QUALITY_FIELDS_WING_SLUG,
+                  "Resin": RESIN_FIELDS_WING_SLUG, "Element": ELEMENT_FIELDS_WING_SLUG},
+    "vogue_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
+                   "Character": CHARACTER_FIELDS_WING_SLUG, "Logo": LOGO_FIELDS_SLUG,
+                   "Label": LABEL_FIELDS_SLUG, "Quality": QUALITY_FIELDS_WING_SLUG,
+                   "Resin": RESIN_FIELDS_WING_SLUG, "Element": ELEMENT_FIELDS_WING_SLUG},
+    # "Ticks" (not "Gauge") - see TICKS_FIELDS_GAUGE_SLUG's own comment
+    # for why this deliberately doesn't reuse the existing "Gauge"
+    # section name.
+    "gauge_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
+                   "Character": CHARACTER_FIELDS_WING_SLUG, "Logo": LOGO_FIELDS_SLUG,
+                   "Label": LABEL_FIELDS_SLUG, "Ticks": TICKS_FIELDS_GAUGE_SLUG,
+                   "Quality": QUALITY_FIELDS_WING_SLUG, "Resin": RESIN_FIELDS_WING_SLUG,
+                   "Element": ELEMENT_FIELDS_WING_SLUG},
+    # No "Label"/"Logo" key - OliverSlug.scad/LumiSlug.scad have no
+    # engraved-copyright/SVG-logo concept at all (see lib/box_slug.py's
+    # module docstring).
+    "oliver_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
+                    "Character": CHARACTER_FIELDS_BOX_SLUG, "Quality": QUALITY_FIELDS_BOX_SLUG,
+                    "Resin": RESIN_FIELDS_BOX_SLUG, "Element": ELEMENT_FIELDS_BOX_SLUG},
+    "lumi_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
+                  "Character": CHARACTER_FIELDS_BOX_SLUG, "Quality": QUALITY_FIELDS_BOX_SLUG,
+                  "Resin": RESIN_FIELDS_BOX_SLUG, "Element": ELEMENT_FIELDS_BOX_SLUG},
 }
 
 # Static intro banner shown above a section tab's fields, keyed by section
@@ -1653,6 +1868,31 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
     },
 }
 
+# Two real "Ideal_Element" variants for the figures row's £/⅌ position -
+# see SESSION_LOG.md part 77's archaeology. v1's oldest source
+# (HammondSplitShuttle.scad, Feb 2024) had a commented-out "Layout as
+# 'stamped'" figures row using ⅌ (the per-unit sign - also Char_Mod's
+# own default value, config/hammond_split.yaml's char_mod.char) in place
+# of £ at the same position; every later revision (HammondSplitShuttle2.
+# scad onward, including v2/hammond_split.scad and v4's shipped default)
+# uses £ there instead, with no trace of the ⅌ variant left in the
+# source. Both are real historical values, not invented - installed as
+# two selectable presets (per explicit user request) rather than picking
+# one. Rows 0/1 are identical between them; only row 2's one £/⅌
+# character differs.
+LAYOUT_PRESETS_HAMMOND_SPLIT = {
+    "IDEAL (£)": [
+        "?zxqkjgdmpcfld,.taherisounwyv:",
+        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+        "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔",
+    ],
+    "IDEAL (⅌)": [
+        "?zxqkjgdmpcfld,.taherisounwyv:",
+        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+        "¾%⅞⅝½⅜1⅛2¢3⅌4$56“7”8’9[0]¼*⅓†⅔",
+    ],
+}
+
 # The 3 Selectric machines' layout.rows is 8 rows (4 lowercase then 4
 # uppercase, keyboard reading order) instead of the cylinder family's
 # 3-4 shift-row shape - see config/selectric12.yaml's layout.rows comment
@@ -1760,6 +2000,7 @@ LAYOUT_PRESETS_BY_MACHINE = {
     "bennett": LAYOUT_PRESETS_BENNETT,
     "helios": LAYOUT_PRESETS_HELIOS,
     "hammond": LAYOUT_PRESETS_HAMMOND,
+    "hammond_split": LAYOUT_PRESETS_HAMMOND_SPLIT,
     "selectric12": LAYOUT_PRESETS_SELECTRIC12,
     "selectric3": LAYOUT_PRESETS_SELECTRIC3,
     "selectric_composer": LAYOUT_PRESETS_SELECTRIC_COMPOSER,
@@ -1806,6 +2047,13 @@ LAYOUT_PICKER_HELP = {
         "match. Both are real v2 presets - v1's original source has "
         "nothing extra beyond these two."
     ),
+    "hammond_split": (
+        "IDEAL (£) is the shipped default; IDEAL (⅌) swaps in the "
+        "per-unit sign at that same figures-row position instead - both "
+        "are real values found in the source history (see SESSION_LOG.md "
+        "part 77). Char_Mod (Font & Alignment tab) only has an effect "
+        "under IDEAL (⅌), since ⅌ isn't in IDEAL (£)'s rows at all."
+    ),
     "selectric12": (
         "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
         "shifted, each in real keyboard reading order. Row boundaries are "
@@ -1844,6 +2092,14 @@ RESIN_SUPPORT_UNAVAILABLE_NOTE = {
     "helios": (
         " This checkbox has no effect for Helios - no resin support "
         "geometry is modeled (see ResinPrint() in lib/helios.py)."
+    ),
+    "oliver_slug": (
+        " This checkbox has no effect for Oliver Slug - no resin support "
+        "geometry is modeled (see ResinPrint() in lib/box_slug.py)."
+    ),
+    "lumi_slug": (
+        " This checkbox has no effect for Lumi Slug - no resin support "
+        "geometry is modeled (see ResinPrint() in lib/box_slug.py)."
     ),
 }
 
@@ -2700,6 +2956,7 @@ class TuneApp(App):
         has_calibration = "Calibration" in self.SECTIONS
         is_hammond = self.machine == "hammond"
         is_hammond_split = self.machine == "hammond_split"
+        is_mignon = self.machine == "mignon"
         hammond_parts = ("none",) if is_hammond else ()
         hammond_split_normal_target = ("normal",) if is_hammond_split else ()
         valid_targets = (("element",) + (("calibration",) if has_calibration else ())
@@ -2805,6 +3062,22 @@ class TuneApp(App):
                         "are always added too, regardless of this setting.",
                         classes="field-help")
 
+                if is_mignon:
+                    orientation_now = str(self.cfg.get("resin", {}).get("orientation", "upside_down"))
+                    if orientation_now not in ("upside_down", "right_side_up"):
+                        orientation_now = "upside_down"
+                    with Horizontal(classes="picker-row"):
+                        yield Static("Print orientation", classes="field-label")
+                        yield Select([("Upside down", "upside_down"), ("Right side up", "right_side_up")],
+                                     value=orientation_now, id="build-orientation", allow_blank=False)
+                    yield Static(
+                        '"Upside down" (default) is the original v1/v2 orientation - the '
+                        "label end sits at the build plate, supports attach there. "
+                        '"Right side up" skips that flip: the shaft/keyway end sits at the '
+                        "build plate instead, with its own support layout that keeps clear "
+                        "of the AlignmentPin notch. Only matters while Resin supports is on.",
+                        classes="field-help")
+
                 if is_hammond_split:
                     with Horizontal(classes="picker-row"):
                         yield Static("Render left half", classes="field-label")
@@ -2858,11 +3131,24 @@ class TuneApp(App):
                     classes="picker-help")
                 yield Static("Test text", classes="field-label")
                 yield TextArea(self.cfg["type_test"]["text"], id="type-test-text")
-                with Vertical(classes="field-row"):
-                    with Horizontal():
-                        yield Static("CPI", classes="field-label")
-                        yield Input(value=str(self.cfg["type_test"]["cpi"]), id="type-test-cpi")
-                    yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
+                if self.machine == "selectric_composer":
+                    yield Static(
+                        "Selectric Composer used real proportional spacing, not fixed-pitch "
+                        "CPI - each character has its own width in Units (Composer_Pitch_List), "
+                        "converted to mm via Units/inch below (72/84/96 - v2's Red/Yellow/Blue "
+                        "wheel). LPI still sets line spacing.",
+                        classes="picker-help")
+                    with Vertical(classes="field-row"):
+                        with Horizontal():
+                            yield Static("Units/inch", classes="field-label")
+                            yield Input(value=str(self.cfg["type_test"]["units_per_inch"]), id="type-test-units-per-inch")
+                        yield Static("v2's Units_Per_Inch - 72 (Red), 84 (Yellow), or 96 (Blue).", classes="field-help")
+                else:
+                    with Vertical(classes="field-row"):
+                        with Horizontal():
+                            yield Static("CPI", classes="field-label")
+                            yield Input(value=str(self.cfg["type_test"]["cpi"]), id="type-test-cpi")
+                        yield Static("Characters per inch (v2's Test_CPI).", classes="field-help")
                 with Vertical(classes="field-row"):
                     with Horizontal():
                         yield Static("LPI", classes="field-label")
@@ -2907,10 +3193,19 @@ class TuneApp(App):
                 yield Button("Change Machine", id="btn-change-machine")
             with TabbedContent():
                 yield from self._compose_section_tab("Font & Alignment")
+                # "Character" - Type Slug family only (which character(s)
+                # get struck - see CHARACTER_FIELDS_WING_SLUG/_BOX_SLUG).
+                if "Character" in self.SECTIONS:
+                    yield from self._compose_section_tab("Character")
                 yield from self._compose_type_test_tab()
                 yield from self._compose_section_tab("Resin")
                 if "Gauge" in self.SECTIONS:
                     yield from self._compose_section_tab("Gauge")
+                # "Ticks" - Gauge Slug only (its tick-mark measuring
+                # ladder - see TICKS_FIELDS_GAUGE_SLUG's own comment for
+                # why this is a separate section from "Gauge" above).
+                if "Ticks" in self.SECTIONS:
+                    yield from self._compose_section_tab("Ticks")
                 # no "Calibration" key for the Selectric family - no
                 # CalibrationElement/CalibrationAdditive implemented yet
                 # (see SECTIONS_BY_MACHINE's Selectric comment).
@@ -3010,6 +3305,11 @@ class TuneApp(App):
             # for the same reason as groove above.
             values["orientation"] = self.query_one("#build-orientation", Select).value
             values["horizontal_method"] = self.query_one("#build-horizontal-method", Select).value
+        if self.machine == "mignon":
+            # orientation - same bespoke Build-tab treatment as Hammond's
+            # above (see _compose_build_tab's is_mignon branch); Mignon has
+            # no horizontal_method equivalent.
+            values["orientation"] = self.query_one("#build-orientation", Select).value
         if self.machine == "hammond_split":
             # render_left/render_right - bespoke Build-tab widgets (see
             # _compose_build_tab's is_hammond_split branch), same treatment
@@ -3025,14 +3325,29 @@ class TuneApp(App):
         # persisted the same as everything else (text is handled
         # separately in _save_to_yaml - it's a multi-line block scalar,
         # patch_yaml_value's one-token regex doesn't apply)
-        cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
         lpi_raw = self.query_one("#type-test-lpi", Input).value.strip()
         try:
-            values["cpi"] = float(cpi_raw)
             values["lpi"] = float(lpi_raw)
         except ValueError:
-            self.log_line(f"[red]bad Type Test CPI/LPI value: {cpi_raw!r}/{lpi_raw!r} (expected numbers)[/red]")
+            self.log_line(f"[red]bad Type Test LPI value: {lpi_raw!r} (expected a number)[/red]")
             return None
+        if self.machine == "selectric_composer":
+            units_raw = self.query_one("#type-test-units-per-inch", Input).value.strip()
+            try:
+                values["units_per_inch"] = float(units_raw)
+            except ValueError:
+                self.log_line(f"[red]bad Units/inch value: {units_raw!r} (expected a number)[/red]")
+                return None
+        else:
+            # CPI doesn't apply to Composer - real proportional spacing
+            # (Units/inch above) replaces it entirely, so its widget isn't
+            # composed for that machine (see _compose_type_test_tab).
+            cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
+            try:
+                values["cpi"] = float(cpi_raw)
+            except ValueError:
+                self.log_line(f"[red]bad Type Test CPI value: {cpi_raw!r} (expected a number)[/red]")
+                return None
         # layout.baseline_row/cutout_row per-row fields (Element tab) -
         # bespoke like everything above, since they're list elements, not
         # standalone scalar YAML keys - see BASELINE_CUTOUT_KEYS/
@@ -3193,12 +3508,19 @@ class TuneApp(App):
             hm_now = str(self.cfg.get("resin", {}).get("horizontal_method", "resin_rod"))
             self.query_one("#build-horizontal-method", Select).value = (
                 hm_now if hm_now in ("cut_groove", "resin_rod") else "resin_rod")
+        if self.machine == "mignon":
+            orientation_now = str(self.cfg.get("resin", {}).get("orientation", "upside_down"))
+            self.query_one("#build-orientation", Select).value = (
+                orientation_now if orientation_now in ("upside_down", "right_side_up") else "upside_down")
         if self.machine == "hammond_split":
             b = self.cfg.get("build", {})
             self.query_one("#build-render-left", Switch).value = bool(b.get("render_left", True))
             self.query_one("#build-render-right", Switch).value = bool(b.get("render_right", True))
-        self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-lpi", Input).value = str(self.cfg["type_test"]["lpi"])
+        if self.machine == "selectric_composer":
+            self.query_one("#type-test-units-per-inch", Input).value = str(self.cfg["type_test"]["units_per_inch"])
+        else:
+            self.query_one("#type-test-cpi", Input).value = str(self.cfg["type_test"]["cpi"])
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
         if self.HAS_LAYOUT_TAB:
             display_rows = self._display_rows_for_preset()
@@ -3486,12 +3808,19 @@ class TuneApp(App):
         self._save_to_yaml(values)
 
         text = self.query_one("#type-test-text", TextArea).text
-        cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
-        try:
-            cpi = float(cpi_raw)
-        except ValueError:
-            self.log_line(f"[red]bad CPI value: {cpi_raw!r}[/red]")
-            return
+        if self.machine == "selectric_composer":
+            # No CPI widget for Composer (see _compose_type_test_tab) -
+            # real proportional spacing (Units/inch, --composer-config
+            # below) replaces it entirely, so the value passed here is
+            # never actually used by build_type_test_line.
+            cpi = self.cfg["type_test"]["cpi"]
+        else:
+            cpi_raw = self.query_one("#type-test-cpi", Input).value.strip()
+            try:
+                cpi = float(cpi_raw)
+            except ValueError:
+                self.log_line(f"[red]bad CPI value: {cpi_raw!r}[/red]")
+                return
         lpi_raw = self.query_one("#type-test-lpi", Input).value.strip()
         try:
             lpi = float(lpi_raw)
@@ -3539,6 +3868,26 @@ class TuneApp(App):
             cmd += ["--modified-right-chars=" + self.inputs["modified_right_chars"].value]
         if "modified_right_offset_mm" in self.inputs:
             cmd += ["--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value]
+        # Hammond Split's Char_Mod (per-character font/size override,
+        # FONT_FIELDS_HAMMOND_SPLIT's "char"/"char_mod_font_path"/
+        # "char_mod_size_mm" fields) - no other machine's field list uses
+        # the "char" key, so this is a no-op everywhere else. Without this,
+        # Type Test always rendered every character in the base font/size,
+        # never honoring Char_Mod the way the real element's TextAssemble()
+        # does per character.
+        if "char" in self.inputs and self.inputs["char"].value:
+            cmd += ["--mod-chars=" + self.inputs["char"].value,
+                    "--mod-font-path", self.inputs["char_mod_font_path"].value,
+                    "--mod-font-size-mm", self.inputs["char_mod_size_mm"].value]
+        # Selectric Composer's real proportional-spacing convention
+        # (Composer_Pitch_List/cumulativeSum - see type_test.py's
+        # --composer-config docstring) - self.config_path was already
+        # rewritten by _save_to_yaml above (including the just-edited
+        # Units/inch widget), so type_test.py reads type_test.pitch_list/
+        # units_per_inch/default_units straight off disk. No-op for every
+        # other machine.
+        if self.machine == "selectric_composer":
+            cmd += ["--composer-config", self.config_path]
         cmd += ["--out", out_path]
         returncode = await self._stream_subprocess(cmd)
         if returncode == 0:
