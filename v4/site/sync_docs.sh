@@ -27,11 +27,13 @@ for f in docs/*.md; do
   inject "$f" "$SITE/accessories/$base" "$title"
 done
 
-# example_renders/*.stl: one example STL per machine, published as-is so
-# leonardchau.com's portfolio page can load them cross-origin instead of
-# keeping its own duplicate copies.
+# example_renders/**/*.stl (recursive - e.g. resin_support_renders/):
+# published as-is, preserving subdirectory structure, so leonardchau.com's
+# portfolio page can load them cross-origin instead of keeping its own
+# duplicate copies.
 mkdir -p "$SITE/assets/models"
-for f in example_renders/*.stl; do
-  [ -e "$f" ] || continue
-  cp "$f" "$SITE/assets/models/$(basename "$f")"
-done
+while IFS= read -r -d '' f; do
+  rel="${f#example_renders/}"
+  mkdir -p "$SITE/assets/models/$(dirname "$rel")"
+  cp "$f" "$SITE/assets/models/$rel"
+done < <(find example_renders -name '*.stl' -print0)
