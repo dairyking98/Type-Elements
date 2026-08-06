@@ -904,6 +904,9 @@ LABEL_FIELDS_HAMMOND_SPLIT = [
     ("label2", ["label", "label2"], str, "Label 2", "Logo_Text_2 - e.g. a year."),
     ("label_size_mm", ["label", "label_size_mm"], float, "Label text size (mm)", "Logo_Size."),
     ("depth_mm", ["label", "depth_mm"], float, "Label depth (mm)", "Logo_Depth."),
+    ("radial_offset_mm", ["label", "radial_offset_mm"], float, "Radial offset (mm)",
+     "Logo_Radial_Offset - distance from the hub axis both label lines are center-anchored on, "
+     "along the first inner spoke's own centerline."),
 ]
 
 QUALITY_FIELDS_HAMMOND_SPLIT = [
