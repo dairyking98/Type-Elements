@@ -37,3 +37,12 @@ while IFS= read -r -d '' f; do
   mkdir -p "$SITE/assets/models/$(dirname "$rel")"
   cp "$f" "$SITE/assets/models/$rel"
 done < <(find example_renders -name '*.stl' -print0)
+
+# example_renders/**/*.svg: generated legend cards, published the same way
+# as the STLs above.
+mkdir -p "$SITE/assets/legends"
+while IFS= read -r -d '' f; do
+  rel="${f#example_renders/}"
+  mkdir -p "$SITE/assets/legends/$(dirname "$rel")"
+  cp "$f" "$SITE/assets/legends/$rel"
+done < <(find example_renders -name '*.svg' -print0)
