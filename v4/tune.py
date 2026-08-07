@@ -174,6 +174,7 @@ import sys
 import time
 from datetime import datetime
 
+import freetype
 import yaml
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -270,6 +271,7 @@ FONT_FILE_FILTERS = Filters(
     ("All files", lambda _: True),
 )
 STL_FILE_FILTERS = Filters(("STL files", lambda p: p.suffix.lower() == ".stl"))
+SVG_FILE_FILTERS = Filters(("SVG files", lambda p: p.suffix.lower() == ".svg"))
 YAML_FILE_FILTERS = Filters(
     ("YAML files", lambda p: p.suffix.lower() in (".yaml", ".yml")),
     ("All files", lambda _: True),
@@ -280,7 +282,32 @@ YAML_FILE_FILTERS = Filters(
 # LABEL_FIELDS_BENNETT) are the font-picking fields - each gets a "Browse"
 # button, see _compose_section_tab and on_button_pressed's "browse-" id
 # handling
-FONT_PATH_FIELD_KEYS = ("path", "font_path", "label_font_path")
+FONT_PATH_FIELD_KEYS = ("path", "font_path", "label_font_path", "legend_font_path")
+
+
+def _font_display_name(path):
+    """Reads the font file's own internal family/style name (via
+    freetype, not glyph_poc.load_font_face() - avoids pulling in that
+    module's trimesh/manifold3d import chain just to read a name table)
+    for the "Currently selected: ..." label under every font path field -
+    a long absolute path often doesn't visually reveal which font it
+    actually is (a renamed/copied file, a version-numbered filename, a
+    family with many near-identical style variants in the same
+    directory). Never raises - a missing/corrupt file is exactly the
+    case this label needs to surface clearly, not crash the TUI over."""
+    if not path:
+        return "Currently selected: (no path set)"
+    if not os.path.isfile(path):
+        return "Currently selected: (file not found)"
+    try:
+        face = freetype.Face(path)
+        family = (face.family_name or b"").decode("utf-8", errors="replace")
+        style = (face.style_name or b"").decode("utf-8", errors="replace")
+    except Exception as e:
+        return f"Currently selected: (unreadable - {e})"
+    if not family:
+        return "Currently selected: (font has no family name)"
+    return f"Currently selected: {family}" + (f" {style}" if style and style != "Regular" else "")
 
 # Named Blickensderfer keyboard layouts, ported verbatim from
 # v2/lib/layouts/blick_layouts.scad's DHIATENSOR/QWERTY/SCANDI/
@@ -495,6 +522,14 @@ LABEL_FIELDS_MIGNON = [
 # generic scalar mechanism - edit them directly in the YAML, same
 # treatment as layout.placement_map/char_legend).
 LEGEND_FIELDS_MIGNON = [
+    # legend_font_path, not the bare font_path every other font field
+    # here uses - Mignon's own Logo tab (LOGO_FIELDS_MIGNON above)
+    # already owns that key, both as this file's self.inputs dict key
+    # and as patch_yaml_value's bare-text-matched YAML key - see the
+    # LABEL_FIELDS_MIGNON comment above for the exact same collision
+    # already worked around once.
+    ("legend_font_path", ["legend", "legend_font_path"], str, "Legend font path",
+     "Independent of the Font tab's font - the legend is a laser-cut/printed card, not the 3D element."),
     ("length_mm", ["legend", "length_mm"], float, "Card length (mm)", ""),
     ("width_mm", ["legend", "width_mm"], float, "Card width (mm)", ""),
     ("corner_radius_mm", ["legend", "corner_radius_mm"], float, "Corner radius (mm)", ""),
@@ -819,11 +854,24 @@ LABEL_FIELDS_HAMMOND = [
 # global-bare-key-text collision LABEL_FIELDS_MIGNON's own comment
 # explains) - every other key here has no such collision.
 LEGEND_FIELDS_HAMMOND = [
-    ("qp_length_mm", ["legend", "qp_length_mm"], float, "Q-to-P span (mm)", "Base column pitch = this / 9."),
-    ("z_exclamation_length_mm", ["legend", "z_exclamation_length_mm"], float, "Z-to-! span (mm)",
-     "The real shuttle's widest (bottom FIG/number) row - drives the taper term added to narrower rows."),
-    ("center_to_center_height_mm", ["legend", "center_to_center_height_mm"], float, "Row pitch (mm)", ""),
-    ("margin_mm", ["legend", "margin_mm"], float, "Card margin (mm)", "Padding around the key grid."),
+    # legend_font_path, not bare font_path - both Hammond's and Hammond
+    # Split's own Label tab (LABEL_FIELDS_HAMMOND/LABEL_FIELDS_HAMMOND_
+    # SPLIT) already own that key, same collision LEGEND_FIELDS_MIGNON's
+    # own comment explains.
+    ("legend_font_path", ["legend", "legend_font_path"], str, "Legend font path",
+     "Independent of the Font tab's font - the legend is a laser-cut/printed card, not the 3D element."),
+    ("qp_length_mm", ["legend", "qp_length_mm"], float, "Q-to-P span (mm)", "Top row, real measured key-to-key distance."),
+    ("a_colon_length_mm", ["legend", "a_colon_length_mm"], float, "A-to-: span (mm)", "Middle row, real measured key-to-key distance."),
+    ("z_exclamation_length_mm", ["legend", "z_exclamation_length_mm"], float, "Z-to-! span (mm)", "Bottom row, real measured key-to-key distance."),
+    ("row_separation_mm", ["legend", "row_separation_mm"], float, "Row pitch (mm)", "Vertical spacing, both Q<->A and A<->Z."),
+    ("left_margin_mm", ["legend", "left_margin_mm"], float, "Left margin (mm)", "Card's left edge to the shared Q/A/Z start column - all 3 rows are vertically aligned."),
+    ("bottom_margin_mm", ["legend", "bottom_margin_mm"], float, "Bottom margin (mm)", "Card's bottom edge to the Z row."),
+    ("card_width_mm", ["legend", "card_width_mm"], float, "Card width (mm)", "Real fixed cut size, not derived from content."),
+    ("card_height_mm", ["legend", "card_height_mm"], float, "Card height (mm)", ""),
+    ("card_corner_radius_mm", ["legend", "card_corner_radius_mm"], float, "Corner radius (mm)", "Top two corners only - bottom corners stay sharp."),
+    ("card_corner_center_y_mm", ["legend", "card_corner_center_y_mm"], float, "Corner arc center height (mm)",
+     "Independent measurement, not derived from card height - radius may fall short of the top edge, needing a straight vertical bridge."),
+    ("card_border_stroke_mm", ["legend", "card_border_stroke_mm"], float, "Border stroke width (mm)", "The cut outline's SVG stroke width (black)."),
     ("circle_id_mm", ["legend", "circle_id_mm"], float, "Circle diameter (mm)", ""),
     ("circle_thickness_mm", ["legend", "circle_thickness_mm"], float, "Circle ring thickness (mm)", ""),
     ("cap_size_mm", ["legend", "cap_size_mm"], float, "CAP letter size (mm)", "The big central character on each key."),
@@ -1429,7 +1477,11 @@ SECTION_INTROS = {
         "A flat 2D reference card - which key produces which character - "
         "not part of the 3D element/build above. Generates a standalone "
         ".svg file, not an STL; press Generate Legend SVG below (also "
-        "saves this tab's fields first, like Render/Preview do).",
+        "saves this tab's fields first, like Render/Preview do). The SVG's "
+        "width/height are already real mm (matches its viewBox 1:1) for "
+        "true-scale printing - when printing or exporting to PDF, pick "
+        "\"Actual Size\"/100%, not \"Fit to Page\", or the mm units get "
+        "silently rescaled.",
         "picker-help"),
     "Rib": ("v4-specific FDM print-fit tuning, not real machine dimensions - these values are "
             "for Build target Rib only (the standalone printed flange), never the fused "
@@ -2349,6 +2401,8 @@ class TuneApp(App):
     #btn-render-test-text { height: 3; width: 1fr; text-style: bold; margin-bottom: 1; }
     #primary-buttons { height: 5; }
     #primary-buttons Button { width: 1fr; height: 5; text-style: bold; }
+    #legend-buttons { height: 5; margin-top: 1; }
+    #legend-buttons Button { width: 1fr; height: 5; text-style: bold; }
     #f3d-row { height: 1; margin-top: 1; }
     #f3d-row .field-label { width: auto; margin-right: 1; }
     #f3d-row Switch { width: auto; height: 1; border: none; padding: 0; }
@@ -2762,6 +2816,8 @@ class TuneApp(App):
                                 yield inp
                                 if key in FONT_PATH_FIELD_KEYS:
                                     yield Button("Browse", id=f"browse-{key}", classes="browse-btn")
+                        if key in FONT_PATH_FIELD_KEYS:
+                            yield Static(_font_display_name(current), id=f"font-name-{key}", classes="field-help")
                         if help_text:
                             yield Static(help_text, classes="field-help")
                 if section == "Element":
@@ -2786,7 +2842,9 @@ class TuneApp(App):
             yield Static("Background", classes="field-label")
             yield Select([("Transparent", "transparent"), ("White", "white")],
                          value=background_now, id="legend-background", allow_blank=False)
-        yield Button("GENERATE LEGEND SVG", id="btn-generate-legend", variant="success")
+        with Horizontal(id="legend-buttons"):
+            yield Button("GENERATE LEGEND SVG", id="btn-generate-legend", variant="success")
+            yield Button("SAVE LEGEND SVG", id="btn-save-legend", variant="warning")
         yield Static("", id="legend-status", classes="field-help")
 
     # layout.baseline_row/cutout_row - per-row (lowercase/uppercase/figs)
@@ -3455,6 +3513,49 @@ class TuneApp(App):
         returncode = await self._stream_subprocess(cmd, success_message="see the printed path above")
         status.update("done - see log above" if returncode == 0 else f"failed (exit {returncode}) - see log above")
 
+    async def action_save_legend(self):
+        """Legend tab's "SAVE LEGEND SVG" button - same durable-snapshot
+        pattern as the main Save button (action_save()) above, just for
+        generate_legend.py's own default output path (<stem>_legend.svg
+        inside output.directory - see generate_legend.py's main()) instead
+        of the STL. Requires Generate Legend SVG to have been run first,
+        same as Save requires Preview/Render first."""
+        stem = os.path.splitext(os.path.basename(self.cfg["output"]["stl_name"]))[0]
+        out_path = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], f"{stem}_legend.svg")
+        if not os.path.exists(out_path):
+            self.log_line("[yellow]nothing to save yet - Generate Legend SVG first[/yellow]")
+            return
+        save_dir = os.path.join(REPO_ROOT, self.cfg["output"]["directory"], "saved")
+        os.makedirs(save_dir, exist_ok=True)
+        base = f"{self.machine}_legend_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        suggested = f"{base}.svg"
+        n = 2
+        while os.path.exists(os.path.join(save_dir, suggested)):
+            suggested = f"{base}_{n}.svg"
+            n += 1
+        result = await self.push_screen_wait(
+            FileSave(save_dir, title="Save legend SVG as", default_file=suggested, filters=SVG_FILE_FILTERS))
+        if result is None:
+            self.log_line("[yellow]save cancelled[/yellow]")
+            return
+        svg_path = str(result)
+        if not svg_path.lower().endswith(".svg"):
+            svg_path += ".svg"
+        meta_path = svg_path[:-4] + ".yaml"
+        os.makedirs(os.path.dirname(svg_path), exist_ok=True)
+        shutil.copy2(out_path, svg_path)
+        header = (
+            f"# Saved by tune.py's Save Legend SVG button at {datetime.now().isoformat(timespec='seconds')}\n"
+            f"# master_config: {os.path.relpath(self.master_config_path, REPO_ROOT)}\n"
+            f"# running_config: {os.path.relpath(self.config_path, REPO_ROOT)}\n"
+            "# This is a full config snapshot, not just metadata - Browse to\n"
+            "# it directly to use it as a master config.\n"
+        )
+        with open(meta_path, "w") as f:
+            f.write(header)
+            yaml.dump(self.cfg, f, sort_keys=False, allow_unicode=True)
+        self.log_line(f"[green]saved[/green] {svg_path} (+ {os.path.basename(meta_path)})")
+
     def _refresh_widgets_from_cfg(self):
         """(Re)populate every widget from self.cfg. Shared by Reload
         (re-read the running config), Reset to Defaults (overwrite
@@ -4071,6 +4172,26 @@ class TuneApp(App):
                     if key in self.inputs:
                         self.inputs[key].value = str(val)
 
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """Keeps every "Currently selected: ..." font-name label (see
+        _font_display_name()) live as its Input changes - by typing, by
+        Browse setting .value programmatically (Textual's Input.value is
+        reactive, so a programmatic set fires this same Changed message,
+        no separate wiring needed in _browse_font()), or by
+        _refresh_widgets_from_cfg() repopulating every field on
+        Reload/Reset/switching config."""
+        input_id = event.input.id or ""
+        if not input_id.startswith("field-"):
+            return
+        key = input_id.removeprefix("field-")
+        if key not in FONT_PATH_FIELD_KEYS:
+            return
+        try:
+            label = self.query_one(f"#font-name-{key}", Static)
+        except NoMatches:
+            return
+        label.update(_font_display_name(event.value))
+
     def on_switch_changed(self, event: Switch.Changed) -> None:
         if event.switch.id != "layout-modify-glyphs":
             return
@@ -4098,6 +4219,8 @@ class TuneApp(App):
             self.action_preview()
         elif button_id == "btn-generate-legend":
             self.action_generate_legend()
+        elif button_id == "btn-save-legend":
+            self.run_worker(self.action_save_legend(), exclusive=True)
         elif button_id == "btn-save":
             self.run_worker(self.action_save(), exclusive=True)
         elif button_id == "btn-render-test-text":

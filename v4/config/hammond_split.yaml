@@ -289,10 +289,21 @@ calibration:
 # center_to_center_height_mm here if Hammond Split's real physical
 # shuttle dimensions differ.
 legend:
+  # Placeholder - reuses config/hammond.yaml's real hand-measured values
+  # verbatim (see that config's matching comment) until Hammond Split's
+  # own physically-different shuttle has its own real measurements taken;
+  # not physically accurate for this machine yet.
   qp_length_mm: 178.0
-  z_exclamation_length_mm: 200.4
-  center_to_center_height_mm: 40.0
-  margin_mm: 5.0
+  a_colon_length_mm: 188.0
+  z_exclamation_length_mm: 198.0
+  row_separation_mm: 18.45
+  left_margin_mm: 38.0
+  bottom_margin_mm: 9.2
+  card_width_mm: 274.0
+  card_height_mm: 60.0
+  card_corner_radius_mm: 19.0
+  card_corner_center_y_mm: 38.0
+  card_border_stroke_mm: 0.1
   circle_id_mm: 14.0
   circle_thickness_mm: 0.5
   cap_size_mm: 6.0
@@ -316,3 +327,9 @@ legend:
   circle_segments: 32
   legend_flatness_tolerance_mm: 0.01
   background: "transparent"
+  # v4-only, independent of font.path above - see config/hammond.yaml's
+  # matching legend.legend_font_path comment (same shared HammondIndex.
+  # scad legend design/font, "Franklin Gothic", and the same key-name
+  # collision reasoning - this config's own label.font_path already owns
+  # the bare font_path key text).
+  legend_font_path: "/home/lchau/fonts/Library/Sans Text/Franklin Gothic.ttf"

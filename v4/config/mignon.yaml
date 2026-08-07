@@ -300,6 +300,15 @@ legend:
   # for viewers/pipelines that composite onto a dark background and
   # would otherwise show every checker/circle hole as see-through).
   background: "transparent"
+  # v4-only, independent of font.path above - the legend is a laser-cut/
+  # printed paper card, not the 3D engraved element, so there's no reason
+  # it has to share that typeface. v1's real value is the font family
+  # name "Consolas" (MignonIndex.scad's Typeface_) - now installed here.
+  # Named legend_font_path, not bare font_path - the Logo tab's own
+  # logo.font_path already owns that literal key text (tune.py's
+  # patch_yaml_value matches by bare key across the whole file, not by
+  # section).
+  legend_font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Consolas.ttf"
   # v1 Character_Modifieds/Character_Modifieds_Offset (:61-72) - per-
   # character baseline nudge groups. Offsets default to 0.0 here, NOT
   # v1's customizer-comment values (1.0/0.4/0.4/-0.5) - confirmed via a

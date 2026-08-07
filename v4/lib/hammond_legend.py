@@ -20,15 +20,20 @@ directly against a real openscad-nightly render of the actual v1 file
 is a real linear_extrude()'d cut - see below) rather than trusting the
 source alone, the same lesson learned porting Mignon's legend.
 
-Grid math: v1's Locate2(n) walks n=0..29 (the physical shuttle position)
-and derives (col, row) via col=n//3, row=n%3 - v1's own `X_Column=n/3-
-n%3/3` reduces to exactly n//3 algebraically (n%3 IS row by
-construction, so the row/3 terms cancel), just expressed without a
-floor-division operator. Column x-position is NOT a plain linear
-n*pitch - v1 adds a row-dependent taper term
-(ModRowSpace(n)*row/2) modeling the real shuttle's physical fan/arc
-(the bottom FIG/number row spans measurably wider than the top CAP row)
-- ported as _locate() below, exactly reproducing v1's arithmetic.
+Grid math: n=0..29 is the physical shuttle position, (col, row) =
+(n//3, n%3). DELIBERATE v4 divergence from v1's own Locate2(n): v1 used
+a row-dependent taper term to derive each row's x-span from the
+narrowest (Q-to-P) row plus a single measured ZExclamation_Length
+constant for the widest row, with the middle row's own span an
+unmeasured, purely-interpolated side effect of that formula (see git
+history for the original port of v1's real arithmetic). Replaced with
+absolute, independently-specified per-row geometry against a real hand-
+measured original card: each row is a plain linear span of its own
+real measured length (Q-to-P/A-to-:/Z-to-!), all three rows sharing the
+same left starting x (a real physical fact - Q/A/Z sit in one vertical
+column on the real machine), positioned by an absolute bottom margin
+(Z row) and row-to-row pitch, not derived from any other row's span.
+See _locate() below.
 
 Content lookup uses the MIRRORED index ((N_COLS-1)-n) into layout.rows
 while placement uses the UNMIRRORED n directly - the opposite split from
@@ -69,9 +74,11 @@ configure(path) before using anything else in this module, same
 convention as mignon_legend.configure().
 """
 
+import math
+
 import yaml
 from shapely.affinity import translate as shapely_translate
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
 from glyph_poc import (
@@ -107,17 +114,45 @@ def configure(config_path):
             f"{config_path}: legend generation supports {_SUPPORTED_MACHINES}, got machine={machine!r}")
 
     g = globals()
-    g["FONT_PATH"] = cfg["font"]["path"]
 
     layout = cfg["layout"]
     g["ROWS"] = layout["rows"]
     g["N_COLS"] = layout["latitude_columns"]
 
     lg = cfg.get("legend", {})
+    # legend.legend_font_path - not bare font_path (this config's own
+    # label:/font: sections already use that key - see mignon_legend.
+    # configure()'s matching comment for why that collides). Independent
+    # of font.path, see that same comment.
+    g["FONT_PATH"] = lg.get("legend_font_path", cfg["font"]["path"])
+    # Real per-row hand-measured spans (top/mid/bottom physical row,
+    # Q-to-P/A-to-:/Z-to-!) - see module docstring's divergence note.
     g["QP_Length"] = lg.get("qp_length_mm", 178.0)
-    g["ZExclamation_Length"] = lg.get("z_exclamation_length_mm", 200.4)
-    g["Center_to_Center_Height"] = lg.get("center_to_center_height_mm", 40.0)
-    g["Margin"] = lg.get("margin_mm", 5.0)
+    g["AColon_Length"] = lg.get("a_colon_length_mm", 188.0)
+    g["ZExclamation_Length"] = lg.get("z_exclamation_length_mm", 198.0)
+    # Row-to-row vertical pitch (same for both gaps: Q<->A and A<->Z) and
+    # the absolute placement anchors - bottom margin measured up from the
+    # card's own bottom edge to the Z row, left margin measured in from
+    # the card's own left edge to every row's shared starting column
+    # (Q/A/Z are vertically aligned on the real machine).
+    g["Row_Separation"] = lg.get("row_separation_mm", 18.45)
+    g["Left_Margin"] = lg.get("left_margin_mm", 38.0)
+    g["Bottom_Margin"] = lg.get("bottom_margin_mm", 9.2)
+    # Card outline - a real fixed cut size, not derived from content
+    # bounds (unlike Mignon's own edge-to-content margins, this card's
+    # margins are genuinely asymmetric - only the top two corners are
+    # rounded, matching the real original card - see _card_border()).
+    g["Card_Width"] = lg.get("card_width_mm", 274.0)
+    g["Card_Height"] = lg.get("card_height_mm", 60.0)
+    g["Card_Corner_Radius"] = lg.get("card_corner_radius_mm", 19.0)
+    # The rounding circle's own center height, measured from the card's
+    # bottom edge - NOT derived as Card_Height-Card_Corner_Radius, a real
+    # independent measurement. center_y+radius (38+19=57mm) falls short
+    # of Card_Height (60mm), so the arc alone doesn't reach the top edge -
+    # see _card_border()'s docstring for the straight vertical bridge
+    # this requires.
+    g["Card_Corner_Center_Y"] = lg.get("card_corner_center_y_mm", 38.0)
+    g["Card_Border_Stroke"] = lg.get("card_border_stroke_mm", 0.1)
     g["Circle_ID"] = lg.get("circle_id_mm", 14.0)
     g["Circle_Thickness"] = lg.get("circle_thickness_mm", 0.5)
     g["CAP_Size"] = lg.get("cap_size_mm", 6.0)
@@ -137,9 +172,12 @@ def configure(config_path):
     # comment. "transparent" (default, no backing rect) or "white".
     g["Background_Mode"] = lg.get("background", "transparent")
 
-    g["QW_Spacing"] = QP_Length / 9.0
-    g["Y_Spacing"] = Center_to_Center_Height / 2.0
-    g["RowSpaceMax"] = ZExclamation_Length - QP_Length
+    # Row index (n%3): 0=Q (top), 1=A (middle), 2=Z (bottom) - see
+    # module docstring. Each row's own 9-gap/10-key pitch, and each row's
+    # absolute y (height above the card's bottom edge) - Q is 2 row-
+    # separations above Z, A is 1 above Z.
+    g["Row_Lengths"] = [QP_Length, AColon_Length, ZExclamation_Length]
+    g["Row_Y"] = [Bottom_Margin + 2 * Row_Separation, Bottom_Margin + Row_Separation, Bottom_Margin]
 
     _configured = True
 
@@ -152,15 +190,17 @@ def _require_configured():
 # --------------------------------------------------------------- Grid math
 
 def _locate(n):
-    """v1 Locate2(n) (HammondIndex.scad:78-90) - col=n//3 (v1's `n/3-
-    n%3/3`, algebraically identical - see module docstring), row=n%3,
-    plus a row-dependent taper term modeling the shuttle's real physical
-    fan (only rows 1/2 get any of it, row 2 gets it in full)."""
+    """Absolute per-row placement - see module docstring's divergence
+    note from v1's own taper formula. col=n//3, row=n%3; each row is a
+    plain linear span of its OWN measured length (Row_Lengths[row]),
+    starting at the shared Left_Margin (Q/A/Z are vertically aligned),
+    at that row's own absolute height above the card's bottom edge
+    (Row_Y[row])."""
     row = n % 3
     col = n // 3
-    mod_row_space = RowSpaceMax * n / (N_COLS - 1)
-    x = col * QW_Spacing + (row / 2.0) * mod_row_space
-    y = -row * Y_Spacing
+    pitch = Row_Lengths[row] / 9.0
+    x = Left_Margin + col * pitch
+    y = Row_Y[row]
     return x, y
 
 
@@ -169,6 +209,48 @@ def _outlined_circle(center):
     outer = Point(center).buffer((Circle_ID + 2 * Circle_Thickness) / 2.0, quad_segs=Circle_Segments)
     inner = Point(center).buffer(Circle_ID / 2.0, quad_segs=Circle_Segments)
     return outer.difference(inner)
+
+
+def _arc_points(cx, cy, r, start_deg, end_deg, n):
+    """n+1 points along the circle centered (cx,cy) radius r, sweeping
+    from start_deg to end_deg (degrees, standard math convention -
+    0=+X axis, 90=+Y axis, increasing counter-clockwise)."""
+    angles = [math.radians(start_deg + (end_deg - start_deg) * i / n) for i in range(n + 1)]
+    return [(cx + r * math.cos(a), cy + r * math.sin(a)) for a in angles]
+
+
+def _card_border():
+    """v4-only, not a v1 concept - the real physical card's cut outline
+    (Card_Width x Card_Height, origin at the bottom-left corner), rounded
+    at the top two corners only with sharp bottom corners - matches a
+    real hand-measured original card, not a plain Mignon-style all-4-
+    corners rounded rect.
+
+    NOT a simple tangent-rounded-rect (unlike mignon_legend.
+    _radius_rectangle()'s hull-of-corner-circles): the rounding circle's
+    center height (Card_Corner_Center_Y) is a real independent
+    measurement, not derived as Card_Height-Card_Corner_Radius, and
+    center_y+radius falls short of Card_Height (e.g. 38+19=57 < 60) - the
+    arc alone doesn't reach the top edge. So each top corner is: straight
+    up the side edge to the point where it's tangent to the rounding
+    circle, a quarter-circle arc up to the circle's own topmost point,
+    then a straight VERTICAL bridge the rest of the way up to the top
+    edge at that same x - not a single smooth curve reaching the corner.
+    Traced explicitly as one polygon boundary rather than any hull/
+    boolean trick, since the two arcs here don't touch two tangent edges
+    each (only one - the side edge) the way a real rounded-rect corner's
+    circle does."""
+    r = Card_Corner_Radius
+    cy = Card_Corner_Center_Y
+    left_cx, right_cx = r, Card_Width - r
+    segs = max(Circle_Segments // 4, 4)  # a quarter-circle's share of the full-circle segment count
+
+    coords = [(0.0, 0.0), (0.0, cy)]
+    coords += _arc_points(left_cx, cy, r, 180, 90, segs)  # (0,cy) -> (left_cx, cy+r)
+    coords += [(left_cx, Card_Height), (right_cx, Card_Height)]
+    coords += _arc_points(right_cx, cy, r, 90, 0, segs)  # (right_cx, cy+r) -> (Card_Width, cy)
+    coords += [(Card_Width, 0.0)]
+    return Polygon(coords)
 
 
 # ---------------------------------------------------------- Glyph shapes
@@ -276,34 +358,37 @@ def _geometry_path_d(geom):
     return " ".join(parts)
 
 
-def render_svg(fill="#000000", background=None):
-    """Serializes build_legend_geometry() to a self-contained SVG string,
-    padded by (Circle_ID+Margin)/2 around the real content bounds (v1's
-    own cube() padding, HammondIndex.scad:200 - `+Circle_ID+5` around
-    ZExclamation_Length/Center_to_Center_Height) rather than v1's exact
-    plate dimensions, since this module's content bounds already reflect
-    the real taper (see _locate()) and don't need re-deriving from
-    QP_Length/ZExclamation_Length a second time.
+def render_svg(fill="#000000", background=None, border_stroke="#000000"):
+    """Serializes build_legend_geometry() (the ink content: circles/
+    characters) plus _card_border() (the real cut outline) to a self-
+    contained SVG string, sized to the card's own fixed Card_Width x
+    Card_Height (a real physical cut size, not derived from content
+    bounds - see _card_border()'s docstring).
+
+    The border is emitted as its own stroke-only path (border_stroke,
+    stroke-width=Card_Border_Stroke), separate from the filled content
+    path rather than merged into it - it's the cut outline, not part of
+    the ink silhouette.
 
     background: see mignon_legend.render_svg()'s matching docstring -
     same "transparent"/"white" convention, None reads legend.background
-    from the config."""
+    from the config. The background rect (when "white") covers the
+    whole card, not just the content bounds."""
     background = Background_Mode if background is None else background
     geom = build_legend_geometry()
-    minx, miny, maxx, maxy = geom.bounds
-    pad = (Circle_ID + Margin) / 2.0
-    minx, miny, maxx, maxy = minx - pad, miny - pad, maxx + pad, maxy + pad
-    width, height = maxx - minx, maxy - miny
-    d = _geometry_path_d(geom)
-    bg_rect = (f'  <rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff"/>\n'
+    content_d = _geometry_path_d(geom)
+    border = _card_border()
+    border_d = _ring_path_d(border.exterior.coords)
+    bg_rect = (f'  <rect x="0" y="0" width="{Card_Width}" height="{Card_Height}" fill="#ffffff"/>\n'
                if background == "white" else "")
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}mm" height="{height}mm" '
-        f'viewBox="0 0 {width} {height}">\n'
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{Card_Width}mm" height="{Card_Height}mm" '
+        f'viewBox="0 0 {Card_Width} {Card_Height}">\n'
         f'{bg_rect}'
-        f'  <g transform="translate({-minx},{maxy}) scale(1,-1)">\n'
-        f'    <path d="{d}" fill="{fill}" fill-rule="evenodd"/>\n'
+        f'  <g transform="translate(0,{Card_Height}) scale(1,-1)">\n'
+        f'    <path d="{border_d}" fill="none" stroke="{border_stroke}" stroke-width="{Card_Border_Stroke}"/>\n'
+        f'    <path d="{content_d}" fill="{fill}" fill-rule="evenodd"/>\n'
         '  </g>\n'
         '</svg>\n'
     )

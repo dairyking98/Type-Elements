@@ -337,10 +337,33 @@ calibration:
 # above as a conventional QWERTY-style 3-row x 10-column reference,
 # reading the real 30-key shuttle arc.
 legend:
-  qp_length_mm: 178.0                # v1 QP_Length (:30)
-  z_exclamation_length_mm: 200.4      # v1 ZExclamation_Length (:31)
-  center_to_center_height_mm: 40.0    # v1 Center_to_Center_Height (:32)
-  margin_mm: 5.0                      # v1's hardcoded "+5" plate padding (:200)
+  # Real per-row hand-measured spans against an actual original card
+  # (2026-08-06), replacing v1's own taper-formula-derived approximation
+  # (v1 QP_Length=178/ZExclamation_Length=200.4, no separate A-to-:
+  # measurement at all - see lib/hammond_legend.py module docstring's
+  # divergence note). qp_length_mm's value happens to be unchanged from
+  # v1's own (178.0mm) - real coincidence, not copied verbatim.
+  qp_length_mm: 178.0                 # Q key to P key, top row
+  a_colon_length_mm: 188.0            # A key to : key, middle row
+  z_exclamation_length_mm: 198.0      # Z key to ! key, bottom row
+  # Row-to-row vertical pitch (both Q<->A and A<->Z gaps) and the
+  # absolute anchors - see lib/hammond_legend.py's _locate() docstring.
+  row_separation_mm: 18.45
+  left_margin_mm: 38.0                # shared start x for all 3 rows (Q/A/Z vertically aligned)
+  bottom_margin_mm: 9.2                # card bottom edge to the Z row
+  # Real fixed cut size - not derived from content bounds (this card's
+  # margins are genuinely asymmetric top/bottom). Width = left_margin_mm
+  # + z_exclamation_length_mm (the widest row) + a matching 38mm right
+  # margin = 274.0mm exactly.
+  card_width_mm: 274.0
+  card_height_mm: 60.0
+  card_corner_radius_mm: 19.0         # top two corners only - see _card_border()
+  # The rounding circle's own center height (not derived as card_height_mm
+  # - card_corner_radius_mm - a real independent measurement). 38+19=57mm
+  # falls short of card_height_mm (60mm), so the arc needs a straight
+  # vertical bridge up to the top edge - see _card_border()'s docstring.
+  card_corner_center_y_mm: 38.0
+  card_border_stroke_mm: 0.1          # SVG stroke width for the cut-outline path (visual only, not a cut parameter)
   circle_id_mm: 14.0                  # v1 Circle_ID (:60)
   circle_thickness_mm: 0.5            # v1 Circle_Thickness (:61)
   cap_size_mm: 6.0                    # v1 CAP_Size (:54)
@@ -369,3 +392,10 @@ legend:
   # v4-only, not a v1 concept - SVG canvas background: "transparent"
   # (default, no backing rect) or "white" (an opaque backing rect).
   background: "transparent"
+  # v4-only, independent of font.path above - see config/mignon.yaml's
+  # matching legend.legend_font_path comment (both the "why a separate
+  # font" and the "why legend_font_path not bare font_path" reasoning -
+  # this config's own label.font_path already owns that key text). v1's
+  # real value is the font family name "Franklin Gothic" (HammondIndex.
+  # scad's Legend_Font) - now installed here.
+  legend_font_path: "/home/lchau/fonts/Library/Sans Text/Franklin Gothic.ttf"

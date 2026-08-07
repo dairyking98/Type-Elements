@@ -153,7 +153,6 @@ def configure(config_path):
             f"{config_path}: legend generation is Mignon-only (machine={cfg.get('machine')!r})")
 
     g = globals()
-    g["FONT_PATH"] = cfg["font"]["path"]
 
     layout = cfg["layout"]
     g["ROWS"] = layout["rows"]
@@ -167,6 +166,16 @@ def configure(config_path):
     # regenerated *.running.yaml) still build a legend instead of a bare
     # KeyError.
     lg = cfg.get("legend", {})
+    # legend.legend_font_path (not the bare font_path config.mignon.yaml's
+    # own logo:/font: sections already use - tune.py's patch_yaml_value
+    # matches by bare key text across the whole file, not by section, so
+    # identical key names under different sections collide) - independent
+    # of font.path (the engraved-element typeface): a legend card is
+    # laser-cut/printed paper, not the 3D element, so there's no reason it
+    # has to share the same font. Defaults to font.path so an existing
+    # config with no legend.legend_font_path key yet keeps rendering
+    # exactly as before.
+    g["FONT_PATH"] = lg.get("legend_font_path", cfg["font"]["path"])
     g["Length"] = lg.get("length_mm", 133.0)
     g["Width"] = lg.get("width_mm", 83.0)
     g["Corner_Radius"] = lg.get("corner_radius_mm", 9.0)
