@@ -22,7 +22,7 @@ import yaml
 
 import spherical_machine
 from spherical_machine import FullElement, ResinPrint, Additive, TextGauge  # re-exported for callers
-from layouts.selectric12_layout import longitude_latitude
+from layouts.selectric12_layout import longitude_latitude, HEMISPHERE_MAPS
 
 _configured = False
 
@@ -157,7 +157,19 @@ def configure(config_path):
         f"got {len(cases_upper)}")
     g["CASES88_LOWER"] = cases_lower
     g["CASES88_UPPER"] = cases_upper
-    g["LONGITUDE_LATITUDE"] = longitude_latitude(cases_lower)
+    # layout.hemisphere_map - v4-only, not a v1/v2 concept (v2 never had a
+    # second S12 language) - which physical keyboard-index -> typeball-
+    # slot permutation applies (see lib/layouts/selectric12_layout.py's
+    # HEMISPHERE_MAPS/module docstring: NOT character-aware, only correct
+    # if layout.rows' i-th character is genuinely the same physical key
+    # the permutation was calibrated against). "us" (default) for the
+    # real v2 US layout; tune.py's layout-preset picker keeps this in
+    # sync with whichever named preset (UNITED_STATES/FINNISH_SWEDISH)
+    # is selected - hand-editing layout.rows via Modify glyphs must set
+    # this explicitly to whichever real map the custom rows were built
+    # against.
+    hemisphere_map = HEMISPHERE_MAPS[layout.get("hemisphere_map", "us")]
+    g["LONGITUDE_LATITUDE"] = longitude_latitude(cases_lower, hemisphere_map)
 
     _configured = True
     spherical_machine._receive_config(g, "selectric12")

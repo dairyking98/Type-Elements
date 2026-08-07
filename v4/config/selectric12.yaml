@@ -102,6 +102,18 @@ layout:
     - "ASDFGHJKL:\""
     - "ZXCVBNM,.?"
   modify_glyphs: false
+  # v4-only, not a v1/v2 concept - which physical keyboard-index ->
+  # typeball-slot permutation applies (lib/layouts/selectric12_layout.py's
+  # HEMISPHERE_MAPS). "us" (real v2 S12_HEMISPHERE_MAP) is the only
+  # correct value while rows above matches the UNITED_STATES preset - set
+  # to "finnish_swedish" if you switch rows to the FINNISH_SWEDISH preset
+  # (tune.py's Layout tab preset picker keeps this in sync automatically;
+  # hand-editing rows via Modify glyphs must set this explicitly to
+  # whichever real map those custom rows were actually built against, or
+  # every character lands on the wrong physical typeball slot even though
+  # all 44 are present - see lib/layouts/selectric12_layout.py's module
+  # docstring).
+  hemisphere_map: "us"
 
 label:
   enabled: true                # v2 Label (ibm.scad:369)

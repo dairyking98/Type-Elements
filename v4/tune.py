@@ -1966,6 +1966,34 @@ LAYOUT_PRESETS_SELECTRIC12 = {
         "ASDFGHJKL:\"",
         "ZXCVBNM,.?",
     ],
+    # v4-only addition, not from v2 (v2's S12_88_Language only ever had
+    # US/Custom - see UNITED_STATES's own comment). Real Finnish/Swedish
+    # keyboard content, in genuine natural reading order (NOT pre-shuffled
+    # to fake-fit S12_HEMISPHERE_MAP's US-specific position calibration -
+    # an earlier attempt at that is exactly why this preset needs its own
+    # hemisphere map at all: some of this layout's keys sit at a
+    # genuinely different flat reading-order position than their US
+    # equivalent, e.g. the row-0 symbol key ordering, so no amount of
+    # character substitution alone reproduces the right typeball under
+    # the US permutation). Requires config/selectric12.yaml's layout.
+    # hemisphere_map: "finnish_swedish" (lib/layouts/selectric12_layout.
+    # py's S12_HEMISPHERE_MAP_FINNISH_SWEDISH) - selecting this preset via
+    # the Layout tab keeps that in sync automatically; hand-editing rows
+    # via Modify glyphs starting from this preset must keep it set to
+    # "finnish_swedish" too. Derived 2026-08-06 against a real physical
+    # reference and round-tripped back to an exact match against it - see
+    # SESSION_LOG.md's matching chapter for the full derivation, not
+    # hand-arranged by eye.
+    "FINNISH_SWEDISH": [
+        "1234567890´ü",
+        "qwertyuiop-",
+        "asdfghjkl.,",
+        "zxcvbnmåäö",
+        "'+§=%?&()\\`£",
+        "QWERTYUIOP_",
+        "ASDFGHJKL:\"",
+        "ZXCVBNMÅÄÖ",
+    ],
 }
 
 LAYOUT_PRESETS_SELECTRIC3 = {
