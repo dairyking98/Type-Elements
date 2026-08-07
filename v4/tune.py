@@ -1989,7 +1989,7 @@ LAYOUT_PRESETS_SELECTRIC12 = {
         "qwertyuiop-",
         "asdfghjkl.,",
         "zxcvbnmåäö",
-        "'+§=%?&()\\`£",
+        "'+§=%?&()/`£",
         "QWERTYUIOP_",
         "ASDFGHJKL:\"",
         "ZXCVBNMÅÄÖ",
@@ -2424,6 +2424,7 @@ class TuneApp(App):
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .browse-btn { width: 10; height: 1; min-width: 10; border: none; margin-left: 1; }
+    #btn-reset-layout-rows { width: auto; height: 1; min-width: 0; border: none; margin-left: 1; }
     .field-help { color: $text-muted; height: auto; }
     #buttons { height: 11; dock: bottom; padding: 0 1; }
     #btn-render-test-text { height: 3; width: 1fr; text-style: bold; margin-bottom: 1; }
@@ -3011,6 +3012,7 @@ class TuneApp(App):
                     modify_now = bool(self.cfg["layout"]["modify_glyphs"])
                     sw = Switch(value=modify_now, id="layout-modify-glyphs")
                     yield sw
+                    yield Button("Reset to selected layout", id="btn-reset-layout-rows")
                 if self.HAS_FLAT_INDEXED_ROWS:
                     rows_help = (
                         f"Unlocks {len(display_rows)} hand-editable rows, each capped at "
@@ -4230,10 +4232,23 @@ class TuneApp(App):
             # read-only preview (whatever preset's selected in the
             # dropdown right now, or the existing custom rows if
             # "custom"), so it starts as an exact copy to hand-edit from
-            layout_select_value = self.query_one("#layout-select", Select).value
-            display_rows = self._rows_for_layout_select_value(layout_select_value)
-            for i in range(len(display_rows)):
-                self._update_row_widget("layout-custom-row", i, display_rows[i])
+            self._reset_layout_rows_to_selected_preset()
+
+    def _reset_layout_rows_to_selected_preset(self):
+        """"Reset to selected layout" button, next to Modify glyphs -
+        discards whatever's been hand-typed into the custom row Inputs
+        and reseeds them from the Layout tab's own dropdown (whatever
+        preset is currently selected there, or the on-disk custom rows
+        for Select.NULL/an unrecognized value - see
+        _rows_for_layout_select_value). Same reseed logic Modify glyphs'
+        own "freshly unlocked" case already uses, just re-triggerable on
+        demand instead of only once at the moment the switch flips on -
+        useful after hand-edits have drifted and you want to start over
+        from the preset without toggling the switch off and back on."""
+        layout_select_value = self.query_one("#layout-select", Select).value
+        display_rows = self._rows_for_layout_select_value(layout_select_value)
+        for i in range(len(display_rows)):
+            self._update_row_widget("layout-custom-row", i, display_rows[i])
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id or ""
@@ -4255,6 +4270,8 @@ class TuneApp(App):
             self.run_worker(self.action_render_type_test(), exclusive=True)
         elif button_id == "btn-reset-defaults":
             self.action_reset_defaults()
+        elif button_id == "btn-reset-layout-rows":
+            self._reset_layout_rows_to_selected_preset()
         elif button_id == "browse-config":
             # checked before the generic "browse-" prefix below - this
             # one isn't a font field, it switches the whole app's config
