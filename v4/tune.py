@@ -3139,6 +3139,37 @@ class TuneApp(App):
                     static = Static(content, id=f"layout-original-row-{i}", classes="row-preview")
                     yield static
 
+                # This machine's own presets vary in row count (currently
+                # only Hammond: Normal Universal 3 rows, Math Universal 4)
+                # - row count is real DATA (lib/hammond.py's configure()
+                # derives Is_Math from len(rows)==4, driving Shuttle_Height/
+                # the resin-support array shape), not a Modify-glyphs
+                # concept - deliberately its own independent control, ABOVE
+                # and separate from Modify glyphs below, not nested under
+                # it or gated by it: it stays in sync with the PRESET
+                # dropdown above (on_select_changed - matches whichever
+                # preset is selected, same live-seed convention as
+                # baseline_row/cutout_row), never with Modify glyphs'
+                # switch itself turning on/off. When hand-editing via
+                # Modify glyphs, this is the explicit, unambiguous
+                # declaration of how many rows to actually write -
+                # inferring it from whether the extra Input happens to be
+                # non-empty would be fragile (an intentionally-blank row
+                # and "not decided yet" look identical) - _save_to_yaml
+                # reads it directly.
+                use_extra_rows_now = len(self.cfg["layout"]["rows"]) >= n_rows
+                if self.LAYOUT_ROW_COUNT_VARIES:
+                    with Horizontal(classes="picker-row"):
+                        yield Static(f"Use {n_rows}-row layout", classes="field-label")
+                        yield Switch(value=use_extra_rows_now, id="layout-use-extra-rows")
+                    yield Static(
+                        f"Independent of Modify glyphs below - just declares row count. "
+                        f"On: {n_rows} rows (e.g. a Math-style layout). Off: "
+                        f"{self.LAYOUT_MIN_ROWS} rows, this machine's normal shape. Only "
+                        "matters for what actually gets SAVED while hand-editing; follows "
+                        "the preset dropdown above otherwise.",
+                        classes="picker-help")
+
                 with Horizontal(classes="picker-row"):
                     yield Static("Modify glyphs", classes="field-label")
                     modify_now = bool(self.cfg["layout"]["modify_glyphs"])
@@ -3161,30 +3192,6 @@ class TuneApp(App):
                         "While on, this edited copy (not the preset above) is what gets saved."
                     )
                 yield Static(rows_help, classes="picker-help")
-
-                # This machine's own presets vary in row count (currently
-                # only Hammond: Normal Universal 3 rows, Math Universal 4)
-                # - row count is real DATA (lib/hammond.py's configure()
-                # derives Is_Math from len(rows)==4, driving Shuttle_Height/
-                # the resin-support array shape), not just a display
-                # convenience, so a hand-edited custom layout needs an
-                # explicit, unambiguous way to say how many rows it has -
-                # inferring it from whether the last extra Input happens to
-                # be non-empty would be fragile (an intentionally-blank row
-                # vs. "not decided yet" look identical). This switch is
-                # that explicit declaration; _save_to_yaml reads it to
-                # decide how many rows to actually write.
-                use_extra_rows_now = len(self.cfg["layout"]["rows"]) >= n_rows
-                if self.LAYOUT_ROW_COUNT_VARIES:
-                    with Horizontal(classes="picker-row"):
-                        yield Static(f"Use {n_rows}-row layout", classes="field-label")
-                        yield Switch(value=use_extra_rows_now, id="layout-use-extra-rows")
-                    yield Static(
-                        f"On: hand-edited rows below save as all {n_rows} rows (e.g. a "
-                        f"Math-style layout). Off: only the first {self.LAYOUT_MIN_ROWS} "
-                        "save, matching this machine's normal layout shape. Switching the "
-                        "preset dropdown above keeps this in sync automatically.",
-                        classes="picker-help")
 
                 custom_rows_container = Vertical(id="layout-custom-rows")
                 custom_rows_container.display = modify_now
@@ -4386,6 +4393,21 @@ class TuneApp(App):
         display_rows = self._rows_for_layout_select_value(event.value)
         for i in range(self.LAYOUT_MAX_ROWS):
             self._update_row_widget("layout-original-row", i, display_rows[i] if i < len(display_rows) else "")
+        # Live-seed "Use N-row layout" from whichever preset is now
+        # selected - this is the switch's ONLY automatic sync (see its
+        # own comment in _compose_layout_tab: deliberately unlinked from
+        # Modify glyphs, which no longer touches it at all).
+        if self.LAYOUT_ROW_COUNT_VARIES:
+            try:
+                use_extra = self.query_one("#layout-use-extra-rows", Switch)
+            except NoMatches:
+                pass
+            else:
+                use_extra.value = len(display_rows) >= self.LAYOUT_MAX_ROWS
+                try:
+                    self.query_one("#layout-extra-rows").display = use_extra.value
+                except NoMatches:
+                    pass
         # Live-seed baseline_row/cutout_row's own editable widgets from
         # the newly-selected preset's real defaults (Hammond's Math
         # Universal needs a real 4th value, -9.89, that a freshly-
@@ -4457,24 +4479,15 @@ class TuneApp(App):
         demand instead of only once at the moment the switch flips on -
         useful after hand-edits have drifted and you want to start over
         from the preset without toggling the switch off and back on."""
+        # Deliberately does NOT touch "Use N-row layout" - that switch is
+        # unlinked from Modify glyphs entirely (see its own comment in
+        # _compose_layout_tab) and stays in sync with the PRESET dropdown
+        # instead (on_select_changed), not with this Modify-glyphs-
+        # triggered reseed.
         layout_select_value = self.query_one("#layout-select", Select).value
         display_rows = self._rows_for_layout_select_value(layout_select_value)
         for i in range(self.LAYOUT_MAX_ROWS):
             self._update_row_widget("layout-custom-row", i, display_rows[i] if i < len(display_rows) else "")
-        if self.LAYOUT_ROW_COUNT_VARIES:
-            # keep "Use N-row layout" in sync with whichever preset this
-            # reset just copied from, same live-seed convention as
-            # on_select_changed's baseline_row/cutout_row seeding below.
-            try:
-                use_extra = self.query_one("#layout-use-extra-rows", Switch)
-            except NoMatches:
-                pass
-            else:
-                use_extra.value = len(display_rows) >= self.LAYOUT_MAX_ROWS
-                try:
-                    self.query_one("#layout-extra-rows").display = use_extra.value
-                except NoMatches:
-                    pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id or ""
