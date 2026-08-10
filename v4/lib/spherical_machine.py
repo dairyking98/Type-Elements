@@ -337,7 +337,13 @@ def AssembleMinkowski(flatness_tolerance_mm=None, minkowski_enabled=None, draft_
                 parts.append(mesh)
     build_log.progress_summary("AssembleMinkowski", len(parts), skipped,
                                 time.perf_counter() - t_start)
-    return sp.union_all(parts)
+    # v2/ibm.scad:619 - the whole ring is wrapped in rotate([0, 0,
+    # -5*Longitude_Step]) before any per-character placement; Del() (the
+    # alignment-marker triangle) sits at a fixed, unrotated position, so
+    # this global offset is what makes the triangle land next to the
+    # correct reference character. Dropped in the original v4 port -
+    # every character was 5 physical slots off from the triangle.
+    return sp.rotate_z(sp.union_all(parts), -5 * Longitude_Step)
 
 
 # -------------------------------------------------------------- Subtractive
