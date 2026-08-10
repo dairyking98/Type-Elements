@@ -182,7 +182,7 @@ from textual.css.query import NoMatches
 from textual.events import Resize
 from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select, Static, Switch,
                               RichLog, TabbedContent, TabPane, TextArea)
-from textual_fspicker import FileOpen, FileSave, Filters
+from textual_fspicker import FileOpen, FileSave, Filters, SelectDirectory
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(REPO_ROOT, "lib"))
@@ -319,6 +319,13 @@ FONT_FILE_FILTERS = Filters(
 )
 STL_FILE_FILTERS = Filters(("STL files", lambda p: p.suffix.lower() == ".stl"))
 SVG_FILE_FILTERS = Filters(("SVG files", lambda p: p.suffix.lower() == ".svg"))
+MD_FILE_FILTERS = Filters(("Markdown files", lambda p: p.suffix.lower() == ".md"))
+# Font Coverage tab's scratch output - same fixed-scratch-path-then-Save
+# convention as the STL (output.directory/output.stl_name) and the Legend
+# SVG (generate_legend.py's default path), just rooted outside any one
+# machine's output.directory since this tab is standalone (doesn't read
+# or write the loaded config at all).
+FONT_COVERAGE_REPORT_PATH = os.path.join(REPO_ROOT, "output", "font_coverage_report.md")
 YAML_FILE_FILTERS = Filters(
     ("YAML files", lambda p: p.suffix.lower() in (".yaml", ".yml")),
     ("All files", lambda _: True),
@@ -2551,6 +2558,9 @@ class TuneApp(App):
     .custom-row-input { height: 1; margin-bottom: 1; border: none; padding: 0 1;
         background: $panel; border-left: thick $warning; }
     #type-test-text { height: 8; }
+    #coverage-chars { height: 6; }
+    #coverage-buttons { height: 5; margin-top: 1; }
+    #coverage-buttons Button { width: 1fr; height: 5; text-style: bold; }
     """
     BINDINGS = [
         # "q" alone doesn't fire while any Input/TextArea has focus - a
@@ -3381,6 +3391,74 @@ class TuneApp(App):
                     "debug settings: neither of these is saved to the config.",
                     classes="picker-help")
 
+    def _charset_for_coverage_select_value(self, value):
+        """"__current__" -> this config's active layout.rows, a preset
+        name -> that preset's rows (LAYOUT_PRESETS_BY_MACHINE, same dict
+        the Layout tab's own picker uses - lets you check e.g. Hammond's
+        "Math Universal" without actually switching the loaded config to
+        it), anything else (including "__custom__") -> leave whatever's
+        already typed in #coverage-chars alone."""
+        if value == "__current__":
+            return "".join(self.cfg.get("layout", {}).get("rows", []))
+        if value in self.LAYOUT_PRESETS:
+            return "".join(self.LAYOUT_PRESETS[value])
+        return None
+
+    def _compose_font_coverage_tab(self):
+        with TabPane("Font Coverage", id="tab-font-coverage"):
+            with VerticalScroll():
+                yield Static(
+                    "Scans a font directory for glyph coverage against a character "
+                    "set - which fonts have every glyph, and exactly which "
+                    "characters are missing from the close calls. Standalone from "
+                    "the rest of this form - doesn't read or write the loaded "
+                    "config.",
+                    classes="picker-help")
+
+                options = []
+                if self.HAS_LAYOUT_TAB:
+                    options.append(("Current config's active layout", "__current__"))
+                for name in self.LAYOUT_PRESETS:
+                    options.append((name, name))
+                options.append(("Custom / hand-edited", "__custom__"))
+                default_value = options[0][1]
+                with Horizontal(classes="picker-row"):
+                    yield Static("Character set", classes="field-label")
+                    yield Select(options, value=default_value, id="coverage-preset-select",
+                                 allow_blank=False)
+
+                initial_chars = self._charset_for_coverage_select_value(default_value) or ""
+                yield TextArea(initial_chars, id="coverage-chars")
+                yield Static(
+                    "Auto-filled from the dropdown above (one-time seed, not "
+                    "re-applied on scan) - hand-edit freely before scanning. "
+                    "Duplicate characters are ignored.",
+                    classes="field-help")
+
+                with Vertical(classes="field-row"):
+                    with Horizontal():
+                        yield Static("Font directory", classes="field-label")
+                        yield Input(value=os.path.expanduser("~/fonts"), id="coverage-font-dir")
+                        yield Button("Browse", id="browse-coverage-font-dir", classes="browse-btn")
+                    yield Static("Searched recursively for .ttf/.otf/.ttc/.otc files.",
+                                 classes="field-help")
+
+                with Horizontal(classes="picker-row"):
+                    yield Static("Deep check", classes="field-label")
+                    yield Switch(value=False, id="coverage-deep")
+                yield Static(
+                    "Also runs each glyph through the real contour/triangulate "
+                    "pipeline (the same two calls build_glyph/TextRing make) to "
+                    "catch the self-intersection/all-off-curve/debris-contour "
+                    "issues FONT_AUDIT.md found, not just cmap presence - much "
+                    "slower over a large library.",
+                    classes="field-help")
+
+                with Horizontal(id="coverage-buttons"):
+                    yield Button("SCAN FONTS", id="btn-coverage-scan", variant="success")
+                    yield Button("SAVE REPORT", id="btn-coverage-save-report", variant="warning")
+                yield Static("", id="coverage-status", classes="field-help")
+
     def _compose_type_test_tab(self):
         with TabPane("Type Test", id="tab-type-test"):
             with VerticalScroll():
@@ -3481,6 +3559,7 @@ class TuneApp(App):
                 if "Calibration" in self.SECTIONS:
                     yield from self._compose_section_tab("Calibration")
                 yield from self._compose_build_tab()
+                yield from self._compose_font_coverage_tab()
                 # no editable keyboard-layout concept for the Selectric
                 # family (see self.HAS_LAYOUT_TAB's own comment).
                 if self.HAS_LAYOUT_TAB:
@@ -3786,6 +3865,65 @@ class TuneApp(App):
             f.write(header)
             yaml.dump(self.cfg, f, sort_keys=False, allow_unicode=True)
         self.log_line(f"[green]saved[/green] {svg_path} (+ {os.path.basename(meta_path)})")
+
+    async def _browse_coverage_font_dir(self):
+        current = os.path.expanduser(self.query_one("#coverage-font-dir", Input).value)
+        start_dir = current if os.path.isdir(current) else os.path.expanduser("~/fonts")
+        result = await self.push_screen_wait(SelectDirectory(start_dir))
+        if result is not None:
+            self.query_one("#coverage-font-dir", Input).value = str(result)
+
+    async def _run_font_coverage_scan(self):
+        """Font Coverage tab's "SCAN FONTS" button - shells out to font_
+        coverage.py exactly like _run_build/_run_generate_legend shell out
+        to generate.py/generate_legend.py, reusing the same log/progress/
+        elapsed widgets (font_coverage.py's own "[i/total] scanned" lines
+        already match _PROGRESS_RE, no extra wiring needed). Unlike those
+        two, this tab never touches self.cfg or self.config_path - it's
+        standalone, so no _save_to_yaml call first."""
+        chars = self.query_one("#coverage-chars", TextArea).text.replace("\n", "").replace("\r", "")
+        if not chars:
+            self.log_line("[yellow]character set is empty - pick a layout or type some characters[/yellow]")
+            return
+        font_dir = os.path.expanduser(self.query_one("#coverage-font-dir", Input).value.strip())
+        if not font_dir or not os.path.isdir(font_dir):
+            self.log_line(f"[red]not a directory: {font_dir!r}[/red]")
+            return
+        os.makedirs(os.path.dirname(FONT_COVERAGE_REPORT_PATH), exist_ok=True)
+        self.log_line("[bold]--- Font Coverage Scan ---[/bold]")
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "font_coverage.py"),
+               "--chars=" + chars, "--font-dir", font_dir, "--out", FONT_COVERAGE_REPORT_PATH]
+        if self.query_one("#coverage-deep", Switch).value:
+            cmd.append("--deep")
+        status = self.query_one("#coverage-status", Static)
+        status.update("scanning...")
+        returncode = await self._stream_subprocess(
+            cmd, success_message=f"report written to {FONT_COVERAGE_REPORT_PATH}")
+        status.update("done - see log above, then Save Report to keep a copy" if returncode == 0
+                       else f"failed (exit {returncode}) - see log above")
+
+    async def _save_font_coverage_report(self):
+        """Same durable-snapshot pattern as action_save/action_save_legend
+        above, for font_coverage.py's scratch report instead of the STL/
+        legend SVG. Requires Scan Fonts to have been run first."""
+        if not os.path.exists(FONT_COVERAGE_REPORT_PATH):
+            self.log_line("[yellow]nothing to save yet - Scan Fonts first[/yellow]")
+            return
+        save_dir = os.path.join(REPO_ROOT, "output", "saved")
+        os.makedirs(save_dir, exist_ok=True)
+        suggested = f"font_coverage_{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
+        result = await self.push_screen_wait(
+            FileSave(save_dir, title="Save font coverage report as", default_file=suggested,
+                     filters=MD_FILE_FILTERS))
+        if result is None:
+            self.log_line("[yellow]save cancelled[/yellow]")
+            return
+        md_path = str(result)
+        if not md_path.lower().endswith(".md"):
+            md_path += ".md"
+        os.makedirs(os.path.dirname(md_path), exist_ok=True)
+        shutil.copy2(FONT_COVERAGE_REPORT_PATH, md_path)
+        self.log_line(f"[green]saved[/green] {md_path}")
 
     def _refresh_widgets_from_cfg(self):
         """(Re)populate every widget from self.cfg. Shared by Reload
@@ -4380,6 +4518,11 @@ class TuneApp(App):
         return proc.returncode
 
     def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == "coverage-preset-select":
+            chars = self._charset_for_coverage_select_value(event.value)
+            if chars is not None:
+                self.query_one("#coverage-chars", TextArea).text = chars
+            return
         if event.select.id != "layout-select":
             return
         # keep the read-only "original" preview in sync with whichever
@@ -4511,10 +4654,19 @@ class TuneApp(App):
             self.action_reset_defaults()
         elif button_id == "btn-reset-layout-rows":
             self._reset_layout_rows_to_selected_preset()
+        elif button_id == "btn-coverage-scan":
+            self.run_worker(self._run_font_coverage_scan(), exclusive=True)
+        elif button_id == "btn-coverage-save-report":
+            self.run_worker(self._save_font_coverage_report(), exclusive=True)
         elif button_id == "browse-config":
             # checked before the generic "browse-" prefix below - this
             # one isn't a font field, it switches the whole app's config
             self.run_worker(self._browse_config())
+        elif button_id == "browse-coverage-font-dir":
+            # also checked before the generic "browse-" prefix below - a
+            # directory picker (SelectDirectory), not _browse_font's
+            # font-FILE picker (FileOpen)
+            self.run_worker(self._browse_coverage_font_dir())
         elif button_id.startswith("browse-"):
             # not exclusive - browsing for a font shouldn't cancel (or be
             # blocked by) an in-progress build worker
