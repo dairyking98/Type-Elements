@@ -82,10 +82,11 @@ layout:
   # concatenated character sequence is unchanged from v2's, which is what
   # actually matters - lib/layouts/selectric3_layout.py's fixed hemisphere
   # permutation indexes into that flat 48-character sequence, not these
-  # row boundaries. Selectric III has no language-variant preset in v2
-  # ("Selectric III has no custom-language variant yet" per
-  # ibm_layouts.scad:203) - use Modify glyphs on the Layout tab for
-  # anything else.
+  # row boundaries. v2 itself has no language-variant preset for
+  # Selectric III ("Selectric III has no custom-language variant yet" per
+  # ibm_layouts.scad:203); v4 adds a real FINNISH_SWEDISH preset anyway
+  # (tune.py's LAYOUT_PRESETS_SELECTRIC3) - use Modify glyphs on the
+  # Layout tab for anything else.
   rows:
     - "±1234567890-="
     - "qwertyuiop½]"
@@ -96,6 +97,18 @@ layout:
     - "ASDFGHJKL:\""
     - "ZXCVBNM,.?³¶"
   modify_glyphs: false
+  # v4-only, not a v1/v2 concept - which physical keyboard-index ->
+  # typeball-slot permutation applies (lib/layouts/selectric3_layout.py's
+  # HEMISPHERE_MAPS). "us" (real v2 S3_HEMISPHERE_MAP) is the only
+  # correct value while rows above matches the UNITED_STATES preset - set
+  # to "finnish_swedish" if you switch rows to the FINNISH_SWEDISH preset
+  # (tune.py's Layout tab preset picker keeps this in sync automatically;
+  # hand-editing rows via Modify glyphs must set this explicitly to
+  # whichever real map those custom rows were actually built against, or
+  # every character lands on the wrong physical typeball slot even though
+  # all 48 are present - see lib/layouts/selectric3_layout.py's module
+  # docstring).
+  hemisphere_map: "us"
 
 label:
   enabled: true

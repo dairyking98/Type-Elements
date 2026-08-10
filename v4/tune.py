@@ -2011,6 +2011,51 @@ LAYOUT_PRESETS_SELECTRIC3 = {
         "ASDFGHJKL:\"",
         "ZXCVBNM,.?³¶",
     ],
+    # v4-only addition, not from v2 (v2's Selectric III has no language
+    # variant at all - see UNITED_STATES's own comment). Real Finnish/
+    # Swedish Selectric III keyboard content, in genuine natural reading
+    # order - it's a real ISO keyboard (has the extra key left of Z that
+    # US/ANSI lacks), so its own row lengths are 13/12/12/11, not US's
+    # 13/12/11/12. Requires config/selectric3.yaml's layout.
+    # hemisphere_map: "finnish_swedish" (lib/layouts/selectric3_layout.
+    # py's S3_HEMISPHERE_MAP_FINNISH_SWEDISH) - selecting this preset via
+    # the Layout tab keeps that in sync automatically (see
+    # LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE); hand-editing rows via
+    # Modify glyphs starting from this preset must keep it set to
+    # "finnish_swedish" too. Derived 2026-08-10 against a real physical
+    # reference and round-tripped back to an exact match against it (see
+    # lib/layouts/selectric3_layout.py's own derivation comment) - not
+    # hand-arranged by eye.
+    "FINNISH_SWEDISH": [
+        "½1234567890+´",
+        "qwertyuiopå¨",
+        "asdfghjklöä'",
+        "<zxcvbnm,.-",
+        "§!\"£$%&/()=?`",
+        "QWERTYUIOPÅ^",
+        "ASDFGHJKLÖÄ*",
+        ">ZXCVBNM;:_",
+    ],
+}
+
+# v4-only, not a v1/v2 concept - which named layout.rows preset requires
+# which layout.hemisphere_map value (see lib/layouts/selectric12_layout.
+# py's/selectric3_layout.py's HEMISPHERE_MAPS). Read by _save_to_yaml
+# whenever the Layout tab's preset dropdown (not Modify glyphs' custom
+# rows) is what's being saved, so picking a named preset there keeps
+# layout.hemisphere_map correct automatically - a machine/preset pair
+# with no entry here (e.g. every other Selectric preset, every non-
+# Selectric machine) leaves the config's existing hemisphere_map value
+# untouched, matching every machine that has no such concept at all.
+LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE = {
+    "selectric12": {
+        "UNITED_STATES": "us",
+        "FINNISH_SWEDISH": "finnish_swedish",
+    },
+    "selectric3": {
+        "UNITED_STATES": "us",
+        "FINNISH_SWEDISH": "finnish_swedish",
+    },
 }
 
 # v2's ALL_C (ibm_layouts.scad:100-197) - all 5 real Composer language
@@ -3491,6 +3536,10 @@ class TuneApp(App):
                 layout_select = self.query_one("#layout-select", Select)
                 if layout_select.value is not Select.NULL:
                     text = patch_yaml_rows(text, self.LAYOUT_PRESETS[layout_select.value])
+                    hemisphere_map = LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE.get(
+                        self.machine, {}).get(layout_select.value)
+                    if hemisphere_map is not None:
+                        text = patch_yaml_value(text, "hemisphere_map", hemisphere_map)
                     # baseline_row/cutout_row themselves are NOT force-
                     # overwritten here from LAYOUT_PRESET_BASELINE_ROW_BY_
                     # MACHINE on every save - an earlier version of this did
