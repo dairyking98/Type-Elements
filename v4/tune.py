@@ -2547,6 +2547,7 @@ class TuneApp(App):
     .picker-help { color: $text-muted; height: auto; }
     .row-preview { height: 1; background: $panel; padding: 0 1; margin-bottom: 1; color: $text-muted; }
     #layout-custom-rows { height: auto; }
+    #layout-extra-rows { height: auto; }
     .custom-row-input { height: 1; margin-bottom: 1; border: none; padding: 0 1;
         background: $panel; border-left: thick $warning; }
     #type-test-text { height: 8; }
@@ -2632,6 +2633,26 @@ class TuneApp(App):
         # HAS_LAYOUT_TAB so enabling one doesn't require faking the
         # other.
         self.HAS_LAYOUT_TAB = "rows" in self.cfg.get("layout", {})
+        # LAYOUT_MIN_ROWS/LAYOUT_MAX_ROWS/LAYOUT_ROW_COUNT_VARIES - same
+        # "row count can differ between this machine's own presets"
+        # concept BASELINE_CUTOUT_KEYS below already handles for
+        # baseline_row/cutout_row (currently only Hammond: Normal
+        # Universal is 3 rows, Math Universal is 4), generalized for the
+        # Layout tab's own row preview/edit widgets so picking Math
+        # Universal actually shows/allows editing a real 4th row instead
+        # of it being silently invisible until a recompose. Derived
+        # purely from LAYOUT_PRESETS - not hardcoded to Hammond - so any
+        # future machine whose presets vary in row count gets this for
+        # free.
+        if self.HAS_LAYOUT_TAB:
+            preset_row_counts = [len(rows) for rows in self.LAYOUT_PRESETS.values()]
+            current_row_count = len(self.cfg["layout"]["rows"])
+            self.LAYOUT_MAX_ROWS = max(preset_row_counts + [current_row_count])
+            self.LAYOUT_MIN_ROWS = min(preset_row_counts + [current_row_count]) if preset_row_counts else current_row_count
+            self.LAYOUT_ROW_COUNT_VARIES = self.LAYOUT_MIN_ROWS != self.LAYOUT_MAX_ROWS
+        else:
+            self.LAYOUT_MAX_ROWS = self.LAYOUT_MIN_ROWS = 0
+            self.LAYOUT_ROW_COUNT_VARIES = False
         self.HAS_BASELINE_CUTOUT = "baseline_row" in self.cfg.get("layout", {})
         if not self.HAS_BASELINE_CUTOUT:
             self.BASELINE_CUTOUT_KEYS = []
@@ -3047,31 +3068,40 @@ class TuneApp(App):
             return self.cfg["layout"]["rows"]
         return self.LAYOUT_PRESETS[value]
 
-    def _layout_row_caps(self):
+    def _layout_row_caps(self, n_rows=None):
         """Max character length for each editable Layout-tab row Input,
-        one entry per self.cfg["layout"]["rows"]. The cylinder family
-        shares ONE cap across every row (placement_map's column count is
-        uniform per row - see this method's caller for why placement_map
-        itself is never exposed as a widget). Selectric's rows are NOT
-        uniform width (v2's real keyboard-row shape, e.g. Selectric I/
-        II's 12/11/11/10 split) and unlike the cylinder family, every
-        row's length is load-bearing there (self.HAS_FLAT_INDEXED_ROWS -
-        CASES88_LOWER/UPPER are consumed by flat keyboard index, see
-        spherical_machine.AssembleMinkowski), so each row's cap is its
-        OWN current on-disk length - long enough for every real preset
-        (they all share the same per-row shape - see e.g.
-        LAYOUT_PRESETS_SELECTRIC_COMPOSER's own comment) but never
-        growable from the widget alone."""
+        one entry per row up to n_rows (defaults to self.cfg["layout"]
+        ["rows"]'s own current length, matching every call site before
+        this parameter existed). The cylinder family shares ONE cap
+        across every row (placement_map's column count is uniform per
+        row - see this method's caller for why placement_map itself is
+        never exposed as a widget) - trivially extends to any n_rows.
+        Selectric's rows are NOT uniform width (v2's real keyboard-row
+        shape, e.g. Selectric I/II's 12/11/11/10 split) and unlike the
+        cylinder family, every row's length is load-bearing there
+        (self.HAS_FLAT_INDEXED_ROWS - CASES88_LOWER/UPPER are consumed by
+        flat keyboard index, see spherical_machine.AssembleMinkowski), so
+        each row's cap is its OWN current on-disk length - long enough
+        for every real preset (they all share the same per-row shape -
+        see e.g. LAYOUT_PRESETS_SELECTRIC_COMPOSER's own comment) but
+        never growable from the widget alone; n_rows beyond what's
+        currently on disk pads with 0 (dead code in practice - no
+        flat-indexed machine's own presets vary in row count, see
+        LAYOUT_ROW_COUNT_VARIES)."""
+        if n_rows is None:
+            n_rows = len(self.cfg["layout"]["rows"])
         if "placement_map" in self.cfg["layout"]:
             cap = len(self.cfg["layout"]["placement_map"])
-            return [cap] * len(self.cfg["layout"]["rows"])
-        return [len(row) for row in self.cfg["layout"]["rows"]]
+            return [cap] * n_rows
+        caps = [len(row) for row in self.cfg["layout"]["rows"]]
+        return (caps + [0] * n_rows)[:n_rows]
 
     def _compose_layout_tab(self):
         # named-layout picker only - latitude_columns must stay in sync
         # with placement_map/the physical layout, so it's not exposed
         # here (edit it directly in the YAML if you really mean to)
-        row_caps = self._layout_row_caps()
+        n_rows = self.LAYOUT_MAX_ROWS
+        row_caps = self._layout_row_caps(n_rows)
         with TabPane("Layout", id="tab-layout"):
             with VerticalScroll():
                 with Vertical(classes="picker-row"):
@@ -3095,10 +3125,18 @@ class TuneApp(App):
                         "the rows directly.",
                         classes="picker-help")
 
+                # Read-only preview widgets always go up to LAYOUT_MAX_ROWS
+                # (not just the CURRENTLY selected preset's own row count)
+                # so a longer preset (Hammond's 4-row Math Universal vs.
+                # 3-row Normal Universal) has a real widget to update into
+                # when picked - see _update_row_widget's own docstring for
+                # what silently breaks without this. A row beyond what the
+                # active preset actually has just previews blank.
                 yield Static("Rows (read-only preview of the preset above):", classes="field-label")
                 display_rows = self._display_rows_for_preset()
-                for i in range(len(display_rows)):
-                    static = Static(display_rows[i], id=f"layout-original-row-{i}", classes="row-preview")
+                for i in range(n_rows):
+                    content = display_rows[i] if i < len(display_rows) else ""
+                    static = Static(content, id=f"layout-original-row-{i}", classes="row-preview")
                     yield static
 
                 with Horizontal(classes="picker-row"):
@@ -3118,20 +3156,54 @@ class TuneApp(App):
                     )
                 else:
                     rows_help = (
-                        f"Unlocks {len(display_rows)} hand-editable rows, max {row_caps[0]} "
+                        f"Unlocks {self.LAYOUT_MIN_ROWS} hand-editable rows, max {row_caps[0]} "
                         "characters each. Shorter rows just leave some positions unstruck. "
                         "While on, this edited copy (not the preset above) is what gets saved."
                     )
                 yield Static(rows_help, classes="picker-help")
 
+                # This machine's own presets vary in row count (currently
+                # only Hammond: Normal Universal 3 rows, Math Universal 4)
+                # - row count is real DATA (lib/hammond.py's configure()
+                # derives Is_Math from len(rows)==4, driving Shuttle_Height/
+                # the resin-support array shape), not just a display
+                # convenience, so a hand-edited custom layout needs an
+                # explicit, unambiguous way to say how many rows it has -
+                # inferring it from whether the last extra Input happens to
+                # be non-empty would be fragile (an intentionally-blank row
+                # vs. "not decided yet" look identical). This switch is
+                # that explicit declaration; _save_to_yaml reads it to
+                # decide how many rows to actually write.
+                use_extra_rows_now = len(self.cfg["layout"]["rows"]) >= n_rows
+                if self.LAYOUT_ROW_COUNT_VARIES:
+                    with Horizontal(classes="picker-row"):
+                        yield Static(f"Use {n_rows}-row layout", classes="field-label")
+                        yield Switch(value=use_extra_rows_now, id="layout-use-extra-rows")
+                    yield Static(
+                        f"On: hand-edited rows below save as all {n_rows} rows (e.g. a "
+                        f"Math-style layout). Off: only the first {self.LAYOUT_MIN_ROWS} "
+                        "save, matching this machine's normal layout shape. Switching the "
+                        "preset dropdown above keeps this in sync automatically.",
+                        classes="picker-help")
+
                 custom_rows_container = Vertical(id="layout-custom-rows")
                 custom_rows_container.display = modify_now
                 with custom_rows_container:
                     current_rows = self.cfg["layout"]["rows"]
-                    for i in range(len(current_rows)):
-                        inp = Input(value=current_rows[i], id=f"layout-custom-row-{i}",
+                    for i in range(self.LAYOUT_MIN_ROWS):
+                        content = current_rows[i] if i < len(current_rows) else ""
+                        inp = Input(value=content, id=f"layout-custom-row-{i}",
                                     max_length=row_caps[i], classes="custom-row-input")
                         yield inp
+                    if self.LAYOUT_ROW_COUNT_VARIES:
+                        extra_rows_container = Vertical(id="layout-extra-rows")
+                        extra_rows_container.display = use_extra_rows_now
+                        with extra_rows_container:
+                            for i in range(self.LAYOUT_MIN_ROWS, n_rows):
+                                content = current_rows[i] if i < len(current_rows) else ""
+                                inp = Input(value=content, id=f"layout-custom-row-{i}",
+                                            max_length=row_caps[i], classes="custom-row-input")
+                                yield inp
 
     def _compose_build_tab(self):
         has_gauge = "Gauge" in self.SECTIONS
@@ -3569,8 +3641,24 @@ class TuneApp(App):
                 # dropdown while unlocked - "fix" (defensively re-clamp) each
                 # row to its own cap in case anything bypassed the Input's
                 # own max_length (e.g. a paste) - see _layout_row_caps().
-                row_caps = self._layout_row_caps()
-                n_rows = len(self.cfg["layout"]["rows"])
+                #
+                # How many rows to actually WRITE: for a machine whose own
+                # presets vary in row count (LAYOUT_ROW_COUNT_VARIES -
+                # currently only Hammond), read the explicit "Use N-row
+                # layout" switch rather than inferring it from the
+                # previous on-disk row count - row count is real data here
+                # (lib/hammond.py's Is_Math derives from len(rows)==4), so
+                # it needs an unambiguous source of truth, not a guess from
+                # whether the last extra Input happens to be non-empty.
+                # Every other machine keeps the old behavior (row count
+                # never varies, so the on-disk count is always right).
+                if self.LAYOUT_ROW_COUNT_VARIES:
+                    n_rows = (self.LAYOUT_MAX_ROWS
+                              if self.query_one("#layout-use-extra-rows", Switch).value
+                              else self.LAYOUT_MIN_ROWS)
+                else:
+                    n_rows = len(self.cfg["layout"]["rows"])
+                row_caps = self._layout_row_caps(n_rows)
                 custom_rows = [self.query_one(f"#layout-custom-row-{i}", Input).value[:row_caps[i]] for i in range(n_rows)]
                 if self.HAS_FLAT_INDEXED_ROWS and any(len(row) != cap for row, cap in zip(custom_rows, row_caps)):
                     # Unlike the cylinder family (a short row just leaves
@@ -3761,14 +3849,21 @@ class TuneApp(App):
         self.query_one("#type-test-text", TextArea).text = self.cfg["type_test"]["text"]
         if self.HAS_LAYOUT_TAB:
             display_rows = self._display_rows_for_preset()
-            for i in range(len(display_rows)):
-                self._update_row_widget("layout-original-row", i, display_rows[i])
+            for i in range(self.LAYOUT_MAX_ROWS):
+                self._update_row_widget("layout-original-row", i, display_rows[i] if i < len(display_rows) else "")
             modify_glyphs = bool(self.cfg["layout"]["modify_glyphs"])
             self.query_one("#layout-modify-glyphs", Switch).value = modify_glyphs
             self.query_one("#layout-custom-rows").display = modify_glyphs
             current_rows = self.cfg["layout"]["rows"]
-            for i in range(len(current_rows)):
-                self._update_row_widget("layout-custom-row", i, current_rows[i])
+            for i in range(self.LAYOUT_MAX_ROWS):
+                self._update_row_widget("layout-custom-row", i, current_rows[i] if i < len(current_rows) else "")
+            if self.LAYOUT_ROW_COUNT_VARIES:
+                use_extra_rows_now = len(current_rows) >= self.LAYOUT_MAX_ROWS
+                try:
+                    self.query_one("#layout-use-extra-rows", Switch).value = use_extra_rows_now
+                    self.query_one("#layout-extra-rows").display = use_extra_rows_now
+                except NoMatches:
+                    pass
         if self.HAS_BASELINE_CUTOUT:
             for arr_key in ("baseline_row", "cutout_row"):
                 arr = self.cfg["layout"][arr_key]
@@ -4289,8 +4384,8 @@ class TuneApp(App):
         # self.cfg only updates on an actual save, so that would have
         # kept showing the OLD preset while just browsing the dropdown.
         display_rows = self._rows_for_layout_select_value(event.value)
-        for i in range(len(display_rows)):
-            self._update_row_widget("layout-original-row", i, display_rows[i])
+        for i in range(self.LAYOUT_MAX_ROWS):
+            self._update_row_widget("layout-original-row", i, display_rows[i] if i < len(display_rows) else "")
         # Live-seed baseline_row/cutout_row's own editable widgets from
         # the newly-selected preset's real defaults (Hammond's Math
         # Universal needs a real 4th value, -9.89, that a freshly-
@@ -4329,6 +4424,17 @@ class TuneApp(App):
         label.update(_font_display_name(event.value))
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
+        if event.switch.id == "layout-use-extra-rows":
+            # explicit "does this hand-edited layout use the extra
+            # row(s)" declaration - see its own Switch's comment in
+            # _compose_layout_tab. Just toggles which Inputs are visible;
+            # _save_to_yaml reads the switch itself, not this container's
+            # display, to decide how many rows to write.
+            try:
+                self.query_one("#layout-extra-rows").display = event.value
+            except NoMatches:
+                pass
+            return
         if event.switch.id != "layout-modify-glyphs":
             return
         container = self.query_one("#layout-custom-rows")
@@ -4353,8 +4459,22 @@ class TuneApp(App):
         from the preset without toggling the switch off and back on."""
         layout_select_value = self.query_one("#layout-select", Select).value
         display_rows = self._rows_for_layout_select_value(layout_select_value)
-        for i in range(len(display_rows)):
-            self._update_row_widget("layout-custom-row", i, display_rows[i])
+        for i in range(self.LAYOUT_MAX_ROWS):
+            self._update_row_widget("layout-custom-row", i, display_rows[i] if i < len(display_rows) else "")
+        if self.LAYOUT_ROW_COUNT_VARIES:
+            # keep "Use N-row layout" in sync with whichever preset this
+            # reset just copied from, same live-seed convention as
+            # on_select_changed's baseline_row/cutout_row seeding below.
+            try:
+                use_extra = self.query_one("#layout-use-extra-rows", Switch)
+            except NoMatches:
+                pass
+            else:
+                use_extra.value = len(display_rows) >= self.LAYOUT_MAX_ROWS
+                try:
+                    self.query_one("#layout-extra-rows").display = use_extra.value
+                except NoMatches:
+                    pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id or ""
