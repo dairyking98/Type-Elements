@@ -266,6 +266,53 @@ MACHINE_CATEGORIES = [
     ("Slugs", ["type_slug", "vogue_slug", "gauge_slug", "oliver_slug", "lumi_slug"]),
 ]
 
+# Machine picker warnings - a machine present here gets a short warning
+# line under its button (always visible, not hover-only) plus a fuller
+# explanation as the button's own hover tooltip. Dict keyed by machine
+# name per CLAUDE.md's "Keep doing this" convention (never an if/elif
+# chain in _compose_machine_picker) - empty unless a real, specific
+# concern exists for that machine; remove the entry once resolved rather
+# than leaving a stale warning around.
+MACHINE_PICKER_WARNINGS = {
+    # 2026-08-10: Selectric III's character-ring rotation/mapping was
+    # independently verified against a real third-party reference
+    # (SelectricElement96.scad) and matches exactly (see SESSION_LOG.md).
+    # Two OTHER real-machine-fit values remain unverified for Selectric
+    # III SPECIFICALLY:
+    #  - Drive_Notch_Theta (131deg, config/selectric3.yaml element.
+    #    drive_notch_theta) - the shaft drive notch that keys the ball
+    #    onto the tilt ring.
+    #  - Detent_Skirt_Clock_Offset (0.0deg, config/selectric3.yaml
+    #    element.detent_skirt_clock_offset) - the detent tooth skirt's
+    #    phase relative to the character ring (lib/spherical_machine.py's
+    #    SolidCleanup/ResinRodAssemble both rotate Teeth()/the resin rods
+    #    by this same offset) - controls which tooth the tilt ring's
+    #    detent pawl lands in, so a wrong value could seat the ball
+    #    rotationally off from where the character ring/notch expect it
+    #    to be, even if the notch angle itself is right.
+    # Both are LITERALLY THE SAME shared mechanism/code (lib/spherical_
+    # machine.py's Notch()/Teeth()) and the SAME v2-ported values as
+    # Selectric I/II, which HAS been printed and used on a real machine
+    # with no reported notch/fitment issue (only the separate character-
+    # rotation bug this session already fixed) - so there's decent
+    # inherited confidence, but Selectric III itself has never been
+    # physically fitment-tested, and its own ball/skirt dimensions could
+    # still interact with the same angle differently. The third-party
+    # reference (SelectricElement96.scad) can't help verify this either -
+    # it uses a completely different boss-slot mounting mechanism, not
+    # Selectric I/II's shaft notch.
+    "selectric3": (
+        "⚠ UNTESTED - notch/teeth fitment",
+        "Selectric III is untested on real hardware. Character layout and "
+        "Del alignment triangle are independently verified, but the drive "
+        "notch (Drive_Notch_Theta) and detent tooth skirt clock offset "
+        "(Detent_Skirt_Clock_Offset) - same mechanism and values as "
+        "Selectric I/II, which HAS been printed successfully - have never "
+        "been fitment-tested on a real Selectric III. Needs real hardware "
+        "testing before relying on a print.",
+    ),
+}
+
 FONT_FILE_FILTERS = Filters(
     ("Font files", lambda p: p.suffix.lower() in (".ttf", ".otf", ".ttc")),
     ("All files", lambda _: True),
@@ -2493,6 +2540,8 @@ class TuneApp(App):
     .picker-title { text-style: bold; content-align: center middle; width: auto; margin-bottom: 1; }
     .picker-subtitle { color: $text-muted; content-align: center middle; width: auto; margin-bottom: 1; }
     .machine-picker-btn { width: 100%; height: 3; margin-bottom: 1; text-style: bold; }
+    .machine-picker-warning { color: $warning; text-style: bold; height: auto;
+        content-align: center middle; width: 100%; margin: -1 0 1 0; }
     .advanced-warning { color: $warning; text-style: bold; height: auto; padding: 0 0 1 0; }
     .picker-row { height: 3; }
     .picker-help { color: $text-muted; height: auto; }
@@ -3315,7 +3364,15 @@ class TuneApp(App):
                         yield Static(category, classes="machine-picker-column-title")
                         for key in keys:
                             label, _path = MACHINES[key]
-                            yield Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
+                            btn = Button(label, id=f"pick-machine-{key}", classes="machine-picker-btn")
+                            warning = MACHINE_PICKER_WARNINGS.get(key)
+                            if warning is not None:
+                                short_warning, tooltip_text = warning
+                                btn.tooltip = tooltip_text
+                                yield btn
+                                yield Static(short_warning, classes="machine-picker-warning")
+                            else:
+                                yield btn
 
     def _compose_tuner_ui(self):
         with Vertical(id="form"):
