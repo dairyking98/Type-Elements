@@ -414,6 +414,22 @@ the cited section for the full incident).
     `font_coverage.py --preset` can read presets without dragging in
     `textual`/the whole TUI dependency stack (it used to `import tune`
     purely to reach these tables).
+  - **A layout that needs a character/position mapping must NAME it, in
+    the same module, via that machine's `PRESET_HEMISPHERE_MAP`** (see
+    `lib/layouts/selectric12_layout.py`). The pairing is many-to-one on
+    purpose - a hemisphere map is a physical key-position permutation, so
+    several layouts can share one, and the maps stay defined once in
+    `HEMISPHERE_MAPS`. `lib/layouts/__init__.py`'s
+    `LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE` is DERIVED from those
+    per-machine tables, never hand-written, so the two can't drift.
+    This matters because an unpaired preset does NOT fall back to a
+    default: `tune.py`'s `_save_to_yaml` only patches
+    `layout.hemisphere_map` when the lookup hits, so the config silently
+    keeps whatever the PREVIOUS preset wrote, and these maps are
+    position-only (not character-aware) - a map mismatched to a layout
+    builds a WRONG typeball with every character still present. Each
+    module asserts full pairing coverage at import to turn that silent
+    bad-geometry failure into a loud one; keep those asserts.
 - **All build-pipeline console output goes through `lib/build_log.py`,
   not a hand-written `print()`.** Extracted after real drift was found:
   `glyph_poc.py` had its own `report()` that nothing in the actual

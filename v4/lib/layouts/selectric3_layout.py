@@ -145,3 +145,32 @@ LAYOUT_PRESETS_SELECTRIC3 = {
         ">ZXCVBNM;:_",
     ],
 }
+
+
+# Which hemisphere map each named layout preset above is built for.
+#
+# This is deliberately a many-to-one LAYOUT -> MAP-KEY pairing, not a map
+# per layout: a hemisphere map is a physical key-position permutation
+# (keyboard reading order -> typeball slot), so different layouts that
+# share the same physical key arrangement legitimately share one map, and
+# the maps themselves stay defined once in HEMISPHERE_MAPS above.
+#
+# The asserts below are the point of keeping this next to the presets. A
+# preset missing from here does NOT fall back to a default - tune.py's
+# _save_to_yaml only patches layout.hemisphere_map when this lookup hits,
+# so the config silently keeps whatever the PREVIOUS preset wrote. Since
+# these maps are position-only and not character-aware, a map mismatched
+# to a layout yields a WRONG typeball with every character still present
+# (see this module's docstring) - a silent bad-geometry failure. Failing
+# at import instead makes adding a layout without pairing it impossible
+# to miss.
+PRESET_HEMISPHERE_MAP = {
+    "UNITED_STATES": "us",
+    "FINNISH_SWEDISH": "finnish_swedish",
+}
+assert set(PRESET_HEMISPHERE_MAP) == set(LAYOUT_PRESETS_SELECTRIC3), (
+    "every LAYOUT_PRESETS_SELECTRIC3 layout preset must name its hemisphere map: "
+    f"unpaired={sorted(set(LAYOUT_PRESETS_SELECTRIC3) - set(PRESET_HEMISPHERE_MAP))}")
+assert set(PRESET_HEMISPHERE_MAP.values()) <= set(HEMISPHERE_MAPS), (
+    "unknown hemisphere map key: "
+    f"{sorted(set(PRESET_HEMISPHERE_MAP.values()) - set(HEMISPHERE_MAPS))}")

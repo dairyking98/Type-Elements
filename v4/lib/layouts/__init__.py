@@ -33,8 +33,14 @@ from .hammond_split_layout import LAYOUT_PRESETS_HAMMOND_SPLIT
 from .helios_layout import LAYOUT_PRESETS_HELIOS
 from .mignon_layout import LAYOUT_PRESETS_MIGNON
 from .postal_layout import LAYOUT_PRESETS_POSTAL
-from .selectric12_layout import LAYOUT_PRESETS_SELECTRIC12
-from .selectric3_layout import LAYOUT_PRESETS_SELECTRIC3
+from .selectric12_layout import (
+    LAYOUT_PRESETS_SELECTRIC12,
+    PRESET_HEMISPHERE_MAP as _s12_pairs,
+)
+from .selectric3_layout import (
+    LAYOUT_PRESETS_SELECTRIC3,
+    PRESET_HEMISPHERE_MAP as _s3_pairs,
+)
 from .selectric_composer_layout import (
     LAYOUT_PRESETS_SELECTRIC_COMPOSER,
 )
@@ -75,19 +81,24 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
 # py's/selectric3_layout.py's HEMISPHERE_MAPS). Read by _save_to_yaml
 # whenever the Layout tab's preset dropdown (not Modify glyphs' custom
 # rows) is what's being saved, so picking a named preset there keeps
-# layout.hemisphere_map correct automatically - a machine/preset pair
-# with no entry here (e.g. every other Selectric preset, every non-
-# Selectric machine) leaves the config's existing hemisphere_map value
-# untouched, matching every machine that has no such concept at all.
+# layout.hemisphere_map correct automatically.
+#
+# DERIVED from each machine module's own PRESET_HEMISPHERE_MAP, never
+# hand-written here - the pairing belongs next to the presets it pairs,
+# where that module's asserts can catch a layout that was added without
+# naming a map. Duplicating it here is what would let the two drift.
+#
+# A machine absent from this index (Composer, and every non-Selectric
+# machine) leaves the config's existing hemisphere_map untouched. That is
+# deliberate rather than an omission for Composer specifically: it has a
+# single fixed COMPOSER_HEMISPHERE_MAP shared by all 5 of its language
+# presets, no HEMISPHERE_MAPS table to choose from, and no
+# layout.hemisphere_map key in config/selectric_composer.yaml at all, so
+# there is nothing for a pairing to select - writing one would emit a key
+# lib/selectric_composer.py does not read.
 LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE = {
-    "selectric12": {
-        "UNITED_STATES": "us",
-        "FINNISH_SWEDISH": "finnish_swedish",
-    },
-    "selectric3": {
-        "UNITED_STATES": "us",
-        "FINNISH_SWEDISH": "finnish_swedish",
-    },
+    "selectric12": dict(_s12_pairs),
+    "selectric3": dict(_s3_pairs),
 }
 # Layout tab's picker-help banner, one flowing string per machine (see
 # CLAUDE.md's tooltip/help-text rules - no manual \n; add the next
