@@ -51,6 +51,31 @@ CATALOG_IDEAL_FRACTIONS = [
     "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
     "¾%⅞⅝½⅜1⅛2¢3£4$5" "6“7”8’9(0)¼*⅓†⅔",
 ]
+# Universal with a 9-fraction figures row. Reading the catalog by COLUMN
+# (each column is one physical key: unshifted / shifted / figure) shows
+# what this shuttle actually did, and the three rows corroborate each
+# other: nine figure slots became fractions (#×+ &*^ °.= -> ⅜⅔⅓ ⅝⅛½
+# ¼¾⅞), and the "&" those displaced was re-homed onto the shifted "."
+# key - which is why row 1 is untouched but row 2 reads ...?OL&P:! where
+# standard reads ...?OL.P:!. That "." key is the one with a bare dot on
+# all three levels (visible on the "UNIVERSAL" KEYBOARD plate, p.2), so
+# it was the only spare slot to move & into.
+CATALOG_UNIVERSAL_FRACTIONS = [
+    "qazwsxedcrfvtgb" "yhnujmik,ol.p;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL&P:!",
+    '1"@2⅜⅔3$⅓4%£5_¢' "6⅝⅛7'½8(¼9)¾0⅞/",
+]
+# Caps and Small Caps: the UNSHIFTED row types capitals too, so rows 0/1
+# differ only in their punctuation (the same ,/./;/- vs ?/./:/! split
+# every other layout has). The catalog prints row 0 in visibly smaller
+# capitals - that is the TYPEFACE (small caps), not a different
+# character, and v4 selects it via the Font tab like any other typeface,
+# so both rows carry the same letters here. Figures row is standard.
+CATALOG_UNIVERSAL_CAPS_SMALL_CAPS = [
+    "QAZWSXEDCRFVTGB" "YHNUJMIK,OL.P;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    '1"@2#×3$+4%£5_¢' "6&*7'^8(°9).0=/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -71,20 +96,50 @@ CATALOG_SHUTTLES = {
         "1/48/48A Medium Roman, 2 Small Roman, 3/3A Large Roman, "
         "4 Gothic, 5 Caps and Small Caps, 6 Italic, 9 Attic"
     ),
-    # Catalogued but NOT imported - each needs its own figures row (and in
-    # a few cases a different letter row), transcribed and verified the
-    # same way before it can be added:
-    #   Universal fractions ...... 26, 41, 52, 162, 184, 40 (LARGE), 97,
-    #                              80A, 23F, 23G
-    #   Caps and Small Caps ...... 27, 27E, 136 (row 0 is caps, not
-    #                              lowercase - a different row SHAPE)
-    #   Medical/chemical ......... 43, 43A, 107, 179, 21, 18
-    #   Diacritical/library ...... 113, 122, 48C
-    #   Literary ................. 192, 193, 194
+    "universal_fractions": (
+        "26 Small Roman, 40 Medium Roman (LARGE FRACTIONS), 52 Large "
+        "Roman, 80A Vertical Script, 97 Large Gothic Italic"
+    ),
+    "universal_caps_small_caps": "27, 27E",
+    # Catalogued but NOT imported, with the reason each one was left out.
+    # These are deliberate exclusions, not an unworked backlog: where the
+    # scan does not settle a character beyond doubt, no layout is better
+    # than a guessed one, since a wrong glyph here silently builds a wrong
+    # shuttle. Anything added later needs the same character-by-character
+    # verification the imported layouts got.
+    #
+    #   41 Small Roman FRACTIONS - a SECOND, different fractions scheme:
+    #     diagonal fractions (⅔ ⅓ ⅛ ½ ¼ ¾) rather than the stacked set
+    #     above, and it keeps & in the figures row instead of moving it to
+    #     the shifted "." key. Legible in outline but several fraction
+    #     numerators are not separable at this scan resolution.
+    #   162 Medium Gothic FRACTIONS - right half matches
+    #     CATALOG_UNIVERSAL_FRACTIONS exactly, but the left half reads
+    #     "...3=⅓4%?5´+" where that layout has "...3$⅓4%£5_¢"; the
+    #     character after "4%" is damaged in the scan and cannot be
+    #     called.
+    #   184 Gothic SPECIAL FRACTIONS - prints FOUR lines, not three (an
+    #     extra dense fraction bank), so it does not fit the 3-row shape
+    #     at all without deciding which line is the real figures row.
+    #   23E/23F/23G Medium Roman - near-standard, each differing in one
+    #     or two figure slots (23E has an unidentifiable glyph where
+    #     standard has "+"; 23F/23G mix single fractions into otherwise
+    #     standard rows). Too close to standard to guess at.
+    #   136 Caps and Small Caps SPECIAL CHEMICAL - caps rows as 27/27E,
+    #     but the chemical figures row is not legible enough to call.
+    #   Medical/chemical ......... 43, 43A, 107, 179, 21, 18 - purpose-made
+    #     symbol sets (dose/measure/chemical marks) with no reliable
+    #     Unicode reading from this scan.
+    #   Diacritical/library ...... 113, 122, 48C - bare combining accents
+    #     printed in isolation; which precomposed/combining codepoint each
+    #     one means is a judgement call, not a reading.
+    #   Literary ................. 192, 193, 194 - subscript/superscript
+    #     digit banks and reference marks, ambiguous at this resolution.
     #   Non-Latin / special ...... 195 Astronomical, 196/197 International
-    #                              Phonetic, 135/135B/135C Mathematical,
-    #                              112C Greek, 59/20 German Text,
-    #                              165/167 Yiddish, 185 Check Writer
+    #     Phonetic, 135/135B/135C Mathematical, 112C Greek, 59/20 German
+    #     Text (fraktur), 165/167 Yiddish (Hebrew), 185 Check Writer
+    #     (perforating, prints as dot matrices) - each needs its own script
+    #     expertise and, for several, a font that has the glyphs at all.
     "not_imported": "see the comment above this key",
 }
 # v2/lib/layouts/hammond_layouts.scad's LAYOUTS[0]/LAYOUTS[2] (Normal_U/
@@ -115,4 +170,8 @@ LAYOUT_PRESETS_HAMMOND = {
     # the shuttle numbers each one covers.
     "Ideal": [r[::-1] for r in CATALOG_IDEAL_STANDARD],
     "Ideal, Fractions": [r[::-1] for r in CATALOG_IDEAL_FRACTIONS],
+    "Universal, Fractions": [r[::-1] for r in CATALOG_UNIVERSAL_FRACTIONS],
+    "Universal, Caps and Small Caps": [
+        r[::-1] for r in CATALOG_UNIVERSAL_CAPS_SMALL_CAPS
+    ],
 }

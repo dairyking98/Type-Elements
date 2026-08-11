@@ -7,6 +7,8 @@ hammond_layout.py, since the printed catalog covers both machines.
 from .hammond_layout import (
     CATALOG_IDEAL_FRACTIONS,
     CATALOG_IDEAL_STANDARD,
+    CATALOG_UNIVERSAL_CAPS_SMALL_CAPS,
+    CATALOG_UNIVERSAL_FRACTIONS,
     CATALOG_UNIVERSAL_STANDARD,
 )
 
@@ -53,4 +55,8 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     # which hammond.yaml's own Universal row already spells the catalog's
     # way (× and ^).
     "UNIVERSAL": list(CATALOG_UNIVERSAL_STANDARD),
+    "UNIVERSAL, Fractions": list(CATALOG_UNIVERSAL_FRACTIONS),
+    "UNIVERSAL, Caps and Small Caps": list(
+        CATALOG_UNIVERSAL_CAPS_SMALL_CAPS
+    ),
 }

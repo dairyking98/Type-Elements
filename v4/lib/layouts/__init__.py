@@ -26,6 +26,8 @@ from .hammond_layout import (
     CATALOG_IDEAL_FRACTIONS,
     CATALOG_IDEAL_STANDARD,
     CATALOG_SHUTTLES,
+    CATALOG_UNIVERSAL_CAPS_SMALL_CAPS,
+    CATALOG_UNIVERSAL_FRACTIONS,
     CATALOG_UNIVERSAL_STANDARD,
     LAYOUT_PRESETS_HAMMOND,
 )
@@ -74,6 +76,8 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         # resizes baseline_row/cutout_row back down to 3 entries.
         "Ideal": [3.74, -1.21, -5.71],
         "Ideal, Fractions": [3.74, -1.21, -5.71],
+        "Universal, Fractions": [3.74, -1.21, -5.71],
+        "Universal, Caps and Small Caps": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
@@ -139,10 +143,12 @@ LAYOUT_PICKER_HELP = {
         "instead of 3 - selecting it switches Shuttle_Height and the "
         "resin-support layout to the Math shuttle variant automatically "
         "(Is_Math is derived from the row count, not a separate toggle), "
-        "and resizes baseline_row/cutout_row to match. The two Ideal "
-        "entries come from the 1920 Hammond type-shuttle catalog; most "
-        "catalogued shuttles differ only in TYPEFACE, which is the Font "
-        "tab's job, not a layout change."
+        "and resizes baseline_row/cutout_row to match. The Ideal and "
+        "Universal-variant entries come from the 1920 Hammond type-shuttle "
+        "catalog; most catalogued shuttles differ only in TYPEFACE, which "
+        "is the Font tab's job, not a layout change. Fractions swaps 9 "
+        "figure slots for fractions and moves & onto the shifted . key; "
+        "Caps and Small Caps types capitals on the unshifted row too."
     ),
     "hammond_split": (
         "IDEAL is Hammond's proprietary key arrangement; UNIVERSAL is "
@@ -151,9 +157,12 @@ LAYOUT_PICKER_HELP = {
         "are real values found in the source history (see SESSION_LOG.md "
         "part 77). Char_Mod (Font & Alignment tab) only has an effect "
         "under IDEAL (⅌), since ⅌ isn't in IDEAL (£)'s rows at all. "
-        "IDEAL, Standard / IDEAL, Fractions / UNIVERSAL come from the "
-        "1920 Hammond type-shuttle catalog instead - Fractions differs "
-        "from IDEAL (£) only in reading 9(0) where v1/v2 read 9[0]."
+        "The IDEAL, Standard / IDEAL, Fractions / UNIVERSAL* entries come "
+        "from the 1920 Hammond type-shuttle catalog instead - IDEAL, "
+        "Fractions differs from IDEAL (£) only in reading 9(0) where "
+        "v1/v2 read 9[0]. UNIVERSAL, Fractions swaps 9 figure slots for "
+        "fractions and moves & onto the shifted . key; UNIVERSAL, Caps "
+        "and Small Caps types capitals on the unshifted row too."
     ),
     "selectric12": (
         "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
