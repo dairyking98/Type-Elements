@@ -23,7 +23,11 @@ if/elif chain" rule).
 from .bennett_layout import LAYOUT_PRESETS_BENNETT
 from .blickensderfer_layout import LAYOUT_PRESETS
 from .hammond_layout import (
+    CATALOG_IDEAL_DUTCH,
     CATALOG_IDEAL_FRACTIONS,
+    CATALOG_IDEAL_SPANISH,
+    CATALOG_IDEAL_SPANISH_CAPS,
+    CATALOG_IDEAL_SPANISH_CENT,
     CATALOG_IDEAL_STANDARD,
     CATALOG_SHUTTLES,
     CATALOG_UNIVERSAL_CAPS_SMALL_CAPS,
@@ -78,6 +82,10 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Ideal, Fractions": [3.74, -1.21, -5.71],
         "Universal, Fractions": [3.74, -1.21, -5.71],
         "Universal, Caps and Small Caps": [3.74, -1.21, -5.71],
+        "Ideal, Dutch": [3.74, -1.21, -5.71],
+        "Ideal, Spanish": [3.74, -1.21, -5.71],
+        "Ideal, Spanish (¢)": [3.74, -1.21, -5.71],
+        "Ideal, Spanish Caps and Small Caps": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
@@ -139,30 +147,22 @@ LAYOUT_PICKER_HELP = {
     ),
     "hammond": (
         "Universal is qwerty; Ideal is Hammond's own proprietary key "
-        "arrangement, not a qwerty remap. Math Universal has 4 rows "
-        "instead of 3 - selecting it switches Shuttle_Height and the "
-        "resin-support layout to the Math shuttle variant automatically "
-        "(Is_Math is derived from the row count, not a separate toggle), "
-        "and resizes baseline_row/cutout_row to match. The Ideal and "
-        "Universal-variant entries come from the 1920 Hammond type-shuttle "
-        "catalog; most catalogued shuttles differ only in TYPEFACE, which "
-        "is the Font tab's job, not a layout change. Fractions swaps 9 "
-        "figure slots for fractions and moves & onto the shifted . key; "
-        "Caps and Small Caps types capitals on the unshifted row too."
+        "arrangement, not a qwerty remap. Math Universal has 4 rows instead "
+        "of 3 - selecting it switches Shuttle_Height and the resin-support "
+        "layout automatically (Is_Math derives from the row count) and "
+        "resizes baseline_row/cutout_row to match. The rest come from "
+        "Hammond's own 1920 and 1915 type-shuttle catalogs; most catalogued "
+        "shuttles differ only in TYPEFACE, which is the Font tab's job, not "
+        "a layout change."
     ),
     "hammond_split": (
         "IDEAL is Hammond's proprietary key arrangement; UNIVERSAL is "
-        "qwerty. IDEAL (£) is the shipped default; IDEAL (⅌) swaps in the "
-        "per-unit sign at that same figures-row position instead - both "
-        "are real values found in the source history (see SESSION_LOG.md "
-        "part 77). Char_Mod (Font & Alignment tab) only has an effect "
-        "under IDEAL (⅌), since ⅌ isn't in IDEAL (£)'s rows at all. "
-        "The IDEAL, Standard / IDEAL, Fractions / UNIVERSAL* entries come "
-        "from the 1920 Hammond type-shuttle catalog instead - IDEAL, "
-        "Fractions differs from IDEAL (£) only in reading 9(0) where "
-        "v1/v2 read 9[0]. UNIVERSAL, Fractions swaps 9 figure slots for "
-        "fractions and moves & onto the shifted . key; UNIVERSAL, Caps "
-        "and Small Caps types capitals on the unshifted row too."
+        "qwerty. IDEAL (£) is the shipped default and IDEAL (⅌) swaps the "
+        "per-unit sign at that one figures-row position - both are real "
+        "source-history values (SESSION_LOG.md part 77), and Char_Mod (Font "
+        "& Alignment tab) only has an effect under IDEAL (⅌). The rest come "
+        "from Hammond's own 1920 and 1915 catalogs; the per-language entries "
+        "keep the Ideal key order and substitute that language's characters."
     ),
     "selectric12": (
         "8 rows: the first 4 are lowercase, the last 4 are uppercase/"

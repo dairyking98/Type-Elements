@@ -5,7 +5,11 @@ hammond_layout.py, since the printed catalog covers both machines.
 """
 
 from .hammond_layout import (
+    CATALOG_IDEAL_DUTCH,
     CATALOG_IDEAL_FRACTIONS,
+    CATALOG_IDEAL_SPANISH,
+    CATALOG_IDEAL_SPANISH_CAPS,
+    CATALOG_IDEAL_SPANISH_CENT,
     CATALOG_IDEAL_STANDARD,
     CATALOG_UNIVERSAL_CAPS_SMALL_CAPS,
     CATALOG_UNIVERSAL_FRACTIONS,
@@ -59,4 +63,9 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     "UNIVERSAL, Caps and Small Caps": list(
         CATALOG_UNIVERSAL_CAPS_SMALL_CAPS
     ),
+    # Per-language Ideal shuttles (1915 catalog)
+    "IDEAL, Dutch": list(CATALOG_IDEAL_DUTCH),
+    "IDEAL, Spanish": list(CATALOG_IDEAL_SPANISH),
+    "IDEAL, Spanish (¢)": list(CATALOG_IDEAL_SPANISH_CENT),
+    "IDEAL, Spanish Caps and Small Caps": list(CATALOG_IDEAL_SPANISH_CAPS),
 }

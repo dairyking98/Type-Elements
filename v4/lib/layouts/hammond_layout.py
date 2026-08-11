@@ -32,10 +32,11 @@ CATALOG_UNIVERSAL_STANDARD's comment.
 # The catalog's ~80 entries collapse to a handful of distinct LAYOUTS -
 # most differ only in typeface (a font choice here, not a layout), and
 # within a keyboard the letter rows are constant, so all real variation
-# is in the figures row. Only the three layouts verified character-by-
-# character against the scan are defined here; CATALOG_SHUTTLES records
-# which numbered shuttles each one covers, and which catalogued variants
-# are deliberately NOT imported yet.
+# is in the figures row. Only layouts verified character-by-character
+# against the scan are defined here (see also the 1915 per-language
+# section further down); CATALOG_SHUTTLES records which numbered shuttles
+# each one covers, and which catalogued variants are deliberately NOT
+# imported yet, with the reason for each.
 CATALOG_UNIVERSAL_STANDARD = [
     "qazwsxedcrfvtgb" "yhnujmik,ol.p;-",
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
@@ -76,6 +77,56 @@ CATALOG_UNIVERSAL_CAPS_SMALL_CAPS = [
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
     '1"@2#×3$+4%£5_¢' "6&*7'^8(°9).0=/",
 ]
+
+# ---------------------------------------------------------------------
+# Per-language Ideal layouts (1915 catalog)
+# ---------------------------------------------------------------------
+# Second primary source: "Hammond_type_Catalog_1915.pdf", 35pp, organised
+# BY LANGUAGE rather than by shuttle number - each section (Croatian,
+# Danish, Dutch, English, Polish, Portuguese, Roumanian, Russian, Servian,
+# Spanish, ...) lists the shuttles cut for that language. It independently
+# CONFIRMS the 1920-catalog layouts above: its English entries 37/10 match
+# CATALOG_IDEAL_STANDARD and 1/2 match CATALOG_IDEAL_FRACTIONS character
+# for character, five years apart.
+#
+# The layouts below keep the Ideal key ORDER and substitute the
+# language's own characters into it, so they diff against
+# CATALOG_IDEAL_STANDARD in only a few positions outside the figures row
+# (Dutch 3 in row 0 / 1 in row 1; Spanish 1 in row 0 / 0 in row 1).
+CATALOG_IDEAL_DUTCH = [
+    "özxqkjgbmpcfld," "ütaherisounwyvä",
+    "!ZXQKJGBMPCFLD;" ".TAHERISOUNWYV&",
+    # Position 29 is ƒ, the guilder sign, NOT a plain "f": row 0 already
+    # carries a lowercase f (in "...bmpcfld"), and a figures row does not
+    # repeat a letter that already has its own key. The scan shows the
+    # hooked/crossed italic form at 200dpi, and the guilder is the one
+    # currency mark a Dutch machine would need that £/$ don't cover.
+    "¾%@?½:1-2§3£4$5" "6„7”8’9(0)¼*_ƒ/",
+]
+CATALOG_IDEAL_SPANISH = [
+    "?zxqkjgbmpcfld," "átaherisounwyv:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    # ç (cedilla hook, no vertical stroke) - distinct from the ¢ that the
+    # CENT variant below carries at that same position; both were checked
+    # at 200dpi. ¨ is the diaeresis dead key (Spanish ü). The full
+    # accent set á é í ó ú ñ ¡ ¿ is present and self-consistent.
+    "¨%/_ç¡1ó2.3£4$5" "6“7”8’9(0)ñíéú¿",
+]
+# Same Spanish shuttle family, but ½ and ¢ where the above has ¨ and ç -
+# those two positions are the ONLY difference between them.
+CATALOG_IDEAL_SPANISH_CENT = [
+    "?zxqkjgbmpcfld," "átaherisounwyv:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "½%/_¢¡1ó2.3£4$5" "6“7”8’9(0)ñíéú¿",
+]
+# Spanish Caps and Small Caps - like the Universal 27/27E pair, row 0
+# types capitals too; note the accented letters in the figures row are
+# capitals to match (ÑÍÉÚ, not ñíéú).
+CATALOG_IDEAL_SPANISH_CAPS = [
+    "?ZXQKJGBMPCFLD," "ÁTAHERISOUNWYV:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "¨%/_ç¡1ó2.3£4$5" "6“7”8’9(0)ÑÍÉÚ¿",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -101,6 +152,35 @@ CATALOG_SHUTTLES = {
         "Roman, 80A Vertical Script, 97 Large Gothic Italic"
     ),
     "universal_caps_small_caps": "27, 27E",
+    # 1915 catalog, per-language Ideal shuttles
+    "ideal_dutch": (
+        "36A Small Roman, 11A Medium Roman, 12A Large Roman, 76A Gothic "
+        "Italic, 13A/102B Italic, 91A Italic Script, 78A Vertical Script"
+    ),
+    "ideal_spanish": "65 Small Roman, 16 Medium Roman, 46 Large Roman",
+    "ideal_spanish_cent": (
+        "65B Small Roman, 16B Medium Roman, 46B Large Roman"
+    ),
+    "ideal_spanish_caps": "5A Caps and Small Caps",
+    # 1915-catalog languages NOT imported. Unlike the 1920 exclusions
+    # below these are not scan-quality problems - the entries are legible
+    # - but each needs its own character-by-character verification pass
+    # (and, for several, script knowledge) before it can be trusted, and
+    # a wrong accent silently builds a wrong shuttle just like a wrong
+    # glyph does. Listed so the remaining work is visible, roughly in
+    # increasing difficulty:
+    #   Latin, accents only ...... Croatian (58, 12C), Danish (87, 88),
+    #     Portuguese (63, 63A, 63B, 106), Roumanian (92), Polish (156,
+    #     153B, 157), plus the other language sections across pp.10-20
+    #     not sampled yet.
+    #   Pre-reform Cyrillic ...... Russian (49, 35), Servian (125) - use
+    #     letters dropped in the 1918 reform (ѣ, і, ъ as a hard sign) and
+    #     need a font carrying them.
+    #   Also present: language-specific Vertical Script / Italic Script
+    #     faces (e.g. 83A Chilian, 78A Dutch) whose ornate forms make
+    #     individual accent marks hard to separate at this scan
+    #     resolution even where the underlying layout is known.
+    #
     # Catalogued but NOT imported, with the reason each one was left out.
     # These are deliberate exclusions, not an unworked backlog: where the
     # scan does not settle a character beyond doubt, no layout is better
@@ -174,4 +254,9 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Caps and Small Caps": [
         r[::-1] for r in CATALOG_UNIVERSAL_CAPS_SMALL_CAPS
     ],
+    # Per-language Ideal shuttles (1915 catalog)
+    "Ideal, Dutch": [r[::-1] for r in CATALOG_IDEAL_DUTCH],
+    "Ideal, Spanish": [r[::-1] for r in CATALOG_IDEAL_SPANISH],
+    "Ideal, Spanish (¢)": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CENT],
+    "Ideal, Spanish Caps and Small Caps": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CAPS],
 }
