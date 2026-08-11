@@ -1936,6 +1936,87 @@ LAYOUT_PRESETS_HELIOS = {
     ],
 }
 
+# ---------------------------------------------------------------------
+# Hammond type-shuttle catalog (both Hammond machines)
+# ---------------------------------------------------------------------
+# Primary source: the Hammond Typewriter Company's own "ENGLISH Type
+# Shuttles for the Hammond Typewriter" catalog, Form QQ-10M-11-20-W
+# (Nov 1920). Every entry is "<shuttle number>-<typeface>", followed by
+# three 30-character rows printed as two 15-character halves - which is
+# exactly this family's layout.rows/latitude_columns=30 shape.
+#
+# Two keyboards, and they are NOT interchangeable layouts:
+#   Universal - qwerty, the familiar arrangement.
+#   Ideal     - Hammond's own proprietary arrangement, a different set of
+#               key positions entirely (not a qwerty remap).
+# Both appear in the catalog and both are real for either machine, so
+# both are offered on hammond AND hammond_split below. NOTE the storage
+# order differs per machine and is load-bearing: hammond stores rows
+# REVERSED (see its "Normal Universal" preset), hammond_split stores them
+# in catalog reading order (lib/hammond_split.py's TextAssemble does its
+# own per-half [14-i]/[29-i] reversal). The reversal is applied
+# programmatically below rather than by hand-retyping the strings.
+#
+# The catalog's ~80 entries collapse to a handful of distinct LAYOUTS -
+# most differ only in typeface (a font choice here, not a layout), and
+# within a keyboard the letter rows are constant, so all real variation
+# is in the figures row. Only the three layouts verified character-by-
+# character against the scan are defined here; CATALOG_SHUTTLES records
+# which numbered shuttles each one covers, and which catalogued variants
+# are deliberately NOT imported yet.
+CATALOG_UNIVERSAL_STANDARD = [
+    "qazwsxedcrfvtgb" "yhnujmik,ol.p;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    '1"@2#×3$+4%£5_¢' "6&*7'^8(°9).0=/",
+]
+CATALOG_IDEAL_STANDARD = [
+    "?zxqkjgbmpcfld," ".taherisounwyv:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "=%@÷#×1+2¢3£4$5" "6“7”8’9(0)°’_”/",
+]
+CATALOG_IDEAL_FRACTIONS = [
+    "?zxqkjgbmpcfld," ".taherisounwyv:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "¾%⅞⅝½⅜1⅛2¢3£4$5" "6“7”8’9(0)¼*⅓†⅔",
+]
+
+# Which catalogued shuttles use each layout above, and what was left out.
+# Reference data for the Layout tab's help banner and for anyone adding
+# the remaining variants later - not consumed as layout content itself.
+CATALOG_SHUTTLES = {
+    "universal_standard": (
+        "23/23B Medium Roman, 24/24B Small Roman, 25/25A/25B Large Roman, "
+        "158/158A Minature Roman, 180 Petite Gothic, 96 Medium Gothic, "
+        "134 Large Gothic, 170 Clarendon, 68 Small Italic, "
+        "169 Medium Italic, 97B Large Gothic Italic, 28 Law Italic, "
+        "80 Vertical Script, 145 Multigraph (Pica)"
+    ),
+    "ideal_standard": (
+        "10/10A/10B/94 Medium Roman, 37A Small Roman, 51/51A/3B Large "
+        "Roman, 60 Gothic Italic, 118 Law Italic, 70 Vertical Script, "
+        "144A Multigraph (Pica)"
+    ),
+    "ideal_fractions": (
+        "1/48/48A Medium Roman, 2 Small Roman, 3/3A Large Roman, "
+        "4 Gothic, 5 Caps and Small Caps, 6 Italic, 9 Attic"
+    ),
+    # Catalogued but NOT imported - each needs its own figures row (and in
+    # a few cases a different letter row), transcribed and verified the
+    # same way before it can be added:
+    #   Universal fractions ...... 26, 41, 52, 162, 184, 40 (LARGE), 97,
+    #                              80A, 23F, 23G
+    #   Caps and Small Caps ...... 27, 27E, 136 (row 0 is caps, not
+    #                              lowercase - a different row SHAPE)
+    #   Medical/chemical ......... 43, 43A, 107, 179, 21, 18
+    #   Diacritical/library ...... 113, 122, 48C
+    #   Literary ................. 192, 193, 194
+    #   Non-Latin / special ...... 195 Astronomical, 196/197 International
+    #                              Phonetic, 135/135B/135C Mathematical,
+    #                              112C Greek, 59/20 German Text,
+    #                              165/167 Yiddish, 185 Check Writer
+    "not_imported": "see the comment above this key",
+}
+
 # v2/lib/layouts/hammond_layouts.scad's LAYOUTS[0]/LAYOUTS[2] (Normal_U/
 # Math_U) - the two real presets that differ in ROW COUNT (3 vs 4), which
 # no other machine's layout presets do. "Math Universal" is the "math
@@ -1958,6 +2039,12 @@ LAYOUT_PRESETS_HAMMOND = {
         "/=0>)9<(8|'7*÷6]Γ5[∝4+Δ3×∑2_\"1",
         "―ₙ₀πλ₉ωκ₈φε₇τη₆βγ₅θψ₄ρδ₃ξσ₂ζα₁",
     ],
+    # Ideal keyboard (Hammond's own proprietary layout, NOT qwerty) - the
+    # same two shuttles LAYOUT_PRESETS_HAMMOND_SPLIT carries, reversed into
+    # this machine's storage order. See CATALOG_SHUTTLES for the source and
+    # the shuttle numbers each one covers.
+    "Ideal": [r[::-1] for r in CATALOG_IDEAL_STANDARD],
+    "Ideal, Fractions": [r[::-1] for r in CATALOG_IDEAL_FRACTIONS],
 }
 
 # layout.baseline_row/cutout_row that go WITH each of the row-count-
@@ -1971,6 +2058,12 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
     "hammond": {
         "Normal Universal": [3.74, -1.21, -5.71],
         "Math Universal": [3.74, -1.21, -5.71, -9.89],
+        # Ideal is an ordinary 3-row (non-Math) shuttle, so it takes the
+        # same baselines as Normal Universal - listed explicitly rather
+        # than left to fall through, so switching Math Universal -> Ideal
+        # resizes baseline_row/cutout_row back down to 3 entries.
+        "Ideal": [3.74, -1.21, -5.71],
+        "Ideal, Fractions": [3.74, -1.21, -5.71],
     },
 }
 
@@ -1988,15 +2081,35 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
 # character differs.
 LAYOUT_PRESETS_HAMMOND_SPLIT = {
     "IDEAL (£)": [
-        "?zxqkjgdmpcfld,.taherisounwyv:",
-        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+        "?zxqkjgbmpcfld,.taherisounwyv:",
+        "!ZXQKJGBMPCFLD;-TAHERISOUNWYV&",
         "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔",
     ],
     "IDEAL (⅌)": [
-        "?zxqkjgdmpcfld,.taherisounwyv:",
-        "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&",
+        "?zxqkjgbmpcfld,.taherisounwyv:",
+        "!ZXQKJGBMPCFLD;-TAHERISOUNWYV&",
         "¾%⅞⅝½⅜1⅛2¢3⅌4$56“7”8’9[0]¼*⅓†⅔",
     ],
+    # Catalog-derived (see CATALOG_* above). This machine stores rows in
+    # catalog reading order, so they go in unreversed.
+    #
+    # "IDEAL, Fractions" is the same shuttle family as "IDEAL (£)" above
+    # but transcribed from the catalog rather than from v1/v2, and the two
+    # differ in one place: v1/v2 read "9[0]" where every catalogued Ideal
+    # entry reads "9(0)" (square vs round brackets). Both are kept -
+    # "IDEAL (£)"/"IDEAL (⅌)" preserve the source history v4 shipped with,
+    # these preserve the printed catalog - rather than silently picking a
+    # winner, same treatment as the £/⅌ pair itself.
+    "IDEAL, Standard": list(CATALOG_IDEAL_STANDARD),
+    "IDEAL, Fractions": list(CATALOG_IDEAL_FRACTIONS),
+    # Universal (qwerty). v2/hammond_split.scad:80-82 already had this as
+    # Qwerty_Element (Layout_Selection=1) but it was never wired into the
+    # picker; ported here with two characters corrected against the
+    # catalog - v2 had ⅌ at the '#'/× position and § at the '∧' position,
+    # neither of which any catalogued Universal entry shows, and both of
+    # which hammond.yaml's own Universal row already spells the catalog's
+    # way (× and ^).
+    "UNIVERSAL": list(CATALOG_UNIVERSAL_STANDARD),
 }
 
 # The 3 Selectric machines' layout.rows is 8 rows (4 lowercase then 4
@@ -2219,19 +2332,26 @@ LAYOUT_PICKER_HELP = {
         "placement_map."
     ),
     "hammond": (
-        "Math Universal has 4 rows instead of 3 - selecting it switches "
-        "Shuttle_Height and the resin-support layout to the Math shuttle "
-        "variant automatically (Is_Math is derived from the row count, "
-        "not a separate toggle), and resizes baseline_row/cutout_row to "
-        "match. Both are real v2 presets - v1's original source has "
-        "nothing extra beyond these two."
+        "Universal is qwerty; Ideal is Hammond's own proprietary key "
+        "arrangement, not a qwerty remap. Math Universal has 4 rows "
+        "instead of 3 - selecting it switches Shuttle_Height and the "
+        "resin-support layout to the Math shuttle variant automatically "
+        "(Is_Math is derived from the row count, not a separate toggle), "
+        "and resizes baseline_row/cutout_row to match. The two Ideal "
+        "entries come from the 1920 Hammond type-shuttle catalog; most "
+        "catalogued shuttles differ only in TYPEFACE, which is the Font "
+        "tab's job, not a layout change."
     ),
     "hammond_split": (
-        "IDEAL (£) is the shipped default; IDEAL (⅌) swaps in the "
+        "IDEAL is Hammond's proprietary key arrangement; UNIVERSAL is "
+        "qwerty. IDEAL (£) is the shipped default; IDEAL (⅌) swaps in the "
         "per-unit sign at that same figures-row position instead - both "
         "are real values found in the source history (see SESSION_LOG.md "
         "part 77). Char_Mod (Font & Alignment tab) only has an effect "
-        "under IDEAL (⅌), since ⅌ isn't in IDEAL (£)'s rows at all."
+        "under IDEAL (⅌), since ⅌ isn't in IDEAL (£)'s rows at all. "
+        "IDEAL, Standard / IDEAL, Fractions / UNIVERSAL come from the "
+        "1920 Hammond type-shuttle catalog instead - Fractions differs "
+        "from IDEAL (£) only in reading 9(0) where v1/v2 read 9[0]."
     ),
     "selectric12": (
         "8 rows: the first 4 are lowercase, the last 4 are uppercase/"

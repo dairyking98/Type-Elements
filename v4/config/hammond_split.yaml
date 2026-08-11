@@ -84,9 +84,20 @@ label:
 # named-layout picker (same deferred-preset treatment as hammond.yaml's
 # other 7 unwired presets - see that config's header comment).
 layout:
+  # NOTE: 'b', not 'd', at index 7 (and 'B' at index 7 of the caps row).
+  # v1/v2 both read "...jgdmpcfld..." here (v1/Hammond/
+  # HammondSplitShuttle.scad:24, v2/hammond_split.scad:76) - that is a
+  # transcription error in the ORIGINAL source, not a v4 porting slip: it
+  # drops 'b' from the layout entirely and repeats 'd' twice, which no
+  # English typewriter does. Corrected against the primary source (the
+  # Hammond Typewriter Company's own "ENGLISH Type Shuttles" catalog, Form
+  # QQ-10M-11-20-W, Nov 1920), whose Ideal entries all read
+  # "?zxqkjgbmpcfld," / "!ZXQKJGBMPCFLD;". This is the one case CLAUDE.md's
+  # "v2 is ground truth" rule defers - the catalog is what v2 was itself
+  # transcribed from.
   rows:
-    - "?zxqkjgdmpcfld,.taherisounwyv:"
-    - "!ZXQKJGDMPCFLD;-TAHERISOUNWYV&"
+    - "?zxqkjgbmpcfld,.taherisounwyv:"
+    - "!ZXQKJGBMPCFLD;-TAHERISOUNWYV&"
     - "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔"
   # Baselines[row] (v2:103-107 - Baseline_Gaps[row]+Baseline_Offset,
   # measured from the shared folder center plane, Folder_Thickness/2 - see
