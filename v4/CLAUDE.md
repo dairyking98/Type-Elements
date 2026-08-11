@@ -130,7 +130,14 @@ the cited section for the full incident).
   no pre-conditioning of the input contour.
 - **`Manifold.simplify()`/`simplify_tolerance_mm` do not exist anywhere in
   the glyph pipeline, fleet-wide - no config key, no `tune.py` field, no
-  function parameter, cylinder and spherical both, no exceptions.** This
+  function parameter, cylinder and spherical both.** The one place the
+  name still appears is `lib/heightfield_poc.py`, the abandoned
+  height-field experiment described at the end of this bullet - it is a
+  standalone POC that nothing imports and that `generate.py`/`tune.py`
+  never reach, so it is outside "the glyph pipeline" rather than an
+  exception to the rule; don't treat its surviving
+  `simplify_tolerance_mm` parameter as precedent for reintroducing one.
+  This
   went through two stages: first disabled (every call site commented
   out but the parameter still threaded through every config/signature,
   in case the regression below reappeared), later fully deleted per
@@ -188,6 +195,12 @@ the cited section for the full incident).
 - **Keep the five `quality.*_fn` facet-count knobs independent - don't
   merge them into one catch-all.** Per explicit user direction; each
   covers a distinct surface family. (`README.md` "Facet-count knobs")
+  The five are `body_fn`/`cyl_fn`/`surface_fn`/`platen_fn`/
+  `minkowski_fn`. Counting `quality.*_fn` keys in a config turns up a
+  SIXTH, `groove_fn` - that one is deliberately not in the five because
+  it isn't a facet count at all (CoreGrooves twist angular sampling, as
+  its own config comment says); it's independent for the same reason,
+  just not a member of that family.
 - **`layout.latitude_columns` must stay in sync with `placement_map`/the
   physical layout.** It's intentionally not exposed in the Layout tab's
   named-preset picker - edit it directly in the YAML only if you really
@@ -349,10 +362,10 @@ the cited section for the full incident).
   got via `patch_yaml_list_item`, or (b) deliberately YAML-only with a
   one-line comment saying so, like `layout.placement_map`/
   `char_legend`. Bennett's `element.alignment_hole_height` (also a
-  3-item list) currently gets neither - it's silently unexposed in the
-  UI with no comment explaining why it didn't get treatment (a). Don't
-  repeat that: any new list-valued key must land in (a) or (b)
-  explicitly.
+  3-item list) used to get neither - silently unexposed with no comment -
+  and has since been resolved as (b): see the comment above
+  `ELEMENT_FIELDS_BENNETT` in `tune.py`. Any new list-valued key must
+  land in (a) or (b) explicitly, the same way.
 - **Reused geometry helpers that are "almost the same" across machines
   (e.g. the top/bottom Minkowski-cleanup cap, or a shaft-bore stand-in
   cylinder) should gain a parameter in the shared `cylinder_machine.py`
@@ -477,6 +490,13 @@ the cited section for the full incident).
     sweep (`SESSION_LOG.md` part 63), not just the two files that
     happened to be touched when the module was first extracted. A new
     print of this shape anywhere is a regression, not a stylistic choice.
+    Two `report()` functions still print a similar line and are NOT
+    regressions: `glyph_poc.report()` and `heightfield_poc.report()`,
+    both reached only from their own file's `__main__` block for
+    inspecting one glyph interactively (deliberately more verbose - adds
+    bbox - and never piped through `tune.py`'s subprocess, so they need
+    no `flush=True`). Each says so in its own docstring. Nothing in the
+    `generate.py`/`tune.py` build path calls either.
 - **`generate.py`/`type_test.py`/`export_glyphs.py` write output meshes
   via `build_log.atomic_export()` (temp file in the same directory +
   `os.replace()`), never a bare `mesh.export(out_path)`.** `trimesh`'s
@@ -540,7 +560,7 @@ it).
    guessed width gets wrapped *again* on top of that, roughly doubling
    the rendered line count and pushing whatever is below it down the
    tab. (Manual `\n` is still correct where you're building literal
-   file content, e.g. the YAML/txt headers in `save_config()` - this
+   file content, e.g. the YAML/txt headers in `_save_to_yaml()` - this
    rule is only for text a `Static` renders in the TUI.)
 
 Keep the wording itself short: 1-2 sentences, no fluff, no unnecessary

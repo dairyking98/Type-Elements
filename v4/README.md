@@ -638,7 +638,13 @@ catch-all, per user direction - each covers a distinct surface family:
   not a body-level revolve.
 - `minkowski_fn` - the draft cone kernel (see "Performance" above) - by
   far the most cost-sensitive of the five, since `manifold3d`'s Minkowski
-  cost scales with the product of face counts against `points_per_mm`.
+  cost scales with the product of the two operands' face counts, and the
+  glyph operand's count is set by `flatness_tolerance_mm` (which replaced
+  the old fixed-rate `points_per_mm`).
+
+`quality:` also carries a sixth `_fn` key, `groove_fn`, which is NOT one
+of the five above: it's the CoreGrooves twist angular sampling, not a
+facet count for any surface.
 
 ### Resin print supports (`ResinPrint`)
 
