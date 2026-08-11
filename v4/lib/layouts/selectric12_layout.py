@@ -6,8 +6,9 @@ UPPERCASE88_US/S12_LC_HEMISPHERE88_US/S12_HEMISPHERE_MAP, ~lines 12-40 and
 
 The keyboard-order CHARACTER CONTENT (what v2 called LOWERCASE88_US/
 UPPERCASE88_US) now lives in config/selectric12.yaml's layout.rows and
-tune.py's LAYOUT_PRESETS_SELECTRIC12 (editable via the Layout tab), not
-here - see lib/selectric12.py's configure(), which concatenates the 4
+this module's own LAYOUT_PRESETS_SELECTRIC12 below (editable via the
+Layout tab), not in the hemisphere data here - see lib/selectric12.py's
+configure(), which concatenates the 4
 lowercase + 4 uppercase rows into the flat 44-character-per-case strings
 this module's longitude_latitude() consumes. Only the physical/fixed
 hemisphere permutation (never user-editable - see tune.py's
@@ -94,3 +95,54 @@ def longitude_latitude(cases_lower, hemisphere_map=None):
          cases_lower[i], i)
         for i in range(44)
     ]
+
+# The 3 Selectric machines' layout.rows is 8 rows (4 lowercase then 4
+# uppercase, keyboard reading order) instead of the cylinder family's
+# 3-4 shift-row shape - see config/selectric12.yaml's layout.rows comment
+# for why row boundaries here are cosmetic (only each case's flat
+# concatenated length matters - lib/layouts/selectric*_layout.py's fixed
+# hemisphere permutation indexes into that flat sequence, not these row
+# boundaries). Ported directly from v2/lib/layouts/ibm_layouts.scad.
+LAYOUT_PRESETS_SELECTRIC12 = {
+    # v2 S12_88_Language==0 (LOWERCASE88_US/UPPERCASE88_US) - the only
+    # real named language S12 has (S12_88_Language's other option is
+    # Custom, i.e. this machine's own Modify glyphs switch).
+    "UNITED_STATES": [
+        "1234567890-=",
+        "qwertyuiop½",
+        "asdfghjkl;'",
+        "zxcvbnm,./",
+        "!@#$%¢&*()_+",
+        "QWERTYUIOP¼",
+        "ASDFGHJKL:\"",
+        "ZXCVBNM,.?",
+    ],
+    # v4-only addition, not from v2 (v2's S12_88_Language only ever had
+    # US/Custom - see UNITED_STATES's own comment). Real Finnish/Swedish
+    # keyboard content, in genuine natural reading order (NOT pre-shuffled
+    # to fake-fit S12_HEMISPHERE_MAP's US-specific position calibration -
+    # an earlier attempt at that is exactly why this preset needs its own
+    # hemisphere map at all: some of this layout's keys sit at a
+    # genuinely different flat reading-order position than their US
+    # equivalent, e.g. the row-0 symbol key ordering, so no amount of
+    # character substitution alone reproduces the right typeball under
+    # the US permutation). Requires config/selectric12.yaml's layout.
+    # hemisphere_map: "finnish_swedish" (lib/layouts/selectric12_layout.
+    # py's S12_HEMISPHERE_MAP_FINNISH_SWEDISH) - selecting this preset via
+    # the Layout tab keeps that in sync automatically; hand-editing rows
+    # via Modify glyphs starting from this preset must keep it set to
+    # "finnish_swedish" too. Derived 2026-08-06 against a real physical
+    # reference and round-tripped back to an exact match against it - see
+    # SESSION_LOG.md's matching chapter for the full derivation, not
+    # hand-arranged by eye.
+    "FINNISH_SWEDISH": [
+        "1234567890´ü",
+        "qwertyuiop-",
+        "asdfghjkl.,",
+        "zxcvbnmåäö",
+        "'+§=%?&()/`£",
+        "QWERTYUIOP_",
+        "ASDFGHJKL:\"",
+        "ZXCVBNMÅÄÖ",
+    ],
+}

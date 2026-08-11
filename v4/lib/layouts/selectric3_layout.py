@@ -5,8 +5,9 @@ UPPERCASE96_US/S3_LC_HEMISPHERE96/S3_HEMISPHERE_MAP, ~lines 55-93).
 
 The keyboard-order CHARACTER CONTENT (what v2 called LOWERCASE96_US/
 UPPERCASE96_US) now lives in config/selectric3.yaml's layout.rows and
-tune.py's LAYOUT_PRESETS_SELECTRIC3 (editable via the Layout tab), not
-here - see lib/selectric3.py's configure(). v2's 5 physical print-lines
+this module's own LAYOUT_PRESETS_SELECTRIC3 below (editable via the
+Layout tab), not in the hemisphere data here - see lib/selectric3.py's
+configure(). v2's 5 physical print-lines
 (13+12+11+10+2=48 characters) do NOT correspond to the ball's 4 physical
 rows - that's a keyboard-typing-layout artifact only; the real row
 assignment comes from S3_HEMISPHERE_MAP[i] // HEMISPHERE_COLS_PER_ROW,
@@ -102,3 +103,45 @@ def longitude_latitude(cases_lower, hemisphere_map=None):
          cases_lower[i], i)
         for i in range(48)
     ]
+
+LAYOUT_PRESETS_SELECTRIC3 = {
+    # v2 has no language-variant preset for Selectric III at all
+    # ("Selectric III has no custom-language variant yet",
+    # ibm_layouts.scad:203) - LOWERCASE96_US/UPPERCASE96_US is the only
+    # real layout.
+    "UNITED_STATES": [
+        "±1234567890-=",
+        "qwertyuiop½]",
+        "asdfghjkl;'",
+        "zxcvbnm,./²§",
+        "°!@#$%¢&*()_+",
+        "QWERTYUIOP¼[",
+        "ASDFGHJKL:\"",
+        "ZXCVBNM,.?³¶",
+    ],
+    # v4-only addition, not from v2 (v2's Selectric III has no language
+    # variant at all - see UNITED_STATES's own comment). Real Finnish/
+    # Swedish Selectric III keyboard content, in genuine natural reading
+    # order - it's a real ISO keyboard (has the extra key left of Z that
+    # US/ANSI lacks), so its own row lengths are 13/12/12/11, not US's
+    # 13/12/11/12. Requires config/selectric3.yaml's layout.
+    # hemisphere_map: "finnish_swedish" (lib/layouts/selectric3_layout.
+    # py's S3_HEMISPHERE_MAP_FINNISH_SWEDISH) - selecting this preset via
+    # the Layout tab keeps that in sync automatically (see
+    # LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE); hand-editing rows via
+    # Modify glyphs starting from this preset must keep it set to
+    # "finnish_swedish" too. Derived 2026-08-10 against a real physical
+    # reference and round-tripped back to an exact match against it (see
+    # lib/layouts/selectric3_layout.py's own derivation comment) - not
+    # hand-arranged by eye.
+    "FINNISH_SWEDISH": [
+        "½1234567890+´",
+        "qwertyuiopå¨",
+        "asdfghjklöä'",
+        "<zxcvbnm,.-",
+        "§!\"£$%&/()=?`",
+        "QWERTYUIOPÅ^",
+        "ASDFGHJKLÖÄ*",
+        ">ZXCVBNM;:_",
+    ],
+}

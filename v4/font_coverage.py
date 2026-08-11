@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Scans a font library for glyph coverage against a target character set - a
-named machine layout preset (tune.py's LAYOUT_PRESETS_BY_MACHINE), a
+named machine layout preset (lib/layouts' LAYOUT_PRESETS_BY_MACHINE), a
 config's currently active layout.rows, or a literal string - and reports
 which fonts have every glyph, which are close, and which are missing what.
 
@@ -21,8 +21,8 @@ Usage:
     # FONT_AUDIT.md found - slow, minutes over a 1000+ font library):
     python3 font_coverage.py --preset hammond:"Math Universal" --deep
 
---preset needs textual importable (tune.py's own dependency) - run via
-.venv/bin/python3 if it's not on your system Python.
+--preset reads lib/layouts, which is plain data with no third-party
+imports, so it no longer needs tune.py's TUI dependency stack installed.
 """
 
 import argparse
@@ -47,15 +47,14 @@ def charset_from_preset(spec):
     machine, sep, preset = spec.partition(":")
     if not sep:
         raise SystemExit(f'--preset expects MACHINE:"Preset Name", got {spec!r}')
-    try:
-        import tune
-    except ModuleNotFoundError as e:
-        raise SystemExit(
-            f"--preset needs tune.py's own dependencies ({e}) - run via .venv/bin/python3")
-    presets = tune.LAYOUT_PRESETS_BY_MACHINE.get(machine)
+    # lib/layouts is plain data with no third-party imports, so --preset no
+    # longer drags in tune.py's TUI dependency stack (it used to import tune
+    # purely to reach these tables, which meant textual had to be installed).
+    from lib.layouts import LAYOUT_PRESETS_BY_MACHINE
+    presets = LAYOUT_PRESETS_BY_MACHINE.get(machine)
     if presets is None:
         raise SystemExit(f"unknown machine {machine!r} - choices: "
-                          f"{sorted(tune.LAYOUT_PRESETS_BY_MACHINE)}")
+                          f"{sorted(LAYOUT_PRESETS_BY_MACHINE)}")
     rows = presets.get(preset)
     if rows is None:
         raise SystemExit(f"unknown preset {preset!r} for {machine!r} - choices: {sorted(presets)}")

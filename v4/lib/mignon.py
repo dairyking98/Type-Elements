@@ -171,7 +171,7 @@ def configure(config_path):
     g["PLACEMENT_MAP"] = layout["placement_map"]
     # v2/mignon.scad:88,275 - Char_Legend=[7,8,9,10,11,0,1,2,3,4,5,6],
     # Physical_Layout=[for (row) [for (col) Layout[row][Char_Legend[col]]]].
-    # layout.rows (config, and tune.py's LAYOUT_PRESETS_MIGNON) is stored in
+    # layout.rows (config, and lib/layouts/mignon_layout.py's LAYOUT_PRESETS_MIGNON) is stored in
     # RAW KEYBOARD-LEGEND order (v2's `Layout` - what's printed on the
     # physical keyboard/manual), so it can be typed/read the way a person
     # actually reads the legend; DHIATENSOR needs the Char_Legend-remapped

@@ -6,8 +6,9 @@ COMPOSER_HEMISPHERE_MAP, ~lines 97-231).
 
 The keyboard-order CHARACTER CONTENT (what v2 called LOWERCASECOMPOSER_*/
 UPPERCASECOMPOSER_*) now lives in config/selectric_composer.yaml's
-layout.rows and tune.py's LAYOUT_PRESETS_SELECTRIC_COMPOSER (editable via
-the Layout tab), not here - see lib/selectric_composer.py's configure().
+layout.rows and this module's own LAYOUT_PRESETS_SELECTRIC_COMPOSER below
+(editable via the Layout tab), not in the hemisphere data here - see
+lib/selectric_composer.py's configure().
 All 5 of v2's real language variants (US/UK/Nordic/German/Latin - ALL_C
 in ibm_layouts.scad:100-197) are ported as named presets there now (v2's
 Custom slot is the Layout tab's "Modify glyphs" switch instead). Per v2's
@@ -56,3 +57,63 @@ def longitude_latitude(cases_lower):
          cases_lower[i], i)
         for i in range(44)
     ]
+
+# v2's ALL_C (ibm_layouts.scad:100-197) - all 5 real Composer language
+# variants (v2's 6th ALL_C entry, Custom, is this machine's own Modify
+# glyphs switch instead). All 5 share the identical row-length shape
+# (12/11/11/10 per case) and the SAME fixed hemisphere permutation
+# (COMPOSER_HEMISPHERE_MAP, derived from US only and reused across
+# languages per v2's own comment - see lib/layouts/
+# selectric_composer_layout.py) - only glyph content changes per preset.
+LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
+    "UNITED_STATES": [
+        "1234567890-=",
+        "qwertyuiop?",
+        "asdfghjkl][",
+        "zxcvbnm,.;",
+        "!†+$%/&*()–@",
+        "QWERTYUIOP¾",
+        "ASDFGHJKL¼½",
+        "ZXCVBNM‘’:",
+    ],
+    "UNITED_KINGDOM": [
+        "1234567890-=",
+        "qwertyuiop?",
+        "asdfghjkl][",
+        "zxcvbnm,.;",
+        "!†+£%/&*()–@",
+        "QWERTYUIOP¾",
+        "ASDFGHJKL¼½",
+        "ZXCVBNM‘’:",
+    ],
+    "NORDIC": [
+        "1234567890-ø",
+        "qwertyuiopå",
+        "asdfghjklöä",
+        "zxcvbnm,.;",
+        "»!?§%/&=()–Ø",
+        "QWERTYUIOPÅ",
+        "ASDFGHJKLÖÄ",
+        "ZXCVBNM‘’:",
+    ],
+    "GERMAN": [
+        "1234567890-ß",
+        "qwertyuiopü",
+        "asdfghjklöä",
+        "zxcvbnm,.;",
+        "!=+§%/&*()–?",
+        "QWERTYUIOPÜ",
+        "ASDFGHJKLÖÄ",
+        "ZXCVBNM‘’:",
+    ],
+    "LATIN": [
+        "1234567890-ñ",
+        "qwertyuiopˆ",
+        "asdfghjkl´ç",
+        "zxcvbnm,.;",
+        "ı¿¡$!/&*()–Ñ",
+        "QWERTYUIOP¨",
+        "ASDFGHJKL`?",
+        "ZXCVBNM‘’:",
+    ],
+}

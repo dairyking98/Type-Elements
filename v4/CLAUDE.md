@@ -392,6 +392,28 @@ the cited section for the full incident).
 - **Use `Select.NULL`, not `Select.BLANK`.** In the installed `textual`
   version, `Select.BLANK` equals `False`, not a real sentinel.
   (`SESSION_LOG.md` part 7)
+- **No layout data lives in `tune.py`. Every machine's keyboard/typeball
+  layout presets live in `lib/layouts/<machine>_layout.py`, aggregated by
+  `lib/layouts/__init__.py`, which `tune.py` imports.** Adding a machine
+  means adding one module there plus one entry in each of that
+  `__init__.py`'s `LAYOUT_PRESETS_BY_MACHINE`/`LAYOUT_PICKER_HELP` (and
+  `LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE`/
+  `LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE` if that machine needs them) -
+  never a new `LAYOUT_PRESETS_*` dict in the TUI. Per explicit user
+  direction; ~840 lines of preset data were moved out of `tune.py` to
+  establish this, verified table-for-table identical before/after. Two
+  consequences worth knowing:
+  - **`lib/layouts/` is reachable under TWO module names** - `lib.layouts`
+    (repo root on `sys.path`: `tune.py`, `font_coverage.py`) and plain
+    `layouts` (`lib/` itself on `sys.path`: `lib/selectric12.py`'s `from
+    layouts.selectric12_layout import ...`). So its internal imports MUST
+    be relative (`from .hammond_layout import ...`); an absolute
+    `from lib.layouts...` resolves under only one of the two names and
+    would also let the package load twice as two distinct module objects.
+  - **Keep it free of third-party imports** - it's pure data, so
+    `font_coverage.py --preset` can read presets without dragging in
+    `textual`/the whole TUI dependency stack (it used to `import tune`
+    purely to reach these tables).
 - **All build-pipeline console output goes through `lib/build_log.py`,
   not a hand-written `print()`.** Extracted after real drift was found:
   `glyph_poc.py` had its own `report()` that nothing in the actual
@@ -518,8 +540,14 @@ Before calling any change to glyph/mesh/assembly code done, run
 final summary line against a pre-change baseline:
 
 ```
-python3 generate.py config/<name>.yaml --points-per-mm 8 --cone-segments 12 --no-core-groove --no-minkowski --out /tmp/check.stl
+.venv/bin/python3 generate.py config/<name>.yaml --flatness-tolerance-mm 0.05 --cone-segments 12 --no-core-groove --no-minkowski --out /tmp/check.stl
 ```
+
+(This line used to read `--points-per-mm 8`, which no longer parses -
+that flag was removed fleet-wide when contour sampling became adaptive,
+see "Geometry invariants" above. `--flatness-tolerance-mm` is its
+replacement. Note `.venv/bin/python3`, not bare `python3` - `trimesh` and
+the rest of the build stack are only installed in the venv.)
 
 `--no-minkowski` skips the (slow, minutes-per-config) Minkowski draft
 sweep - the gate only needs a change's effect on the underlying
