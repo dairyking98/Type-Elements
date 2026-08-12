@@ -458,6 +458,21 @@ the cited section for the full incident).
     builds a WRONG typeball with every character still present. Each
     module asserts full pairing coverage at import to turn that silent
     bad-geometry failure into a loud one; keep those asserts.
+- **A new tab goes in `_tab_specs()`, not straight into
+  `_compose_tuner_ui()`.** That method returns `(pane id, nav label,
+  compose callable)` for every tab the loaded machine gets, and BOTH the
+  section-nav list (the vertical list down the left of the form) and the
+  `TabbedContent` panes are built from it - adding a tab to only one of
+  them is the failure this shape exists to prevent, and the machine-
+  conditional tabs (Bennett's Label-instead-of-Logo, the Selectrics'
+  missing Layout/Calibration, Type Slug's Character/Ticks) make that easy
+  to do by hand. `TabbedContent` is still what owns which pane is
+  visible; only its own horizontal tab bar is hidden (`#tabs ContentTabs
+  { display: none; }`), so tab ids and every `_compose_*_tab` method are
+  unchanged. Reported as "the tab selection is cumbersome to use. you
+  dont see the other options" - a machine has up to 14 sections and the
+  horizontal bar showed about five, with no indication the rest existed.
+  If you re-add a horizontal bar, you re-create that.
 - **Which fonts count as "installed" on a given OS is
   `lib/system_fonts.py`'s question, not `tune.py`'s** - same split as
   `lib/layouts/` above. `fc-list` (fontconfig) is the Linux source of

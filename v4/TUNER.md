@@ -11,10 +11,18 @@ python3 tune.py config/blickensderfer.yaml   # skip the picker, load directly
 ```
 
 A `textual` TUI for iterating on the config without hand-editing YAML or
-re-running the CLI. Tabs: **Font & Alignment**, **Type Test**, **Resin**,
-**Gauge**, **Build**, **Layout**, **Quality**, **Logo**, **Element** (the
-last flagged as advanced - core geometry, not usually touched). A
-persistent **RENDER TEST TEXT** button (outside the tab area, always
+re-running the CLI. Sections are listed down the left-hand side of the
+form - **Font & Alignment**, **Type Test**, **Resin**, **Gauge**,
+**Build**, **Font Coverage**, **Layout**, **Quality**, **Logo**,
+**Element** (the last flagged as advanced - core geometry, not usually
+touched), plus whichever of **Character**, **Ticks**, **Calibration**,
+**Label**, **Rib** and **Legend** the loaded machine has. Click one, or
+arrow through the list, to switch. Every section a machine has is visible
+at once; the list is a vertical column rather than a row of tabs because
+a machine can have up to 14 of them, and a horizontal bar showed about
+five with no hint the rest existed.
+
+A persistent **RENDER TEST TEXT** button (below the sections, always
 visible) launches/raises `f3d` in orthographic Top View
 (`f3d_top_view_cmds.txt`, `set_camera top` - reverse-engineered from
 `libf3d.so`'s own command strings after a hand-derived

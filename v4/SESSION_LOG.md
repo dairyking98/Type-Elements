@@ -6097,3 +6097,69 @@ checkout rather than in the code:
    `stash@{1}` there holds `encoding="utf-8"` fixes for 10 machine
    modules that are already upstream verbatim; it's redundant and can be
    dropped.
+
+## 84. Sections moved off the horizontal tab bar onto a vertical list - all of them visible at once (2026-08-12)
+
+Reported: "the tab selection in tuner.py is cumbersome to use. you dont
+see the other options. maybe we can take up some more space that occupies
+the console output for better/easier navigation."
+
+Confirmed before changing anything, by rendering Mignon's form at 150x40:
+12 tabs exist, five fit ("Font & Alignment, Type Test, Resin,
+Calibration, Build"), and the remaining seven are off the end of the bar
+with nothing on screen saying so. Machines run 9-14 sections.
+
+The tab bar is now a vertical list down the left of the form
+(`#section-nav`, an `OptionList`), and `TabbedContent`'s own horizontal
+bar is hidden in CSS. Vertical rather than a wrapped/two-row horizontal
+bar because the cost lands on width, which the log pane can spare, rather
+than height, which the form cannot.
+
+`TabbedContent` itself stays - it still owns which pane is visible, so
+every `_compose_*_tab` method, every tab id, and the Build tab's
+`tab-build`-style ids are untouched. Highlighting a section in the list
+sets `TabbedContent.active`; switching happens on HIGHLIGHTED rather than
+SELECTED so arrowing through the list moves through sections live, the
+way the old bar's left/right did.
+
+### `_tab_specs()`
+
+The nav list and the panes have to agree about which tabs exist, and that
+set is genuinely machine-conditional (Bennett has Label where others have
+Logo, the Selectrics have no Layout or Calibration, only the Type Slug
+family has Character/Ticks). Rather than repeat that branching, one new
+method returns `(pane id, nav label, compose callable)` per tab and both
+are built from it. `_compose_section_tab`'s inline pane-id derivation
+became `_section_tab_id()` so the nav can point at the same ids.
+
+### Widths, and the overlap bug this surfaced
+
+`#form` went 58 -> 78: the nav's 20 columns are added to what was there,
+so the content half stays 56 and no field row re-lays out. `max-width:
+70%` keeps a narrow terminal from starving the log pane. Verified at
+150x40 (form 78, log 72) and 100x30 (form 68, log 26).
+
+One real bug found by checking regions rather than eyeballing the render:
+`TabbedContent`'s own `DEFAULT_CSS` is `width: 100%`, which inside the
+new `Horizontal` means 100% of the whole row, not the part left over
+beside the nav - so it laid out 76 columns wide starting at x=21, running
+20 columns past the form's right edge and under the log pane. Fixed with
+an explicit `#tabs { width: 1fr; }`. The tests now assert that nothing in
+the form spills past its right edge, since the crude text-extraction
+screenshots did NOT make this obvious - overlapping widgets just look
+like merged text.
+
+### Verified
+
+Headless across Blickensderfer, Hammond, Mignon, Bennett and Selectric 12
+(scratch config copies only): nav entries and pane ids match exactly and
+in order, every section is reachable and actually switches the visible
+pane, every machine's full section list fits without scrolling at both
+150x40 and 100x30, arrow keys move through sections, and no widget
+overflows the form pane. The font-picker tests from part 83 all still
+pass against the new layout.
+
+### Resuming later
+
+Part 81's punch list and part 83's Windows-checkout note are unchanged.
+Nothing new opened here.

@@ -72,7 +72,11 @@ matching just its value token on its own line (or, for layout.rows, the
 whole 3-item block), leaving everything else (comments, formatting,
 unrelated keys) untouched.
 
-Tabs (in display order):
+Tabs (in display order). Which ones a given machine gets is decided in
+one place, _tab_specs() - the section-nav list down the left of the form
+and the TabbedContent panes themselves are both built from it, so they
+can't disagree. TabbedContent's own horizontal tab bar is hidden; that
+list replaces it (see _compose_tuner_ui):
   Font & Alignment - font.* + alignment.* (combined, both are "how
     characters are placed/rendered" concerns). alignment.mode is a
     dropdown ("center"/"left"), not free text. font.path has two
@@ -2002,7 +2006,26 @@ class SystemFontPicker(ModalScreen[str | None]):
 class TuneApp(App):
     CSS = """
     Screen { layout: horizontal; }
-    #form { width: 58; height: 100%; border: solid $accent; }
+    /* 58 was the whole form pane before the section-nav list existed;
+       it's now the CONTENT half, with the nav's 20 added on top. The
+       max-width keeps a narrow terminal from handing the form so much
+       that the log pane has nowhere to go. */
+    #form { width: 78; max-width: 70%; height: 100%; border: solid $accent; }
+    #form-body { height: 1fr; }
+    #section-nav { width: 20; height: 1fr; border: none; border-right: solid $accent;
+        padding: 0; background: transparent; }
+    /* The highlighted row IS "which section you're looking at", so it has
+       to read as selected even when focus is in a field somewhere - the
+       default styling only stands out while the list itself has focus. */
+    #section-nav > .option-list--option-highlighted {
+        background: $accent; color: $text; text-style: bold; }
+    /* width: 1fr is load-bearing - TabbedContent's own DEFAULT_CSS is
+       width: 100%, which inside #form-body means 100% of the WHOLE row,
+       not the part left over beside the nav, so without this it lays out
+       20 columns wider than the form pane and overlaps the log pane. */
+    #tabs { width: 1fr; }
+    /* TabbedContent's own horizontal tab bar - replaced by #section-nav */
+    #tabs ContentTabs { display: none; }
     #log-pane { width: 1fr; height: 100%; border: solid $accent; padding: 0 1; }
     #log { height: 1fr; }
     #progress-row { height: 1; margin-top: 1; }
@@ -2444,9 +2467,17 @@ class TuneApp(App):
         else:
             w.value = value
 
+    @staticmethod
+    def _section_tab_id(section):
+        """A generic (SECTIONS-driven) tab's pane id. Shared with
+        _tab_specs, which needs the same id to point the section-nav list
+        at the right pane - deriving it in two places is how the nav and
+        the panes would drift."""
+        return f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"
+
     def _compose_section_tab(self, section):
         fields = self.SECTIONS[section]
-        tab_id = f"tab-{section.lower().replace(' ', '-').replace('&', 'and')}"
+        tab_id = self._section_tab_id(section)
         with TabPane(section, id=tab_id):
             with VerticalScroll():
                 intro = SECTION_INTROS.get(section)
@@ -3047,54 +3078,89 @@ class TuneApp(App):
                             else:
                                 yield btn
 
+    def _tab_specs(self):
+        """(pane id, nav label, compose callable) for every tab THIS
+        machine gets, in display order - the one source both the
+        section-nav list and the TabbedContent panes are built from, so a
+        machine-conditional tab can't appear in one and not the other.
+
+        Which tabs a machine gets is genuinely conditional (Bennett has
+        Label where others have Logo, the Selectrics have no Layout or
+        Calibration, only the Type Slug family has Character/Ticks), which
+        is why this is a method returning a per-machine list rather than a
+        module-level table."""
+        def section(name):
+            return (self._section_tab_id(name), name,
+                    lambda name=name: self._compose_section_tab(name))
+
+        specs = [section("Font & Alignment")]
+        # "Character" - Type Slug family only (which character(s) get
+        # struck - see CHARACTER_FIELDS_WING_SLUG/_BOX_SLUG).
+        if "Character" in self.SECTIONS:
+            specs.append(section("Character"))
+        specs.append(("tab-type-test", "Type Test", self._compose_type_test_tab))
+        specs.append(section("Resin"))
+        if "Gauge" in self.SECTIONS:
+            specs.append(section("Gauge"))
+        # "Ticks" - Gauge Slug only (its tick-mark measuring ladder - see
+        # TICKS_FIELDS_GAUGE_SLUG's own comment for why this is a separate
+        # section from "Gauge" above).
+        if "Ticks" in self.SECTIONS:
+            specs.append(section("Ticks"))
+        # no "Calibration" key for the Selectric family - no
+        # CalibrationElement/CalibrationAdditive implemented yet (see
+        # SECTIONS_BY_MACHINE's Selectric comment).
+        if "Calibration" in self.SECTIONS:
+            specs.append(section("Calibration"))
+        specs.append(("tab-build", "Build", self._compose_build_tab))
+        specs.append(("tab-font-coverage", "Font Coverage", self._compose_font_coverage_tab))
+        # no editable keyboard-layout concept for the Selectric family
+        # (see self.HAS_LAYOUT_TAB's own comment).
+        if self.HAS_LAYOUT_TAB:
+            specs.append(("tab-layout", "Layout", self._compose_layout_tab))
+        specs.append(section("Quality"))
+        # no "Logo" key for Bennett - its one engraved-text feature is the
+        # "Label" tab instead (see LABEL_FIELDS_BENNETT).
+        if "Logo" in self.SECTIONS:
+            specs.append(section("Logo"))
+        if "Label" in self.SECTIONS:
+            specs.append(section("Label"))
+        specs.append(section("Element"))
+        if "Rib" in self.SECTIONS:
+            specs.append(section("Rib"))
+        # only machines with an actual v1 index/legend card ported (see
+        # lib/mignon_legend.py/lib/hammond_legend.py) get this tab - not
+        # every machine has one.
+        if "Legend" in self.SECTIONS:
+            specs.append(section("Legend"))
+        return specs
+
     def _compose_tuner_ui(self):
+        specs = self._tab_specs()
         with Vertical(id="form"):
             yield Static(self._status_text(), id="status")
             with Horizontal(id="status-row"):
                 yield Button("Browse", id="browse-config", classes="browse-btn")
                 yield Button("Reset to Defaults", id="btn-reset-defaults", variant="error")
                 yield Button("Change Machine", id="btn-change-machine")
-            with TabbedContent():
-                yield from self._compose_section_tab("Font & Alignment")
-                # "Character" - Type Slug family only (which character(s)
-                # get struck - see CHARACTER_FIELDS_WING_SLUG/_BOX_SLUG).
-                if "Character" in self.SECTIONS:
-                    yield from self._compose_section_tab("Character")
-                yield from self._compose_type_test_tab()
-                yield from self._compose_section_tab("Resin")
-                if "Gauge" in self.SECTIONS:
-                    yield from self._compose_section_tab("Gauge")
-                # "Ticks" - Gauge Slug only (its tick-mark measuring
-                # ladder - see TICKS_FIELDS_GAUGE_SLUG's own comment for
-                # why this is a separate section from "Gauge" above).
-                if "Ticks" in self.SECTIONS:
-                    yield from self._compose_section_tab("Ticks")
-                # no "Calibration" key for the Selectric family - no
-                # CalibrationElement/CalibrationAdditive implemented yet
-                # (see SECTIONS_BY_MACHINE's Selectric comment).
-                if "Calibration" in self.SECTIONS:
-                    yield from self._compose_section_tab("Calibration")
-                yield from self._compose_build_tab()
-                yield from self._compose_font_coverage_tab()
-                # no editable keyboard-layout concept for the Selectric
-                # family (see self.HAS_LAYOUT_TAB's own comment).
-                if self.HAS_LAYOUT_TAB:
-                    yield from self._compose_layout_tab()
-                yield from self._compose_section_tab("Quality")
-                # no "Logo" key for Bennett - its one engraved-text feature
-                # is the "Label" tab instead (see LABEL_FIELDS_BENNETT).
-                if "Logo" in self.SECTIONS:
-                    yield from self._compose_section_tab("Logo")
-                if "Label" in self.SECTIONS:
-                    yield from self._compose_section_tab("Label")
-                yield from self._compose_section_tab("Element")
-                if "Rib" in self.SECTIONS:
-                    yield from self._compose_section_tab("Rib")
-                # only machines with an actual v1 index/legend card ported
-                # (see lib/mignon_legend.py/lib/hammond_legend.py) get this
-                # tab - not every machine has one.
-                if "Legend" in self.SECTIONS:
-                    yield from self._compose_section_tab("Legend")
+            # Sections are navigated by the vertical list on the left, not
+            # by TabbedContent's own horizontal tab bar (hidden in CSS -
+            # see "#tabs ContentTabs"). Reported as "the tab selection is
+            # cumbersome to use. you dont see the other options": a
+            # machine has up to 14 sections, and the horizontal bar showed
+            # about five of them in the form pane's width with no
+            # indication the rest existed. A vertical list shows every
+            # section at once, and costs width (taken from the log pane)
+            # rather than the height a wrapped/two-row tab bar would.
+            # TabbedContent itself is kept - it still owns which pane is
+            # visible, so every _compose_*_tab method and every tab id is
+            # unchanged.
+            with Horizontal(id="form-body"):
+                yield OptionList(*[Option(title, id=tab_id) for tab_id, title, _fn in specs],
+                                 id="section-nav")
+                with TabbedContent(id="tabs"):
+                    for _tab_id, _title, compose_fn in specs:
+                        yield from compose_fn()
 
             with Vertical(id="buttons"):
                 # short, wide, and OUTSIDE the TabbedContent (unlike the
@@ -4118,6 +4184,20 @@ class TuneApp(App):
         except NoMatches:
             return
         label.update(_font_display_name(event.value))
+
+    def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        """Section-nav list -> which TabbedContent pane is showing. On
+        HIGHLIGHTED rather than SELECTED so arrowing through the list
+        moves through the sections live, the way the old tab bar's
+        left/right did - a click highlights too, so mouse use is
+        unaffected. (SystemFontPicker's own list never reaches here - that
+        screen stops its own OptionList messages.)"""
+        if event.option_list.id != "section-nav":
+            return
+        event.stop()
+        tab_id = event.option.id
+        if tab_id:
+            self.query_one("#tabs", TabbedContent).active = tab_id
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         if event.switch.id == "layout-use-extra-rows":
