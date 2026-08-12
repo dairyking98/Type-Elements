@@ -55,7 +55,7 @@ reading a glyph off a scan, and that reasoning is the part worth keeping.</p>
 is the narrative; those modules are the source of truth for the values.</p>
 
 <p>For the complete shuttle-by-shuttle enumeration with import status, see
-<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 252 of 346 catalogued Hammond
+<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 254 of 346 catalogued Hammond
 shuttles are currently covered.</p>
 
 <hr />
@@ -257,6 +257,19 @@ to codepoints is the problem — acute vs tonos, perispomeni vs a plain
 tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.</p>
+
+<p><strong>Derive a near-identical variant, don’t retype it.</strong> The three
+Mathematical shuttles differ in exactly two figures-row positions — 135
+<code class="language-plaintext highlighter-rouge">*</code>/<code class="language-plaintext highlighter-rouge">|</code>, 135B <code class="language-plaintext highlighter-rouge">{</code>/<code class="language-plaintext highlighter-rouge">}</code>, 135C <code class="language-plaintext highlighter-rouge">ν</code>/<code class="language-plaintext highlighter-rouge">μ</code>. 135B is built from 135 by
+substituting those two characters programmatically, so the only
+difference between the two presets is the one actually observed.
+Retyping four 30-character rows of Greek and mathematical symbols to
+change two of them is precisely how a transcription error gets
+introduced — the thing this whole document exists to avoid.</p>
+
+<p>This also confirmed the shipped <code class="language-plaintext highlighter-rouge">Universal, Math</code> layout, which came from
+v2 rather than the catalog: it matches shuttle 135 character for
+character.</p>
 
 <p><strong>Quote marks are a real character, and I got five of them wrong.</strong> The
 Universal German/Dutch figures row has <code class="language-plaintext highlighter-rouge">“</code> (U+201C) at position 4, not
@@ -532,6 +545,10 @@ both.</p>
     <tr>
       <td>Universal, Polish</td>
       <td>141, 30, 150C</td>
+    </tr>
+    <tr>
+      <td>Universal, Math (braces)</td>
+      <td>135B</td>
     </tr>
   </tbody>
 </table>
