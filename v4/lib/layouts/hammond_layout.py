@@ -66,17 +66,21 @@ CATALOG_UNIVERSAL_FRACTIONS = [
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL&P:!",
     '1"@2⅜⅔3$⅓4%£5_¢' "6⅝⅛7'½8(¼9)¾0⅞/",
 ]
-# Caps and Small Caps: the UNSHIFTED row types capitals too, so rows 0/1
-# differ only in their punctuation (the same ,/./;/- vs ?/./:/! split
-# every other layout has). The catalog prints row 0 in visibly smaller
-# capitals - that is the TYPEFACE (small caps), not a different
-# character, and v4 selects it via the Font tab like any other typeface,
-# so both rows carry the same letters here. Figures row is standard.
-CATALOG_UNIVERSAL_CAPS_SMALL_CAPS = [
-    "QAZWSXEDCRFVTGB" "YHNUJMIK,OL.P;-",
-    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
-    '1"@2#×3$+4%£5_¢' "6&*7'^8(°9).0=/",
-]
+# Caps and Small Caps (27, 27E). The catalog prints row 0 in visibly
+# smaller capitals, but row 0 stores LOWERCASE, not capitals: on a small-
+# caps face the lowercase codepoints ARE the small capitals, so a
+# correctly-designed font renders this row exactly as the catalog shows
+# while the two cases still line up. Storing capitals here instead would
+# hard-code the appearance into the layout and then fight whatever font
+# is selected.
+#
+# The consequence is that this collapses to CATALOG_UNIVERSAL_STANDARD -
+# which is the right answer, and the same conclusion the rest of this
+# file keeps reaching: "Caps and Small Caps" is a TYPEFACE, like Gothic
+# or Clarendon, not a key arrangement. It stays a named entry so the
+# picker documents shuttles 27/27E, and is defined by reference so the
+# two can never drift apart.
+CATALOG_UNIVERSAL_CAPS_SMALL_CAPS = list(CATALOG_UNIVERSAL_STANDARD)
 
 # ---------------------------------------------------------------------
 # Per-language Ideal layouts (1915 catalog)
@@ -119,11 +123,18 @@ CATALOG_IDEAL_SPANISH_CENT = [
     "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
     "½%/_¢¡1ó2.3£4$5" "6“7”8’9(0)ñíéú¿",
 ]
-# Spanish Caps and Small Caps - like the Universal 27/27E pair, row 0
-# types capitals too; note the accented letters in the figures row are
-# capitals to match (ÑÍÉÚ, not ñíéú).
+# Spanish Caps and Small Caps (5A). Row 0 stores lowercase for the same
+# reason as the Universal pair above - the small-caps face supplies the
+# small capitals the catalog prints.
+#
+# Unlike that pair this does NOT collapse into its plain sibling: the
+# accented letters in the FIGURES row really are full capitals here
+# (ÑÍÉÚ, where CATALOG_IDEAL_SPANISH has ñíéú), and those are reached by
+# the figure shift rather than the case shift, so they are a genuine
+# character difference rather than a font one. Row 2 is left exactly as
+# printed.
 CATALOG_IDEAL_SPANISH_CAPS = [
-    "?ZXQKJGBMPCFLD," "ÁTAHERISOUNWYV:",
+    "?zxqkjgbmpcfld," "átaherisounwyv:",
     "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
     "¨%/_ç¡1ó2.3£4$5" "6“7”8’9(0)ÑÍÉÚ¿",
 ]

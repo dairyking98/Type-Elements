@@ -156,7 +156,9 @@ LAYOUT_PICKER_HELP = {
         "resizes baseline_row/cutout_row to match. The rest come from "
         "Hammond's own 1920 and 1915 type-shuttle catalogs; most catalogued "
         "shuttles differ only in TYPEFACE, which is the Font tab's job, not "
-        "a layout change."
+        "a layout change - Caps and Small Caps deliberately has the same "
+        "rows as Normal Universal for that reason, so pair it with a "
+        "small-caps font."
     ),
     "hammond_split": (
         "IDEAL is Hammond's proprietary key arrangement; UNIVERSAL is "
@@ -165,7 +167,9 @@ LAYOUT_PICKER_HELP = {
         "source-history values (SESSION_LOG.md part 77), and Char_Mod (Font "
         "& Alignment tab) only has an effect under IDEAL (⅌). The rest come "
         "from Hammond's own 1920 and 1915 catalogs; the per-language entries "
-        "keep the Ideal key order and substitute that language's characters."
+        "keep the Ideal key order and substitute that language's "
+        "characters. Caps and Small Caps is a typeface, not a layout - "
+        "pair it with a small-caps font."
     ),
     "selectric12": (
         "8 rows: the first 4 are lowercase, the last 4 are uppercase/"
