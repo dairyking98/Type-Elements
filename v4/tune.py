@@ -1811,26 +1811,48 @@ class SystemFontPicker(ModalScreen[str | None]):
     ~2200 installed files, and a 2200-row overlay with no way to type at
     it is unusable. The filter matches all whitespace-separated tokens
     against family + style + path together, so "alma bold" and "ocr otf"
-    both narrow the way you'd expect. Only the first MAX_SHOWN matches
-    are rendered (rebuilding thousands of options on every keystroke is
-    the one thing that makes this feel slow); the count line always says
-    how many matched vs how many are shown, so a truncated list is never
-    silently mistaken for the whole answer.
+    both narrow the way you'd expect.
+
+    EVERY match is listed, deliberately uncapped - browsing the whole
+    library by scrolling (rather than knowing what to search for) is a
+    real way to use this, and a cap turns that into a dead end at
+    whatever number was picked. An earlier 300-item cap was removed once
+    measured: rebuilding the full 2214-entry list costs ~21ms in
+    add_options plus ~67ms to settle, against ~33ms for 300.
+
+    What the cap WAS covering, and what covers it now: a keystroke whose
+    filter still matches nearly everything (typing "a" - every path
+    contains one) rebuilds the whole list, measured at 150-240ms, which
+    is enough to feel like lag while typing. So the filter is debounced
+    by FILTER_DEBOUNCE_SECONDS instead - fast typing schedules one
+    rebuild after the last keystroke rather than one per keystroke - and
+    that scales with the library instead of truncating it. Enter flushes
+    any pending rebuild before picking, so a type-then-immediately-Enter
+    never acts on a stale list.
 
     Enumeration itself (which directories count as "installed" on Linux
     vs Windows) is lib/system_fonts.py's job, not this screen's."""
 
     BINDINGS = [
         ("escape", "cancel", "Cancel"),
-        # Up/down while the filter Input has focus - an Input doesn't
-        # consume vertical arrows (it's single-line), so these reach the
-        # screen and drive the list's highlight without having to tab
-        # away from the filter first.
+        # Up/down/PageUp/PageDown while the filter Input has focus - an
+        # Input doesn't consume vertical arrows or paging keys (it's
+        # single-line), so these reach the screen and drive the list's
+        # highlight without having to tab away from the filter first.
+        # Paging matters here specifically because the list is uncapped:
+        # scrolling a couple thousand fonts one arrow-press at a time is
+        # not browsing. (The mouse wheel over the list works regardless
+        # of focus, and Tab moves focus into the list itself for its own
+        # native navigation.)
         ("down", "move(1)", "Next"),
         ("up", "move(-1)", "Previous"),
+        ("pagedown", "page(1)", "Page down"),
+        ("pageup", "page(-1)", "Page up"),
     ]
 
-    MAX_SHOWN = 300
+    # Long enough that ordinary typing coalesces into one rebuild, short
+    # enough that a pause between words still feels immediate.
+    FILTER_DEBOUNCE_SECONDS = 0.15
 
     def __init__(self, current_path=None, title="Installed fonts"):
         super().__init__()
@@ -1838,12 +1860,14 @@ class SystemFontPicker(ModalScreen[str | None]):
         self._title = title
         self._fonts = []
         self._shown = []
+        self._filter_timer = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="fontpicker"):
             yield Static(self._title, classes="picker-title")
             yield Static(
-                "Type to filter, up/down to move, Enter to pick, Esc to cancel.",
+                "Type to filter, or just scroll the whole list. Up/down and "
+                "PageUp/PageDown move, Enter picks, Esc cancels.",
                 classes="picker-help")
             yield Input(placeholder="family, style or filename", id="fontpicker-filter")
             yield OptionList(id="fontpicker-list")
@@ -1873,18 +1897,16 @@ class SystemFontPicker(ModalScreen[str | None]):
         matches = [e for e in self._fonts
                    if all(t in f"{e.family} {e.style} {e.path}".lower() for t in tokens)]
         # The currently-configured font is pinned to the top of whatever
-        # matched (and highlighted, below) - without this it's only
-        # visible when it happens to fall inside the first MAX_SHOWN of
-        # an alphabetical list of a couple thousand fonts, so the picker
-        # would usually open showing "A..." with no sign of what's
-        # actually selected right now.
+        # matched (and highlighted, below) - otherwise the picker opens
+        # scrolled to "A..." in an alphabetical list of a couple thousand
+        # fonts, with no sign of what's actually selected right now.
         current = self._abs_current()
         if current:
             for i, e in enumerate(matches):
                 if e.path == current:
                     matches.insert(0, matches.pop(i))
                     break
-        self._shown = matches[:self.MAX_SHOWN]
+        self._shown = matches
         option_list = self.query_one("#fontpicker-list", OptionList)
         option_list.clear_options()
         # Options are looked up by INDEX into self._shown, not by an
@@ -1896,30 +1918,50 @@ class SystemFontPicker(ModalScreen[str | None]):
             option_list.highlighted = next(
                 (i for i, e in enumerate(self._shown) if e.path == current), 0)
         count = self.query_one("#fontpicker-count", Static)
-        if len(matches) > len(self._shown):
-            count.update(f"{len(matches)} of {len(self._fonts)} fonts match - "
-                         f"showing the first {len(self._shown)}, narrow the filter to see the rest")
+        if tokens:
+            count.update(f"{len(matches)} of {len(self._fonts)} installed fonts match")
         else:
-            count.update(f"{len(matches)} of {len(self._fonts)} fonts match")
+            count.update(f"{len(self._fonts)} installed fonts")
         if not self._shown:
             self.query_one("#fontpicker-path", Static).update("")
 
     def _pick(self, index):
         if index is None or not 0 <= index < len(self._shown):
             return
+        self._cancel_pending_filter()
         self.dismiss(self._shown[index].path)
+
+    def _cancel_pending_filter(self):
+        if self._filter_timer is not None:
+            self._filter_timer.stop()
+            self._filter_timer = None
+
+    def _flush_pending_filter(self):
+        """Applies a debounced filter rebuild immediately, for the paths
+        that can't wait for the timer - Enter (about to act on the
+        highlighted row) and dismissal (the timer must not fire against
+        a screen that's already gone)."""
+        if self._filter_timer is None:
+            return
+        self._cancel_pending_filter()
+        self._repopulate(self.query_one("#fontpicker-filter", Input).value)
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "fontpicker-filter":
             event.stop()
-            self._repopulate(event.value)
+            self._cancel_pending_filter()
+            self._filter_timer = self.set_timer(
+                self.FILTER_DEBOUNCE_SECONDS, lambda: self._repopulate(event.value))
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Enter while still typing in the filter picks whatever's
         highlighted, so a narrow-then-Enter never needs a Tab in
-        between."""
+        between - flushing first, since typing and hitting Enter inside
+        the debounce window would otherwise pick out of the previous
+        keystroke's list."""
         if event.input.id == "fontpicker-filter":
             event.stop()
+            self._flush_pending_filter()
             self._pick(self.query_one("#fontpicker-list", OptionList).highlighted)
 
     def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
@@ -1934,7 +1976,7 @@ class SystemFontPicker(ModalScreen[str | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "fontpicker-cancel":
             event.stop()
-            self.dismiss(None)
+            self.action_cancel()
 
     def action_move(self, delta: int) -> None:
         option_list = self.query_one("#fontpicker-list", OptionList)
@@ -1943,7 +1985,17 @@ class SystemFontPicker(ModalScreen[str | None]):
         option_list.highlighted = max(
             0, min(len(self._shown) - 1, (option_list.highlighted or 0) + delta))
 
+    def action_page(self, direction: int) -> None:
+        """PageUp/PageDown by however many rows the list is currently
+        showing (minus one for context, the usual pager convention),
+        rather than a fixed guess - the modal is sized as a percentage
+        of the terminal, so its row count isn't known up front."""
+        option_list = self.query_one("#fontpicker-list", OptionList)
+        page = max(1, option_list.size.height - 1)
+        self.action_move(direction * page)
+
     def action_cancel(self) -> None:
+        self._cancel_pending_filter()
         self.dismiss(None)
 
 
