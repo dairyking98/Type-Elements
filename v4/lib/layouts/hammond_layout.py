@@ -536,6 +536,47 @@ CATALOG_UNIVERSAL_POLISH = [
     "QAZWSŻEDCRFVTGB" "YHNUJMIKĄOLŁPĆŚ",
     '1x-2X"3ń?4ę:5§.' "6%;7ź,8Ź/9!(0')",
 ]
+# ---------------------------------------------------------------------
+# Mathematical (4 rows - see LAYOUT_PRESETS_HAMMOND's Is_Math note)
+# ---------------------------------------------------------------------
+# The catalog carries THREE Universal Mathematical shuttles, and they
+# differ from each other in exactly two positions of the figures row:
+#
+#     135   *  and  |     (the layout already shipped as "Universal, Math")
+#     135B  {  and  }
+#     135C  ν  and  μ
+#
+# 135's rows came from v2 originally; the catalog confirms them, which is
+# how the correspondence was established. 135B is derived from it here
+# rather than retyped, so the ONLY difference between the two presets is
+# the pair actually observed - retyping four 30-character rows to change
+# two of them is how a transcription error gets introduced.
+#
+# All three "can only be used on a special instrument known as the
+# Mathematical Machine", per the catalog's own note - though it adds that
+# any Universal shuttle works on that machine.
+#
+# 135C is NOT here: besides the ν/μ pair it also differs at row 0
+# position 29, where 135/135B carry √ and 135C carries a clean v-shape
+# that will not separate into ν, υ or a poorly-printed √. Held.
+def _math_variant(base, a, b):
+    """135B/135C differ from 135 only at figures-row positions 17 and 20."""
+    rows = list(base)
+    r = list(rows[2])
+    r[17], r[20] = a, b
+    rows[2] = "".join(r)
+    return rows
+
+
+CATALOG_UNIVERSAL_MATHEMATICAL = [
+    "qazwsxedcrfvtgb" "yhnujmik,ol.p·√",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL∂P:∫",
+    '1"_2∑×3Δ+4∝[5Γ]' "6÷*7'|8(<9)>0=/",
+    "₁αζ₂σξ₃δρ₄ψθ₅γβ" "₆ητ₇εφ₈κω₉λπ₀ₙ―",
+]
+CATALOG_UNIVERSAL_MATHEMATICAL_BRACES = _math_variant(
+    CATALOG_UNIVERSAL_MATHEMATICAL, "{", "}")
+
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -599,6 +640,8 @@ CATALOG_SHUTTLES = {
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
     "universal_dutch": "71A, 117B, 34A, 50A, 119B",
     "universal_german": "119A, 84, 34, 50, 71, 117, 119 (old orthography)",
+    "universal_mathematical": "135 (= the Universal, Math preset)",
+    "universal_mathematical_braces": "135B",
     "universal_polish": "141 Large Roman, 30 Medium Roman, 150C Italic",
     "universal_bulgarian": "31C, 29C, 42C, 115C",
     "universal_russian_old_style": "29, 29A, 29B",
@@ -788,4 +831,7 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Bulgarian": [r[::-1] for r in CATALOG_UNIVERSAL_BULGARIAN],
     "Ideal, Chilian": [r[::-1] for r in CATALOG_IDEAL_CHILIAN],
     "Universal, Polish": [r[::-1] for r in CATALOG_UNIVERSAL_POLISH],
+    "Universal, Math (braces)": [
+        r[::-1] for r in CATALOG_UNIVERSAL_MATHEMATICAL_BRACES
+    ],
 }

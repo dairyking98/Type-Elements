@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**252 of 346 catalogued shuttles are covered (72%)** — 25 held on an unresolved character,
-69 not yet transcribed.
+**254 of 346 catalogued shuttles are covered (73%)** — 26 held on an unresolved character,
+66 not yet transcribed.
 
 Status meanings:
 
@@ -323,10 +323,10 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 134D | Large Gothic, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
 | 134E | Large Gothic, French, Universal | 41 | **imported** | Universal, French |
 | 134F | Large Gothic, Italian, Universal, Old Style | 47 | **imported** | Universal, Italian |
-| 135 | Medium Roman, Mathematical, English, Universal | 47 | todo | Universal / English / Mathematical |
+| 135 | Medium Roman, Mathematical, English, Universal | 47 | **imported** | Universal, Math |
 | 135A | Medium Roman, Esperanto, Universal | 40 | **imported** | Universal, Esperanto |
-| 135B | Medium Roman, Mathematical, English, Universal | 48 | todo | Universal / English / Mathematical |
-| 135C | Medium Roman, Mathematical, English, Universal | 48 | todo | Universal / English / Mathematical |
+| 135B | Medium Roman, Mathematical, English, Universal | 48 | **imported** | Universal, Math (braces) |
+| 135C | Medium Roman, Mathematical, English, Universal | 48 | held | row 0 position 29 is a clean v-shape: ν, υ or a poor √? |
 | 135D | Medium Roman, Esperanto, Universal | 40 | **imported** | Universal, Esperanto |
 | 136 | Special Gothic, English, Universal | 38 | held | chemical figures row not legible |
 | 137 | Medium Roman, French (Belgian Keyboard), Ideal and Universal | 55 | todo | Ideal/Universal / French |

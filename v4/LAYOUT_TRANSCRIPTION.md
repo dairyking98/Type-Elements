@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 252 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 254 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -192,6 +192,19 @@ tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.
 
+**Derive a near-identical variant, don't retype it.** The three
+Mathematical shuttles differ in exactly two figures-row positions — 135
+`*`/`|`, 135B `{`/`}`, 135C `ν`/`μ`. 135B is built from 135 by
+substituting those two characters programmatically, so the only
+difference between the two presets is the one actually observed.
+Retyping four 30-character rows of Greek and mathematical symbols to
+change two of them is precisely how a transcription error gets
+introduced — the thing this whole document exists to avoid.
+
+This also confirmed the shipped `Universal, Math` layout, which came from
+v2 rather than the catalog: it matches shuttle 135 character for
+character.
+
 **Quote marks are a real character, and I got five of them wrong.** The
 Universal German/Dutch figures row has `“` (U+201C) at position 4, not
 `”` — at 600% the raised pair curls the same way as the `„` beside it
@@ -338,6 +351,7 @@ both.
 | Universal, Bulgarian | 31C, 29C, 42C, 115C |
 | Ideal, Chilian | 65A, 16A, 46A, 17A, 83A |
 | Universal, Polish | 141, 30, 150C |
+| Universal, Math (braces) | 135B |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

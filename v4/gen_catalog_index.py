@@ -93,6 +93,7 @@ HELD = {
     "23F": "one unidentifiable figure slot",
     "23G": "one unidentifiable figure slot",
     "136": "chemical figures row not legible",
+    "135C": "row 0 position 29 is a clean v-shape: \u03bd, \u03c5 or a poor \u221a?",
     "134A": "figures row prints \u00f3 twice; \u00ed absent from the shuttle",
     "56": "same as 134A", "64": "same as 134A",
     "7": "polytonic diacritics not separable at this resolution",
@@ -110,7 +111,9 @@ def classify(desc):
     return kb or "?", lang, variants, "New Orthography" in desc
 
 
-BY_NUMBER = {"29": "Universal, Russian (Old Style)",
+BY_NUMBER = {"135": "Universal, Math",
+             "135B": "Universal, Math (braces)",
+             "29": "Universal, Russian (Old Style)",
              "29A": "Universal, Russian (Old Style)",
              "29B": "Universal, Russian (Old Style)"}
 
