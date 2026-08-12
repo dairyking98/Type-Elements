@@ -195,6 +195,43 @@ CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY = [
     "ÖZXQKJGBMPCFLD." "ÜTAHERISOUNWYVÄ",
     "¾%&?½:1-2§3;4!5" "6„7”8’9(0)¼*_ß/",
 ]
+# German, OLD orthography (36, 11, 12 Ideal). Identical to
+# CATALOG_IDEAL_DUTCH in every position but one: ſ (long s, U+017F) where
+# Dutch has ƒ (guilder).
+#
+# That slot was held for a while because ſ and a worn ß are easy to
+# confuse. It was settled by finding the two printed on the SAME page in
+# the same typeface and size - Universal 119A (old orthography) against
+# Universal 117 (New Orthography), catalog p.44 - where they are plainly
+# different glyphs: 119A a single descending stroke with a top hook and
+# no bowl, 117 a clear bowl. Old-orthography German shuttles carry ſ, New
+# Orthography ones carry ß, and the same old/new split shows up
+# independently in the Ideal pair 36 vs 36B. Two independent pairs
+# agreeing is what made this callable.
+CATALOG_IDEAL_GERMAN = [
+    "özxqkjgbmpcfld," "ütaherisounwyvä",
+    "!ZXQKJGBMPCFLD;" ".TAHERISOUNWYV&",
+    "¾%@?½:1-2§3£4$5" "6„7”8’9(0)¼*_ſ/",
+]
+# ---------------------------------------------------------------------
+# Per-language UNIVERSAL layouts (1915 catalog)
+# ---------------------------------------------------------------------
+# The per-language work above is all IDEAL. The catalog carries Universal
+# (qwerty) equivalents for most of the same languages - German, Russian,
+# Italian, French, Swedish-Finnish, Spanish, Dutch and more - which is the
+# single largest un-imported group; see CATALOG_INDEX.md for the count.
+# These keep the Universal key ORDER and substitute the language's own
+# characters into it, exactly as the Ideal ones do.
+#
+# German, New Orthography (117, 117A Italic; 119C Gothic Italic; 124 Large
+# Italic; 145A Multigraph): ü/ä/ö take the ./;/- slots at the end of row
+# 0, their capitals take the same slots in row 1, and the figures row
+# carries ß.
+CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY = [
+    "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK.OLÜPÄÖ",
+    "1„@2”:3!#4%?5_-" "6&*7’§8(ß9);0=/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -235,6 +272,11 @@ CATALOG_SHUTTLES = {
     "ideal_portuguese": "63 Medium Roman",
     "ideal_french": "61 Small Roman, 14 Medium Roman, 62 Large Roman, 15 Italic",
     "ideal_german_new_orthography": "36B Small Roman, 114 Medium Roman",
+    "ideal_german": "36 Small Roman, 11 Medium Roman, 12 Large Roman (old orthography)",
+    "universal_german_new_orthography": (
+        "117/117A Italic, 119C Gothic Italic, 124 Large Italic, "
+        "145A Multigraph (Pica)"
+    ),
     # 1915-catalog languages NOT imported yet.
     #
     # THE TEST IS CHARACTER IDENTIFICATION, NOT FONT AVAILABILITY. A
@@ -364,5 +406,9 @@ LAYOUT_PRESETS_HAMMOND = {
     "Ideal, French": [r[::-1] for r in CATALOG_IDEAL_FRENCH],
     "Ideal, German (New Orthography)": [
         r[::-1] for r in CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY
+    ],
+    "Ideal, German": [r[::-1] for r in CATALOG_IDEAL_GERMAN],
+    "Universal, German (New Orthography)": [
+        r[::-1] for r in CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY
     ],
 }

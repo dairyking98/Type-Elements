@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 98 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 122 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -144,6 +144,20 @@ on the catalog's own keyboard plate — i.e. the only spare slot. A
 mechanical diff confirms exactly those 9 + 1 positions move and nothing
 else.
 
+**`ſ` not `ß`** (German, old orthography). Held for a while, then settled
+by finding both printed on the SAME page in the same typeface and size —
+Universal 119A (old orthography) beside Universal 117 (New Orthography),
+catalog p.44. Side by side they are plainly different glyphs: 119A a
+single descending stroke with a top hook and no bowl, 117 a clear bowl.
+So old-orthography German shuttles carry long-s and New Orthography ones
+carry eszett — and the same old/new split appears independently in the
+Ideal pair 36 vs 36B. Two independent pairs agreeing is what made it
+callable; one ambiguous glyph on its own would not have been.
+
+The payoff was disproportionate: `Ideal, German` turns out to differ from
+`Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
+character moved 18 catalogued shuttles from held to covered.
+
 **Two print artifacts dismissed, not transcribed.** Shuttle 26's row 0
 `p:-` and 41's row 1 `P::` are both the `;`/`:` key, whose unshifted and
 shifted forms are fixed by the keyboard. Transcribing them literally would
@@ -201,6 +215,8 @@ both.
 | Ideal, Portuguese | 63 |
 | Ideal, French | 61, 14, 62, 15 |
 | Ideal, German (New Orthography) | 36B, 114 |
+| Ideal, German (old orthography) | 36, 11, 12 |
+| Universal, German (New Orthography) | 117, 117A, 119C, 124, 145A |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired
@@ -330,7 +346,7 @@ of the rest already sighted:
 | French | 61, 14, 62, 15 | 16 | **imported** |
 | French | 39 (Special) | 16 | unread — a fractions variant |
 | German (New Orthography) | 36B, 114 | 16 | **imported** |
-| German (old orthography) | 36, 11, 12 | 16 | held — long-s `ſ` or a worn `ß`? |
+| German (old orthography) | 36, 11, 12 | 16 | **imported** — the `ſ` was settled, see below |
 | Esperanto | 105 | 16 | letter rows clear (ĥ ĵ ŝ ĉ ĝ ŭ); figures row not yet resolved |
 | French-German | 79 | 16 | unread |
 
