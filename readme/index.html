@@ -110,13 +110,20 @@ either platform.</p>
 
 <h2 id="usage">Usage</h2>
 
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 generate.py config/blickensderfer.yaml
-python3 generate.py config/blickensderfer.yaml --points-per-mm 20 --separation-mm 1.5
-python3 generate.py config/blickensderfer.yaml --no-core-groove   # skip the slow twisted grooves
-python3 generate.py config/blickensderfer.yaml --resin-support    # add ResinPrint()'s support rods
-python3 generate.py config/blickensderfer.yaml --out /tmp/test.stl
-python3 generate.py config/blickensderfer.yaml --points-per-mm 8 --cone-segments 12   # faster iteration
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.venv/bin/python3 generate.py config/blickensderfer.yaml
+.venv/bin/python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.002 --separation-mm 1.5
+.venv/bin/python3 generate.py config/blickensderfer.yaml --no-core-groove   # skip the slow twisted grooves
+.venv/bin/python3 generate.py config/blickensderfer.yaml --resin-support    # add ResinPrint()'s support rods
+.venv/bin/python3 generate.py config/blickensderfer.yaml --out /tmp/test.stl
+.venv/bin/python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.05 --cone-segments 12   # faster iteration
 </code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">.venv/bin/python3</code> rather than bare <code class="language-plaintext highlighter-rouge">python3</code> - <code class="language-plaintext highlighter-rouge">trimesh</code>/<code class="language-plaintext highlighter-rouge">manifold3d</code>
+and the rest of the build stack are only installed in the venv Setup
+creates (or activate it first). <code class="language-plaintext highlighter-rouge">--flatness-tolerance-mm</code> is the glyph
+outline’s flatness budget in mm: SMALLER is finer and slower (config
+default <code class="language-plaintext highlighter-rouge">0.005</code>), larger is coarser and faster. It replaced the old
+fixed-rate <code class="language-plaintext highlighter-rouge">--points-per-mm</code>, which no longer exists.</p>
 
 <p>All real-machine numbers live in the config file, not in code. A second
 machine is mostly just a new YAML file under <code class="language-plaintext highlighter-rouge">config/</code> - <code class="language-plaintext highlighter-rouge">machine:
@@ -165,13 +172,17 @@ CFF/cubic-curve OTFs, which used to silently mis-render (see “TrueType-
 only outlines - RESOLVED” in “Known limitations” below) - now handled
 correctly and verified end-to-end.</p>
 
-<p><code class="language-plaintext highlighter-rouge">python3 tune.py</code> (no args) starts at a machine picker - pick
-Blickensderfer or Postal and it loads that machine’s default config
-(<code class="language-plaintext highlighter-rouge">MACHINES</code> in <code class="language-plaintext highlighter-rouge">tune.py</code>) into a Postal-scoped Element tab (27 fields vs.
-Blickensderfer’s 32, since Postal has no drive-pin countersink) and its
-own Layout tab (a single “QWERTY” preset - v2/postal.scad has only one
-physical layout, no preset-switching menu like Blickensderfer’s 6 - still
-hand-editable via Modify glyphs if you need something else). The tuner
+<p><code class="language-plaintext highlighter-rouge">python3 tune.py</code> (no args) starts at a machine picker listing all 15
+machines (<code class="language-plaintext highlighter-rouge">MACHINES</code> in <code class="language-plaintext highlighter-rouge">tune.py</code>, grouped by real-world type-element
+mechanism), and loads the picked machine’s default config into tabs
+scoped to that machine. Taking Postal as the example: a Postal-scoped
+Element tab (27 fields vs. Blickensderfer’s 32, since Postal has no
+drive-pin countersink) and its own Layout tab - a single “QWERTY” preset,
+since <code class="language-plaintext highlighter-rouge">v2/postal.scad</code> has only one physical layout, with no
+preset-switching menu like Blickensderfer’s (which has 8, including two
+taken from the type-wheel catalog scans - see <code class="language-plaintext highlighter-rouge">LAYOUT_TRANSCRIPTION.md</code>)</p>
+<ul>
+  <li>still hand-editable via Modify glyphs if you need something else. The tuner
 form’s status row gains a “Change Machine” button once a machine is
 picked, which saves the current form and returns to the picker (uses
 Textual’s <code class="language-plaintext highlighter-rouge">recompose()</code> to fully rebuild the form - <code class="language-plaintext highlighter-rouge">TuneApp.SECTIONS</code>/
@@ -182,7 +193,8 @@ works and skips the picker. The Browse button (separate from Change
 Machine) only switches between different configs of the SAME machine -
 picking a config for a different machine there is refused with a log
 message pointing at Change Machine instead, since Browse repopulates the
-existing widgets in place rather than recomposing.</p>
+existing widgets in place rather than recomposing.</li>
+</ul>
 
 <h3 id="mignon-libmignonpy---not-a-cylinder-machine">Mignon (<code class="language-plaintext highlighter-rouge">lib/mignon.py</code>) - NOT a “cylinder machine”</h3>
 
@@ -316,7 +328,8 @@ whole-string engraved-text groups cut into the bottom face near the shaft
 (<code class="language-plaintext highlighter-rouge">LabelText</code> - v2 calls <code class="language-plaintext highlighter-rouge">text()</code> directly per whole string with
 <code class="language-plaintext highlighter-rouge">halign=valign="center"</code>, not a ring of individually angle-placed
 characters like Blickensderfer/Postal’s <code class="language-plaintext highlighter-rouge">LogoText</code> or Mignon’s
-<code class="language-plaintext highlighter-rouge">ElementLogo</code>/<code class="language-plaintext highlighter-rouge">ElementLabel</code> - see <code class="language-plaintext highlighter-rouge">_build_text_string()</code>’s docstring for
+<code class="language-plaintext highlighter-rouge">ElementLogo</code>/<code class="language-plaintext highlighter-rouge">ElementLabel</code> - see <code class="language-plaintext highlighter-rouge">cylinder_machine.build_text_string()</code>’s
+docstring for
 how whole-string layout was ported: each character placed at its natural
 FreeType advance, the assembled string centered on its total advance
 width - the same “native halign=center centers the ADVANCE box”
@@ -437,22 +450,30 @@ hollow-cavity performance fix above.</p>
 
 <p>The draft taper is a real Minkowski sum (<code class="language-plaintext highlighter-rouge">manifold3d</code>), not plain
 coordinate math, so generation time is real and tunable via two knobs
-(<code class="language-plaintext highlighter-rouge">quality.minkowski_fn</code> / <code class="language-plaintext highlighter-rouge">--cone-segments</code> and <code class="language-plaintext highlighter-rouge">build.points_per_mm</code> /
-<code class="language-plaintext highlighter-rouge">--points-per-mm</code>, both config-driven) - <code class="language-plaintext highlighter-rouge">manifold3d</code>’s own docs warn
+(<code class="language-plaintext highlighter-rouge">quality.minkowski_fn</code> / <code class="language-plaintext highlighter-rouge">--cone-segments</code> and
+<code class="language-plaintext highlighter-rouge">build.flatness_tolerance_mm</code> / <code class="language-plaintext highlighter-rouge">--flatness-tolerance-mm</code>, both
+config-driven) - <code class="language-plaintext highlighter-rouge">manifold3d</code>’s own docs warn
 Minkowski cost scales with the <em>product</em> of the two operands’ face counts.
-Measured for the full 84-character ring + assembly:</p>
+Measured for the full 84-character ring + assembly. <strong>These numbers are
+historical</strong>: they were taken under the old fixed-rate <code class="language-plaintext highlighter-rouge">points_per_mm</code>
+sampling, which no longer exists, so the left column is not a knob you
+can set today and the timings are not directly comparable to a current
+build. Kept for the shape of the tradeoff (cost falls off steeply as
+either knob drops), not as current figures. The adaptive tracer that
+replaced <code class="language-plaintext highlighter-rouge">points_per_mm</code> measured a 1.3x-4.5x build-time reduction on
+its own, with no correctness loss.</p>
 
 <table>
   <thead>
     <tr>
-      <th>points_per_mm</th>
+      <th>points_per_mm (removed)</th>
       <th>minkowski_fn</th>
       <th>full ring + assembly</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>15 (config default)</td>
+      <td>15 (then-default)</td>
       <td>16 (config default)</td>
       <td>~60-70s</td>
     </tr>
@@ -527,35 +548,73 @@ terminal also kills any <code class="language-plaintext highlighter-rouge">f3d</
 tune.py                     interactive TUI for editing the config (see above)
 type_test.py                flat CPI/LPI-spaced text preview used by tune.py's Type Test tab
 export_glyphs.py            exports every configured character to its own STL, for visual inspection
+font_coverage.py            scans a font library for glyph coverage against a layout/config/string
+generate_legend.py          keyboard-legend sheet renderer
+generate_supports.py        standalone resin-support generator
+generate_thumbnails.py      batch thumbnail renders
 config/
-  blickensderfer.yaml        every real machine parameter + build/alignment settings
-  blickensderfer.running.yaml   gitignored scratch copy tune.py actually edits/saves (see above)
-  postal.yaml                 Postal's parameters - see "Multiple machines" below
-  mignon.yaml                 Mignon's parameters - see "Mignon" below (own schema, not shared with Blick/Postal)
-  helios.yaml                 Helios Klimax's parameters - see "Helios Klimax" below (own schema, not shared with Blick/Postal)
+  &lt;machine&gt;.yaml             every real machine parameter + build/alignment settings, one per machine
+  &lt;machine&gt;.running.yaml     gitignored scratch copy tune.py actually edits/saves (see above)
+                             15 machines: blickensderfer, postal, mignon, bennett, helios,
+                             hammond, hammond_split, selectric12, selectric3,
+                             selectric_composer, type_slug, vogue_slug, gauge_slug,
+                             oliver_slug, lumi_slug
 lib/
   glyph_poc.py               single-glyph mesh pipeline (the core technique)
   scad_primitives.py         revolve_polygon/extrude/transform helpers, generic (not machine-specific)
-  cylinder_machine.py         shared cylinder-machine-family code (Blickensderfer/Postal) - see "Multiple machines"
-  blickensderfer.py          Blickensderfer's own configure() + drive-pin trio (HollowSpace/DrivePin/ResinSupport)
-  postal.py                   Postal's own configure() + drive-pin trio
-  mignon.py                   Mignon's own configure() + full body/shaft/resin-support (see "Mignon" below)
-  helios.py                   Helios Klimax's own configure() + full body/shaft (see "Helios Klimax" below)
+  build_log.py               the ONE progress/mesh-report/atomic-export format (see CLAUDE.md)
+  resin_support.py           shared resin-support geometry
+  svg_import.py              SVG path -&gt; polygon import (logos/marks)
+  f3d_bootstrap.py           finds or downloads the pinned f3d used by tune.py's preview
+  contour_inspect.py         standalone contour diagnostic (not in the build path)
+  heightfield_poc.py         abandoned height-field experiment, kept for reference; nothing imports it
+  -- shared family modules --
+  cylinder_machine.py        Blickensderfer/Postal shared code - see "Multiple machines"
+  spherical_machine.py       shared by the 3 IBM/Selectric machines
+  wing_slug.py               shared by type_slug/vogue_slug/gauge_slug
+  box_slug.py                shared by oliver_slug/lumi_slug
+  -- one per machine --
+  blickensderfer.py          configure() + drive-pin trio (HollowSpace/DrivePin/ResinSupport)
+  postal.py                  configure() + drive-pin trio
+  mignon.py                  configure() + full body/shaft/resin-support (see "Mignon" below)
+  bennett.py                 see "Bennett" below
+  helios.py                  see "Helios Klimax" below
+  hammond.py / hammond_split.py
+  selectric12.py / selectric3.py / selectric_composer.py
+  type_slug.py / vogue_slug.py / gauge_slug.py / oliver_slug.py / lumi_slug.py
+  hammond_legend.py, mignon_legend.py    keyboard-legend sheets for those machines
+  layouts/                   ALL machines' keyboard/typeball layout presets - one
+                             &lt;machine&gt;_layout.py each, aggregated by __init__.py.
+                             tune.py imports from here and hardcodes no layout data.
+                             See LAYOUT_TRANSCRIPTION.md for where the values came from.
 output/
-  blickensderfer_running.stl         latest generated result (scratch/working file, not a keeper - see tune.py's Save button)
-  experiments/                       diagnostic renders/sweeps from development (not regenerated by generate.py)
+  &lt;machine&gt;_running.stl      latest generated result (scratch/working file, not a keeper - see tune.py's Save button)
+  experiments/               diagnostic renders/sweeps from development (not regenerated by generate.py)
+assets/                      SVG logos/marks (see svg_import.py)
+docs/                        per-machine accessory docs (e.g. mignon_index_holder)
 </code></pre></div></div>
+
+<p><strong>Machines documented in detail below</strong>: Blickensderfer/Postal
+(“Multiple machines”), Mignon, Bennett, Helios Klimax. The other ten -
+Hammond, Hammond Split, the three Selectrics and the five Type Slug
+machines - are ported and working but have no prose section here yet;
+their own module docstrings and <code class="language-plaintext highlighter-rouge">CLAUDE.md</code>’s “Porting a new machine”
+section carry that detail for now.</p>
 
 <h2 id="the-glyph-pipeline-libglyph_pocpy">The glyph pipeline (<code class="language-plaintext highlighter-rouge">lib/glyph_poc.py</code>)</h2>
 
 <p>For one character (<code class="language-plaintext highlighter-rouge">build_glyph</code>):</p>
 
 <ol>
-  <li><strong><code class="language-plaintext highlighter-rouge">get_glyph_contours_and_advance</code></strong>: walk FreeType’s TrueType outline
-(on/off-curve tagged points) into flat polylines, sampling curved spans
-at <code class="language-plaintext highlighter-rouge">points_per_mm</code> density. <strong>TrueType (quadratic) only</strong> - a CFF/
-OpenType font’s cubic curves will silently mis-parse (see “Known
-limitations”).</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">get_glyph_contours_and_advance</code></strong>: walk FreeType’s outline (on/
+off-curve tagged points) into flat polylines, subdividing curved spans
+adaptively to <code class="language-plaintext highlighter-rouge">build.flatness_tolerance_mm</code> via recursive de Casteljau
+(<code class="language-plaintext highlighter-rouge">flatten_quadratic</code>/<code class="language-plaintext highlighter-rouge">flatten_cubic</code>). Straight segments get ZERO
+subdivision; a curve gets exactly as many points as its own curvature
+needs. This replaced a fixed <code class="language-plaintext highlighter-rouge">points_per_mm</code> rate, which subdivided
+straight strokes as densely as curves. Both quadratic (TrueType) and
+cubic (CFF/OpenType) outlines are handled - the cubic path was a real
+bug once, now fixed (see “Known limitations”).</li>
   <li><strong><code class="language-plaintext highlighter-rouge">classify_and_triangulate</code></strong>: classify each closed contour by
 nesting-depth parity (even=solid island, odd=hole - not just “contained
 by something”, which breaks on genuinely nested glyphs like DejaVu’s
@@ -596,8 +655,9 @@ spike/sliver defects against the adaptive contour method’s sparser input
 itself, not a <code class="language-plaintext highlighter-rouge">simplify()</code> post-pass, is what keeps triangle count in
 check now).</p>
 
-<p><code class="language-plaintext highlighter-rouge">blickensderfer.TextRing</code> calls <code class="language-plaintext highlighter-rouge">build_glyph</code> 84 times (3 rows x 28
-columns) and places each result on the cylinder via <code class="language-plaintext highlighter-rouge">place_on_cylinder</code>.</p>
+<p><code class="language-plaintext highlighter-rouge">cylinder_machine.TextRing</code> (shared, not per-machine) calls <code class="language-plaintext highlighter-rouge">build_glyph</code>
+84 times for Blickensderfer (3 rows x 28 columns) and places each result
+on the cylinder via <code class="language-plaintext highlighter-rouge">place_on_cylinder</code>.</p>
 
 <h3 id="real-platen-cutout">Real platen cutout</h3>
 
@@ -887,8 +947,9 @@ misread as a lone quadratic control point, producing plausible-looking
 but geometrically wrong curves with no error raised (confirmed on
 <code class="language-plaintext highlighter-rouge">FreeMono-Bold.otf</code>: watertight-but-winding-inconsistent geometry).
 Fixed by checking the tag’s low 2 bits (<code class="language-plaintext highlighter-rouge">FT_CURVE_TAG</code>: 0=quadratic,
-2=cubic) and evaluating a real cubic Bézier (<code class="language-plaintext highlighter-rouge">cubic_bezier()</code>) for cubic
-spans instead. Verified against real CFF fonts (<code class="language-plaintext highlighter-rouge">Alma Mono.otf</code>,
+2=cubic) and subdividing a real cubic Bézier (<code class="language-plaintext highlighter-rouge">flatten_cubic()</code>, the
+cubic arm of the adaptive de Casteljau tracer) for cubic spans
+instead. Verified against real CFF fonts (<code class="language-plaintext highlighter-rouge">Alma Mono.otf</code>,
 <code class="language-plaintext highlighter-rouge">FreeMono-Bold.otf</code>) end-to-end through <code class="language-plaintext highlighter-rouge">generate.py config/postal.yaml</code>
     <ul>
       <li>fully watertight/winding-consistent/<code class="language-plaintext highlighter-rouge">is_volume</code>, 0 skipped characters</li>
@@ -915,7 +976,8 @@ geometry post-placement (reproduced with an identity transform alone:
 rotation/translation itself). Placement is a pure coordinate move - no
 topology change, no reprocessing needed.</li>
   <li><strong>Inter-character collisions are detected, not repaired.</strong>
-<code class="language-plaintext highlighter-rouge">_check_inter_character_collisions()</code> in <code class="language-plaintext highlighter-rouge">lib/blickensderfer.py</code> uses
+<code class="language-plaintext highlighter-rouge">_check_inter_character_collisions()</code> in <code class="language-plaintext highlighter-rouge">lib/cylinder_machine.py</code>
+(shared, not per-machine) uses
 <code class="language-plaintext highlighter-rouge">trimesh.collision.CollisionManager</code> across all 84 placed parts (this is
 what that tool is actually for - checking DIFFERENT registered objects
 against each other - unlike an earlier, meaningless attempt earlier in
@@ -952,7 +1014,8 @@ put ‘L’ (cap-height, no descender) and ‘e’ (x-height only) at different
 heights, breaking a common baseline across the ring.</li>
   <li><strong><code class="language-plaintext highlighter-rouge">Drive_Pin_Style=1</code></strong> (the older drive pin variant) raises
 <code class="language-plaintext highlighter-rouge">NotImplementedError</code> - only the current/default style is ported.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">BottomSlopedSpace</code>’s <code class="language-plaintext highlighter-rouge">bottomX()</code></strong> is ported from the real
+  <li><strong><code class="language-plaintext highlighter-rouge">BottomSlopedSpace</code>’s <code class="language-plaintext highlighter-rouge">bottomX()</code></strong> (v2’s name for it; v4 inlines the
+same formula) is ported from the real
 <code class="language-plaintext highlighter-rouge">lib/resin_support.scad</code> formula (<code class="language-plaintext highlighter-rouge">Bottom_Slope</code>/<code class="language-plaintext highlighter-rouge">Bottom_Z_Offset</code>), not
 approximated - flagging here only because an earlier draft of this file
 used a wrong approximation before the real formula was found; the
