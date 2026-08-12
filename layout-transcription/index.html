@@ -55,7 +55,7 @@ reading a glyph off a scan, and that reasoning is the part worth keeping.</p>
 is the narrative; those modules are the source of truth for the values.</p>
 
 <p>For the complete shuttle-by-shuttle enumeration with import status, see
-<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 244 of 346 catalogued Hammond
+<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 249 of 346 catalogued Hammond
 shuttles are currently covered.</p>
 
 <hr />
@@ -257,6 +257,19 @@ to codepoints is the problem — acute vs tonos, perispomeni vs a plain
 tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.</p>
+
+<p><strong>Quote marks are a real character, and I got five of them wrong.</strong> The
+Universal German/Dutch figures row has <code class="language-plaintext highlighter-rouge">“</code> (U+201C) at position 4, not
+<code class="language-plaintext highlighter-rouge">”</code> — at 600% the raised pair curls the same way as the <code class="language-plaintext highlighter-rouge">„</code> beside it
+(6-shaped, not 9-shaped). Five layouts had been imported with the wrong
+one. Corrected from that single verified instance, since all five share
+that row half.</p>
+
+<p>The IDEAL family’s quote was deliberately NOT normalised to match.
+German and Dutch genuinely diverge here — German pairs <code class="language-plaintext highlighter-rouge">„…“</code>, Dutch pairs
+<code class="language-plaintext highlighter-rouge">„…”</code> — so “make them consistent” would be exactly the wrong instinct.
+It stays as read, flagged as unverified, rather than tidied into a
+plausible uniformity.</p>
 
 <p><strong>Bulgarian: solved by accounting, not by reading.</strong> Three glyphs on this
 shuttle would not resolve visually at any zoom. What settled them was
@@ -511,6 +524,10 @@ both.</p>
     <tr>
       <td>Universal, Bulgarian</td>
       <td>31C, 29C, 42C, 115C</td>
+    </tr>
+    <tr>
+      <td>Ideal, Chilian</td>
+      <td>65A, 16A, 46A, 17A, 83A</td>
     </tr>
   </tbody>
 </table>
