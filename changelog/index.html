@@ -6284,6 +6284,72 @@ modules that are already upstream verbatim; it’s redundant and can be
 dropped.</li>
 </ol>
 
+<h2 id="84-sections-moved-off-the-horizontal-tab-bar-onto-a-vertical-list---all-of-them-visible-at-once-2026-08-12">84. Sections moved off the horizontal tab bar onto a vertical list - all of them visible at once (2026-08-12)</h2>
+
+<p>Reported: “the tab selection in tuner.py is cumbersome to use. you dont
+see the other options. maybe we can take up some more space that occupies
+the console output for better/easier navigation.”</p>
+
+<p>Confirmed before changing anything, by rendering Mignon’s form at 150x40:
+12 tabs exist, five fit (“Font &amp; Alignment, Type Test, Resin,
+Calibration, Build”), and the remaining seven are off the end of the bar
+with nothing on screen saying so. Machines run 9-14 sections.</p>
+
+<p>The tab bar is now a vertical list down the left of the form
+(<code class="language-plaintext highlighter-rouge">#section-nav</code>, an <code class="language-plaintext highlighter-rouge">OptionList</code>), and <code class="language-plaintext highlighter-rouge">TabbedContent</code>’s own horizontal
+bar is hidden in CSS. Vertical rather than a wrapped/two-row horizontal
+bar because the cost lands on width, which the log pane can spare, rather
+than height, which the form cannot.</p>
+
+<p><code class="language-plaintext highlighter-rouge">TabbedContent</code> itself stays - it still owns which pane is visible, so
+every <code class="language-plaintext highlighter-rouge">_compose_*_tab</code> method, every tab id, and the Build tab’s
+<code class="language-plaintext highlighter-rouge">tab-build</code>-style ids are untouched. Highlighting a section in the list
+sets <code class="language-plaintext highlighter-rouge">TabbedContent.active</code>; switching happens on HIGHLIGHTED rather than
+SELECTED so arrowing through the list moves through sections live, the
+way the old bar’s left/right did.</p>
+
+<h3 id="_tab_specs"><code class="language-plaintext highlighter-rouge">_tab_specs()</code></h3>
+
+<p>The nav list and the panes have to agree about which tabs exist, and that
+set is genuinely machine-conditional (Bennett has Label where others have
+Logo, the Selectrics have no Layout or Calibration, only the Type Slug
+family has Character/Ticks). Rather than repeat that branching, one new
+method returns <code class="language-plaintext highlighter-rouge">(pane id, nav label, compose callable)</code> per tab and both
+are built from it. <code class="language-plaintext highlighter-rouge">_compose_section_tab</code>’s inline pane-id derivation
+became <code class="language-plaintext highlighter-rouge">_section_tab_id()</code> so the nav can point at the same ids.</p>
+
+<h3 id="widths-and-the-overlap-bug-this-surfaced">Widths, and the overlap bug this surfaced</h3>
+
+<p><code class="language-plaintext highlighter-rouge">#form</code> went 58 -&gt; 78: the nav’s 20 columns are added to what was there,
+so the content half stays 56 and no field row re-lays out. <code class="language-plaintext highlighter-rouge">max-width:
+70%</code> keeps a narrow terminal from starving the log pane. Verified at
+150x40 (form 78, log 72) and 100x30 (form 68, log 26).</p>
+
+<p>One real bug found by checking regions rather than eyeballing the render:
+<code class="language-plaintext highlighter-rouge">TabbedContent</code>’s own <code class="language-plaintext highlighter-rouge">DEFAULT_CSS</code> is <code class="language-plaintext highlighter-rouge">width: 100%</code>, which inside the
+new <code class="language-plaintext highlighter-rouge">Horizontal</code> means 100% of the whole row, not the part left over
+beside the nav - so it laid out 76 columns wide starting at x=21, running
+20 columns past the form’s right edge and under the log pane. Fixed with
+an explicit <code class="language-plaintext highlighter-rouge">#tabs { width: 1fr; }</code>. The tests now assert that nothing in
+the form spills past its right edge, since the crude text-extraction
+screenshots did NOT make this obvious - overlapping widgets just look
+like merged text.</p>
+
+<h3 id="verified-1">Verified</h3>
+
+<p>Headless across Blickensderfer, Hammond, Mignon, Bennett and Selectric 12
+(scratch config copies only): nav entries and pane ids match exactly and
+in order, every section is reachable and actually switches the visible
+pane, every machine’s full section list fits without scrolling at both
+150x40 and 100x30, arrow keys move through sections, and no widget
+overflows the form pane. The font-picker tests from part 83 all still
+pass against the new layout.</p>
+
+<h3 id="resuming-later-8">Resuming later</h3>
+
+<p>Part 81’s punch list and part 83’s Windows-checkout note are unchanged.
+Nothing new opened here.</p>
+
   </div>
 
 </article>

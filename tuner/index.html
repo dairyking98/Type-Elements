@@ -55,10 +55,18 @@ python3 tune.py config/blickensderfer.yaml   # skip the picker, load directly
 </code></pre></div></div>
 
 <p>A <code class="language-plaintext highlighter-rouge">textual</code> TUI for iterating on the config without hand-editing YAML or
-re-running the CLI. Tabs: <strong>Font &amp; Alignment</strong>, <strong>Type Test</strong>, <strong>Resin</strong>,
-<strong>Gauge</strong>, <strong>Build</strong>, <strong>Layout</strong>, <strong>Quality</strong>, <strong>Logo</strong>, <strong>Element</strong> (the
-last flagged as advanced - core geometry, not usually touched). A
-persistent <strong>RENDER TEST TEXT</strong> button (outside the tab area, always
+re-running the CLI. Sections are listed down the left-hand side of the
+form - <strong>Font &amp; Alignment</strong>, <strong>Type Test</strong>, <strong>Resin</strong>, <strong>Gauge</strong>,
+<strong>Build</strong>, <strong>Font Coverage</strong>, <strong>Layout</strong>, <strong>Quality</strong>, <strong>Logo</strong>,
+<strong>Element</strong> (the last flagged as advanced - core geometry, not usually
+touched), plus whichever of <strong>Character</strong>, <strong>Ticks</strong>, <strong>Calibration</strong>,
+<strong>Label</strong>, <strong>Rib</strong> and <strong>Legend</strong> the loaded machine has. Click one, or
+arrow through the list, to switch. Every section a machine has is visible
+at once; the list is a vertical column rather than a row of tabs because
+a machine can have up to 14 of them, and a horizontal bar showed about
+five with no hint the rest existed.</p>
+
+<p>A persistent <strong>RENDER TEST TEXT</strong> button (below the sections, always
 visible) launches/raises <code class="language-plaintext highlighter-rouge">f3d</code> in orthographic Top View
 (<code class="language-plaintext highlighter-rouge">f3d_top_view_cmds.txt</code>, <code class="language-plaintext highlighter-rouge">set_camera top</code> - reverse-engineered from
 <code class="language-plaintext highlighter-rouge">libf3d.so</code>’s own command strings after a hand-derived
