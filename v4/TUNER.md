@@ -33,16 +33,25 @@ a tuning session becomes a real, committable config.
 
 **Picking a font**: every font path field (Font & Alignment's `font.path`,
 Logo's `logo.font_path`, the per-machine label/legend font paths) has two
-buttons. **Installed** opens a searchable list of every font installed on
-this machine, by name - fontconfig's own list on Linux (so anything
-`fc-list` knows about, including per-user directories added to
-`fonts.conf`), `%WINDIR%\Fonts` plus the per-user
-`%LOCALAPPDATA%\Microsoft\Windows\Fonts` on Windows; see
-[`lib/system_fonts.py`](lib/system_fonts.py). Type to filter on family,
-style or filename; the currently-selected font is pinned to the top of
-the list. **File** is the original file browser, for a font that isn't
-installed anywhere - the config stores a plain path either way, so
-nothing downstream changes.
+buttons. **Installed** opens a list of every font installed on this
+machine, by name - fontconfig's own list on Linux (so anything `fc-list`
+knows about, including per-user directories added to `fonts.conf`),
+`%WINDIR%\Fonts` plus the per-user
+`%LOCALAPPDATA%\Microsoft\Windows\Fonts` on Windows; `lib/system_fonts.py`
+does the enumeration. **File** is the original file browser, for a font
+that isn't installed anywhere. The config stores a plain path either way,
+so nothing downstream changes.
+
+The list is uncapped on purpose - browsing the whole library is a real
+way to use it, so nothing is truncated and the last entry is always
+reachable. Type to filter on family, style or filename (all typed words
+must match, so `alma bold` and `ocr otf` both narrow the way you'd
+expect), or just scroll: up/down and PageUp/PageDown move without leaving
+the filter box, the mouse wheel works over the list, and Tab focuses the
+list itself. Enter picks the highlighted font, Esc cancels. The
+currently-selected font is pinned to the top and pre-highlighted, and the
+full path of whatever's highlighted shows below the list - two installed
+files can carry the same family name.
 
 **Build tab**: a 2-option dropdown (Element / Shaft Gauge) plus an
 independent "Resin supports" checkbox. Element builds `FullElement()`, or

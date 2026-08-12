@@ -5981,3 +5981,119 @@ here. Two naming judgements were deliberately left alone rather than
    difference between two primary sources of different dates. Each is
    faithful to its own catalog; unifying them would make one of them
    wrong.
+
+## 83. Fonts are now picked by name from the installed list, not by hunting for a file (2026-08-12)
+
+Asked for: "for font selection, rather than selecting font file, can we
+set it so that we have a dropdown of installed system fonts? make sure
+itll work for both linux and windows."
+
+Every font path field in `tune.py` - `font.path`, `logo.font_path`, and
+the per-machine `label`/`legend` font paths (`FONT_PATH_FIELD_KEYS`) -
+now has an **Installed** button beside the original file browser, which
+is now labelled **File**. The two sit on their own row under the input
+rather than beside it; the form pane is 58 columns, and a label plus two
+buttons left the path field too narrow to read.
+
+Configs are untouched by any of this. They still store a plain absolute
+path, so `generate.py` and every machine module are unaffected - this
+only changes how that path gets chosen.
+
+### What counts as "installed" (`lib/system_fonts.py`)
+
+New module, deliberately separate from the TUI the same way
+`lib/layouts/` is:
+
+- **Linux: `fc-list`, not a hardcoded directory list.** This is the load-
+  bearing choice. `~/fonts` is a registered fontconfig directory on this
+  machine (one `<dir>` line in `~/.config/fontconfig/fonts.conf`) and
+  holds most of the real library - 1388 of the 2214 files found. Any
+  `/usr/share/fonts`-style scan misses all of it; that scan survives only
+  as the fallback for a machine with no fontconfig, where it finds 729.
+- **Windows: a real directory scan** of `%WINDIR%\Fonts` plus
+  `%LOCALAPPDATA%\Microsoft\Windows\Fonts` - the per-user one matters,
+  it's where the non-admin "install for me only" default puts fonts.
+  Names come from each file's own name table via freetype.
+- One entry per FILE, deduped by path: a config field holds a path with
+  no face index, so a `.ttc` collection that fontconfig reports as
+  several faces collapses to its first face - picking it selects the
+  file, which is what the pipeline would load anyway. Filtered to the
+  four extensions the glyph pipeline can actually load, and cached.
+
+Family/style always come from the font's own name table, never the
+filename - a filename is frequently a renamed or version-numbered copy
+that doesn't say which typeface it holds, which is the whole reason a
+name-based picker beats a file browser here.
+
+### The picker, and the cap that got removed
+
+First version capped the list at 300 matches. Reported: "lets say i dont
+know what font i want to use. i want to keep scrolling. i cap out at
+300." Fair - browsing the whole library is a real way to use this, and a
+cap turns that into a dead end.
+
+Measured before changing anything: the full 2214-entry list costs ~21ms
+in `add_options` plus ~67ms to settle, against ~33ms for 300. The cap was
+buying about 50ms per keystroke in exchange for truncating the answer.
+Removed.
+
+What the cap was actually covering was the worst-case keystroke, not the
+list size - a filter still matching nearly everything (typing "a", which
+every path contains) rebuilds all 2214 rows at 150-240ms, which reads as
+lag while typing. That is now handled by debouncing the filter 150ms,
+which scales with the library instead of truncating it. Two edge cases
+that needed handling and are covered by tests: Enter flushes a pending
+rebuild before picking (typing then immediately pressing Enter must not
+act on the previous keystroke's list), and dismissal cancels the timer so
+it can't fire against a screen that's already gone.
+
+Also: PageUp/PageDown by the list's own visible height, driven from the
+filter box without tabbing away, since arrow-at-a-time through a couple
+thousand fonts isn't browsing. The currently-configured font is pinned to
+the top and pre-highlighted - otherwise the picker opens scrolled to
+"A..." with no sign of what's selected - and the highlighted entry's full
+path shows below the list, since two installed files can carry the same
+family name.
+
+A filtered list rather than a `Select` dropdown, despite the request
+saying "dropdown": 2214 options in an overlay with no way to type at it
+is unusable, and Textual's `Select` has no filter.
+
+### Verified
+
+Headless (scratch config copies only - `TuneApp.__init__` has a real
+migrate+save side effect, so it never points at a live config) across
+Blickensderfer, Hammond, Mignon, Bennett and Selectric 12: every font
+field gets both buttons, the picker opens/filters/pins/picks, the input
+and its "Currently selected:" label follow, Esc leaves the value alone,
+the last entry of the uncapped list is reachable, and paging moves by a
+full page.
+
+Run on both platforms, not just claimed to work on both:
+
+| | fonts | enumeration |
+|---|---|---|
+| Linux (fc-list) | 2214 | 0.13s |
+| Linux (fallback scan) | 729 | 0.11s |
+| Windows (`C:\Windows\Fonts`) | 704 | 0.37s |
+
+The same smoke test passes on the Windows box against real Windows font
+paths. No geometry code was touched, so the mesh hard gate doesn't apply.
+
+### Resuming later
+
+Part 81's punch list is unchanged. One thing opened here, on the Windows
+checkout rather than in the code:
+
+1. **`config/selectric12.yaml` and `selectric3.yaml` are modified in the
+   Windows working tree**, pointing `font.path`/`font2_path` at
+   `C:/Windows/Fonts/arial.ttf`/`times.ttf` instead of the committed
+   Linux paths. They were stashed to let the pull through and popped
+   back. `selectric_composer.yaml` conflicted (upstream had deliberately
+   moved it to Glass Antiqua) and was resolved in favour of upstream.
+   This feature is what makes those hand-edits unnecessary - the fields
+   can be re-pointed from the TUI now - so they should probably be
+   reverted so that tree stops going dirty on every pull. Also
+   `stash@{1}` there holds `encoding="utf-8"` fixes for 10 machine
+   modules that are already upstream verbatim; it's redundant and can be
+   dropped.

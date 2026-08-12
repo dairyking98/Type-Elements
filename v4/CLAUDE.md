@@ -458,6 +458,27 @@ the cited section for the full incident).
     builds a WRONG typeball with every character still present. Each
     module asserts full pairing coverage at import to turn that silent
     bad-geometry failure into a loud one; keep those asserts.
+- **Which fonts count as "installed" on a given OS is
+  `lib/system_fonts.py`'s question, not `tune.py`'s** - same split as
+  `lib/layouts/` above. `fc-list` (fontconfig) is the Linux source of
+  truth deliberately, NOT a hardcoded directory list: `~/fonts` is a
+  registered fontconfig dir on this machine and holds most of the real
+  library, so any `/usr/share/fonts`-style scan silently misses it (that
+  scan survives only as the no-fontconfig fallback). Windows is a real
+  directory scan of `%WINDIR%\Fonts` + `%LOCALAPPDATA%\Microsoft\Windows\
+  Fonts`, and the per-user one matters - it's where the non-admin
+  "install for me only" default puts fonts. Configs still store a plain
+  path, so nothing in the build pipeline imports this module.
+- **`SystemFontPicker`'s list is uncapped on purpose - don't reintroduce
+  a top-N limit to make filtering feel faster.** A 300-item cap shipped
+  first and was removed on the report "i want to keep scrolling. i cap
+  out at 300"; the measurement is in the class docstring (the cap bought
+  ~50ms per keystroke, in exchange for making the rest of the library
+  unreachable). The worst-case keystroke - a filter still matching nearly
+  everything - is covered by debouncing the filter instead, which scales
+  with the library rather than truncating it. If a huge library ever
+  feels sluggish again, raise `FILTER_DEBOUNCE_SECONDS` or make the
+  rebuild incremental; a cap is the one fix that's already been rejected.
 - **All build-pipeline console output goes through `lib/build_log.py`,
   not a hand-written `print()`.** Extracted after real drift was found:
   `glyph_poc.py` had its own `report()` that nothing in the actual

@@ -64,6 +64,12 @@ downloads a pinned build automatically the first time it's needed (see
 `PACKAGING_PLAN.md`), so no separate f3d install step is required on
 either platform.
 
+One first-run note: the shipped configs' `font.path` values are absolute
+paths into the font library on the machine they were tuned on, so a fresh
+checkout elsewhere (Windows especially) needs them re-pointed before a
+build will find its font. The Font & Alignment tab's **Installed** button
+does that in one click - see [`TUNER.md`](TUNER.md).
+
 ## Usage
 
 ```
@@ -115,6 +121,8 @@ lib/
   build_log.py               the ONE progress/mesh-report/atomic-export format (see CLAUDE.md)
   resin_support.py           shared resin-support geometry
   svg_import.py              SVG path -> polygon import (logos/marks)
+  system_fonts.py            lists the fonts installed on this machine (Linux/Windows) for
+                             tune.py's font pickers - see TUNER.md
   f3d_bootstrap.py           finds or downloads the pinned f3d used by tune.py's preview
   contour_inspect.py         standalone contour diagnostic (not in the build path)
   heightfield_poc.py         abandoned height-field experiment, kept for reference; nothing imports it
