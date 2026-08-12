@@ -706,8 +706,14 @@ above) - independent of the other four since it’s a per-glyph boolean,
 not a body-level revolve.</li>
   <li><code class="language-plaintext highlighter-rouge">minkowski_fn</code> - the draft cone kernel (see “Performance” above) - by
 far the most cost-sensitive of the five, since <code class="language-plaintext highlighter-rouge">manifold3d</code>’s Minkowski
-cost scales with the product of face counts against <code class="language-plaintext highlighter-rouge">points_per_mm</code>.</li>
+cost scales with the product of the two operands’ face counts, and the
+glyph operand’s count is set by <code class="language-plaintext highlighter-rouge">flatness_tolerance_mm</code> (which replaced
+the old fixed-rate <code class="language-plaintext highlighter-rouge">points_per_mm</code>).</li>
 </ul>
+
+<p><code class="language-plaintext highlighter-rouge">quality:</code> also carries a sixth <code class="language-plaintext highlighter-rouge">_fn</code> key, <code class="language-plaintext highlighter-rouge">groove_fn</code>, which is NOT one
+of the five above: it’s the CoreGrooves twist angular sampling, not a
+facet count for any surface.</p>
 
 <h3 id="resin-print-supports-resinprint">Resin print supports (<code class="language-plaintext highlighter-rouge">ResinPrint</code>)</h3>
 
