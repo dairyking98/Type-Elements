@@ -258,6 +258,16 @@ CATALOG_UNIVERSAL_ESPERANTO = [
     "QAZWSXEDCRFVTGB" "YHNUJMIKŜOLĈPĴĜ",
     '1"@2/×3$+4%!5_-' "6ĥ;7':8(,9).0?ŭ",
 ]
+# Italian (134F Large Gothic, 73/32B Medium Roman, 67A Small Roman,
+# 69A Large Roman, 104B/150B Italic, 85A/111B Vertical Script).
+# Full à/è/é/ì/ò/ù plus ç. Note this diverges from Universal French in
+# row 0 as well as the figures row - Italian puts ’ where French has ","
+# and moves ./, to the end - so it is not just a figures-row swap.
+CATALOG_UNIVERSAL_ITALIAN = [
+    "qazwsxedcrfvtgb" "yhnujmik’olép.,",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL;P:!",
+    "1”+2×ù3¨=4%°5_à" "6&-7èò8(ì9)§0ç/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -306,6 +316,10 @@ CATALOG_SHUTTLES = {
     ),
     "universal_french_german_english": "32E Medium Roman",
     "universal_esperanto": "135A, 135D Medium Roman",
+    "universal_italian": (
+        "134F Large Gothic, 73/32B Medium Roman, 67A Small Roman, "
+        "69A Large Roman, 104B/150B Italic, 85A/111B Vertical Script"
+    ),
     "universal_german_new_orthography": (
         "117/117A Italic, 119C Gothic Italic, 124 Large Italic, "
         "145A Multigraph (Pica)"
@@ -323,6 +337,14 @@ CATALOG_SHUTTLES = {
     # What genuinely blocks an import is a character the scan will not
     # resolve, since a guessed glyph silently builds a wrong shuttle.
     #
+    #   Held because the READING contradicts the LABEL:
+    #     Danish-Norwegian (55D, 90A, 93B, 101C, 134C) - the vowels print
+    #       as unmistakable two-dot diacritics, Æ Ä Ö, at 500%. But Danish
+    #       and Norwegian need ø and å; a shuttle with Ä/Ö and neither ø
+    #       nor å would be unusable for either language. Either Hammond
+    #       shipped a Swedish-style compromise under that name, or those
+    #       glyphs are not what they look like. Identifiable as glyphs,
+    #       not trustworthy as a layout.
     #   Held on ONE unresolved character each:
     #     Danish 88 - the figures row shows a gap at right-half position
     #       8, where its sibling 87 has "_". Blank wheel slot or an
@@ -449,4 +471,5 @@ LAYOUT_PRESETS_HAMMOND = {
         r[::-1] for r in CATALOG_UNIVERSAL_FRENCH_GERMAN_ENGLISH
     ],
     "Universal, Esperanto": [r[::-1] for r in CATALOG_UNIVERSAL_ESPERANTO],
+    "Universal, Italian": [r[::-1] for r in CATALOG_UNIVERSAL_ITALIAN],
 }
