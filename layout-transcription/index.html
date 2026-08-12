@@ -167,7 +167,7 @@ apply to it.)</p>
 <h3 id="what-the-catalogs-confirmed-unchanged">What the catalogs <em>confirmed</em> unchanged</h3>
 
 <ul>
-  <li><strong>Hammond <code class="language-plaintext highlighter-rouge">Normal Universal</code></strong> — an independent transcription of the
+  <li><strong>Hammond <code class="language-plaintext highlighter-rouge">Universal</code></strong> — an independent transcription of the
 1920 catalog’s Universal rows, reversed into this machine’s storage
 order, came out byte-identical to the shipped preset on all three rows.</li>
   <li><strong>Hammond Ideal standard / fractions</strong> — the 1915 catalog’s English
@@ -228,8 +228,8 @@ shift, so that is a genuine character difference.</p>
 
 <p><strong>Two spellings kept rather than one picked.</strong> v1/v2 read <code class="language-plaintext highlighter-rouge">9[0]</code> where
 every catalogued Ideal entry reads <code class="language-plaintext highlighter-rouge">9(0)</code>. Both survive as separate
-presets — <code class="language-plaintext highlighter-rouge">IDEAL (£)</code>/<code class="language-plaintext highlighter-rouge">IDEAL (⅌)</code> preserve the shipped source history,
-<code class="language-plaintext highlighter-rouge">IDEAL, Fractions</code> preserves the printed catalog. Same treatment as the
+presets — <code class="language-plaintext highlighter-rouge">Ideal (£)</code>/<code class="language-plaintext highlighter-rouge">Ideal (⅌)</code> preserve the shipped source history,
+<code class="language-plaintext highlighter-rouge">Ideal, Fractions</code> preserves the printed catalog. Same treatment as the
 pre-existing £/⅌ pair.</p>
 
 <p><strong>Storage order is load-bearing and differs per machine.</strong> <code class="language-plaintext highlighter-rouge">hammond</code>
@@ -302,6 +302,14 @@ both.</p>
     <tr>
       <td>Ideal, Portuguese</td>
       <td>63</td>
+    </tr>
+    <tr>
+      <td>Ideal, French</td>
+      <td>61, 14, 62, 15</td>
+    </tr>
+    <tr>
+      <td>Ideal, German (New Orthography)</td>
+      <td>36B, 114</td>
     </tr>
   </tbody>
 </table>
@@ -415,7 +423,7 @@ needing per-entry checking rather than one shared reading.</li>
   <li><strong><code class="language-plaintext highlighter-rouge">OCR-A II Regular</code></strong>, configured for both Hammond machines, lacks the
 fractions and every accent. This is <strong>not</strong> a regression from the
 imports — it equally lacks <code class="language-plaintext highlighter-rouge">¢</code>/<code class="language-plaintext highlighter-rouge">°</code>/<code class="language-plaintext highlighter-rouge">×</code> from the already-shipped
-<code class="language-plaintext highlighter-rouge">Normal Universal</code>, so every Hammond preset including the defaults is
+<code class="language-plaintext highlighter-rouge">Universal</code>, so every Hammond preset including the defaults is
 in the same position.</li>
   <li><strong><code class="language-plaintext highlighter-rouge">AverageMono Mod</code></strong> covers all four per-language layouts and the
 fractions set with no missing glyphs.</li>
@@ -496,8 +504,52 @@ of the rest already sighted:</p>
       <td>20</td>
       <td>unread</td>
     </tr>
+    <tr>
+      <td>French</td>
+      <td>61, 14, 62, 15</td>
+      <td>16</td>
+      <td><strong>imported</strong></td>
+    </tr>
+    <tr>
+      <td>French</td>
+      <td>39 (Special)</td>
+      <td>16</td>
+      <td>unread — a fractions variant</td>
+    </tr>
+    <tr>
+      <td>German (New Orthography)</td>
+      <td>36B, 114</td>
+      <td>16</td>
+      <td><strong>imported</strong></td>
+    </tr>
+    <tr>
+      <td>German (old orthography)</td>
+      <td>36, 11, 12</td>
+      <td>16</td>
+      <td>held — long-s <code class="language-plaintext highlighter-rouge">ſ</code> or a worn <code class="language-plaintext highlighter-rouge">ß</code>?</td>
+    </tr>
+    <tr>
+      <td>Esperanto</td>
+      <td>105</td>
+      <td>16</td>
+      <td>letter rows clear (ĥ ĵ ŝ ĉ ĝ ŭ); figures row not yet resolved</td>
+    </tr>
+    <tr>
+      <td>French-German</td>
+      <td>79</td>
+      <td>16</td>
+      <td>unread</td>
+    </tr>
   </tbody>
 </table>
+
+<p><strong>The catalog has a full index on PDF page 12</strong>, listing every shuttle
+number, its description and the page it appears on — including languages
+not yet sighted anywhere above: Hungarian, Swedish-Finnish,
+Danish-Norwegian, Italian, Bohemian, Polish-German, Argentine, Braille,
+Turkey-Persian, Arabic, Arabic-Persian-Turkish, Bell Visible Speech, and
+Dutch-German-French-English. Start there rather than paging through the
+scans.</p>
 
 <p>Pages 10–13, 15–19 and 21–35 have <strong>not been sampled at all</strong> — there are
 more languages there than the table above. Each section is one layout
