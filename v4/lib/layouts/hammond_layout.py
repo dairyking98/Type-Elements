@@ -369,6 +369,32 @@ CATALOG_IDEAL_HUNGARIAN = [
     "ÖZXQKJGBMPCFLD;" "ÁTAHERISOUNWYVÉ",
     "1%!?.:*-2§3Ú4ú5" "6ű7ő8Ü9üäÓ&ó=”/",
 ]
+# Chilian (47A Large Roman, 89A Vertical Script, 16A/17A/46A/65A/66A/33A).
+# Differs from CATALOG_UNIVERSAL_SPANISH in exactly three positions: ä/ö
+# replace ¨/¡ and ü replaces ç. German vowels on a Chilean shuttle is not
+# a slip - Chile had a large German-speaking population by 1915, and this
+# is the shuttle that serves both.
+CATALOG_UNIVERSAL_CHILIAN = [
+    "qazwsxedcrfvtgb" "yhnujmik,oláp;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    '1"@2äö3$¿4%£5_ñ' "6&ó7'í8(ú9)é0ü/",
+]
+# Russian (143 Large Roman). Pre-reform orthography: і (U+0456), ѣ yat
+# (U+0462/3) and Ѵ izhitsa (U+0474) are all present, along with № .
+#
+# The letter-inventory check works here too, and is what makes a Cyrillic
+# read trustworthy: of the six pre-reform letters absent from row 0
+# (ж х ц э ѳ ѵ), five reappear in the FIGURES row. Only ѳ (fita) is
+# genuinely missing from this shuttle, which is unremarkable - fita was
+# rare by 1915 and was abolished outright three years later.
+#
+# Note Ѵ reads as a Latin-looking V because izhitsa IS V-shaped; that is
+# the character, not a Latin letter.
+CATALOG_UNIVERSAL_RUSSIAN = [
+    "йфяіычувѣкъсеам" "нпигртшоьщлбздю",
+    "ЙФЯІЫЧУВѢКЪСЕАМ" "НПИГРТШОЬЩЛБЗДЮ",
+    '1Ѵ-2%"3э!4Э:5ц.' "6Ц№7х,8Х/9ж(0Ж)",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -428,6 +454,8 @@ CATALOG_SHUTTLES = {
         "157A Italic"
     ),
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
+    "universal_chilian": "47A Large Roman, 89A Vertical Script, 16A/17A/46A/65A/66A/33A",
+    "universal_russian": "143 Large Roman",
     "universal_spanish": "33 Medium Roman, 66/66B Small Roman, 47 Large Roman, 89 Vertical Script",
     "universal_swedish_finnish": "93A Small Roman, 90 Italic, 101/101A/101B Large Roman, 134B Large Gothic",
     "universal_danish_norwegian": "55D, 90A, 93B, 101C, 134C",
@@ -591,4 +619,6 @@ LAYOUT_PRESETS_HAMMOND = {
     "Ideal, Bohemian": [r[::-1] for r in CATALOG_IDEAL_BOHEMIAN],
     "Ideal, Polish": [r[::-1] for r in CATALOG_IDEAL_POLISH],
     "Ideal, Hungarian": [r[::-1] for r in CATALOG_IDEAL_HUNGARIAN],
+    "Universal, Chilian": [r[::-1] for r in CATALOG_UNIVERSAL_CHILIAN],
+    "Universal, Russian": [r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN],
 }

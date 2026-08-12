@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 198 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 211 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -158,6 +158,15 @@ The payoff was disproportionate: `Ideal, German` turns out to differ from
 `Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.
 
+**The letter-inventory check works on Cyrillic too**, and is what made a
+Russian read trustworthy rather than a guess. Of the six pre-reform
+letters absent from shuttle 143's row 0 (ж х ц э ѳ ѵ), five reappear in
+its figures row — the shuttle is complete except ѳ (fita), which was
+already rare in 1915 and abolished three years later. A misread letter
+row would almost certainly have left that accounting broken. Note Ѵ
+(izhitsa) genuinely is V-shaped, so a Latin-looking V there is the
+correct character, not a Latin letter.
+
 **Read the siblings, not just the entry.** Two holds were cleared this
 way rather than by better optics. Roumanian Ideal 92's unresolved closing
 mark was settled by Universal Roumanian 32C, which carries a bare ¸
@@ -243,6 +252,8 @@ both.
 | Ideal, Bohemian | 54, 86, 120, 153C, 154A, 155A, 156A, 157A |
 | Ideal, Polish | 155, 77, 154, 156, 157, 153B, 121 |
 | Ideal, Hungarian | 152, 44, 57, 151, 74 |
+| Universal, Chilian | 47A, 89A, 16A, 17A, 46A, 65A, 66A, 33A |
+| Universal, Russian | 143 |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

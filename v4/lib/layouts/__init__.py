@@ -51,6 +51,8 @@ from .hammond_layout import (
     CATALOG_IDEAL_STANDARD,
     CATALOG_SHUTTLES,
     CATALOG_UNIVERSAL_CAPS_SMALL_CAPS,
+    CATALOG_UNIVERSAL_CHILIAN,
+    CATALOG_UNIVERSAL_RUSSIAN,
     CATALOG_UNIVERSAL_FRACTIONS,
     CATALOG_UNIVERSAL_STANDARD,
     LAYOUT_PRESETS_HAMMOND,
@@ -126,6 +128,8 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Ideal, Bohemian": [3.74, -1.21, -5.71],
         "Ideal, Polish": [3.74, -1.21, -5.71],
         "Ideal, Hungarian": [3.74, -1.21, -5.71],
+        "Universal, Chilian": [3.74, -1.21, -5.71],
+        "Universal, Russian": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires

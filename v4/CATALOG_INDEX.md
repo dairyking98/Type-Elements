@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**198 of 346 catalogued shuttles are covered (57%)** — 14 held on an unresolved character,
-134 not yet transcribed.
+**211 of 346 catalogued shuttles are covered (60%)** — 17 held on an unresolved character,
+118 not yet transcribed.
 
 Status meanings:
 
@@ -100,14 +100,14 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 27B | Caps and Small Caps, Italian, Universal | 47 | **imported** | Universal, Italian |
 | 28 | Law Italic, English, Universal | 39 | **imported** | Universal |
 | 28A | Law Italic, Spanish, Universal | 51 | **imported** | Universal, Spanish |
-| 29 | Large Russian, Universal | 49 | todo | Universal / Russian |
-| 29A | Large Russian, Universal, Old Style | 49 | todo | Universal / Russian |
-| 29B | Large Russian, Universal, Old Style | 50 | todo | Universal / Russian |
+| 29 | Large Russian, Universal | 49 | held | same as 29B |
+| 29A | Large Russian, Universal, Old Style | 49 | held | same as 29B |
+| 29B | Large Russian, Universal, Old Style | 50 | held | Latin-form `N` at position 14: plain N, or `№` without its raised o? |
 | 29C | Large Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
 | 30 | Medium Roman, Polish, Universal | 48 | todo | Universal / Polish |
-| 31 | Medium Roman, Russian, Universal | 49 | todo | Universal / Russian |
-| 31A | Medium Roman, Russian, Universal | 49 | todo | Universal / Russian |
-| 31B | Medium Roman, Russian, Universal | 49 | todo | Universal / Russian |
+| 31 | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
+| 31A | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
+| 31B | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
 | 31C | Medium Roman, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
 | 32 | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
 | 32A | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
@@ -116,7 +116,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 32D | Medium Roman, Roumanian, Universal | 49 | **imported** | Universal, Roumanian |
 | 32E | Medium Roman, French, German, English, Universal | 41 | **imported** | Universal |
 | 33 | Medium Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
-| 33A | Medium Roman, Chilian, Universal | 32 | todo | Universal / Chilian |
+| 33A | Medium Roman, Chilian, Universal | 32 | **imported** | Universal, Chilian |
 | 33B | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | **imported** | Universal, Spanish |
 | 33C | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | **imported** | Universal, Spanish |
 | 33D | Spanish, French, English | 53 | todo | ? / Spanish |
@@ -137,8 +137,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 39 | Large Roman, French, Special, Ideal | 21 | todo | Ideal / French / Special |
 | 40 | Medium Roman, Fractions, English, Universal | 37 | **imported** | Universal, Fractions |
 | 41 | Small Roman, Fractions, English, Universal | 36 | held | diagonal-fraction numerators |
-| 42 | Italic, Russian, Universal | 50 | todo | Universal / Russian |
-| 42A | Italic, Russian, Universal | 50 | todo | Universal / Russian |
+| 42 | Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
+| 42A | Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 42C | Italic, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
 | 43 | Medium Roman, Special Medical, English, Universal | 37 | todo | Universal / English / Special Medical, Medical, Special |
 | 43A | Medium Roman, Medical, English, Universal | 37 | todo | Universal / English / Medical |
@@ -148,7 +148,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 46A | Large Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
 | 46B | Large Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 47 | Large Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
-| 47A | Large Roman, Chilian, Universal | 33 | todo | Universal / Chilian |
+| 47A | Large Roman, Chilian, Universal | 33 | **imported** | Universal, Chilian |
 | 48 | Medium Roman, Fractions, English, Ideal | 19 | **imported** | Ideal, Fractions |
 | 48A | Medium Roman, Fractions, English, Ideal | 18 | **imported** | Ideal, Fractions |
 | 48B | Medium Roman, Fractions, English, Ideal | 18 | **imported** | Ideal, Fractions |
@@ -190,7 +190,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 65A | Small Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
 | 65B | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 66 | Small Roman, Spanish, Universal | 50 | **imported** | Universal, Spanish |
-| 66A | Small Roman, Chilian, Universal | 32 | todo | Universal / Chilian |
+| 66A | Small Roman, Chilian, Universal | 32 | **imported** | Universal, Chilian |
 | 66B | Small Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 67 | Small Roman, French, Universal | 40 | **imported** | Universal, French |
 | 67A | Small Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
@@ -234,7 +234,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 87 | Medium Roman, Fractions, Danish, Ideal | 16 | **imported** | Ideal, Danish (Fractions) |
 | 88 | Medium Roman, Danish, Ideal | 16 | held | blank slot vs under-inked `_` |
 | 89 | Vertical Script, Spanish, Universal | 51 | **imported** | Universal, Spanish |
-| 89A | Vertical Script, Chilian, Universal | 33 | todo | Universal / Chilian |
+| 89A | Vertical Script, Chilian, Universal | 33 | **imported** | Universal, Chilian |
 | 90 | Italic, Swedish-Finnish, Universal | 53 | **imported** | Universal, Swedish-Finnish |
 | 90A | Italic, Danish-Norwegian, Universal | 34 | **imported** | Universal, Danish-Norwegian |
 | 91 | Italic Script, German, Ideal | 22 | **imported** | Ideal, German |
@@ -286,9 +286,9 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 112B | Greek, Universal | 45 | todo | Universal / Greek |
 | 113 | Medium Roman, Library, English, Universal | 37 | todo | Universal / English / Library |
 | 114 | Medium Roman, German, Ideal (New Orthography) | 21 | **imported** | Ideal, German (New Orthography) |
-| 115 | Large Italic, Russian, Universal | 50 | todo | Universal / Russian |
-| 115A | Large Italic, Russian, Universal | 50 | todo | Universal / Russian |
-| 115B | Large Italic, Russian, Universal | 50 | todo | Universal / Russian |
+| 115 | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
+| 115A | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
+| 115B | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 115C | Large Italic, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
 | 116 | Medium Roman, Bohemian, Universal | 32 | todo | Universal / Bohemian |
 | 117 | Italic, German, Universal | 44 | todo | Universal / German |
@@ -335,7 +335,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 140 | Large Roman, French (Belgian Keyboard), Ideal and Universal | 55 | todo | Ideal/Universal / French |
 | 141 | Large Roman, Polish, Universal | 48 | todo | Universal / Polish |
 | 142 | Medium Roman, Mathematical, English, Ideal | 25 | todo | Ideal / English / Mathematical |
-| 143 | Large Roman, Russian, Universal | 50 | todo | Universal / Russian |
+| 143 | Large Roman, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 144 | Multigraph (Pica), Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
 | 144A | Multigraph (Pica), English, Ideal | 20 | **imported** | Ideal |
 | 144B | Multigraph (Pica), German, Ideal | 23 | **imported** | Ideal, German |

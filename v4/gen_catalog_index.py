@@ -63,12 +63,16 @@ IMPORTED = {
     ("Universal", "Portuguese", ()): "Universal, Portuguese",
     ("Universal", "Roumanian", ()): "Universal, Roumanian",
     ("Universal", "Spanish", ()): "Universal, Spanish",
+    ("Universal", "Chilian", ()): "Universal, Chilian",
+    ("Universal", "Russian", ()): "Universal, Russian",
     ("Universal", "Swedish-Finnish", ()): "Universal, Swedish-Finnish",
     ("Universal", "Danish-Norwegian", ()): "Universal, Danish-Norwegian",
 }
 # Read, but one character will not resolve from the scan.
 HELD = {
     "88": "blank slot vs under-inked `_`",
+    "29B": "Latin-form `N` at position 14: plain N, or `\u2116` without its raised o?",
+    "29": "same as 29B", "29A": "same as 29B",
     "71A": "stem-with-bowl glyph: `¶`, `Þ` or other",
     "71F": "same as 71A", "34A": "same as 71A", "34D": "same as 71A",
     "50A": "same as 71A", "50C": "same as 71A",
