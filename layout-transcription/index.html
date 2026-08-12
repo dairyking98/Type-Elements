@@ -55,7 +55,7 @@ reading a glyph off a scan, and that reasoning is the part worth keeping.</p>
 is the narrative; those modules are the source of truth for the values.</p>
 
 <p>For the complete shuttle-by-shuttle enumeration with import status, see
-<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 211 of 346 catalogued Hammond
+<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 212 of 346 catalogued Hammond
 shuttles are currently covered.</p>
 
 <hr />
@@ -223,6 +223,17 @@ callable; one ambiguous glyph on its own would not have been.</p>
 <p>The payoff was disproportionate: <code class="language-plaintext highlighter-rouge">Ideal, German</code> turns out to differ from
 <code class="language-plaintext highlighter-rouge">Ideal, Dutch</code> in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.</p>
+
+<p><strong>The inventory check can indict the SOURCE, not just the port.</strong> It was
+built to catch v1/v2 transcription errors, but on Bulgarian 31C it fired
+against the catalog itself: <code class="language-plaintext highlighter-rouge">ж</code> is printed at both position 0 and
+position 12 of row 0, while <code class="language-plaintext highlighter-rouge">ѫ</code> (big yus) — which pre-1945 Bulgarian
+cannot do without — is absent from the shuttle entirely. A duplicated
+letter alongside a missing one is precisely the signature. Either the
+catalog has a typo or that glyph is not <code class="language-plaintext highlighter-rouge">ж</code>; either way it is not
+importable, so all four Bulgarian entries are held. Worth knowing that
+“primary source” does not mean “error-free” — it means <em>earlier</em>
+authority.</p>
 
 <p><strong>The letter-inventory check works on Cyrillic too</strong>, and is what made a
 Russian read trustworthy rather than a guess. Of the six pre-reform
@@ -418,6 +429,10 @@ both.</p>
     <tr>
       <td>Universal, Russian</td>
       <td>143</td>
+    </tr>
+    <tr>
+      <td>Universal, Bohemian</td>
+      <td>116</td>
     </tr>
   </tbody>
 </table>
