@@ -55,6 +55,7 @@ IMPORTED = {
     ("Ideal", "Bohemian", ()): "Ideal, Bohemian",
     ("Ideal", "Polish", ()): "Ideal, Polish",
     ("Ideal", "Hungarian", ()): "Ideal, Hungarian",
+    ("Ideal", "Italian", ()): "Ideal, Italian",
     ("Universal", "English", ()): "Universal",
     ("Universal", "English", ("Fractions",)): "Universal, Fractions",
     ("Universal", "French", ()): "Universal, French",
@@ -86,6 +87,9 @@ HELD = {
     "23F": "one unidentifiable figure slot",
     "23G": "one unidentifiable figure slot",
     "136": "chemical figures row not legible",
+    "7": "polytonic diacritics not separable at this resolution",
+    "75": "same as 7", "82": "same as 7", "8": "same as 7",
+    "112A": "same as 7", "112B": "same as 7",
 }
 
 

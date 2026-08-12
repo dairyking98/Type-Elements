@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**212 of 346 catalogued shuttles are covered (61%)** — 21 held on an unresolved character,
-113 not yet transcribed.
+**216 of 346 catalogued shuttles are covered (62%)** — 27 held on an unresolved character,
+103 not yet transcribed.
 
 Status meanings:
 
@@ -47,8 +47,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 5A | Caps and Small Caps, Fractions, Spanish, Ideal | 27 | **imported** | Ideal, Spanish (Caps and Small Caps) |
 | 5B | Caps and Small Caps, Fractions, Spanish, Ideal | 28 | **imported** | Ideal, Spanish (Caps and Small Caps) |
 | 6 | Italic, Fractions, English, Ideal | 20 | **imported** | Ideal, Fractions |
-| 7 | Greek, Ideal | 24 | todo | Ideal / Greek |
-| 8 | Small Greek, four line, Ideal | 23 | todo | Ideal / Small Greek |
+| 7 | Greek, Ideal | 24 | held | polytonic diacritics not separable at this resolution |
+| 8 | Small Greek, four line, Ideal | 23 | held | same as 7 |
 | 9 | Attic, Fractions, English, Ideal | 19 | **imported** | Ideal, Fractions |
 | 10 | Medium Roman, English, Ideal | 17 | **imported** | Ideal |
 | 10A | Medium Roman, English, Ideal | 18 | **imported** | Ideal |
@@ -63,9 +63,9 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 13A | Italic, Dutch, Ideal | 17 | **imported** | Ideal, Dutch |
 | 13B | Italic, German, Ideal | 22 | **imported** | Ideal, German |
 | 14 | Medium Roman, French, Ideal | 20 | **imported** | Ideal, French |
-| 14A | Medium Roman, Italian, Ideal | 25 | todo | Ideal / Italian |
+| 14A | Medium Roman, Italian, Ideal | 25 | **imported** | Ideal, Italian |
 | 15 | Italic, French, Ideal | 21 | **imported** | Ideal, French |
-| 15A | Italic, Italian, Ideal | 25 | todo | Ideal / Italian |
+| 15A | Italic, Italian, Ideal | 25 | **imported** | Ideal, Italian |
 | 16 | Medium Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 16A | Medium Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
 | 16B | Medium Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
@@ -179,9 +179,9 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 60A | Gothic Italic, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
 | 60B | Gothic Italic, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
 | 61 | Small Roman, French, Ideal | 20 | **imported** | Ideal, French |
-| 61A | Small Roman, Italian, Ideal | 24 | todo | Ideal / Italian |
+| 61A | Small Roman, Italian, Ideal | 24 | **imported** | Ideal, Italian |
 | 62 | Large Roman, French, Ideal | 21 | **imported** | Ideal, French |
-| 62A | Large Roman, Italian, Ideal | 25 | todo | Ideal / Italian |
+| 62A | Large Roman, Italian, Ideal | 25 | **imported** | Ideal, Italian |
 | 63 | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 63A | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 63B | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
@@ -208,7 +208,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 71F | Small Roman, Fractions, Dutch, Universal | 34 | held | same as 71A |
 | 73 | Medium Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
 | 74 | Gothic Italic, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
-| 75 | Greek, Ideal | 24 | todo | Ideal / Greek |
+| 75 | Greek, Ideal | 24 | held | same as 7 |
 | 76 | Gothic Italic, German, Ideal | 22 | **imported** | Ideal, German |
 | 76A | Gothic Italic, Dutch, Ideal | 16 | **imported** | Ideal, Dutch |
 | 76B | Gothic Italic, German, Ideal | 22 | **imported** | Ideal, German |
@@ -220,7 +220,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 80 | Vertical Script, English, Universal | 39 | **imported** | Universal |
 | 80A | Vertical Script, Fractions, English, Universal | 39 | **imported** | Universal, Fractions |
 | 81 | Armenian, Ideal or Universal | 54 | todo | Ideal/Universal / Armenian |
-| 82 | English Greek, four line, Ideal | 24 | todo | Ideal / English Greek |
+| 82 | English Greek, four line, Ideal | 24 | held | same as 7 |
 | 83 | Vertical Script, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
 | 83A | Vertical Script, Chilian, Ideal | 16 | todo | Ideal / Chilian |
 | 83B | Vertical Script, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
@@ -282,8 +282,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 111 | Vertical Script, French, Universal | 41 | **imported** | Universal, French |
 | 111A | Vertical Script, French, Universal | 42 | **imported** | Universal, French |
 | 111B | Vertical Script, Italian, Universal | 47 | **imported** | Universal, Italian |
-| 112A | Greek, Universal | 45 | todo | Universal / Greek |
-| 112B | Greek, Universal | 45 | todo | Universal / Greek |
+| 112A | Greek, Universal | 45 | held | same as 7 |
+| 112B | Greek, Universal | 45 | held | same as 7 |
 | 113 | Medium Roman, Library, English, Universal | 37 | todo | Universal / English / Library |
 | 114 | Medium Roman, German, Ideal (New Orthography) | 21 | **imported** | Ideal, German (New Orthography) |
 | 115 | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |

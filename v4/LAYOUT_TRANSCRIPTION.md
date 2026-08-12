@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 212 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 216 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -158,6 +158,15 @@ The payoff was disproportionate: `Ideal, German` turns out to differ from
 `Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.
 
+**Greek is held on the diacritics, not the letters.** The Greek shuttles
+(7, 75, 82, 8, 112A, 112B) are polytonic: alongside the alphabet they
+carry standalone breathing and accent marks, and what appear to be
+iota-subscript vowel forms. The letters read fine; assigning the *marks*
+to codepoints is the problem — acute vs tonos, perispomeni vs a plain
+tilde, psili vs a left quote are all distinguishable in principle and not
+at this scan resolution. This one wants someone who reads polytonic
+Greek, not a better crop.
+
 **The inventory check can indict the SOURCE, not just the port.** It was
 built to catch v1/v2 transcription errors, but on Bulgarian 31C it fired
 against the catalog itself: `ж` is printed at both position 0 and
@@ -266,6 +275,7 @@ both.
 | Universal, Chilian | 47A, 89A, 16A, 17A, 46A, 65A, 66A, 33A |
 | Universal, Russian | 143 |
 | Universal, Bohemian | 116 |
+| Ideal, Italian | 61A, 14A, 62A, 15A |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

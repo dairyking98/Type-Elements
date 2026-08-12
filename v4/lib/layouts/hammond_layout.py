@@ -408,6 +408,16 @@ CATALOG_UNIVERSAL_BOHEMIAN = [
     "QAZŠSXEDCRFVTGB" "YHNUJMIK;OL.PČŘ",
     '1„%2“x3ď!4f:5g-' "6§ň7úť8(?9)ůýq/",
 ]
+# Italian, Ideal (61A Small Roman, 14A Medium Roman, 62A Large Roman,
+# 15A Italic). Three positions apart from CATALOG_IDEAL_FRENCH: ì and ò
+# take the £/$ slots, and row 0 ends "." rather than ":". Everything
+# Italian needs (à è é ì ò ù) plus ç and the circumflex set it shares
+# with French.
+CATALOG_IDEAL_ITALIAN = [
+    "?zxqkjgbmpcfld," "étaherisounwyv.",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "¨%/èçù1à2.3ì4ò5" "6“7”8’9(0)ûôîêâ",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -457,6 +467,7 @@ CATALOG_SHUTTLES = {
     "universal_french_german_english": "32E Medium Roman",
     "universal_esperanto": "135A, 135D Medium Roman",
     "ideal_roumanian": "92 Medium Roman",
+    "ideal_italian": "61A Small Roman, 14A Medium Roman, 62A Large Roman, 15A Italic",
     "ideal_hungarian": "152 Small Roman, 44/57 Medium Roman, 151 Large Roman, 74 Gothic Italic",
     "ideal_polish": (
         "155 Small Roman, 77/154 Medium Roman, 156 Large Roman, "
@@ -636,4 +647,5 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Chilian": [r[::-1] for r in CATALOG_UNIVERSAL_CHILIAN],
     "Universal, Russian": [r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN],
     "Universal, Bohemian": [r[::-1] for r in CATALOG_UNIVERSAL_BOHEMIAN],
+    "Ideal, Italian": [r[::-1] for r in CATALOG_IDEAL_ITALIAN],
 }
