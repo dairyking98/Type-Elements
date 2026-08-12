@@ -67,6 +67,8 @@ IMPORTED = {
     ("Universal", "Chilian", ()): "Universal, Chilian",
     ("Universal", "Bohemian", ()): "Universal, Bohemian",
     ("Universal", "Dutch", ("Fractions",)): "Universal, Dutch (Fractions)",
+    ("Universal", "Dutch", ()): "Universal, Dutch",
+    ("Universal", "German", ()): "Universal, German",
     ("Universal", "Russian", ()): "Universal, Russian",
     ("Universal", "Swedish-Finnish", ()): "Universal, Swedish-Finnish",
     ("Universal", "Danish-Norwegian", ()): "Universal, Danish-Norwegian",
@@ -105,7 +107,14 @@ def classify(desc):
     return kb or "?", lang, variants, "New Orthography" in desc
 
 
+BY_NUMBER = {"29": "Universal, Russian (Old Style)",
+             "29A": "Universal, Russian (Old Style)",
+             "29B": "Universal, Russian (Old Style)"}
+
+
 def status(num, desc):
+    if num in BY_NUMBER:
+        return "imported", BY_NUMBER[num]
     if num in HELD:
         return "held", HELD[num]
     kb, lang, variants, new_orth = classify(desc)

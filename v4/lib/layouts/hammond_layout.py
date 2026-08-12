@@ -436,6 +436,46 @@ CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS = [
     "QAZWSXEDCRFVTGB" "YHNUJMIK.OLÜPÄÖ",
     "1„¼2”:3!½4%?5¾-" "6&*7’§8(ß9);0=/",
 ]
+# Dutch, Universal (71A, 117B, 34A, 50A, 119B). Position 5 is ⅌, the PER
+# SIGN (U+214C) - identified by the machine's owner, not from the scan,
+# after it resisted reading in three different faces.
+#
+# It also explains something in the source: v2/hammond_split.scad's
+# Qwerty_Element carries ⅌ at position 5 and § at position 20, which are
+# exactly the two positions where Dutch/German Universal differ from
+# ENGLISH Universal. An earlier note here called those two characters
+# errors "that no catalogued Universal entry shows" - that was wrong, and
+# is corrected in hammond_split_layout.py. They show up here.
+CATALOG_UNIVERSAL_DUTCH = [
+    "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    "1„@2”⅌3$#4%£5_-" "6&*7’§8(ƒ9);0=/",
+]
+# German, Universal, OLD orthography (119A, 84, 34, 50, 71, 117, 119).
+# Differs from CATALOG_UNIVERSAL_DUTCH in exactly ONE position: ſ where
+# Dutch has ƒ - precisely the same single-character relationship their
+# Ideal counterparts have. Two independent keyboard families showing the
+# same guilder/long-s split is about as good as corroboration gets here.
+CATALOG_UNIVERSAL_GERMAN = [
+    "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    "1„@2”⅌3$#4%£5_-" "6&*7’§8(ſ9);0=/",
+]
+# Russian, Universal, OLD STYLE (29, 29A, 29B) - a different arrangement
+# from CATALOG_UNIVERSAL_RUSSIAN (143), not a typeface variant of it.
+#
+# Position 14 really is a Latin N, confirmed by eye against the print:
+# Cyrillic Н is H-shaped, and the numero sign prints with its raised "o"
+# elsewhere in this same catalog (143), which this glyph lacks.
+#
+# Same inventory check as 143 and the same result: of the six pre-reform
+# letters absent from row 0 (ж х ц э ѳ ѵ - here х ш щ э ѳ ѵ), five
+# reappear in the figures row, with only ѳ (fita) genuinely absent.
+CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE = [
+    "ыацвсзедчрфжтгб" "юінуямикьолъпѣй",
+    "ЫАЦВСЗЕДЧРФЖТГБ" "ЮІНУЯМИКЬОЛЪПѢЙ",
+    '1х-2Х"3э?4Э:5N.' "6%;7ш,8Ш/9щѵ§ЩѴ",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -496,6 +536,9 @@ CATALOG_SHUTTLES = {
         "157A Italic"
     ),
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
+    "universal_dutch": "71A, 117B, 34A, 50A, 119B",
+    "universal_german": "119A, 84, 34, 50, 71, 117, 119 (old orthography)",
+    "universal_russian_old_style": "29, 29A, 29B",
     "universal_dutch_fractions": "34D, 50C, 71F, 84C, 119E",
     "universal_german_new_orthography_fractions": "119C, 117D, 117E, 55F, 101E, 71E",
     "universal_bohemian": "116 Medium Roman",
@@ -673,5 +716,10 @@ LAYOUT_PRESETS_HAMMOND = {
     ],
     "Universal, German (New Orthography, Fractions)": [
         r[::-1] for r in CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS
+    ],
+    "Universal, Dutch": [r[::-1] for r in CATALOG_UNIVERSAL_DUTCH],
+    "Universal, German": [r[::-1] for r in CATALOG_UNIVERSAL_GERMAN],
+    "Universal, Russian (Old Style)": [
+        r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE
     ],
 }

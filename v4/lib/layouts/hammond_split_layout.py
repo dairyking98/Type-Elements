@@ -36,6 +36,9 @@ from .hammond_layout import (
     CATALOG_UNIVERSAL_BOHEMIAN,
     CATALOG_UNIVERSAL_CHILIAN,
     CATALOG_UNIVERSAL_DUTCH_FRACTIONS,
+    CATALOG_UNIVERSAL_DUTCH,
+    CATALOG_UNIVERSAL_GERMAN,
+    CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE,
     CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS,
     CATALOG_UNIVERSAL_RUSSIAN,
     CATALOG_UNIVERSAL_FRACTIONS,
@@ -79,11 +82,16 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     "Ideal, Fractions": list(CATALOG_IDEAL_FRACTIONS),
     # Universal (qwerty). v2/hammond_split.scad:80-82 already had this as
     # Qwerty_Element (Layout_Selection=1) but it was never wired into the
-    # picker; ported here with two characters corrected against the
-    # catalog - v2 had ⅌ at the '#'/× position and § at the '∧' position,
-    # neither of which any catalogued Universal entry shows, and both of
-    # which hammond.yaml's own Universal row already spells the catalog's
-    # way (× and ^).
+    # picker; ported here as ENGLISH Universal, which spells those two
+    # positions × and ^.
+    #
+    # CORRECTION to an earlier note here: v2's own ⅌ and § at positions 5
+    # and 20 are NOT errors. Those are exactly the two positions where
+    # Dutch and German Universal differ from English Universal, and both
+    # characters appear there in the catalog - see
+    # CATALOG_UNIVERSAL_DUTCH. v2's array is English Universal with the
+    # Char_Mod character (⅌, still config/hammond_split.yaml's
+    # char_mod.char default) swapped in, not a botched transcription.
     "Universal": list(CATALOG_UNIVERSAL_STANDARD),
     "Universal, Fractions": list(CATALOG_UNIVERSAL_FRACTIONS),
     "Universal, Caps and Small Caps": list(
@@ -128,4 +136,7 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     "Universal, German (New Orthography, Fractions)": list(
         CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS
     ),
+    "Universal, Dutch": list(CATALOG_UNIVERSAL_DUTCH),
+    "Universal, German": list(CATALOG_UNIVERSAL_GERMAN),
+    "Universal, Russian (Old Style)": list(CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE),
 }

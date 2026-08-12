@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 223 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 240 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -158,6 +158,23 @@ The payoff was disproportionate: `Ideal, German` turns out to differ from
 `Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.
 
+**`⅌` — the one the scans could not give up.** Universal position 5
+resisted three faces and every zoom: a p-like form with a bowl and a
+stroke. It is the PER SIGN (U+214C), identified by the machine's owner
+rather than from the page. That single character was gating 19
+catalogued shuttles — Universal German, Universal Dutch, and the German
+fractions family — which is why it was worth stopping to ask rather than
+guessing.
+
+It also corrected something already written down. An earlier note here
+called v2's `⅌` and `§` in `Qwerty_Element` transcription errors,
+"neither of which any catalogued Universal entry shows". They are at
+positions 5 and 20 — exactly the two positions where Dutch and German
+Universal differ from English Universal, and both characters appear
+there in the catalog. v2's array is English Universal with the Char_Mod
+character swapped in, not a botched transcription. Corrected at the
+definition site.
+
 **An italic shuttle settled what the roman ones could not.** The guilder
 `ƒ` had been argued for from structure (row 0 already has an `f`) rather
 than seen cleanly. Dutch Universal 119E is an ITALIC face, and at that
@@ -286,6 +303,9 @@ both.
 | Ideal, Italian | 61A, 14A, 62A, 15A |
 | Universal, Dutch (Fractions) | 34D, 50C, 71F, 84C, 119E |
 | Universal, German (New Orthography, Fractions) | 119C, 117D, 117E, 55F, 101E, 71E |
+| Universal, Dutch | 71A, 117B, 34A, 50A, 119B |
+| Universal, German | 119A, 84, 34, 50, 71, 117, 119 |
+| Universal, Russian (Old Style) | 29, 29A, 29B |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired
