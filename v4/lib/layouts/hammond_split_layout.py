@@ -6,6 +6,7 @@ hammond_layout.py, since the printed catalog covers both machines.
 
 from .hammond_layout import (
     CATALOG_IDEAL_BOHEMIAN,
+    CATALOG_IDEAL_CHILIAN,
     CATALOG_IDEAL_CROATIAN,
     CATALOG_IDEAL_DANISH_FRACTIONS,
     CATALOG_IDEAL_DUTCH,
@@ -141,4 +142,5 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     "Universal, German": list(CATALOG_UNIVERSAL_GERMAN),
     "Universal, Russian (Old Style)": list(CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE),
     "Universal, Bulgarian": list(CATALOG_UNIVERSAL_BULGARIAN),
+    "Ideal, Chilian": list(CATALOG_IDEAL_CHILIAN),
 }

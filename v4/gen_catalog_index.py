@@ -56,6 +56,7 @@ IMPORTED = {
     ("Ideal", "Polish", ()): "Ideal, Polish",
     ("Ideal", "Hungarian", ()): "Ideal, Hungarian",
     ("Ideal", "Italian", ()): "Ideal, Italian",
+    ("Ideal", "Chilian", ()): "Ideal, Chilian",
     ("Universal", "English", ()): "Universal",
     ("Universal", "English", ("Fractions",)): "Universal, Fractions",
     ("Universal", "French", ()): "Universal, French",

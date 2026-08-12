@@ -230,7 +230,7 @@ CATALOG_IDEAL_GERMAN = [
 CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY = [
     "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
     "QAZWSXEDCRFVTGB" "YHNUJMIK.OLÜPÄÖ",
-    "1„@2”:3!#4%?5_-" "6&*7’§8(ß9);0=/",
+    "1„@2“:3!#4%?5_-" "6&*7’§8(ß9);0=/",
 ]
 # French (69 Large Roman, 32/32A Medium Roman, 67 Small Roman, 104/104A
 # Italic, 85/111/111A Vertical Script, 134E Large Gothic, 145B
@@ -425,7 +425,7 @@ CATALOG_IDEAL_ITALIAN = [
 CATALOG_UNIVERSAL_DUTCH_FRACTIONS = [
     "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
-    "1„¼2”½3$¾4%£5_-" "6&*7’§8(ƒ9);0=/",
+    "1„¼2“½3$¾4%£5_-" "6&*7’§8(ƒ9);0=/",
 ]
 # German, Universal, New Orthography, FRACTIONS (119C, 117D, 117E, 55F,
 # 101E, 71E). Identical to CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY
@@ -434,7 +434,7 @@ CATALOG_UNIVERSAL_DUTCH_FRACTIONS = [
 CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS = [
     "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
     "QAZWSXEDCRFVTGB" "YHNUJMIK.OLÜPÄÖ",
-    "1„¼2”:3!½4%?5¾-" "6&*7’§8(ß9);0=/",
+    "1„¼2“:3!½4%?5¾-" "6&*7’§8(ß9);0=/",
 ]
 # Dutch, Universal (71A, 117B, 34A, 50A, 119B). Position 5 is ⅌, the PER
 # SIGN (U+214C) - identified by the machine's owner, not from the scan,
@@ -446,10 +446,20 @@ CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS = [
 # ENGLISH Universal. An earlier note here called those two characters
 # errors "that no catalogued Universal entry shows" - that was wrong, and
 # is corrected in hammond_split_layout.py. They show up here.
+# QUOTE MARKS: position 4 of the Universal German/Dutch figures row is
+# “ (U+201C), not ” — verified at 600% on shuttle 71A, where the raised
+# pair curls the same way as the low „ beside it (6-shaped, not 9-shaped).
+# All five layouts sharing that row half are spelled from that one
+# verified instance.
+#
+# NOT verified, and deliberately left as read: the IDEAL family's quote at
+# its own position (the "6„7”8’" run). Dutch and German diverge here in
+# real typography - German pairs „…“ while Dutch pairs „…” - so this is
+# not safe to normalise by convention. If it matters, check it directly.
 CATALOG_UNIVERSAL_DUTCH = [
     "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
-    "1„@2”⅌3$#4%£5_-" "6&*7’§8(ƒ9);0=/",
+    "1„@2“⅌3$#4%£5_-" "6&*7’§8(ƒ9);0=/",
 ]
 # German, Universal, OLD orthography (119A, 84, 34, 50, 71, 117, 119).
 # Differs from CATALOG_UNIVERSAL_DUTCH in exactly ONE position: ſ where
@@ -459,7 +469,7 @@ CATALOG_UNIVERSAL_DUTCH = [
 CATALOG_UNIVERSAL_GERMAN = [
     "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
-    "1„@2”⅌3$#4%£5_-" "6&*7’§8(ſ9);0=/",
+    "1„@2“⅌3$#4%£5_-" "6&*7’§8(ſ9);0=/",
 ]
 # Russian, Universal, OLD STYLE (29, 29A, 29B) - a different arrangement
 # from CATALOG_UNIVERSAL_RUSSIAN (143), not a typeface variant of it.
@@ -502,6 +512,16 @@ CATALOG_UNIVERSAL_BULGARIAN = [
     "ѫацвсзедчрфжтгб" "юшнуямикьолъпѣй",
     "ѪАЦВСЗЕДЧРФЖТГБ" "ЮШНУЯМИКЬОЛЪПѢЙ",
     '1х-2Х"3&?4ѭ:5§.' "6%;7Ѭ,8I/9щ(0Щ)",
+]
+# Chilian, Ideal (65A Small Roman, 16A Medium Roman, 46A Large Roman,
+# 17A Italic, 83A Vertical Script). Three positions apart from
+# CATALOG_IDEAL_SPANISH: ü/ö/ä replace ¨/ç/¡ - the same German-vowel
+# substitution CATALOG_UNIVERSAL_CHILIAN makes against Universal Spanish,
+# arrived at independently on the other keyboard.
+CATALOG_IDEAL_CHILIAN = [
+    "?zxqkjgbmpcfld," "átaherisounwyv:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "ü%/_öä1ó2.3£4$5" "6“7”8’9(0)ñíéú¿",
 ]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
@@ -552,6 +572,7 @@ CATALOG_SHUTTLES = {
     "universal_french_german_english": "32E Medium Roman",
     "universal_esperanto": "135A, 135D Medium Roman",
     "ideal_roumanian": "92 Medium Roman",
+    "ideal_chilian": "65A, 16A, 46A, 17A, 83A",
     "ideal_italian": "61A Small Roman, 14A Medium Roman, 62A Large Roman, 15A Italic",
     "ideal_hungarian": "152 Small Roman, 44/57 Medium Roman, 151 Large Roman, 74 Gothic Italic",
     "ideal_polish": (
@@ -751,4 +772,5 @@ LAYOUT_PRESETS_HAMMOND = {
         r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE
     ],
     "Universal, Bulgarian": [r[::-1] for r in CATALOG_UNIVERSAL_BULGARIAN],
+    "Ideal, Chilian": [r[::-1] for r in CATALOG_IDEAL_CHILIAN],
 }

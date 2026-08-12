@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 244 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 249 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -192,6 +192,19 @@ tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.
 
+**Quote marks are a real character, and I got five of them wrong.** The
+Universal German/Dutch figures row has `“` (U+201C) at position 4, not
+`”` — at 600% the raised pair curls the same way as the `„` beside it
+(6-shaped, not 9-shaped). Five layouts had been imported with the wrong
+one. Corrected from that single verified instance, since all five share
+that row half.
+
+The IDEAL family's quote was deliberately NOT normalised to match.
+German and Dutch genuinely diverge here — German pairs `„…“`, Dutch pairs
+`„…”` — so "make them consistent" would be exactly the wrong instinct.
+It stays as read, flagged as unverified, rather than tidied into a
+plausible uniformity.
+
 **Bulgarian: solved by accounting, not by reading.** Three glyphs on this
 shuttle would not resolve visually at any zoom. What settled them was
 counting the alphabet. With `ѫ` at position 0, row 0 holds 30 distinct
@@ -323,6 +336,7 @@ both.
 | Universal, German | 119A, 84, 34, 50, 71, 117, 119 |
 | Universal, Russian (Old Style) | 29, 29A, 29B |
 | Universal, Bulgarian | 31C, 29C, 42C, 115C |
+| Ideal, Chilian | 65A, 16A, 46A, 17A, 83A |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

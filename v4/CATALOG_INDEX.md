@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**244 of 346 catalogued shuttles are covered (70%)** — 22 held on an unresolved character,
-80 not yet transcribed.
+**249 of 346 catalogued shuttles are covered (71%)** — 22 held on an unresolved character,
+75 not yet transcribed.
 
 Status meanings:
 
@@ -67,10 +67,10 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 15 | Italic, French, Ideal | 21 | **imported** | Ideal, French |
 | 15A | Italic, Italian, Ideal | 25 | **imported** | Ideal, Italian |
 | 16 | Medium Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
-| 16A | Medium Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
+| 16A | Medium Roman, Chilian, Ideal | 15 | **imported** | Ideal, Chilian |
 | 16B | Medium Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 17 | Italic, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
-| 17A | Italic, Chilian, Ideal | 15 | todo | Ideal / Chilian |
+| 17A | Italic, Chilian, Ideal | 15 | **imported** | Ideal, Chilian |
 | 17B | Italic, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
 | 18 | Medium Roman, Medical, English, Ideal | 19 | todo | Ideal / English / Medical |
 | 19 | Medium Roman, Diacritical, English, Ideal | 18 | todo | Ideal / English / Diacritical |
@@ -145,7 +145,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 44 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 45 | Large Roman, Argentine Government, Ideal or Universal | 54 | todo | Ideal/Universal / Argentine Government |
 | 46 | Large Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
-| 46A | Large Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
+| 46A | Large Roman, Chilian, Ideal | 15 | **imported** | Ideal, Chilian |
 | 46B | Large Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 47 | Large Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 47A | Large Roman, Chilian, Universal | 33 | **imported** | Universal, Chilian |
@@ -187,7 +187,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 63B | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 64 | Italic, Hungarian, Universal, Old Style | 46 | todo | Universal / Hungarian |
 | 65 | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
-| 65A | Small Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
+| 65A | Small Roman, Chilian, Ideal | 15 | **imported** | Ideal, Chilian |
 | 65B | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 66 | Small Roman, Spanish, Universal | 50 | **imported** | Universal, Spanish |
 | 66A | Small Roman, Chilian, Universal | 32 | **imported** | Universal, Chilian |
@@ -222,7 +222,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 81 | Armenian, Ideal or Universal | 54 | todo | Ideal/Universal / Armenian |
 | 82 | English Greek, four line, Ideal | 24 | held | same as 7 |
 | 83 | Vertical Script, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
-| 83A | Vertical Script, Chilian, Ideal | 16 | todo | Ideal / Chilian |
+| 83A | Vertical Script, Chilian, Ideal | 16 | **imported** | Ideal, Chilian |
 | 83B | Vertical Script, Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
 | 84 | Vertical Script, German, Universal | 45 | **imported** | Universal, German |
 | 84A | Vertical Script, Dutch, Universal | 35 | **imported** | Universal, Dutch |
