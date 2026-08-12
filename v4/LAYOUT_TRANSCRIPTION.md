@@ -192,6 +192,9 @@ both.
 | Ideal, Spanish | 65, 16, 46 |
 | Ideal, Spanish (¢) | 65B, 16B, 46B |
 | Ideal, Spanish caps & small caps | 5A |
+| Ideal, Croatian | 58, 12C |
+| Ideal, Danish (fractions) | 87 |
+| Ideal, Portuguese | 63 |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired
@@ -293,22 +296,31 @@ A layout is only buildable if the selected font actually has its glyphs.
 
 ## Remaining work, prioritised
 
-Ordered by value per unit of effort. The first two are the large, clean
-veins; everything below them is either small, ambiguous, or blocked on a
-font.
+**The test is character identification, not font availability.** A layout
+gets catalogued as soon as every character can be identified and has a
+Unicode codepoint. Whether a font on this machine currently carries the
+glyphs is a separate, solvable problem — fonts can be found or made — and
+is explicitly NOT a reason to leave a layout out. An earlier version of
+this list got that wrong and parked the non-Latin scripts as "blocked on
+fonts"; they are not blocked, just unworked. What genuinely blocks an
+import is a character the scan will not resolve, since a guessed glyph
+silently builds a wrong shuttle.
+
+Ordered by value per unit of effort.
 
 **1. Hammond 1915 Latin languages — biggest remaining vein, low risk.**
-The catalog has roughly twenty language sections and only English, Dutch
-and Spanish have been done. The sections already sighted, with the
-shuttles each carries:
+English, Dutch, Spanish, Croatian, Danish and Portuguese are done. Status
+of the rest already sighted:
 
-| Language | Shuttles | Page (PDF) |
-|---|---|---|
-| Croatian | 58, 12C | 14 |
-| Danish | 87, 88 | 14 |
-| Portuguese | 63, 63A, 63B, 106 | 20 |
-| Roumanian | 92 | 20 |
-| Polish | 156, 153B, 157 | 20 |
+| Language | Shuttles | Page (PDF) | Status |
+|---|---|---|---|
+| Croatian | 58, 12C | 14 | **imported** |
+| Danish | 87 | 14 | **imported** (fractions) |
+| Danish | 88 | 14 | held — one slot: blank, or an under-inked `_`? |
+| Portuguese | 63 | 20 | **imported** |
+| Portuguese | 63A, 63B, 106 | 20 | unread |
+| Roumanian | 92 | 20 | held — the mark closing row 1 won't separate from `¸` |
+| Polish | 156, 153B, 157 | 20 | unread |
 
 Pages 10–13, 15–19 and 21–35 have **not been sampled at all** — there are
 more languages there than the table above. Each section is one layout
@@ -331,13 +343,20 @@ after `4%` and 41's fraction numerators.
 *different* fraction bank, so this is thirteen separate verifications
 rather than one shared reading — high effort, low yield per entry.
 
-**5. Blocked on fonts, not on reading.** Hammond's non-Latin sets (195
-Astronomical, 196/197 Phonetic, 135/135B/135C Mathematical, 112C Greek,
-59/20 Fraktur, 165/167 Yiddish), the 1915 pre-reform Cyrillic (Russian
-49/35, Servian 125 — need ѣ, і, hard-sign ъ), and Blickensderfer's
-Armenian 218. Transcribing these is pointless until a font carrying the
-glyphs is identified, since the build would fail on missing characters
-anyway. Check with `font_coverage.py` before starting any of them.
+**5. Non-Latin scripts — transcribable, just unworked.** Hammond's
+non-Latin sets (195 Astronomical, 196/197 Phonetic, 135/135B/135C
+Mathematical, 112C Greek, 165/167 Yiddish), the 1915 pre-reform Cyrillic
+(Russian 49/35, Servian 125), and Blickensderfer's Armenian 218. All of
+these have complete Unicode coverage — the pre-reform Cyrillic letters
+are ѣ U+0463, і U+0456, ъ U+044A, Ѳ U+0472 — so they meet the bar and
+can be catalogued by anyone willing to read them carefully. They need
+script familiarity, not a font.
+
+One of these is easier than it looks: **59/20 German Text is Fraktur, a
+TYPEFACE.** Its characters are ordinary German letters (umlauts and ß) in
+a blackletter face, the same way "Caps and Small Caps" turned out to be a
+face rather than an arrangement. It should be read as German, not as a
+separate script.
 
 **Not worth doing:** Hammond's medical/chemical (43, 43A, 107, 179, 21,
 18), diacritical/library (113, 122, 48C) and literary (192, 193, 194)
