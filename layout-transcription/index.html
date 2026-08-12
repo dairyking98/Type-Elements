@@ -139,6 +139,47 @@ definition site with the specific reason.</p>
 
 <hr />
 
+<h2 id="preset-naming">Preset naming</h2>
+
+<p>One convention, all ten machines:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Keyboard&gt;[, &lt;Language&gt;][ (&lt;Variant&gt;)]
+</code></pre></div></div>
+
+<p>Title Case. A comma introduces the language, or the variant when there is
+no language; parentheses hold the variant once a language is named, with
+multiple variants comma-separated inside the one pair. So <code class="language-plaintext highlighter-rouge">Universal</code>,
+<code class="language-plaintext highlighter-rouge">Universal, Math</code>, <code class="language-plaintext highlighter-rouge">Ideal, Spanish (¢)</code>,
+<code class="language-plaintext highlighter-rouge">DHIATENSOR, British (Fractions, Mimeograph)</code>.</p>
+
+<p>“Keyboard” is whatever axis that machine’s own sources divide its range
+along — Ideal/Universal for the Hammonds, the letter arrangement
+(DHIATENSOR/QWERTY/CHARIENSTU) for Blickensderfer. A machine with only
+one keyboard starts at the language: Bennett’s <code class="language-plaintext highlighter-rouge">British</code>, Selectric’s
+<code class="language-plaintext highlighter-rouge">United States</code>.</p>
+
+<p>This was a Hammond-only rule while six other machines spelled their
+presets <code class="language-plaintext highlighter-rouge">SCREAMING_SNAKE</code> (<code class="language-plaintext highlighter-rouge">QWERTY_BRITISH</code>, <code class="language-plaintext highlighter-rouge">UNITED_STATES</code>,
+<code class="language-plaintext highlighter-rouge">GERMAN_MOD</code>). Unified in one pass, verified by checking that every
+renamed key still maps to byte-identical rows and that no unrenamed
+preset moved.</p>
+
+<p>Two consequences worth knowing:</p>
+
+<ul>
+  <li>A <code class="language-plaintext highlighter-rouge">SCREAMING_SNAKE</code> name in a code comment is now a <strong>quote of a v1/v2
+<code class="language-plaintext highlighter-rouge">.scad</code> array</strong>, not a v4 preset. <code class="language-plaintext highlighter-rouge">blickensderfer_layout.py</code>,
+<code class="language-plaintext highlighter-rouge">helios_layout.py</code> and the two Selectric modules all carry such quotes
+deliberately and say so.</li>
+  <li>Renaming is safe because <strong>no config stores a preset name</strong>, only the
+rows it produced — the picker is a template chooser, not persisted
+state. The one place names are stored is <code class="language-plaintext highlighter-rouge">blickensderfer_catalog.py</code>’s
+preset column, and <code class="language-plaintext highlighter-rouge">gen_catalog_index.py</code> exits non-zero when one stops
+resolving.</li>
+</ul>
+
+<hr />
+
 <h2 id="bugs-found-and-fixed">Bugs found and fixed</h2>
 
 <p>Two real defects, both the same shape, both in the <strong>original</strong> source
@@ -161,14 +202,15 @@ duplicated</strong>. Every Ideal entry in both catalogs reads
 v2/lib/layouts/blick_layouts.scad:18,21,24        "XQZV&amp;PFLOCHARIENSTUGMDB:WKJU"
 </code></pre></div></div>
 
-<p><code class="language-plaintext highlighter-rouge">U</code> where it should be <code class="language-plaintext highlighter-rouge">Y</code>, in both <code class="language-plaintext highlighter-rouge">CHARIENSTU_DE</code> and
-<code class="language-plaintext highlighter-rouge">CHARIENSTU_DE_MOD</code>. Found by habit 2 — the uppercase row’s inventory was
+<p><code class="language-plaintext highlighter-rouge">U</code> where it should be <code class="language-plaintext highlighter-rouge">Y</code>, in both CHARIENSTU arrays (v4’s
+<code class="language-plaintext highlighter-rouge">CHARIENSTU, German</code> and <code class="language-plaintext highlighter-rouge">CHARIENSTU, German (Modified)</code>). Found by
+habit 2 — the uppercase row’s inventory was
 a–z with <strong>U duplicated and Y missing</strong>, while its own lowercase row was
 clean. The catalog then confirmed it (<code class="language-plaintext highlighter-rouge">GMDB:WKJY</code>, Bohemian 426/443).</p>
 
 <p>The same inventory check now passes on every Blickensderfer preset.
-(<code class="language-plaintext highlighter-rouge">HEBREW_ENGL</code>’s row 0 is Hebrew, so the Latin check correctly does not
-apply to it.)</p>
+(<code class="language-plaintext highlighter-rouge">DHIATENSOR, Hebrew-English</code>’s row 0 is Hebrew, so the Latin check
+correctly does not apply to it.)</p>
 
 <h3 id="what-the-catalogs-confirmed-unchanged">What the catalogs <em>confirmed</em> unchanged</h3>
 
@@ -604,56 +646,60 @@ per-entry table.</p>
   </thead>
   <tbody>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">BRITISH_SCIENTIFIC_FRACTION</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR, British (Fractions)</code></td>
       <td>Imperial 212, and Scientific E458, 412, 428, 435, 405, 363, 393, 357, 454, 300, 205</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION</code></td>
+      <td><code class="language-plaintext highlighter-rouge">QWERTY, British (Fractions)</code></td>
       <td>Elite 350, Small Roman 494, Large Roman 379, Italic 371, Script 337, Vertical Script 217</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR_FRACTION</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR (Fractions)</code></td>
       <td>English Fractional 436, 424, 425</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">BRITISH_LITERARY</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR, British (Literary)</code></td>
       <td>Elite Literary 381, Small Roman Literary 462, Extra Large Roman Literary 307, Italic Literary 383, Script Literary 395, Vertical Script Literary 213</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">GERMAN</code></td>
+      <td><code class="language-plaintext highlighter-rouge">CHARIENSTU, German (Pfennig)</code></td>
       <td>Small Roman 404, Large Roman 423, Large Roman 378, Italic 489</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">QWERTY_BRITISH</code></td>
+      <td><code class="language-plaintext highlighter-rouge">QWERTY, British</code></td>
       <td>Small Roman 441, Large Roman 442</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">BRITISH_AMERICAN</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR, British-American</code></td>
       <td>Large Roman 432, Small Roman 433</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">ENGLISH_JAPANESE</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR, English-Japanese</code></td>
       <td>Small Roman 332, Large Roman 333</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">CHEMICAL_ENGLISH</code> / <code class="language-plaintext highlighter-rouge">CHEMICAL_UNIVERSAL</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR (Chemical)</code> / <code class="language-plaintext highlighter-rouge">QWERTY, British (Chemical)</code></td>
       <td>385 / 222</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">COSMOPOLITAN</code> / <code class="language-plaintext highlighter-rouge">UNIVERSAL_ACCENT</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR, Cosmopolitan</code> / <code class="language-plaintext highlighter-rouge">QWERTY, Cosmopolitan</code></td>
       <td>328 / 367</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">BRITISH_INDIA</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR_BRITISH</code> / <code class="language-plaintext highlighter-rouge">UNIVERSAL_LITERARY</code></td>
+      <td><code class="language-plaintext highlighter-rouge">DHIATENSOR, British-India</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR, British</code> / <code class="language-plaintext highlighter-rouge">QWERTY, British (Literary)</code></td>
       <td>458 / 407½ / 203</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION_US</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR_FRACTION_ALT</code></td>
+      <td><code class="language-plaintext highlighter-rouge">QWERTY (Fractions)</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR (Fractions, Alternate)</code></td>
       <td>494½ / 447</td>
     </tr>
     <tr>
-      <td><code class="language-plaintext highlighter-rouge">GERMAN_ESZETT</code> / <code class="language-plaintext highlighter-rouge">GERMAN_FRACTION</code> / <code class="language-plaintext highlighter-rouge">DANISH</code> / <code class="language-plaintext highlighter-rouge">HUNGARIAN</code></td>
-      <td>303 / 204 / 420 / 415</td>
+      <td><code class="language-plaintext highlighter-rouge">CHARIENSTU, German (Eszett)</code> / <code class="language-plaintext highlighter-rouge">CHARIENSTU, German (Fractions)</code></td>
+      <td>303 / 204</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">CHARIENSTU, Danish</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR, Hungarian</code></td>
+      <td>420 / 415</td>
     </tr>
   </tbody>
 </table>
@@ -663,21 +709,22 @@ one-position swaps recur across markets:</p>
 
 <ul>
   <li><strong><code class="language-plaintext highlighter-rouge">$</code> ↔ <code class="language-plaintext highlighter-rouge">£</code></strong> is the American/British split, and it is <em>only</em> that one
-position, three times over: <code class="language-plaintext highlighter-rouge">QWERTY</code>/<code class="language-plaintext highlighter-rouge">QWERTY_BRITISH</code>,
-<code class="language-plaintext highlighter-rouge">DHIATENSOR</code>/<code class="language-plaintext highlighter-rouge">DHIATENSOR_BRITISH</code>,
-<code class="language-plaintext highlighter-rouge">DHIATENSOR_FRACTION</code>/<code class="language-plaintext highlighter-rouge">BRITISH_SCIENTIFIC_FRACTION</code>, and
-<code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION_US</code>/<code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION</code>.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">BRITISH_AMERICAN</code></strong> is the wheel that refuses to choose — the only
-one carrying both <code class="language-plaintext highlighter-rouge">$</code> and <code class="language-plaintext highlighter-rouge">£</code>, paid for with three moved slots.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">BRITISH_INDIA</code></strong> is the British fraction wheel with <code class="language-plaintext highlighter-rouge">₨</code> for <code class="language-plaintext highlighter-rouge">⅞</code> and
-<code class="language-plaintext highlighter-rouge">⅓</code> for <code class="language-plaintext highlighter-rouge">⅛</code>.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">ENGLISH_JAPANESE</code></strong> carries <code class="language-plaintext highlighter-rouge">¥</code>, <code class="language-plaintext highlighter-rouge">$</code> and <code class="language-plaintext highlighter-rouge">£</code> at once.</li>
+position, four times over: <code class="language-plaintext highlighter-rouge">QWERTY</code> / <code class="language-plaintext highlighter-rouge">QWERTY, British</code>,
+<code class="language-plaintext highlighter-rouge">DHIATENSOR</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR, British</code>,
+<code class="language-plaintext highlighter-rouge">DHIATENSOR (Fractions)</code> / <code class="language-plaintext highlighter-rouge">DHIATENSOR, British (Fractions)</code>, and
+<code class="language-plaintext highlighter-rouge">QWERTY (Fractions)</code> / <code class="language-plaintext highlighter-rouge">QWERTY, British (Fractions)</code>.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">DHIATENSOR, British-American</code></strong> is the wheel that refuses to
+choose — the only one carrying both <code class="language-plaintext highlighter-rouge">$</code> and <code class="language-plaintext highlighter-rouge">£</code>, paid for with three
+moved slots.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">DHIATENSOR, British-India</code></strong> is the British fraction wheel with <code class="language-plaintext highlighter-rouge">₨</code>
+for <code class="language-plaintext highlighter-rouge">⅞</code> and <code class="language-plaintext highlighter-rouge">⅓</code> for <code class="language-plaintext highlighter-rouge">⅛</code>.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">DHIATENSOR, English-Japanese</code></strong> carries <code class="language-plaintext highlighter-rouge">¥</code>, <code class="language-plaintext highlighter-rouge">$</code> and <code class="language-plaintext highlighter-rouge">£</code> at once.</li>
 </ul>
 
 <p>Two of the four wheels that aren’t a fraction bank are symbol banks:
 <code class="language-plaintext highlighter-rouge">CHEMICAL_*</code> swap the figures row for subscript digits (<code class="language-plaintext highlighter-rouge">₁₂₃₄₅</code> before
 the full-size digits, <code class="language-plaintext highlighter-rouge">₆₇₈₉₀</code> after, for formulae like H₂SO₄), and
-<code class="language-plaintext highlighter-rouge">COSMOPOLITAN</code>/<code class="language-plaintext highlighter-rouge">UNIVERSAL_ACCENT</code> spend nine slots on free-standing
+the two <code class="language-plaintext highlighter-rouge">Cosmopolitan</code> wheels spend nine slots on free-standing
 accents plus æ/œ, paying for them by dropping the digit <code class="language-plaintext highlighter-rouge">1</code> entirely.</p>
 
 <hr />
@@ -746,8 +793,8 @@ a Latin-wheel batch. 358 needs no reading at all once 354 is done: the
 catalog says in prose that it is 354 with <code class="language-plaintext highlighter-rouge">£</code> for <code class="language-plaintext highlighter-rouge">$</code>.</li>
   <li><strong>Bulgarian 452½</strong> — Cyrillic; the same case as the Hammond Bulgarian
 shuttle, which alphabet accounting eventually solved.</li>
-  <li><strong>Special British 387</strong> — <code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION</code>’s row with its last five
-slots given to shilling numerators <code class="language-plaintext highlighter-rouge">1⁄ 3⁄ 5⁄ 7⁄ 9⁄</code>, each cast as one
+  <li><strong>Special British 387</strong> — <code class="language-plaintext highlighter-rouge">QWERTY, British (Fractions)</code>’s row with its
+last five slots given to shilling numerators <code class="language-plaintext highlighter-rouge">1⁄ 3⁄ 5⁄ 7⁄ 9⁄</code>, each cast as one
 piece of type. Only the first has a codepoint (<code class="language-plaintext highlighter-rouge">⅟</code>, U+215F), and
 <code class="language-plaintext highlighter-rouge">layout.rows</code> is strictly one character per position. The reading
 itself is not in doubt.</li>

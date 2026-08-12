@@ -6036,6 +6036,113 @@ unchanged; try the ~300MB source TIFFs.</li>
 <strong>still open and untouched</strong>.</li>
 </ol>
 
+<hr />
+
+<h2 id="82-preset-naming-unified-fleet-wide---six-machines-moved-off-screaming_snake-onto-hammonds-documented-convention-2026-08-12">82. Preset naming unified fleet-wide - six machines moved off SCREAMING_SNAKE onto Hammond’s documented convention (2026-08-12)</h2>
+
+<p>Two naming conventions had been coexisting. Hammond and Hammond Split
+used a documented, compositional scheme; Mignon informally matched it;
+Blickensderfer, Bennett, Helios and the three Selectrics spelled their
+presets <code class="language-plaintext highlighter-rouge">SCREAMING_SNAKE</code>. Part 81’s twenty new Blickensderfer presets
+made the split conspicuous enough to fix.</p>
+
+<p>One convention now, all ten machines and 166 presets:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Keyboard&gt;[, &lt;Language&gt;][ (&lt;Variant&gt;)]
+</code></pre></div></div>
+
+<p>Title Case; a comma introduces the language, or the variant when there is
+no language; parentheses hold the variant once a language is named, with
+multiple variants comma-separated inside one pair.</p>
+
+<p>“Keyboard” means whatever axis a machine’s own sources divide its range
+along - Ideal/Universal for the Hammonds, the letter arrangement for
+Blickensderfer. A machine with one keyboard starts at the language.</p>
+
+<h3 id="blickensderfer-gained-a-real-keyboard-axis-in-the-process">Blickensderfer gained a real keyboard axis in the process</h3>
+
+<p>Its 28 presets had been named ad hoc by whatever distinguished them
+(<code class="language-plaintext highlighter-rouge">BRITISH_LITERARY</code>, <code class="language-plaintext highlighter-rouge">UNIVERSAL_ACCENT</code>, <code class="language-plaintext highlighter-rouge">CHARIENSTU_DE</code>), which hid the
+structure. Sorting them under the three letter arrangements the catalog
+itself divides by - DHIATENSOR, QWERTY, CHARIENSTU - made two things
+visible that the old names actively obscured:</p>
+
+<ul>
+  <li><strong><code class="language-plaintext highlighter-rouge">HUNGARIAN</code> is a DHIATENSOR wheel</strong>, not the “wholly different letter
+arrangement” its own comment claimed. Positions 0/2/3/6/7/8 are
+unchanged, “hiatens” sits at 10-16 exactly as on the plain wheel, and
+“lcm” follows at 19-21; only the vowel/accent slots move. Now
+<code class="language-plaintext highlighter-rouge">DHIATENSOR, Hungarian</code>, with the offsets recorded.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">COSMOPOLITAN</code> and <code class="language-plaintext highlighter-rouge">UNIVERSAL_ACCENT</code> are one market on two
+keyboards</strong> (catalog p.9 prints them under the same COSMOPOLITAN
+heading). Now <code class="language-plaintext highlighter-rouge">DHIATENSOR, Cosmopolitan</code> and <code class="language-plaintext highlighter-rouge">QWERTY, Cosmopolitan</code>,
+which also corrects part 81’s <code class="language-plaintext highlighter-rouge">$</code>↔<code class="language-plaintext highlighter-rouge">£</code> claim from “three times over” to
+four - the pairing is easier to count when the names line up.</li>
+</ul>
+
+<h3 id="screaming_snake-now-means-v1v2-source-quote">SCREAMING_SNAKE now means “v1/v2 source quote”</h3>
+
+<p><code class="language-plaintext highlighter-rouge">blickensderfer_layout.py</code>, <code class="language-plaintext highlighter-rouge">helios_layout.py</code> and the two Selectric
+modules all quote v1/v2 <code class="language-plaintext highlighter-rouge">.scad</code> array names in their comments
+(<code class="language-plaintext highlighter-rouge">LAYOUT=GERMAN_MOD</code>, <code class="language-plaintext highlighter-rouge">Layouts=[GERMAN, GERMAN_MOD, ROTUNDA]</code>,
+<code class="language-plaintext highlighter-rouge">S12_HEMISPHERE_MAP_FINNISH_SWEDISH</code>). Those were deliberately NOT
+renamed - they are citations, and each module now says so. This is also
+why the rename could not be done as a blanket text substitution: the
+mechanical pass touched only quoted dict keys and
+<code class="language-plaintext highlighter-rouge">blickensderfer_catalog.py</code>’s preset column, and every prose reference
+was rewritten by hand.</p>
+
+<p>The convention’s authoritative statement moved from <code class="language-plaintext highlighter-rouge">hammond_layout.py</code>
+(where it read “both Hammond machines, keep it”) to
+<code class="language-plaintext highlighter-rouge">lib/layouts/__init__.py</code>’s docstring, since it is no longer a per-machine
+rule; <code class="language-plaintext highlighter-rouge">hammond_layout.py</code> now points at it rather than restating it.
+CLAUDE.md gained a matching bullet.</p>
+
+<h3 id="verification---the-point-of-the-exercise-is-that-nothing-moved">Verification - the point of the exercise is that NOTHING moved</h3>
+
+<ul>
+  <li><strong>Row data identical.</strong> Each machine’s set of row-tuples compared
+against <code class="language-plaintext highlighter-rouge">HEAD</code> - byte-for-byte unchanged across all ten.</li>
+  <li><strong>Associations preserved.</strong> Every old key’s rows compared against its
+new key’s rows through the explicit rename map, plus a check that no
+unrenamed preset changed and no count changed. All pass.</li>
+  <li>The Selectric 12/3 modules’ import-time asserts (<code class="language-plaintext highlighter-rouge">PRESET_HEMISPHERE_MAP</code>
+must cover <code class="language-plaintext highlighter-rouge">LAYOUT_PRESETS</code> exactly) would have caught a half-done
+rename on those two; they pass, and the derived
+<code class="language-plaintext highlighter-rouge">LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE</code> came out renamed in lockstep.</li>
+  <li><code class="language-plaintext highlighter-rouge">lib/layouts</code> still imports identically under both of its names.</li>
+  <li>Headless <code class="language-plaintext highlighter-rouge">TuneApp</code> against scratch config copies reaches the right
+preset count on all ten machines (28/1/30/4/3/45/46/2/2/5).</li>
+  <li><code class="language-plaintext highlighter-rouge">font_coverage.py --preset</code> exercised on five renamed presets across
+five machines; its unknown-preset error still lists the real choices.</li>
+  <li>Hard gate unchanged: <code class="language-plaintext highlighter-rouge">blickensderfer verts=38310 faces=76792
+volume=5646.195mm3</code>. (Nothing here can reach geometry - <code class="language-plaintext highlighter-rouge">generate.py</code>
+reads <code class="language-plaintext highlighter-rouge">layout.rows</code> from YAML and never sees a preset name - but the
+gate was run anyway.)</li>
+</ul>
+
+<p>Renaming is safe in general because no config stores a preset NAME, only
+the rows it produced. The one place names ARE stored is
+<code class="language-plaintext highlighter-rouge">blickensderfer_catalog.py</code>’s preset column, and <code class="language-plaintext highlighter-rouge">gen_catalog_index.py</code>
+exits non-zero when one stops resolving - so a future half-done rename
+fails loudly instead of leaving stale “imported” rows.</p>
+
+<h3 id="resuming-later-6">Resuming later</h3>
+
+<p>Part 81’s punch list is unchanged and still current. Nothing new opened
+here. Two naming judgements were deliberately left alone rather than
+“unified”, and should stay that way unless there is a reason:</p>
+
+<ol>
+  <li><strong>Mignon’s variant numbers</strong> (<code class="language-plaintext highlighter-rouge">English 2</code>, <code class="language-plaintext highlighter-rouge">Danish 3</code>) are the real
+Mignon type-cylinder numbers, not an informal suffix - left bare
+rather than parenthesised into <code class="language-plaintext highlighter-rouge">English (2)</code>.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">Roumanian</code> (Hammond) vs <code class="language-plaintext highlighter-rouge">Romanian</code> (Mignon)</strong> is a real spelling
+difference between two primary sources of different dates. Each is
+faithful to its own catalog; unifying them would make one of them
+wrong.</li>
+</ol>
+
   </div>
 
 </article>
