@@ -55,7 +55,7 @@ reading a glyph off a scan, and that reasoning is the part worth keeping.</p>
 is the narrative; those modules are the source of truth for the values.</p>
 
 <p>For the complete shuttle-by-shuttle enumeration with import status, see
-<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 240 of 346 catalogued Hammond
+<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 244 of 346 catalogued Hammond
 shuttles are currently covered.</p>
 
 <hr />
@@ -257,6 +257,22 @@ to codepoints is the problem — acute vs tonos, perispomeni vs a plain
 tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.</p>
+
+<p><strong>Bulgarian: solved by accounting, not by reading.</strong> Three glyphs on this
+shuttle would not resolve visually at any zoom. What settled them was
+counting the alphabet. With <code class="language-plaintext highlighter-rouge">ѫ</code> at position 0, row 0 holds 30 distinct
+letters and no duplicates; pre-1945 Bulgarian has 33; the three absent
+are <code class="language-plaintext highlighter-rouge">х</code>, <code class="language-plaintext highlighter-rouge">щ</code> and <code class="language-plaintext highlighter-rouge">ѭ</code>; <code class="language-plaintext highlighter-rouge">х/Х</code> and <code class="language-plaintext highlighter-rouge">щ/Щ</code> are plainly in the figures row —
+leaving <em>exactly</em> <code class="language-plaintext highlighter-rouge">ѭ</code> unaccounted for and <em>exactly</em> one unidentified pair
+left to hold it. The layout is forced, without ever reading the glyph.</p>
+
+<p>The same accounting rejected a plausible-sounding alternative. <code class="language-plaintext highlighter-rouge">Ѣ</code> (yat)
+was proposed for position 0, and the form is stylised enough to invite
+it — but yat is already on this shuttle at position 28, in a plainly
+different shape (stem, top crossbar, bottom bowl), and putting it at
+position 0 too would have duplicated a letter while leaving the alphabet
+short. The count says which readings are <em>possible</em>, not just which are
+plausible.</p>
 
 <p><strong>The inventory check can indict the SOURCE, not just the port.</strong> It was
 built to catch v1/v2 transcription errors, but on Bulgarian 31C it fired
@@ -491,6 +507,10 @@ both.</p>
     <tr>
       <td>Universal, Russian (Old Style)</td>
       <td>29, 29A, 29B</td>
+    </tr>
+    <tr>
+      <td>Universal, Bulgarian</td>
+      <td>31C, 29C, 42C, 115C</td>
     </tr>
   </tbody>
 </table>
