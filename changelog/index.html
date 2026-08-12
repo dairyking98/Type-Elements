@@ -5889,6 +5889,153 @@ location. A full README pass against current code is still owed,
 though, the way CLAUDE.md just got one.</li>
 </ol>
 
+<hr />
+
+<h2 id="81-blickensderfer-catalog-read-end-to-end---8-to-28-presets-and-catalog_indexmds-second-table-became-generated-2026-08-12">81. Blickensderfer catalog read end to end - 8 to 28 presets, and <code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code>’s second table became generated (2026-08-12)</h2>
+
+<p>Picks up part 80’s punch-list item 2 (“Blickensderfer pages 0161-0168 - 8
+of 14 page scans unread”) and closes it: all 14 pages are now read, and
+<strong>73 of the 84 shuttles they contain are imported</strong>, up from 10.</p>
+
+<p>Working from <code class="language-plaintext highlighter-rouge">~/Blickensderfer-Catalog</code> (local copies, ~2517x5548 px -
+markedly more legible than the Hammond scans; the letter rows read at
+620 px wide and no glyph needed more than 900%).</p>
+
+<h3 id="20-new-presets-from-8-to-28">20 new presets, from 8 to 28</h3>
+
+<p>Two batches. The first covered the by-language pages and the British
+market (<code class="language-plaintext highlighter-rouge">GERMAN</code>, <code class="language-plaintext highlighter-rouge">DANISH</code>, <code class="language-plaintext highlighter-rouge">HUNGARIAN</code>,
+<code class="language-plaintext highlighter-rouge">BRITISH_SCIENTIFIC_FRACTION</code> + its Mimeograph variant,
+<code class="language-plaintext highlighter-rouge">DHIATENSOR_BRITISH</code>, <code class="language-plaintext highlighter-rouge">BRITISH_AMERICAN</code>, <code class="language-plaintext highlighter-rouge">BRITISH_INDIA</code>,
+<code class="language-plaintext highlighter-rouge">CHEMICAL_ENGLISH</code>, <code class="language-plaintext highlighter-rouge">CHEMICAL_UNIVERSAL</code>, <code class="language-plaintext highlighter-rouge">COSMOPOLITAN</code>,
+<code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION</code>, <code class="language-plaintext highlighter-rouge">UNIVERSAL_LITERARY</code>, <code class="language-plaintext highlighter-rouge">UNIVERSAL_ACCENT</code>); the
+second the American wheels and two more German ones
+(<code class="language-plaintext highlighter-rouge">DHIATENSOR_FRACTION</code> + its 447 variant, <code class="language-plaintext highlighter-rouge">ENGLISH_JAPANESE</code>,
+<code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION_US</code>, <code class="language-plaintext highlighter-rouge">GERMAN_ESZETT</code>, <code class="language-plaintext highlighter-rouge">GERMAN_FRACTION</code>).</p>
+
+<p>All 28 verified 28 columns wide, letter-inventory-consistent between
+rows 0 and 1, no two presets identical, and every non-ASCII character
+checked to have a real <code class="language-plaintext highlighter-rouge">unicodedata.name()</code>.</p>
+
+<p>The recurring structure is worth recording: <code class="language-plaintext highlighter-rouge">$</code>↔<code class="language-plaintext highlighter-rouge">£</code> is a <strong>one-position</strong>
+American/British split that appears four separate times
+(<code class="language-plaintext highlighter-rouge">QWERTY</code>/<code class="language-plaintext highlighter-rouge">QWERTY_BRITISH</code>, <code class="language-plaintext highlighter-rouge">DHIATENSOR</code>/<code class="language-plaintext highlighter-rouge">DHIATENSOR_BRITISH</code>,
+<code class="language-plaintext highlighter-rouge">DHIATENSOR_FRACTION</code>/<code class="language-plaintext highlighter-rouge">BRITISH_SCIENTIFIC_FRACTION</code>,
+<code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION_US</code>/<code class="language-plaintext highlighter-rouge">UNIVERSAL_FRACTION</code>), and <code class="language-plaintext highlighter-rouge">BRITISH_AMERICAN</code> is
+the one wheel carrying both.</p>
+
+<h3 id="two-wrong-deferrals-same-failure-mode">Two wrong deferrals, same failure mode</h3>
+
+<p>Both were recorded in part 80 as reasons NOT to import, and both were
+wrong - a group judged on one glance instead of read:</p>
+
+<ol>
+  <li><em>“The British Imperial/Scientific/Universal fraction variants … each
+packs a different dense fraction bank … needing per-entry checking
+rather than one shared reading.”</em> They don’t. <strong>Twenty-one entries
+collapse to four layouts</strong> plus four genuine one- or two-position
+variants. This single deferral was hiding roughly a sixth of the
+catalog.</li>
+  <li><em>“ENGLISH-JAPANESE 332/333: kana, needs its own pass.”</em> There is no
+kana on it at all - it is a Latin trading wheel carrying <code class="language-plaintext highlighter-rouge">¥ $ £</code>.</li>
+</ol>
+
+<p>Lesson, kept narrow: a shared <em>heading</em> predicts nothing about the rows
+under it. Read one entry per group before deferring the group.</p>
+
+<h3 id="genuinely-held-11-of-84-all-script-or-codepoint-none-legibility">Genuinely held (11 of 84), all script or codepoint, none legibility</h3>
+
+<p>Bohemian 426/443 (doubled dead-key accents), Armenian 218, Ancient Greek
+309, Hebrew 354/358/348/351, Bulgarian 452½, British Telegraph 376
+(non-standard row shape), and Special British 387 - whose last five slots
+are shilling numerators <code class="language-plaintext highlighter-rouge">1⁄ 3⁄ 5⁄ 7⁄ 9⁄</code> cast as single pieces of type.
+Only the first has a codepoint (<code class="language-plaintext highlighter-rouge">⅟</code>, U+215F) and <code class="language-plaintext highlighter-rouge">layout.rows</code> is one
+character per position, so 387 is held on that alone; its reading is not
+in doubt. (<code class="language-plaintext highlighter-rouge">GERMAN_FRACTION</code>/204 uses that same <code class="language-plaintext highlighter-rouge">⅟</code> and DOES import,
+because there it appears alone.)</p>
+
+<h3 id="german-came-out-three-ways-and-the-third-settled-the-first">German came out three ways, and the third settled the first</h3>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">CHARIENSTU_DE</code> (v1/v2): <code class="language-plaintext highlighter-rouge">¨ … ö … ä … ß</code></li>
+  <li><code class="language-plaintext highlighter-rouge">GERMAN</code> (404/423/378/489): <code class="language-plaintext highlighter-rouge">№ … ä … ö … ₰</code></li>
+  <li><code class="language-plaintext highlighter-rouge">GERMAN_ESZETT</code> (303): <code class="language-plaintext highlighter-rouge">¨ … ä … ö … ß</code></li>
+</ul>
+
+<p>303 carries CHARIENSTU_DE’s <code class="language-plaintext highlighter-rouge">¨</code>/<code class="language-plaintext highlighter-rouge">ß</code> but GERMAN’s <code class="language-plaintext highlighter-rouge">ä</code>/<code class="language-plaintext highlighter-rouge">ö</code> order, which
+confirms <code class="language-plaintext highlighter-rouge">¨</code>/<code class="language-plaintext highlighter-rouge">ß</code> as genuine rather than errors that <code class="language-plaintext highlighter-rouge">№</code>/<code class="language-plaintext highlighter-rouge">₰</code> correct, and
+leaves CHARIENSTU_DE’s <code class="language-plaintext highlighter-rouge">ä</code>-at-19 as the minority reading (two catalogued
+wheels put <code class="language-plaintext highlighter-rouge">ä</code> at 8). <strong>Not</strong> enough to overwrite a v1/v2 array - unlike
+the <code class="language-plaintext highlighter-rouge">WKJU</code>→<code class="language-plaintext highlighter-rouge">WKJY</code> fix there is no letter-inventory argument here, only a
+2-to-1 count - so all three ship side by side. Separately, German 423’s
+row 1 was a <em>third</em> independent confirmation of <code class="language-plaintext highlighter-rouge">WKJY</code>.</p>
+
+<p>An earlier draft of this work mis-attributed 303 to <code class="language-plaintext highlighter-rouge">GERMAN</code>; caught and
+corrected when page 18 was read properly.</p>
+
+<h3 id="catalog_indexmds-blickensderfer-half-is-now-generated"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code>’s Blickensderfer half is now generated</h3>
+
+<p>It had gone stale (“6 read, 8 not yet surveyed … Sighted: 29 shuttles”)
+precisely because it was the one hand-maintained table in a document
+whose whole premise is computed status. New
+<code class="language-plaintext highlighter-rouge">lib/layouts/blickensderfer_catalog.py</code> holds all 84 entries as data and
+<code class="language-plaintext highlighter-rouge">gen_catalog_index.py</code> now emits both sections.</p>
+
+<p>The two machines get there differently, and the module says why: Hammond
+descriptions encode the layout, so status is classified from them;
+Blickensderfer descriptions don’t (“Small Roman, British Scientific” is a
+plain wheel on one page and a fraction wheel on another), so the observed
+preset is recorded per entry and the generator instead <strong>verifies that
+the named preset exists</strong> - <code class="language-plaintext highlighter-rouge">SystemExit</code> on a rename, tested by
+temporarily renaming <code class="language-plaintext highlighter-rouge">BRITISH_INDIA</code> in a throwaway copy of the tree.
+Regenerating twice is byte-identical.</p>
+
+<p>Also fixed the index’s own intro, which claimed both tables came from
+printed numerical indexes. Blickensderfer has none - its denominator is
+what the scans contain, which is a real count of what is in hand but not
+of what the company made.</p>
+
+<h3 id="denominator">Denominator</h3>
+
+<p>Catalog pages present in the scans: 3-14, 18, 21, six entries each.
+Pages 1-2, 15-17, 19-20 are <strong>absent</strong> - roughly 42 more shuttles.
+Alphabetically 15-17 fall between English-Japanese and German (French and
+Esperanto sit there) and 19-20 between German and Greek. Nothing to be
+done without more scans, so this is now the binding Blickensderfer
+constraint rather than unread pages.</p>
+
+<h3 id="verification">Verification</h3>
+
+<p>Pure data/doc change; no geometry touched. Hard gate byte-identical on
+all three plausibly-affected configs:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>blickensderfer  ResinPrint:  verts=38310  faces=76792  volume=5646.195mm3
+hammond         ResinPrint:  verts=470670 faces=942988 volume=4876.156mm3
+hammond_split   FullElement: verts=35240  faces=70544  volume=8081.034mm3
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">lib/layouts</code> still imports identically under both of its names
+(<code class="language-plaintext highlighter-rouge">lib.layouts</code> and plain <code class="language-plaintext highlighter-rouge">layouts</code>), and headless <code class="language-plaintext highlighter-rouge">TuneApp</code> against
+scratch config copies reaches 28/45/46 presets for
+blickensderfer/hammond/hammond_split.</p>
+
+<h3 id="resuming-later-5">Resuming later</h3>
+
+<ol>
+  <li><strong>Blickensderfer scripts</strong> - Armenian 218, Ancient Greek 309, Hebrew
+354/348/351, Bulgarian 452½. All read cleanly at this resolution; each
+needs a script-aware pass, not better scans. <strong>358 needs no reading at
+all once 354 is done</strong> - the catalog states in prose that it is 354
+with <code class="language-plaintext highlighter-rouge">£</code> for <code class="language-plaintext highlighter-rouge">$</code>.</li>
+  <li><strong>Hammond 1915 Latin languages</strong> - unchanged from part 80’s item 1 and
+still the biggest remaining vein.</li>
+  <li><strong>Hammond 1920 leftovers</strong> (41, 162, 184, 23E/23F/23G, 136) -
+unchanged; try the ~300MB source TIFFs.</li>
+  <li>Part 80’s font-gap item 5 (both Hammond machines configured for
+<code class="language-plaintext highlighter-rouge">OCR-A II Regular</code>, which cannot build their own default layout) is
+<strong>still open and untouched</strong>.</li>
+</ol>
+
   </div>
 
 </article>
