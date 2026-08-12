@@ -5727,6 +5727,168 @@ enabled: false</code> in both, <code class="language-plaintext highlighter-rouge
 gate re-verified byte-identical (<code class="language-plaintext highlighter-rouge">--no-minkowski</code>) to confirm zero side
 effects on the two machines that weren’t the point of this fix.</p>
 
+<h2 id="80-layout-presets-extracted-out-of-tunepy-into-liblayouts-three-real-manufacturer-catalogs-transcribed-two-inherited-missing-letter-bugs-found-and-fixed-2026-08-11">80. Layout presets extracted out of <code class="language-plaintext highlighter-rouge">tune.py</code> into <code class="language-plaintext highlighter-rouge">lib/layouts/</code>; three real manufacturer catalogs transcribed; two inherited missing-letter bugs found and fixed (2026-08-11)</h2>
+
+<p>Long session, four distinct threads. Ordered as they happened.</p>
+
+<p><strong>Thread 1 - two inherited transcription bugs, same shape.</strong> The user
+supplied a Hammond type-shuttle catalog (Form QQ-10M-11-20-W, Nov 1920)
+and later Blickensderfer type-wheel catalog scans. Both turned up a real
+defect that had shipped since v1:</p>
+
+<ul>
+  <li>Hammond Ideal read <code class="language-plaintext highlighter-rouge">?zxqkjg**d**mpcfld,</code> where the catalog reads <code class="language-plaintext highlighter-rouge">b</code> -
+dropping <code class="language-plaintext highlighter-rouge">b</code> from the layout entirely and duplicating <code class="language-plaintext highlighter-rouge">d</code>
+(<code class="language-plaintext highlighter-rouge">v1/Hammond/HammondSplitShuttle.scad:24</code>, <code class="language-plaintext highlighter-rouge">v2/hammond_split.scad:76</code>).</li>
+  <li>Blickensderfer <code class="language-plaintext highlighter-rouge">CHARIENSTU_DE</code>/<code class="language-plaintext highlighter-rouge">_MOD</code> read <code class="language-plaintext highlighter-rouge">...GMDB:WKJ**U**</code> where it
+should be <code class="language-plaintext highlighter-rouge">Y</code> - dropping <code class="language-plaintext highlighter-rouge">Y</code>, duplicating <code class="language-plaintext highlighter-rouge">U</code>
+(<code class="language-plaintext highlighter-rouge">v1/Blickensderfer/Blickensderfer2.scad:82,85,88</code>,
+<code class="language-plaintext highlighter-rouge">v2/lib/layouts/blick_layouts.scad:18,21,24</code>).</li>
+</ul>
+
+<p>Neither is a v4 porting slip; both are errors in the ORIGINAL source, so
+this is the documented narrow exception to CLAUDE.md’s “v2 is ground
+truth” rule - v2 was itself transcribed from these catalogs, so on layout
+CONTENT specifically the catalog is the earlier authority. Recorded at
+both config/definition sites so neither gets “corrected” back.</p>
+
+<p><strong>The cheap check that generalises</strong>: compare the lowercase row’s letter
+inventory against the uppercase row’s. A duplicated letter plus a missing
+one is this bug class’s signature. It found the Blickensderfer bug
+mechanically, without reading the scan at all, and would have found the
+Hammond one. Now run over every Blickensderfer preset - all clean
+(<code class="language-plaintext highlighter-rouge">HEBREW_ENGL</code>’s row 0 is Hebrew so the Latin check correctly doesn’t
+apply).</p>
+
+<p><strong>Thread 2 - <code class="language-plaintext highlighter-rouge">tune.py</code> no longer holds layout data</strong> (per explicit user
+direction: “layouts should not be hardcoded in tune.py”). ~840 lines
+moved out (4802 -&gt; 3964) into <code class="language-plaintext highlighter-rouge">lib/layouts/&lt;machine&gt;_layout.py</code>,
+aggregated by a new <code class="language-plaintext highlighter-rouge">lib/layouts/__init__.py</code>. That package already
+existed for the 3 Selectric machines’ hemisphere permutations, so this
+extended an established home rather than inventing one. Blocks were
+relocated verbatim by line range, not retyped; all 18 layout tables
+dumped to JSON before and after are byte-identical.</p>
+
+<p>Two things the move surfaced, both worth remembering:</p>
+
+<ul>
+  <li><strong>The package is reachable under TWO module names</strong> - <code class="language-plaintext highlighter-rouge">lib.layouts</code>
+(repo root on <code class="language-plaintext highlighter-rouge">sys.path</code>: <code class="language-plaintext highlighter-rouge">tune.py</code>, <code class="language-plaintext highlighter-rouge">font_coverage.py</code>) and plain
+<code class="language-plaintext highlighter-rouge">layouts</code> (<code class="language-plaintext highlighter-rouge">lib/</code> on <code class="language-plaintext highlighter-rouge">sys.path</code>: <code class="language-plaintext highlighter-rouge">lib/selectric12.py</code>’s <code class="language-plaintext highlighter-rouge">from
+layouts.selectric12_layout import ...</code>). Adding <code class="language-plaintext highlighter-rouge">__init__.py</code> turned it
+from a namespace package into a real one, so that <code class="language-plaintext highlighter-rouge">__init__</code> now
+executes on BOTH paths - its imports must therefore be RELATIVE. The
+first version used absolute imports and only passed because <code class="language-plaintext highlighter-rouge">cwd</code>
+happened to be on <code class="language-plaintext highlighter-rouge">sys.path</code>; it would have broken the Selectric build
+path from any other directory. Verified both names resolve from a
+foreign cwd and by a real <code class="language-plaintext highlighter-rouge">selectric12</code> build.</li>
+  <li><code class="language-plaintext highlighter-rouge">font_coverage.py --preset</code> used to <code class="language-plaintext highlighter-rouge">import tune</code> purely to reach these
+tables, so listing a charset required <code class="language-plaintext highlighter-rouge">textual</code>. It now reads
+<code class="language-plaintext highlighter-rouge">lib/layouts</code> directly, which has no third-party imports - confirmed by
+loading it on bare system python where <code class="language-plaintext highlighter-rouge">import textual</code> fails.</li>
+</ul>
+
+<p><strong>Thread 3 - Selectric layout/mapping pairing.</strong> The user asked whether
+Selectric’s multiple character mappings belong in <code class="language-plaintext highlighter-rouge">layouts</code> too (they
+already did) and observed that several layouts can share one mapping. Each
+layout now NAMES its map via a <code class="language-plaintext highlighter-rouge">PRESET_HEMISPHERE_MAP</code> in the same module,
+many-to-one, with <code class="language-plaintext highlighter-rouge">LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE</code> DERIVED from
+those rather than hand-written. This closed a silent bad-geometry hole:
+an unpaired preset does not fall back to a default - <code class="language-plaintext highlighter-rouge">_save_to_yaml</code>
+(<code class="language-plaintext highlighter-rouge">tune.py:3052</code>) only patches <code class="language-plaintext highlighter-rouge">layout.hemisphere_map</code> when the lookup
+hits, so the config silently kept the PREVIOUS preset’s value, and these
+maps are position-only, so a mismatch builds a WRONG typeball with every
+character present. Each module now asserts full pairing coverage at
+import; verified by adding an unpaired <code class="language-plaintext highlighter-rouge">GERMAN</code> preset in a scratch copy
+(fails with <code class="language-plaintext highlighter-rouge">unpaired=['GERMAN']</code>). Composer is deliberately exempt
+(one fixed map, no <code class="language-plaintext highlighter-rouge">hemisphere_map</code> config key at all) and says so.</p>
+
+<p><strong>Thread 4 - catalog transcription.</strong> Three sources: Hammond 1920 (by
+shuttle number), Hammond 1915 (35pp, by LANGUAGE - the more comprehensive
+one), Blickensderfer (14 page scans, by language/market). The 1915
+catalog independently CONFIRMS the 1920-derived Ideal layouts character
+for character, five years apart; the Blickensderfer scans confirm
+<code class="language-plaintext highlighter-rouge">DHIATENSOR</code> likewise; and an independent re-transcription of Hammond’s
+Universal rows came out byte-identical to the shipped <code class="language-plaintext highlighter-rouge">Normal Universal</code>.</p>
+
+<p>Imported 9 catalog-derived layouts total (hammond 10 presets,
+hammond_split 11, blickensderfer 8). Full narrative, every judgement call
+with what would have to be true for it to be wrong, the complete
+not-imported list with per-entry reasons, and a prioritised backlog now
+live in <strong><code class="language-plaintext highlighter-rouge">LAYOUT_TRANSCRIPTION.md</code></strong> - written because several imports
+rest on reasoning rather than on reading a glyph, and that reasoning
+previously existed only in commit messages.</p>
+
+<p>The single most useful technique: <strong>read the catalog by COLUMN, not by
+row.</strong> Each column is one physical key at three shift levels, so the rows
+constrain each other. That is what settled <code class="language-plaintext highlighter-rouge">ƒ</code> vs <code class="language-plaintext highlighter-rouge">f</code> (row 0 already has
+an <code class="language-plaintext highlighter-rouge">f</code>; a figures row doesn’t repeat a letter with its own key), the <code class="language-plaintext highlighter-rouge">&amp;</code>
+re-homed onto the shifted <code class="language-plaintext highlighter-rouge">.</code> key in the fractions shuttles, and two
+apparent oddities that turned out to be print artifacts rather than
+characters (shuttle 26’s <code class="language-plaintext highlighter-rouge">p:-</code>, 41’s <code class="language-plaintext highlighter-rouge">P::</code> - both the <code class="language-plaintext highlighter-rouge">;</code>/<code class="language-plaintext highlighter-rouge">:</code> key, whose
+forms are fixed by the keyboard).</p>
+
+<p>Also established, from the user: <strong>“Caps and Small Caps” is a TYPEFACE,
+not a layout.</strong> Row 0 stores lowercase, because on a small-caps face the
+lowercase codepoints ARE the small capitals, so a correct font makes the
+cases match on its own. Universal 27/27E consequently collapses into the
+standard layout and is defined by reference to it. Spanish 5A does NOT
+collapse - its figures-row accents are genuinely full capitals (<code class="language-plaintext highlighter-rouge">ÑÍÉÚ</code>),
+reached by the figure shift rather than the case shift.</p>
+
+<p><strong>Also fixed along the way</strong>: CLAUDE.md’s hard-gate command no longer
+parsed (<code class="language-plaintext highlighter-rouge">--points-per-mm</code> was removed fleet-wide when contour sampling
+became adaptive; it is <code class="language-plaintext highlighter-rouge">--flatness-tolerance-mm</code>, and needs
+<code class="language-plaintext highlighter-rouge">.venv/bin/python3</code>). A full audit of CLAUDE.md against the tree found
+four more stale claims - <code class="language-plaintext highlighter-rouge">save_config()</code> (now <code class="language-plaintext highlighter-rouge">_save_to_yaml()</code>), the
+<code class="language-plaintext highlighter-rouge">simplify()</code> “no exceptions” claim (<code class="language-plaintext highlighter-rouge">lib/heightfield_poc.py</code> still has it,
+but is an unimported dead POC outside the pipeline), Bennett’s
+<code class="language-plaintext highlighter-rouge">alignment_hole_height</code> (since resolved as case (b)), and the “five
+<code class="language-plaintext highlighter-rouge">quality.*_fn</code> knobs” (a config has six - <code class="language-plaintext highlighter-rouge">groove_fn</code> is deliberately not
+one, being twist sampling rather than a facet count). README’s Minkowski
+note still explained cost scaling via <code class="language-plaintext highlighter-rouge">points_per_mm</code>.</p>
+
+<p><strong>Verified throughout</strong>: all 18 layout tables byte-identical across the
+extraction; <code class="language-plaintext highlighter-rouge">TuneApp</code> constructs for all 10 machines (scratch config
+copies only, per the standing warning); hard gate unchanged on every
+config touched - <code class="language-plaintext highlighter-rouge">hammond</code> verts=470670 faces=942988 volume=4876.156mm3,
+<code class="language-plaintext highlighter-rouge">hammond_split</code> verts=35240 faces=70544 volume=8081.034mm3 (moved once,
+by exactly the <code class="language-plaintext highlighter-rouge">d</code>-&gt;<code class="language-plaintext highlighter-rouge">b</code> fix, then stable), <code class="language-plaintext highlighter-rouge">blickensderfer</code> verts=38310
+faces=76792 volume=5646.195mm3, plus clean <code class="language-plaintext highlighter-rouge">selectric12</code>/<code class="language-plaintext highlighter-rouge">selectric3</code>/
+<code class="language-plaintext highlighter-rouge">selectric_composer</code>/<code class="language-plaintext highlighter-rouge">mignon</code> builds.</p>
+
+<h3 id="resuming-later-4">Resuming later</h3>
+
+<ol>
+  <li><strong>Hammond 1915 Latin languages - biggest clean vein.</strong> Only English,
+Dutch, Spanish done. Croatian (58, 12C) and Danish (87, 88) on PDF
+p.14; Portuguese (63, 63A, 63B, 106), Roumanian (92), Polish (156,
+153B, 157) on p.20. <strong>Pages 10-13, 15-19, 21-35 not sampled at all</strong> -
+more languages live there.</li>
+  <li><strong>Blickensderfer pages 0161-0168</strong> - 8 of 14 page scans unread, same
+structure and yield as the ones already done.</li>
+  <li><strong>Hammond 1920 leftovers</strong> (41, 162, 184, 23E/23F/23G, 136) - try the
+~300MB source TIFFs rather than more zooming on the small PDF; that is
+the specific thing likely to settle 162’s damaged glyph after <code class="language-plaintext highlighter-rouge">4%</code>.</li>
+  <li><strong>Blocked on fonts, not reading</strong>: all non-Latin sets, and the 1915
+pre-reform Cyrillic (needs ѣ, і, hard-sign ъ). Check
+<code class="language-plaintext highlighter-rouge">font_coverage.py</code> before starting - transcribing is pointless if no
+available font carries the glyphs.</li>
+  <li><strong>Known font gap, pre-existing, NOT caused by these imports</strong>: both
+Hammond machines are configured for <code class="language-plaintext highlighter-rouge">OCR-A II Regular</code>, which lacks
+the fractions and every accent - but equally lacks <code class="language-plaintext highlighter-rouge">¢</code>/<code class="language-plaintext highlighter-rouge">°</code>/<code class="language-plaintext highlighter-rouge">×</code> from
+the already-shipped <code class="language-plaintext highlighter-rouge">Normal Universal</code>. <code class="language-plaintext highlighter-rouge">AverageMono Mod</code> covers all
+the new layouts. Worth deciding whether the shipped configs should
+point at a font that can actually build their own default layout.</li>
+  <li><code class="language-plaintext highlighter-rouge">README.md</code> was NOT audited this session (only CLAUDE.md was, plus one
+stale <code class="language-plaintext highlighter-rouge">points_per_mm</code> line in README’s Minkowski note). Its two
+surviving <code class="language-plaintext highlighter-rouge">LAYOUT_PRESETS</code> mentions were checked and are fine - line
+136 describes <code class="language-plaintext highlighter-rouge">TuneApp.LAYOUT_PRESETS</code> as an instance attribute, still
+true, and line 203 names <code class="language-plaintext highlighter-rouge">LAYOUT_PRESETS_MIGNON</code> without claiming a
+location. A full README pass against current code is still owed,
+though, the way CLAUDE.md just got one.</li>
+</ol>
+
   </div>
 
 </article>
