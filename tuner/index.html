@@ -77,16 +77,25 @@ a tuning session becomes a real, committable config.</p>
 
 <p><strong>Picking a font</strong>: every font path field (Font &amp; Alignment’s <code class="language-plaintext highlighter-rouge">font.path</code>,
 Logo’s <code class="language-plaintext highlighter-rouge">logo.font_path</code>, the per-machine label/legend font paths) has two
-buttons. <strong>Installed</strong> opens a searchable list of every font installed on
-this machine, by name - fontconfig’s own list on Linux (so anything
-<code class="language-plaintext highlighter-rouge">fc-list</code> knows about, including per-user directories added to
-<code class="language-plaintext highlighter-rouge">fonts.conf</code>), <code class="language-plaintext highlighter-rouge">%WINDIR%\Fonts</code> plus the per-user
-<code class="language-plaintext highlighter-rouge">%LOCALAPPDATA%\Microsoft\Windows\Fonts</code> on Windows; see
-<a href="lib/system_fonts.py"><code class="language-plaintext highlighter-rouge">lib/system_fonts.py</code></a>. Type to filter on family,
-style or filename; the currently-selected font is pinned to the top of
-the list. <strong>File</strong> is the original file browser, for a font that isn’t
-installed anywhere - the config stores a plain path either way, so
-nothing downstream changes.</p>
+buttons. <strong>Installed</strong> opens a list of every font installed on this
+machine, by name - fontconfig’s own list on Linux (so anything <code class="language-plaintext highlighter-rouge">fc-list</code>
+knows about, including per-user directories added to <code class="language-plaintext highlighter-rouge">fonts.conf</code>),
+<code class="language-plaintext highlighter-rouge">%WINDIR%\Fonts</code> plus the per-user
+<code class="language-plaintext highlighter-rouge">%LOCALAPPDATA%\Microsoft\Windows\Fonts</code> on Windows; <code class="language-plaintext highlighter-rouge">lib/system_fonts.py</code>
+does the enumeration. <strong>File</strong> is the original file browser, for a font
+that isn’t installed anywhere. The config stores a plain path either way,
+so nothing downstream changes.</p>
+
+<p>The list is uncapped on purpose - browsing the whole library is a real
+way to use it, so nothing is truncated and the last entry is always
+reachable. Type to filter on family, style or filename (all typed words
+must match, so <code class="language-plaintext highlighter-rouge">alma bold</code> and <code class="language-plaintext highlighter-rouge">ocr otf</code> both narrow the way you’d
+expect), or just scroll: up/down and PageUp/PageDown move without leaving
+the filter box, the mouse wheel works over the list, and Tab focuses the
+list itself. Enter picks the highlighted font, Esc cancels. The
+currently-selected font is pinned to the top and pre-highlighted, and the
+full path of whatever’s highlighted shows below the list - two installed
+files can carry the same family name.</p>
 
 <p><strong>Build tab</strong>: a 2-option dropdown (Element / Shaft Gauge) plus an
 independent “Resin supports” checkbox. Element builds <code class="language-plaintext highlighter-rouge">FullElement()</code>, or

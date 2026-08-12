@@ -139,6 +139,12 @@ downloads a pinned build automatically the first time it’s needed (see
 <code class="language-plaintext highlighter-rouge">PACKAGING_PLAN.md</code>), so no separate f3d install step is required on
 either platform.</p>
 
+<p>One first-run note: the shipped configs’ <code class="language-plaintext highlighter-rouge">font.path</code> values are absolute
+paths into the font library on the machine they were tuned on, so a fresh
+checkout elsewhere (Windows especially) needs them re-pointed before a
+build will find its font. The Font &amp; Alignment tab’s <strong>Installed</strong> button
+does that in one click - see <a href="/tuner/"><code class="language-plaintext highlighter-rouge">TUNER.md</code></a>.</p>
+
 <h2 id="usage">Usage</h2>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.venv/bin/python3 generate.py config/blickensderfer.yaml
@@ -188,6 +194,8 @@ lib/
   build_log.py               the ONE progress/mesh-report/atomic-export format (see CLAUDE.md)
   resin_support.py           shared resin-support geometry
   svg_import.py              SVG path -&gt; polygon import (logos/marks)
+  system_fonts.py            lists the fonts installed on this machine (Linux/Windows) for
+                             tune.py's font pickers - see TUNER.md
   f3d_bootstrap.py           finds or downloads the pinned f3d used by tune.py's preview
   contour_inspect.py         standalone contour diagnostic (not in the build path)
   heightfield_poc.py         abandoned height-field experiment, kept for reference; nothing imports it

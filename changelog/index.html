@@ -6143,6 +6143,147 @@ faithful to its own catalog; unifying them would make one of them
 wrong.</li>
 </ol>
 
+<h2 id="83-fonts-are-now-picked-by-name-from-the-installed-list-not-by-hunting-for-a-file-2026-08-12">83. Fonts are now picked by name from the installed list, not by hunting for a file (2026-08-12)</h2>
+
+<p>Asked for: “for font selection, rather than selecting font file, can we
+set it so that we have a dropdown of installed system fonts? make sure
+itll work for both linux and windows.”</p>
+
+<p>Every font path field in <code class="language-plaintext highlighter-rouge">tune.py</code> - <code class="language-plaintext highlighter-rouge">font.path</code>, <code class="language-plaintext highlighter-rouge">logo.font_path</code>, and
+the per-machine <code class="language-plaintext highlighter-rouge">label</code>/<code class="language-plaintext highlighter-rouge">legend</code> font paths (<code class="language-plaintext highlighter-rouge">FONT_PATH_FIELD_KEYS</code>) -
+now has an <strong>Installed</strong> button beside the original file browser, which
+is now labelled <strong>File</strong>. The two sit on their own row under the input
+rather than beside it; the form pane is 58 columns, and a label plus two
+buttons left the path field too narrow to read.</p>
+
+<p>Configs are untouched by any of this. They still store a plain absolute
+path, so <code class="language-plaintext highlighter-rouge">generate.py</code> and every machine module are unaffected - this
+only changes how that path gets chosen.</p>
+
+<h3 id="what-counts-as-installed-libsystem_fontspy">What counts as “installed” (<code class="language-plaintext highlighter-rouge">lib/system_fonts.py</code>)</h3>
+
+<p>New module, deliberately separate from the TUI the same way
+<code class="language-plaintext highlighter-rouge">lib/layouts/</code> is:</p>
+
+<ul>
+  <li><strong>Linux: <code class="language-plaintext highlighter-rouge">fc-list</code>, not a hardcoded directory list.</strong> This is the load-
+bearing choice. <code class="language-plaintext highlighter-rouge">~/fonts</code> is a registered fontconfig directory on this
+machine (one <code class="language-plaintext highlighter-rouge">&lt;dir&gt;</code> line in <code class="language-plaintext highlighter-rouge">~/.config/fontconfig/fonts.conf</code>) and
+holds most of the real library - 1388 of the 2214 files found. Any
+<code class="language-plaintext highlighter-rouge">/usr/share/fonts</code>-style scan misses all of it; that scan survives only
+as the fallback for a machine with no fontconfig, where it finds 729.</li>
+  <li><strong>Windows: a real directory scan</strong> of <code class="language-plaintext highlighter-rouge">%WINDIR%\Fonts</code> plus
+<code class="language-plaintext highlighter-rouge">%LOCALAPPDATA%\Microsoft\Windows\Fonts</code> - the per-user one matters,
+it’s where the non-admin “install for me only” default puts fonts.
+Names come from each file’s own name table via freetype.</li>
+  <li>One entry per FILE, deduped by path: a config field holds a path with
+no face index, so a <code class="language-plaintext highlighter-rouge">.ttc</code> collection that fontconfig reports as
+several faces collapses to its first face - picking it selects the
+file, which is what the pipeline would load anyway. Filtered to the
+four extensions the glyph pipeline can actually load, and cached.</li>
+</ul>
+
+<p>Family/style always come from the font’s own name table, never the
+filename - a filename is frequently a renamed or version-numbered copy
+that doesn’t say which typeface it holds, which is the whole reason a
+name-based picker beats a file browser here.</p>
+
+<h3 id="the-picker-and-the-cap-that-got-removed">The picker, and the cap that got removed</h3>
+
+<p>First version capped the list at 300 matches. Reported: “lets say i dont
+know what font i want to use. i want to keep scrolling. i cap out at
+300.” Fair - browsing the whole library is a real way to use this, and a
+cap turns that into a dead end.</p>
+
+<p>Measured before changing anything: the full 2214-entry list costs ~21ms
+in <code class="language-plaintext highlighter-rouge">add_options</code> plus ~67ms to settle, against ~33ms for 300. The cap was
+buying about 50ms per keystroke in exchange for truncating the answer.
+Removed.</p>
+
+<p>What the cap was actually covering was the worst-case keystroke, not the
+list size - a filter still matching nearly everything (typing “a”, which
+every path contains) rebuilds all 2214 rows at 150-240ms, which reads as
+lag while typing. That is now handled by debouncing the filter 150ms,
+which scales with the library instead of truncating it. Two edge cases
+that needed handling and are covered by tests: Enter flushes a pending
+rebuild before picking (typing then immediately pressing Enter must not
+act on the previous keystroke’s list), and dismissal cancels the timer so
+it can’t fire against a screen that’s already gone.</p>
+
+<p>Also: PageUp/PageDown by the list’s own visible height, driven from the
+filter box without tabbing away, since arrow-at-a-time through a couple
+thousand fonts isn’t browsing. The currently-configured font is pinned to
+the top and pre-highlighted - otherwise the picker opens scrolled to
+“A…” with no sign of what’s selected - and the highlighted entry’s full
+path shows below the list, since two installed files can carry the same
+family name.</p>
+
+<p>A filtered list rather than a <code class="language-plaintext highlighter-rouge">Select</code> dropdown, despite the request
+saying “dropdown”: 2214 options in an overlay with no way to type at it
+is unusable, and Textual’s <code class="language-plaintext highlighter-rouge">Select</code> has no filter.</p>
+
+<h3 id="verified">Verified</h3>
+
+<p>Headless (scratch config copies only - <code class="language-plaintext highlighter-rouge">TuneApp.__init__</code> has a real
+migrate+save side effect, so it never points at a live config) across
+Blickensderfer, Hammond, Mignon, Bennett and Selectric 12: every font
+field gets both buttons, the picker opens/filters/pins/picks, the input
+and its “Currently selected:” label follow, Esc leaves the value alone,
+the last entry of the uncapped list is reachable, and paging moves by a
+full page.</p>
+
+<p>Run on both platforms, not just claimed to work on both:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>fonts</th>
+      <th>enumeration</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Linux (fc-list)</td>
+      <td>2214</td>
+      <td>0.13s</td>
+    </tr>
+    <tr>
+      <td>Linux (fallback scan)</td>
+      <td>729</td>
+      <td>0.11s</td>
+    </tr>
+    <tr>
+      <td>Windows (<code class="language-plaintext highlighter-rouge">C:\Windows\Fonts</code>)</td>
+      <td>704</td>
+      <td>0.37s</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The same smoke test passes on the Windows box against real Windows font
+paths. No geometry code was touched, so the mesh hard gate doesn’t apply.</p>
+
+<h3 id="resuming-later-7">Resuming later</h3>
+
+<p>Part 81’s punch list is unchanged. One thing opened here, on the Windows
+checkout rather than in the code:</p>
+
+<ol>
+  <li><strong><code class="language-plaintext highlighter-rouge">config/selectric12.yaml</code> and <code class="language-plaintext highlighter-rouge">selectric3.yaml</code> are modified in the
+Windows working tree</strong>, pointing <code class="language-plaintext highlighter-rouge">font.path</code>/<code class="language-plaintext highlighter-rouge">font2_path</code> at
+<code class="language-plaintext highlighter-rouge">C:/Windows/Fonts/arial.ttf</code>/<code class="language-plaintext highlighter-rouge">times.ttf</code> instead of the committed
+Linux paths. They were stashed to let the pull through and popped
+back. <code class="language-plaintext highlighter-rouge">selectric_composer.yaml</code> conflicted (upstream had deliberately
+moved it to Glass Antiqua) and was resolved in favour of upstream.
+This feature is what makes those hand-edits unnecessary - the fields
+can be re-pointed from the TUI now - so they should probably be
+reverted so that tree stops going dirty on every pull. Also
+<code class="language-plaintext highlighter-rouge">stash@{1}</code> there holds <code class="language-plaintext highlighter-rouge">encoding="utf-8"</code> fixes for 10 machine
+modules that are already upstream verbatim; it’s redundant and can be
+dropped.</li>
+</ol>
+
   </div>
 
 </article>
