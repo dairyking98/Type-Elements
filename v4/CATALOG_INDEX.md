@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**122 of 346 catalogued shuttles are covered (35%)** — 9 held on an unresolved character,
-215 not yet transcribed.
+**135 of 346 catalogued shuttles are covered (39%)** — 9 held on an unresolved character,
+202 not yet transcribed.
 
 Status meanings:
 
@@ -109,8 +109,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 31A | Medium Roman, Russian, Universal | 49 | todo | Universal / Russian |
 | 31B | Medium Roman, Russian, Universal | 49 | todo | Universal / Russian |
 | 31C | Medium Roman, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
-| 32 | Medium Roman, French, Universal | 40 | todo | Universal / French |
-| 32A | Medium Roman, French, Universal | 40 | todo | Universal / French |
+| 32 | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
+| 32A | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
 | 32B | Medium Roman, Italian, Universal | 46 | todo | Universal / Italian |
 | 32C | Medium Roman, Roumanian, Universal | 49 | todo | Universal / Roumanian |
 | 32D | Medium Roman, Roumanian, Universal | 49 | todo | Universal / Roumanian |
@@ -192,11 +192,11 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 66 | Small Roman, Spanish, Universal | 50 | todo | Universal / Spanish |
 | 66A | Small Roman, Chilian, Universal | 32 | todo | Universal / Chilian |
 | 66B | Small Roman, Spanish, Universal | 51 | todo | Universal / Spanish |
-| 67 | Small Roman, French, Universal | 40 | todo | Universal / French |
+| 67 | Small Roman, French, Universal | 40 | **imported** | Universal, French |
 | 67A | Small Roman, Italian, Universal | 46 | todo | Universal / Italian |
 | 68 | Italic, English, Universal | 39 | **imported** | Universal |
 | 68A | Italic, Spanish, Universal | 51 | todo | Universal / Spanish |
-| 69 | Large Roman, French, Universal | 41 | todo | Universal / French |
+| 69 | Large Roman, French, Universal | 41 | **imported** | Universal, French |
 | 69A | Large Roman, Italian, Universal | 46 | todo | Universal / Italian |
 | 70 | Vertical Script, English, Ideal | 20 | **imported** | Ideal |
 | 71 | Small Roman, German, Universal | 42 | todo | Universal / German |
@@ -228,7 +228,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 84A | Vertical Script, Dutch, Universal | 35 | todo | Universal / Dutch |
 | 84B | Vertical Script, Fractions, German, Universal | 45 | todo | Universal / German / Fractions |
 | 84C | Vertical Script, Fractions, Dutch, Universal | 35 | todo | Universal / Dutch / Fractions |
-| 85 | Vertical Script, French, Universal | 41 | todo | Universal / French |
+| 85 | Vertical Script, French, Universal | 41 | **imported** | Universal, French |
 | 85A | Vertical Script, Italian, Universal | 47 | todo | Universal / Italian |
 | 86 | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
 | 87 | Medium Roman, Fractions, Danish, Ideal | 16 | **imported** | Ideal, Danish (Fractions) |
@@ -264,8 +264,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 103 | Medium Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
 | 103A | Medium Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
 | 103B | Medium Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
-| 104 | Italic, French, Universal | 41 | todo | Universal / French |
-| 104A | Italic, French, Universal | 41 | todo | Universal / French |
+| 104 | Italic, French, Universal | 41 | **imported** | Universal, French |
+| 104A | Italic, French, Universal | 41 | **imported** | Universal, French |
 | 104B | Italic, Italian, Universal | 47 | todo | Universal / Italian |
 | 105 | Small Roman, Esperanto, Ideal | 20 | todo | Ideal / Esperanto |
 | 106 | Vertical Script, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
@@ -279,8 +279,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 110 | Small Roman, Chemical, French, Universal | 40 | todo | Universal / French / Chemical |
 | 110A | Small Roman, Chemical, French, Universal | 40 | todo | Universal / French / Chemical |
 | 110B | Small Roman, Chemical, Italian, Universal, Old Style | 46 | todo | Universal / Italian / Chemical |
-| 111 | Vertical Script, French, Universal | 41 | todo | Universal / French |
-| 111A | Vertical Script, French, Universal | 42 | todo | Universal / French |
+| 111 | Vertical Script, French, Universal | 41 | **imported** | Universal, French |
+| 111A | Vertical Script, French, Universal | 42 | **imported** | Universal, French |
 | 111B | Vertical Script, Italian, Universal | 47 | todo | Universal / Italian |
 | 112A | Greek, Universal | 45 | todo | Universal / Greek |
 | 112B | Greek, Universal | 45 | todo | Universal / Greek |
@@ -321,13 +321,13 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 134B | Large Gothic, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
 | 134C | Large Gothic, Danish-Norwegian, Universal | 34 | todo | Universal / Danish-Norwegian |
 | 134D | Large Gothic, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
-| 134E | Large Gothic, French, Universal | 41 | todo | Universal / French |
+| 134E | Large Gothic, French, Universal | 41 | **imported** | Universal, French |
 | 134F | Large Gothic, Italian, Universal, Old Style | 47 | todo | Universal / Italian |
 | 135 | Medium Roman, Mathematical, English, Universal | 47 | todo | Universal / English / Mathematical |
-| 135A | Medium Roman, Esperanto, Universal | 40 | todo | Universal / Esperanto |
+| 135A | Medium Roman, Esperanto, Universal | 40 | **imported** | Universal, Esperanto |
 | 135B | Medium Roman, Mathematical, English, Universal | 48 | todo | Universal / English / Mathematical |
 | 135C | Medium Roman, Mathematical, English, Universal | 48 | todo | Universal / English / Mathematical |
-| 135D | Medium Roman, Esperanto, Universal | 40 | todo | Universal / Esperanto |
+| 135D | Medium Roman, Esperanto, Universal | 40 | **imported** | Universal, Esperanto |
 | 136 | Special Gothic, English, Universal | 38 | held | chemical figures row not legible |
 | 137 | Medium Roman, French (Belgian Keyboard), Ideal and Universal | 55 | todo | Ideal/Universal / French |
 | 138 | Small Roman, French (Belgian Keyboard), Ideal and Universal | 54 | todo | Ideal/Universal / French |
@@ -341,7 +341,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 144B | Multigraph (Pica), German, Ideal | 23 | **imported** | Ideal, German |
 | 145 | Multigraph (Pica), English, Universal | 39 | **imported** | Universal |
 | 145A | Multigraph (Pica), German, Universal (New Orthography) | 45 | **imported** | Universal, German (New Orthography) |
-| 145B | Multigraph (Pica), French, Universal | 45 | todo | Universal / French |
+| 145B | Multigraph (Pica), French, Universal | 45 | **imported** | Universal, French |
 | 150 | Italic, Portuguese, Universal | 49 | todo | Universal / Portuguese |
 | 150B | Italic, Italian, Universal | 47 | todo | Universal / Italian |
 | 150C | Italic, Polish, Universal | 48 | todo | Universal / Polish |

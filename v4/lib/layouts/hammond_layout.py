@@ -232,6 +232,32 @@ CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY = [
     "QAZWSXEDCRFVTGB" "YHNUJMIK.OLÜPÄÖ",
     "1„@2”:3!#4%?5_-" "6&*7’§8(ß9);0=/",
 ]
+# French (69 Large Roman, 32/32A Medium Roman, 67 Small Roman, 104/104A
+# Italic, 85/111/111A Vertical Script, 134E Large Gothic, 145B
+# Multigraph). é takes the "." slot in row 0; row 1 is unchanged from
+# English, and the whole language lives in the figures row.
+CATALOG_UNIVERSAL_FRENCH = [
+    "qazwsxedcrfvtgb" "yhnujmik,olép;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    "1”è2¨ù3$à4%£5_û" "6&ô7’î8(â9)ê0ç/",
+]
+# Trilingual French-German-English (32E) - the German vowels ö/ä/ü are
+# folded into the FIGURES row rather than given their own keys, which is
+# how one shuttle covers three languages: ° and ¾/¼ take the slots French
+# alone leaves free.
+CATALOG_UNIVERSAL_FRENCH_GERMAN_ENGLISH = [
+    "qazwsxedcrfvtgb" "yhnujmik,olép°-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:¾",
+    '½"è2öù3äà4%£5üû' "6&ô7'î8(â9)ê¼ç/",
+]
+# Esperanto (135A, 135D). All six accented letters are present -
+# ĉ ĝ ĥ ĵ ŝ ŭ - five of them in the letter rows and ĥ/ŭ in the figures
+# row, so the language is fully typeable from one shuttle.
+CATALOG_UNIVERSAL_ESPERANTO = [
+    "qazwsxedcrfvtgb" "yhnujmikŝolĉpĵĝ",
+    "QAZWSXEDCRFVTGB" "YHNUJMIKŜOLĈPĴĜ",
+    '1"@2/×3$+4%!5_-' "6ĥ;7':8(,9).0?ŭ",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -273,6 +299,13 @@ CATALOG_SHUTTLES = {
     "ideal_french": "61 Small Roman, 14 Medium Roman, 62 Large Roman, 15 Italic",
     "ideal_german_new_orthography": "36B Small Roman, 114 Medium Roman",
     "ideal_german": "36 Small Roman, 11 Medium Roman, 12 Large Roman (old orthography)",
+    "universal_french": (
+        "69 Large Roman, 32/32A Medium Roman, 67 Small Roman, 104/104A "
+        "Italic, 85/111/111A Vertical Script, 134E Large Gothic, "
+        "145B Multigraph (Pica)"
+    ),
+    "universal_french_german_english": "32E Medium Roman",
+    "universal_esperanto": "135A, 135D Medium Roman",
     "universal_german_new_orthography": (
         "117/117A Italic, 119C Gothic Italic, 124 Large Italic, "
         "145A Multigraph (Pica)"
@@ -411,4 +444,9 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, German (New Orthography)": [
         r[::-1] for r in CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY
     ],
+    "Universal, French": [r[::-1] for r in CATALOG_UNIVERSAL_FRENCH],
+    "Universal, French-German-English": [
+        r[::-1] for r in CATALOG_UNIVERSAL_FRENCH_GERMAN_ENGLISH
+    ],
+    "Universal, Esperanto": [r[::-1] for r in CATALOG_UNIVERSAL_ESPERANTO],
 }
