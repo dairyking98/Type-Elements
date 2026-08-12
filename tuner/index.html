@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.0 -->
+<title>Interactive Tuner | v4 Type Elements</title>
+<meta name="generator" content="Jekyll v4.4.1" />
+<meta property="og:title" content="Interactive Tuner" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<meta name="twitter:description" property="og:description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<link rel="canonical" href="https://type-elements.leonardchau.com/tuner/" />
+<meta property="og:url" content="https://type-elements.leonardchau.com/tuner/" />
+<meta property="og:site_name" content="v4 Type Elements" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Interactive Tuner" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.","headline":"Interactive Tuner","url":"https://type-elements.leonardchau.com/tuner/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://type-elements.leonardchau.com/feed.xml" title="v4 Type Elements" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">v4 Type Elements</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Interactive Tuner</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="interactive-tuner-tunepy">Interactive tuner (<code class="language-plaintext highlighter-rouge">tune.py</code>)</h1>
+
+<p>Split out of <code class="language-plaintext highlighter-rouge">README.md</code> to keep it direct - see
+<a href="/readme/"><code class="language-plaintext highlighter-rouge">README.md</code></a> for setup, usage and the machine list.</p>
+
+<h2 id="interactive-tuner-tunepy-1">Interactive tuner (<code class="language-plaintext highlighter-rouge">tune.py</code>)</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tune.py                              # machine picker first
+python3 tune.py config/blickensderfer.yaml   # skip the picker, load directly
+</code></pre></div></div>
+
+<p>A <code class="language-plaintext highlighter-rouge">textual</code> TUI for iterating on the config without hand-editing YAML or
+re-running the CLI. Tabs: <strong>Font &amp; Alignment</strong>, <strong>Type Test</strong>, <strong>Resin</strong>,
+<strong>Gauge</strong>, <strong>Build</strong>, <strong>Layout</strong>, <strong>Quality</strong>, <strong>Logo</strong>, <strong>Element</strong> (the
+last flagged as advanced - core geometry, not usually touched). A
+persistent <strong>RENDER TEST TEXT</strong> button (outside the tab area, always
+visible) launches/raises <code class="language-plaintext highlighter-rouge">f3d</code> in orthographic Top View
+(<code class="language-plaintext highlighter-rouge">f3d_top_view_cmds.txt</code>, <code class="language-plaintext highlighter-rouge">set_camera top</code> - reverse-engineered from
+<code class="language-plaintext highlighter-rouge">libf3d.so</code>’s own command strings after a hand-derived
+<code class="language-plaintext highlighter-rouge">--camera-direction</code> guess came out rotated 90°) to preview the flat
+Type Test text.</p>
+
+<p><strong>Config tiers</strong>: the master YAML (<code class="language-plaintext highlighter-rouge">config/blickensderfer.yaml</code>) is never
+written to by the TUI. All edits/saves go to a gitignored per-master
+scratch copy, <code class="language-plaintext highlighter-rouge">config/blickensderfer.running.yaml</code>, created on first run
+and auto-migrated (<code class="language-plaintext highlighter-rouge">_migrate_running_config</code>) to backfill any top-level or
+nested keys that exist in master but not yet in a stale running copy,
+without touching your own customizations. “Reset to Defaults” discards the
+running copy and starts fresh from master. “Save” writes the running copy
+to a location you choose (<code class="language-plaintext highlighter-rouge">textual-fspicker</code>’s file browser) - that’s how
+a tuning session becomes a real, committable config.</p>
+
+<p><strong>Build tab</strong>: a 2-option dropdown (Element / Shaft Gauge) plus an
+independent “Resin supports” checkbox. Element builds <code class="language-plaintext highlighter-rouge">FullElement()</code>, or
+<code class="language-plaintext highlighter-rouge">ResinPrint()</code> (adds <code class="language-plaintext highlighter-rouge">ResinSupport()</code>’s rods/breakaway ring - see the
+Resin tab) when the checkbox is on. Shaft Gauge builds <code class="language-plaintext highlighter-rouge">GaugeTestSet()</code>
+(see the Gauge tab/section below) regardless of the checkbox - a gauge
+print always carries its own resin supports since it can’t stand on its
+own.</p>
+
+<p><strong>Quirks worth knowing</strong>: <code class="language-plaintext highlighter-rouge">q</code> alone doesn’t quit while any text field has
+focus (Textual consumes it as literal input) - <code class="language-plaintext highlighter-rouge">ctrl+q</code> always works, and
+either quit path saves the running config first. Quitting/closing the
+terminal also kills any <code class="language-plaintext highlighter-rouge">f3d</code> process the tuner launched.</p>
+
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">v4 Type Elements</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">v4 Type Elements</li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

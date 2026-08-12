@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.0 -->
+<title>The Glyph Pipeline | v4 Type Elements</title>
+<meta name="generator" content="Jekyll v4.4.1" />
+<meta property="og:title" content="The Glyph Pipeline" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<meta name="twitter:description" property="og:description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<link rel="canonical" href="https://type-elements.leonardchau.com/pipeline/" />
+<meta property="og:url" content="https://type-elements.leonardchau.com/pipeline/" />
+<meta property="og:site_name" content="v4 Type Elements" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="The Glyph Pipeline" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.","headline":"The Glyph Pipeline","url":"https://type-elements.leonardchau.com/pipeline/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://type-elements.leonardchau.com/feed.xml" title="v4 Type Elements" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">v4 Type Elements</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">The Glyph Pipeline</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="the-glyph-pipeline">The glyph pipeline</h1>
+
+<p>Split out of <code class="language-plaintext highlighter-rouge">README.md</code> to keep it direct - see
+<a href="/readme/"><code class="language-plaintext highlighter-rouge">README.md</code></a> for setup, usage and the machine list.</p>
+
+<h2 id="the-glyph-pipeline-libglyph_pocpy">The glyph pipeline (<code class="language-plaintext highlighter-rouge">lib/glyph_poc.py</code>)</h2>
+
+<p>For one character (<code class="language-plaintext highlighter-rouge">build_glyph</code>):</p>
+
+<ol>
+  <li><strong><code class="language-plaintext highlighter-rouge">get_glyph_contours_and_advance</code></strong>: walk FreeType’s outline (on/
+off-curve tagged points) into flat polylines, subdividing curved spans
+adaptively to <code class="language-plaintext highlighter-rouge">build.flatness_tolerance_mm</code> via recursive de Casteljau
+(<code class="language-plaintext highlighter-rouge">flatten_quadratic</code>/<code class="language-plaintext highlighter-rouge">flatten_cubic</code>). Straight segments get ZERO
+subdivision; a curve gets exactly as many points as its own curvature
+needs. This replaced a fixed <code class="language-plaintext highlighter-rouge">points_per_mm</code> rate, which subdivided
+straight strokes as densely as curves. Both quadratic (TrueType) and
+cubic (CFF/OpenType) outlines are handled - the cubic path was a real
+bug once, now fixed (see <a href="/limitations/"><code class="language-plaintext highlighter-rouge">LIMITATIONS.md</code></a>).</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">classify_and_triangulate</code></strong>: classify each closed contour by
+nesting-depth parity (even=solid island, odd=hole - not just “contained
+by something”, which breaks on genuinely nested glyphs like DejaVu’s
+<code class="language-plaintext highlighter-rouge">0</code> with its slash mark nested inside its own counter) and triangulate
+each island (with its holes) via <code class="language-plaintext highlighter-rouge">triangle</code>. Flat, z=0.</li>
+  <li><strong>Build a block</strong> (<code class="language-plaintext highlighter-rouge">trimesh.creation.extrude_triangulation</code>) sitting at
+the tip end, tall enough to contain the real platen cut for this
+specific glyph’s own Y-extent (computed from the exact circle-sag
+formula, not a fixed guess - see “Real platen cutout”) - the
+undrafted, undilated glyph shape, plus margin.</li>
+  <li><strong>Carve the platen scallop with a REAL cylinder subtraction</strong>
+(<code class="language-plaintext highlighter-rouge">manifold3d</code> boolean, not a per-vertex approximation) - see “Real
+platen cutout” below.</li>
+  <li><strong>Minkowski-sum the scalloped block with a draft cone</strong>
+(<code class="language-plaintext highlighter-rouge">manifold3d.Manifold.minkowski_sum</code>) - apex (<code class="language-plaintext highlighter-rouge">radius=0</code>) registered
+exactly at the world origin so it lines up with the tip, wide base
+(<code class="language-plaintext highlighter-rouge">radius=expansion_width_mm</code>) below it at <code class="language-plaintext highlighter-rouge">z=-cone_height</code>. The sum’s
+cross-section at the tip is therefore the block’s own (curved, per step
+4) top surface unchanged; at the root (<code class="language-plaintext highlighter-rouge">z=0</code>) it’s that same surface
+dilated/offset outward by <code class="language-plaintext highlighter-rouge">expansion_width_mm</code> - the draft taper, with
+no self-intersection possible on any input topology (holes, disjoint
+islands, arbitrarily narrow gaps - a real Minkowski sum can’t fold).
+Skippable via <code class="language-plaintext highlighter-rouge">build.minkowski_enabled: false</code> (or <code class="language-plaintext highlighter-rouge">--no-minkowski</code>)
+for a fast, undrafted preview - see “Performance”.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">alignment_x_offset</code></strong>: horizontal placement within the glyph’s own
+advance box (see “Alignment”) - applied to the contours before
+step 2, not listed in pipeline order above.</li>
+</ol>
+
+<p><code class="language-plaintext highlighter-rouge">manifold3d</code>’s raw <code class="language-plaintext highlighter-rouge">minkowski_sum</code> output is drastically over-triangulated
+on flat regions (a single straight wall came out as ~24 near-coplanar
+micro-triangles with normals wobbling by a fraction of a degree from
+floating-point noise - visible as faceting on straight strokes). A
+<code class="language-plaintext highlighter-rouge">Manifold.simplify()</code> post-pass was tried to collapse that cleanly, but
+was removed fleet-wide after it was found to reintroduce its own thin
+spike/sliver defects against the adaptive contour method’s sparser input
+(see <code class="language-plaintext highlighter-rouge">CLAUDE.md</code>’s “Geometry invariants” - the adaptive contour tracing
+itself, not a <code class="language-plaintext highlighter-rouge">simplify()</code> post-pass, is what keeps triangle count in
+check now).</p>
+
+<p><code class="language-plaintext highlighter-rouge">cylinder_machine.TextRing</code> (shared, not per-machine) calls <code class="language-plaintext highlighter-rouge">build_glyph</code>
+84 times for Blickensderfer (3 rows x 28 columns) and places each result
+on the cylinder via <code class="language-plaintext highlighter-rouge">place_on_cylinder</code>.</p>
+
+<h3 id="real-platen-cutout">Real platen cutout</h3>
+
+<p>The platen scallop is a REAL boolean cylinder subtraction (matching the
+real machine and v2’s <code class="language-plaintext highlighter-rouge">PlatenCutout()</code>), not a per-vertex parabola
+approximation (an earlier version of this pipeline used the small-angle
+approximation of the same circle, <code class="language-plaintext highlighter-rouge">z = (y-radius_y_offset)^2 *
+platen_radius + separation_mm</code>, applied to whatever vertices happened to
+survive triangulation). <code class="language-plaintext highlighter-rouge">platen_radius_mm</code> is still that same
+approximation coefficient (<code class="language-plaintext highlighter-rouge">1/(2*Rp)</code>) - inverted internally to recover
+the real platen radius <code class="language-plaintext highlighter-rouge">Rp</code>, rather than adding a redundant parameter -
+used to build an actual cylinder (axis along X, tangent to the tip plane
+at <code class="language-plaintext highlighter-rouge">y=radius_y_offset</code>, <code class="language-plaintext highlighter-rouge">platen_fn</code> segments), boolean-subtracted from the
+block <em>before</em> the Minkowski sum.</p>
+
+<p>Before, not after, matters: an earlier version subtracted nothing and
+instead nudged only the <em>swept result’s</em> top ring into the parabola after
+the Minkowski sum. That’s wrong - the cone’s geometry, and therefore the
+realized draft angle, is only valid for whatever shape it’s actually
+summed with. Nudging just the final ring left the walls built as if the
+tip were still flat, so wherever the platen bulge is large (far from
+<code class="language-plaintext highlighter-rouge">radius_y_offset</code> - e.g. the bottom of <code class="language-plaintext highlighter-rouge">M</code>/<code class="language-plaintext highlighter-rouge">A</code>, vs. <code class="language-plaintext highlighter-rouge">L</code>/<code class="language-plaintext highlighter-rouge">I</code>’s mostly-
+vertical runs which stay close to it) the wall no longer tapered at the
+specified angle over the actual (now longer) distance to the tip - visible
+as inconsistent facets on those specific edges. Carving the scallop in
+first means the cone (unmodified, exactly as specified) sweeps a surface
+that’s already the correct curved shape, so the draft angle is preserved
+everywhere by construction.</p>
+
+<p>The cylinder’s axis position/radius depend only on <code class="language-plaintext highlighter-rouge">radius_y_offset</code> and
+<code class="language-plaintext highlighter-rouge">Rp</code> - both per-row constants, identical for every character in a row -
+so the underlying curve is the exact same real cylinder machine-wide per
+row, not independently approximated per glyph; only where it intersects
+each glyph’s own silhouette differs, which is correct.</p>
+
+<h3 id="character-mirroring">Character mirroring</h3>
+
+<p>A struck type element carries a MIRROR-IMAGE of the desired printed glyph</p>
+<ul>
+  <li>striking is a reflection through the contact plane, same reason a rubber
+stamp or hot-metal slug is cut reversed. <code class="language-plaintext highlighter-rouge">v2</code>’s <code class="language-plaintext highlighter-rouge">TwoDText</code> wraps the whole
+aligned/shifted glyph in <code class="language-plaintext highlighter-rouge">mirror([1,0,0])</code>; <code class="language-plaintext highlighter-rouge">v4</code> never did this until this
+was found and fixed in <code class="language-plaintext highlighter-rouge">build_glyph()</code> (negating X on the already-shifted
+contours, after <code class="language-plaintext highlighter-rouge">x_shift</code>, matching v2’s translate-then-mirror order).
+Fixing this also resolved a previously-reported “x offset wrong direction”
+bug as a side effect - both were the same missing mirror. Scoped to
+<code class="language-plaintext highlighter-rouge">build_glyph()</code> (struck characters) only - <code class="language-plaintext highlighter-rouge">build_flat_text()</code> (<code class="language-plaintext highlighter-rouge">LogoText</code>,
+Type Test) is deliberately untouched, since that text is read directly,
+never struck.</li>
+</ul>
+
+<h3 id="draft-angle-is-configurable">Draft angle is configurable</h3>
+
+<p><code class="language-plaintext highlighter-rouge">build.draft_angle_deg</code> (config + <code class="language-plaintext highlighter-rouge">--draft-angle-deg</code> CLI override, also
+on tune.py’s Font &amp; Alignment tab) sets the Minkowski draft cone’s
+half-angle - <code class="language-plaintext highlighter-rouge">expansion_width_mm = separation_mm * tan(draft_angle_deg /
+2)</code>. Defaults to <code class="language-plaintext highlighter-rouge">55.0</code>, the real machine value. Previously a fixed
+<code class="language-plaintext highlighter-rouge">glyph_poc.py</code> module constant with no override.</p>
+
+<h3 id="draft-direction-character-protrusion">Draft direction (character protrusion)</h3>
+
+<p>The print face’s deepest/narrowest point (at <code class="language-plaintext highlighter-rouge">y=radius_y_offset</code>, where the
+platen scallop is zero) sits at a FIXED radius,
+<code class="language-plaintext highlighter-rouge">Element_Diameter/2 + Char_Protrusion</code> - matching where
+<code class="language-plaintext highlighter-rouge">PlatenCutout()</code>’s cylinder actually touches the character in
+<code class="language-plaintext highlighter-rouge">v2/lib/glyph_pipeline.scad</code>. The root (the wider, <code class="language-plaintext highlighter-rouge">separation_mm</code>-drafted
+end) sits <strong>inward</strong> from that anchor by <code class="language-plaintext highlighter-rouge">separation_mm</code> - like a nail
+driven in with a wide head sitting proud, not a flush base that only
+widens sideways. This means the root’s reach toward the hollow chamber
+scales directly with <code class="language-plaintext highlighter-rouge">separation_mm</code>; it is not automatically safe just
+because it’s “the embedded end” (see the HollowSpace margin note below).</p>
+
+<h2 id="alignment-character-centering">Alignment (character centering)</h2>
+
+<p>Two base modes, plus two independent modified-character override groups
+layered on top - a from-scratch scheme (not a port of
+<code class="language-plaintext highlighter-rouge">v2/lib/glyph_pipeline.scad</code>’s 4-method <code class="language-plaintext highlighter-rouge">AlignedText</code>), configured under
+<code class="language-plaintext highlighter-rouge">alignment:</code> in the YAML:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">mode: center</code> - shift by <code class="language-plaintext highlighter-rouge">-advance/2</code> (centers the ADVANCE box, same
+convention v2’s native <code class="language-plaintext highlighter-rouge">halign=center</code> uses - not the ink bounding box)
+plus <code class="language-plaintext highlighter-rouge">center_offset_mm</code>.</li>
+  <li><code class="language-plaintext highlighter-rouge">mode: left</code> - no centering shift, just <code class="language-plaintext highlighter-rouge">left_offset_mm</code> (0 = the
+glyph’s natural FreeType pen origin, unmoved).</li>
+  <li><code class="language-plaintext highlighter-rouge">modified_left_chars</code> (default <code class="language-plaintext highlighter-rouge">"!,.;:)"</code>) get an <em>additional</em> shift of
+<code class="language-plaintext highlighter-rouge">-modified_left_offset_mm</code>; <code class="language-plaintext highlighter-rouge">modified_right_chars</code> (default <code class="language-plaintext highlighter-rouge">"("</code>) get
+<code class="language-plaintext highlighter-rouge">+modified_right_offset_mm</code>. A character matching both resolves to the
+left group (checked first).</li>
+</ul>
+
+<p>All offsets default to <code class="language-plaintext highlighter-rouge">0.0</code> (no-op) until set in the config.</p>
+
+<h3 id="performance">Performance</h3>
+
+<p>The draft taper is a real Minkowski sum (<code class="language-plaintext highlighter-rouge">manifold3d</code>), not plain
+coordinate math, so generation time is real and tunable via two knobs
+(<code class="language-plaintext highlighter-rouge">quality.minkowski_fn</code> / <code class="language-plaintext highlighter-rouge">--cone-segments</code> and
+<code class="language-plaintext highlighter-rouge">build.flatness_tolerance_mm</code> / <code class="language-plaintext highlighter-rouge">--flatness-tolerance-mm</code>, both
+config-driven) - <code class="language-plaintext highlighter-rouge">manifold3d</code>’s own docs warn
+Minkowski cost scales with the <em>product</em> of the two operands’ face counts.
+Measured for the full 84-character ring + assembly. <strong>These numbers are
+historical</strong>: they were taken under the old fixed-rate <code class="language-plaintext highlighter-rouge">points_per_mm</code>
+sampling, which no longer exists, so the left column is not a knob you
+can set today and the timings are not directly comparable to a current
+build. Kept for the shape of the tradeoff (cost falls off steeply as
+either knob drops), not as current figures. The adaptive tracer that
+replaced <code class="language-plaintext highlighter-rouge">points_per_mm</code> measured a 1.3x-4.5x build-time reduction on
+its own, with no correctness loss.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>points_per_mm (removed)</th>
+      <th>minkowski_fn</th>
+      <th>full ring + assembly</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>15 (then-default)</td>
+      <td>16 (config default)</td>
+      <td>~60-70s</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>12</td>
+      <td>~30-35s</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>8</td>
+      <td>~16s</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Quality difference between the fast and default settings is minor
+(confirmed visually on <code class="language-plaintext highlighter-rouge">e</code>/<code class="language-plaintext highlighter-rouge">m</code>, the hardest glyphs). Use the fast settings
+while iterating, the config defaults for a final export.</p>
+
+<p>For the fastest possible iteration (placement/layout only, no draft),
+set <code class="language-plaintext highlighter-rouge">build.minkowski_enabled: false</code> or pass <code class="language-plaintext highlighter-rouge">--no-minkowski</code> - this skips
+the Minkowski sweep entirely (by far the most expensive step) and returns
+each character as an undrafted block: correct platen curve and glyph
+footprint/placement, no taper. Measured: the full ring + assembly in
+~3s instead of ~30-70s. Not a substitute for a real export - re-enable
+before generating anything meant to be printed.</p>
+
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">v4 Type Elements</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">v4 Type Elements</li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

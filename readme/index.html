@@ -45,43 +45,70 @@
   <div class="post-content">
     <h1 id="v4-minkowski-draft-type-element-pipeline">v4: Minkowski-draft type element pipeline</h1>
 
-<p>Builds struck-character type elements (starting with Blickensderfer) as
-watertight solids. The draft taper (the cone-shaped widening from a
-character’s print face down to its embedded root) is built via a REAL
-Minkowski sum (<code class="language-plaintext highlighter-rouge">manifold3d.Manifold.minkowski_sum</code>) between the flat glyph
-shape and a cone - not OpenSCAD’s <code class="language-plaintext highlighter-rouge">minkowski(cone)</code> (too slow at the scale
-this needs, which is why v4 exists), and not a hand-rolled per-vertex
-outline offset (v4’s first approach, abandoned - see below). Every part of
-the assembly (characters onto the cylinder, the platen cutout, the final
-<code class="language-plaintext highlighter-rouge">Additive - Subtractive</code>) is a real <code class="language-plaintext highlighter-rouge">manifold3d</code> boolean now too -
-<code class="language-plaintext highlighter-rouge">sp.union_all()</code>/<code class="language-plaintext highlighter-rouge">Manifold.batch_boolean()</code>, not <code class="language-plaintext highlighter-rouge">trimesh.util.concatenate</code>
-(an earlier bug: <code class="language-plaintext highlighter-rouge">TextRing()</code>/<code class="language-plaintext highlighter-rouge">Additive()</code> used plain concatenation, which
-just merges vertex/face arrays with no boolean resolution at all, so
-wherever a character’s embedded root overlapped the main cylinder or two
-characters overlapped each other, both surfaces stayed fully intact and
-superimposed - no new edge formed at the actual intersection, confirmed via
-a 1148mm3 double-counted-overlap volume discrepancy - see <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code>).</p>
+<p>Generates struck-character type elements - typewheels, shuttles,
+typeballs, slugs - for <strong>15 antique typewriters</strong>, as watertight solids
+ready to print in resin. Each machine is driven by its own config YAML,
+with an interactive TUI for editing and previewing it.</p>
 
-<p>v4 started from a per-vertex mesh-manipulation technique adapted from a
-friend’s 2023 “TypeCylinder” tool (Python + trimesh) - triangulate the flat
-glyph outline once, then reshape that fixed-topology mesh with plain
-coordinate math instead of any boolean call. That approach had no topology
-awareness: a fixed-distance offset can’t detect when a glyph’s local
-geometry (a narrow gap, a tight concave corner) is too small to support
-that distance, and just folds through itself instead of erroring. A later
-session tried patching this with a gated self-union repair, which fixed
-most single-island glyphs but both left some (<code class="language-plaintext highlighter-rouge">e</code>’s hole-boundary fold) and
-<em>broke</em> others (<code class="language-plaintext highlighter-rouge">i</code>’s dot got welded into its stem, losing real volume) -
-band-aiding a fundamentally topology-blind technique one glyph at a time.
-The per-vertex approach and its patches are gone from the code now (see git
-history / <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> if you want the full blow-by-blow); a real
-Minkowski sum can’t produce a self-intersecting result on ANY input
-topology, so there’s no per-glyph failure case left to chase. The real cost
-is generation time (a boolean CSG call vs. plain coordinate math) - see
-“Performance” below.</p>
+<p>The draft taper (the cone-shaped widening from a character’s print face
+down to its embedded root) is a real Minkowski sum
+(<code class="language-plaintext highlighter-rouge">manifold3d.Manifold.minkowski_sum</code>) between the flat glyph shape and a
+cone - not OpenSCAD’s <code class="language-plaintext highlighter-rouge">minkowski()</code>, which is far too slow at this scale,
+and not a per-vertex outline offset, which can silently fold through
+itself on narrow features. Every assembly step is a real <code class="language-plaintext highlighter-rouge">manifold3d</code>
+boolean too.</p>
 
-<p>See <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> for the chronological development history and the
-current status/resume point for ongoing work.</p>
+<p><strong>Machines</strong>: Blickensderfer, Postal, Mignon, Bennett, Helios Klimax,
+Hammond, Hammond Split, Selectric I/II, Selectric III, Selectric
+Composer, Type Slug, Vogue Slug, Gauge Slug, Oliver Slug, Lumi Slug.</p>
+
+<h2 id="documentation">Documentation</h2>
+
+<p>This README covers setup, usage and the file layout. Everything else
+lives in its own document so this one stays short:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Document</th>
+      <th>What’s in it</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="/pipeline/"><code class="language-plaintext highlighter-rouge">PIPELINE.md</code></a></td>
+      <td>The glyph pipeline end to end - contour tracing, platen cutout, the Minkowski sweep, mirroring, alignment, performance</td>
+    </tr>
+    <tr>
+      <td><a href="/machines-detail/"><code class="language-plaintext highlighter-rouge">MACHINES.md</code></a></td>
+      <td>Per-machine architecture, what each shares with the others, element assembly, resin supports, calibration</td>
+    </tr>
+    <tr>
+      <td><a href="/tuner/"><code class="language-plaintext highlighter-rouge">TUNER.md</code></a></td>
+      <td><code class="language-plaintext highlighter-rouge">tune.py</code> - the interactive tuner and its config tiers</td>
+    </tr>
+    <tr>
+      <td><a href="/layout-transcription/"><code class="language-plaintext highlighter-rouge">LAYOUT_TRANSCRIPTION.md</code></a></td>
+      <td>How the keyboard layouts were transcribed from real manufacturer type catalogs, and what’s still un-transcribed</td>
+    </tr>
+    <tr>
+      <td><a href="/limitations/"><code class="language-plaintext highlighter-rouge">LIMITATIONS.md</code></a></td>
+      <td>Known limitations, and resolved ones worth remembering</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/dairyking98/Type-Elements/blob/main/v4/CLAUDE.md"><code class="language-plaintext highlighter-rouge">CLAUDE.md</code></a></td>
+      <td>Conventions and hard-won invariants - read before changing geometry code</td>
+    </tr>
+    <tr>
+      <td><a href="/changelog/"><code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code></a></td>
+      <td>Chronological development history and the current resume point</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Rendered at <strong><a href="https://type-elements.leonardchau.com">type-elements.leonardchau.com</a></strong>.
+The project story - collaborators, real prints, the machines themselves -
+is at <a href="https://leonardchau.com/projects/type-elements/">leonardchau.com/projects/type-elements</a>.</p>
 
 <h2 id="setup">Setup</h2>
 
@@ -128,419 +155,11 @@ fixed-rate <code class="language-plaintext highlighter-rouge">--points-per-mm</c
 <p>All real-machine numbers live in the config file, not in code. A second
 machine is mostly just a new YAML file under <code class="language-plaintext highlighter-rouge">config/</code> - <code class="language-plaintext highlighter-rouge">machine:
 postal</code> in <code class="language-plaintext highlighter-rouge">config/postal.yaml</code> tells <code class="language-plaintext highlighter-rouge">generate.py</code>/<code class="language-plaintext highlighter-rouge">export_glyphs.py</code>
-which Python module to import (see “Multiple machines” below). See
+which Python module to import (see <a href="/machines-detail/"><code class="language-plaintext highlighter-rouge">MACHINES.md</code></a>). See
 <code class="language-plaintext highlighter-rouge">config/blickensderfer.yaml</code> for the full parameter set; every value
 there is commented with which <code class="language-plaintext highlighter-rouge">v2/blickensderfer.scad</code> (or
 <code class="language-plaintext highlighter-rouge">lib/core_shaft.scad</code> / <code class="language-plaintext highlighter-rouge">lib/resin_support.scad</code>) variable it corresponds
 to.</p>
-
-<h2 id="multiple-machines-libcylinder_machinepy">Multiple machines (<code class="language-plaintext highlighter-rouge">lib/cylinder_machine.py</code>)</h2>
-
-<p>Blickensderfer and Postal are both “cylinder machines” - same physical
-form, same v2 shared lib includes (<code class="language-plaintext highlighter-rouge">core_shaft.scad</code>, <code class="language-plaintext highlighter-rouge">resin_rod.scad</code>,
-<code class="language-plaintext highlighter-rouge">resin_support.scad</code>, <code class="language-plaintext highlighter-rouge">glyph_pipeline.scad</code>), same <code class="language-plaintext highlighter-rouge">TextRing</code> radial-wrap
-placement scheme. Everything structurally shared between them
-(<code class="language-plaintext highlighter-rouge">Cylinder</code>/<code class="language-plaintext highlighter-rouge">Subtractive</code>/<code class="language-plaintext highlighter-rouge">FullElement</code>/<code class="language-plaintext highlighter-rouge">ResinPrint</code>/the whole Gauge
-family/…) lives in <code class="language-plaintext highlighter-rouge">lib/cylinder_machine.py</code>. The only place the two
-machines genuinely diverge in CODE, not just parameter values, is the
-“drive pin trio” - <code class="language-plaintext highlighter-rouge">HollowSpace()</code>/<code class="language-plaintext highlighter-rouge">DrivePin()</code>/<code class="language-plaintext highlighter-rouge">ResinSupport()</code> -
-Blickensderfer has a drive-pin countersink (2 selectable styles),
-Postal has none at all. Those three functions live one-per-machine in
-<code class="language-plaintext highlighter-rouge">lib/blickensderfer.py</code>/<code class="language-plaintext highlighter-rouge">lib/postal.py</code>.</p>
-
-<p><strong>Dispatch mechanism</strong>: each machine’s <code class="language-plaintext highlighter-rouge">configure()</code> calls
-<code class="language-plaintext highlighter-rouge">cylinder_machine._receive_config(g, name)</code> at the end, which copies
-every config value AND the three trio function objects into
-<code class="language-plaintext highlighter-rouge">cylinder_machine</code>’s own <code class="language-plaintext highlighter-rouge">globals()</code>. A function’s <code class="language-plaintext highlighter-rouge">__globals__</code> is a
-live reference to its defining module’s dict, not a snapshot - so
-<code class="language-plaintext highlighter-rouge">Subtractive()</code> (defined in <code class="language-plaintext highlighter-rouge">cylinder_machine.py</code>) calling <code class="language-plaintext highlighter-rouge">HollowSpace()</code>
-as a bare name resolves it dynamically, against whichever machine
-configured most recently. This directly mirrors OpenSCAD’s own “last
-include wins” dynamic module redefinition, which is how v2’s shared lib
-files achieve machine-specific behavior in the first place. Safe here
-because <code class="language-plaintext highlighter-rouge">generate.py</code>/<code class="language-plaintext highlighter-rouge">export_glyphs.py</code> each configure exactly one
-machine per process and exit - <code class="language-plaintext highlighter-rouge">tune.py</code> never imports these modules at
-all, it only edits YAML and shells out to <code class="language-plaintext highlighter-rouge">generate.py</code> as a subprocess.
-An <code class="language-plaintext highlighter-rouge">_active_machine</code> guard raises if a script ever tries to configure two
-machines in the same process (not a real risk today, cheap insurance).</p>
-
-<p><code class="language-plaintext highlighter-rouge">config/postal.yaml</code>’s font paths point to the real fonts (<code class="language-plaintext highlighter-rouge">Alma
-Mono.otf</code>, <code class="language-plaintext highlighter-rouge">FreeMono-Bold.otf</code>) - v2’s real Postal font is a system font
-family name (“Alma Mono” / “FreeMono:style=Bold”), not a file path, so
-these are the actual matching files rather than a name lookup. Both are
-CFF/cubic-curve OTFs, which used to silently mis-render (see “TrueType-
-only outlines - RESOLVED” in “Known limitations” below) - now handled
-correctly and verified end-to-end.</p>
-
-<p><code class="language-plaintext highlighter-rouge">python3 tune.py</code> (no args) starts at a machine picker listing all 15
-machines (<code class="language-plaintext highlighter-rouge">MACHINES</code> in <code class="language-plaintext highlighter-rouge">tune.py</code>, grouped by real-world type-element
-mechanism), and loads the picked machine’s default config into tabs
-scoped to that machine. Taking Postal as the example: a Postal-scoped
-Element tab (27 fields vs. Blickensderfer’s 32, since Postal has no
-drive-pin countersink) and its own Layout tab - a single “QWERTY” preset,
-since <code class="language-plaintext highlighter-rouge">v2/postal.scad</code> has only one physical layout, with no
-preset-switching menu like Blickensderfer’s (which has 8, including two
-taken from the type-wheel catalog scans - see <code class="language-plaintext highlighter-rouge">LAYOUT_TRANSCRIPTION.md</code>)</p>
-<ul>
-  <li>still hand-editable via Modify glyphs if you need something else. The tuner
-form’s status row gains a “Change Machine” button once a machine is
-picked, which saves the current form and returns to the picker (uses
-Textual’s <code class="language-plaintext highlighter-rouge">recompose()</code> to fully rebuild the form - <code class="language-plaintext highlighter-rouge">TuneApp.SECTIONS</code>/
-<code class="language-plaintext highlighter-rouge">.FIELDS</code>/<code class="language-plaintext highlighter-rouge">.LAYOUT_PRESETS</code> are instance attributes reset by
-<code class="language-plaintext highlighter-rouge">_load_machine()</code> on every pick, not fixed for the process lifetime). The
-old direct-launch usage (<code class="language-plaintext highlighter-rouge">python3 tune.py config/postal.yaml</code>) still
-works and skips the picker. The Browse button (separate from Change
-Machine) only switches between different configs of the SAME machine -
-picking a config for a different machine there is refused with a log
-message pointing at Change Machine instead, since Browse repopulates the
-existing widgets in place rather than recomposing.</li>
-</ul>
-
-<h3 id="mignon-libmignonpy---not-a-cylinder-machine">Mignon (<code class="language-plaintext highlighter-rouge">lib/mignon.py</code>) - NOT a “cylinder machine”</h3>
-
-<p>Unlike Postal, Mignon does <strong>not</strong> share <code class="language-plaintext highlighter-rouge">cylinder_machine.py</code>’s body
-construction - only its glyph placement pipeline (<code class="language-plaintext highlighter-rouge">TextRing</code>,
-<code class="language-plaintext highlighter-rouge">CalibrationTextRing</code>) is genuinely reusable. Confirmed by direct
-function-by-function comparison against <code class="language-plaintext highlighter-rouge">v2/mignon.scad</code>: no
-<code class="language-plaintext highlighter-rouge">Core</code>/<code class="language-plaintext highlighter-rouge">ClipCylinder</code>/<code class="language-plaintext highlighter-rouge">WireBite</code>/<code class="language-plaintext highlighter-rouge">SpeedHoles</code>/<code class="language-plaintext highlighter-rouge">core_shaft.scad</code> family at
-all (its shaft bore is one plain <code class="language-plaintext highlighter-rouge">rotate_extrude()</code> polygon), a 12-sided
-polygon main body instead of a round cylinder, a stepped-boss+chamfer top
-feature instead of a wire clip, a plain cut-through alignment keyway
-instead of a countersunk drive pin, Minkowski cleanup at <strong>both</strong> ends
-instead of top-only, and fully bespoke resin-support placement (no
-<code class="language-plaintext highlighter-rouge">CutGroove</code>/<code class="language-plaintext highlighter-rouge">SpeedHoleSupport</code>/<code class="language-plaintext highlighter-rouge">DrivePinSupport</code>/<code class="language-plaintext highlighter-rouge">BottomSupports</code> - just a
-raft ring plus rods at two radii). <code class="language-plaintext highlighter-rouge">lib/mignon.py</code> reimplements all of
-this locally rather than extending <code class="language-plaintext highlighter-rouge">cylinder_machine.py</code>; see its module
-docstring for the full comparison.</p>
-
-<p>Two shared-module changes DID come out of this port (both backward-
-compatible, regression-verified against Blickensderfer/Postal):</p>
-
-<ul>
-  <li><strong>Row count.</strong> <code class="language-plaintext highlighter-rouge">TextRing</code>/<code class="language-plaintext highlighter-rouge">CalibrationTextRing</code> hardcoded <code class="language-plaintext highlighter-rouge">for row in
-(0, 1, 2):</code> - Mignon has 7 physical rows, not 3 (<code class="language-plaintext highlighter-rouge">v2/mignon.scad</code>’s
-<code class="language-plaintext highlighter-rouge">Baseline_Regular</code>/<code class="language-plaintext highlighter-rouge">Cutout</code> are both 7-entry arrays). Changed to
-<code class="language-plaintext highlighter-rouge">range(len(DHIATENSOR))</code>, which reduces to the exact same 3-row loop
-for Blickensderfer/Postal’s configs.</li>
-  <li><strong>Placement formula overrides.</strong> <code class="language-plaintext highlighter-rouge">place_on_cylinder()</code> hardcoded
-<code class="language-plaintext highlighter-rouge">Char_Protrusion</code> (the placement-stage radial protrusion) and <code class="language-plaintext highlighter-rouge">0.5</code>
-(the angle-half-step column-centering constant). Mignon’s v2 source
-overrides both to 0 (<code class="language-plaintext highlighter-rouge">Letter_Placement_Protrusion</code>/<code class="language-plaintext highlighter-rouge">Angle_Half_Step</code>,
-<code class="language-plaintext highlighter-rouge">v2/mignon.scad:118-121</code> via <code class="language-plaintext highlighter-rouge">lib/glyph_pipeline.scad</code>’s own documented
-optional-override mechanism) - added as optional <code class="language-plaintext highlighter-rouge">placement_protrusion</code>/
-<code class="language-plaintext highlighter-rouge">angle_half_step</code> params, <code class="language-plaintext highlighter-rouge">None</code> (every Blickensderfer/Postal call site)
-preserving the exact original hardcoded behavior.</li>
-</ul>
-
-<p>Also has no Shaft Gauge Test at all (<code class="language-plaintext highlighter-rouge">v2/mignon.scad:30</code>: “Shaft Gauge
-Test… omitted” - confirmed, along with Bennett and Helios Klimax, via
-the same explicit comment in their own files). <code class="language-plaintext highlighter-rouge">tune.py</code> handles this
-generically - <code class="language-plaintext highlighter-rouge">SECTIONS_BY_MACHINE["mignon"]</code> simply has no <code class="language-plaintext highlighter-rouge">"Gauge"</code> key,
-and both the Gauge tab and the Build tab’s “Shaft Gauge” option check for
-that key’s presence rather than assuming every machine has one.</p>
-
-<p>One real bug caught and fixed during this port: <code class="language-plaintext highlighter-rouge">v2/mignon.scad:120</code>’s
-<code class="language-plaintext highlighter-rouge">Latitude_Int=-360/len(Layout[0])</code> is <strong>negative</strong> (columns wrap the
-opposite rotational direction from Blickensderfer/Postal’s positive
-<code class="language-plaintext highlighter-rouge">360/columns</code>) - missed on the first pass (copied the positive formula
-literally), caught via a direct render comparison, fixed by hardcoding
-the sign flip in <code class="language-plaintext highlighter-rouge">mignon.py</code>’s own <code class="language-plaintext highlighter-rouge">configure()</code> (machine-specific, not a
-<code class="language-plaintext highlighter-rouge">cylinder_machine.py</code> change).</p>
-
-<p><strong>Layout tab.</strong> <code class="language-plaintext highlighter-rouge">tune.py</code>’s Layout tab was written when Blickensderfer/
-Postal (3 rows each) were the only machines and had “3” hardcoded as a
-literal in nine places (<code class="language-plaintext highlighter-rouge">BASELINE_CUTOUT_KEYS</code>, row-preview widget
-construction, custom-row seeding, save round-trip, etc.) - all now derive
-the row count from the config (<code class="language-plaintext highlighter-rouge">len(layout.baseline_row)</code>, etc.), which
-reduces to the same 3-row behavior for Blickensderfer/Postal
-(regression-verified) and correctly handles Mignon’s 7. All 30 of
-Mignon’s real named layout presets (German 4, Cyrillic, Bulgarian,
-Georgian, etc.) were ported from <code class="language-plaintext highlighter-rouge">v2/lib/layouts/mignon_layouts.scad</code>
-into <code class="language-plaintext highlighter-rouge">LAYOUT_PRESETS_MIGNON</code> (3 placeholder-empty presets in v2’s own
-source were excluded; two anomalous 13-character rows in v2’s Georgian/
-Greek data, unreachable by v2’s own <code class="language-plaintext highlighter-rouge">Char_Legend</code> indexing, were
-truncated to 12). <code class="language-plaintext highlighter-rouge">layout.rows</code>/<code class="language-plaintext highlighter-rouge">LAYOUT_PRESETS_MIGNON</code> are stored in RAW
-KEYBOARD-LEGEND order (v2’s own <code class="language-plaintext highlighter-rouge">Layout</code> array - what’s printed on the
-physical keyboard/manual), not the <code class="language-plaintext highlighter-rouge">Char_Legend</code>-remapped <code class="language-plaintext highlighter-rouge">Physical_
-Layout</code> build order - <code class="language-plaintext highlighter-rouge">lib/mignon.py</code>’s <code class="language-plaintext highlighter-rouge">configure()</code> applies
-<code class="language-plaintext highlighter-rouge">layout.char_legend</code> (<code class="language-plaintext highlighter-rouge">[7,8,9,10,11,0,1,2,3,4,5,6]</code>, matching
-<code class="language-plaintext highlighter-rouge">v2/mignon.scad:88</code> exactly) to compute the actual build-time <code class="language-plaintext highlighter-rouge">DHIATENSOR</code>
-itself, so the legend can be read/edited the way a person actually reads
-it off the machine without hand-deriving the build order. See
-SESSION_LOG.md parts 20-21 for the full account.</p>
-
-<p><strong>Label - a genuine second engraved-text feature, not in v2.</strong> v2/
-mignon.scad’s real <code class="language-plaintext highlighter-rouge">[Logo]</code> customizer section (confirmed end to end) has
-exactly ONE engraved-text feature (<code class="language-plaintext highlighter-rouge">Cylinder_Label</code>), which is what this
-app’s <code class="language-plaintext highlighter-rouge">logo.*</code> config/”Logo” tab already drives. A second, independent
-<code class="language-plaintext highlighter-rouge">label.*</code> feature was added anyway (v4-only, not a v2 port), with its
-own “Label” tab - same field format as Logo (font/text/size/spacing/
-height-offset), always placed 180
-degrees opposite Logo’s <code class="language-plaintext highlighter-rouge">position_offset_deg</code> (computed in <code class="language-plaintext highlighter-rouge">configure()</code>
-as an invariant, not independently stored - moving Logo moves Label with
-it). Defaults to empty text rather than duplicating Logo’s default
-verbatim: at Logo’s real 15deg/char spacing a normal-length label already
-spans most of the ring, so two identical strings 180 degrees apart would
-overlap rather than sit cleanly opposite each other.</p>
-
-<p><strong>Tallen (Plakatschrift) mode.</strong> A display-type variant
-(<code class="language-plaintext highlighter-rouge">v2/mignon.scad:109-115,197</code>, off by default like this file’s real
-untallened German 4 element) that adds <code class="language-plaintext highlighter-rouge">height_increase_mm</code> (3mm) to the
-element height and shifts every baseline row by
-<code class="language-plaintext highlighter-rouge">tallen_baseline_offset_mm</code> (-1.25mm) - cutout rows are NOT affected, a
-real asymmetry in v2’s own source, not an oversight. Previously
-acknowledged-but-not-ported; now a real <code class="language-plaintext highlighter-rouge">element.tallen</code> toggle plus its
-two magnitude fields, all exposed on the Element tab.</p>
-
-<h3 id="bennett-libbennettpy---shares-the-glyph-pipeline-bespoke-body">Bennett (<code class="language-plaintext highlighter-rouge">lib/bennett.py</code>) - shares the glyph pipeline, bespoke body</h3>
-
-<p>Like Mignon, Bennett shares <code class="language-plaintext highlighter-rouge">cylinder_machine.py</code>’s glyph placement/text
-pipeline (<code class="language-plaintext highlighter-rouge">TextRing</code>/<code class="language-plaintext highlighter-rouge">CalibrationTextRing</code>), but leaves <code class="language-plaintext highlighter-rouge">place_on_cylinder</code>’s
-<code class="language-plaintext highlighter-rouge">placement_protrusion</code> at its DEFAULT (<code class="language-plaintext highlighter-rouge">Char_Protrusion</code>) rather than
-passing 0, despite v2’s own <code class="language-plaintext highlighter-rouge">Letter_Placement_Protrusion=0</code> - see
-<code class="language-plaintext highlighter-rouge">lib/bennett.py</code>’s <code class="language-plaintext highlighter-rouge">configure()</code> for why that value doesn’t survive
-translation into v4’s model (a real bug, caught after shipping: with
-<code class="language-plaintext highlighter-rouge">placement_protrusion=0</code>, <code class="language-plaintext highlighter-rouge">min_final_character_diameter</code> was a dead config
-field - every character’s real-world protrusion pinned to
-<code class="language-plaintext highlighter-rouge">Element_Diameter/2</code> no matter what it was set to. Mignon has the exact
-same latent bug, not yet fixed). And, unlike Mignon, Bennett also reuses
-<code class="language-plaintext highlighter-rouge">lib/core_shaft.scad</code>’s shared <code class="language-plaintext highlighter-rouge">SecondaryCore</code>/<code class="language-plaintext highlighter-rouge">CoreGrooves</code>/<code class="language-plaintext highlighter-rouge">CoreChamfer</code>/
-<code class="language-plaintext highlighter-rouge">CoreEllipses</code> directly (<code class="language-plaintext highlighter-rouge">Core_Chamfer_Top=False</code> - no clip, so unlike
-Blickensderfer/Postal there’s no top chamfer under one; <code class="language-plaintext highlighter-rouge">Core_Taper_Top_Z</code>
-= <code class="language-plaintext highlighter-rouge">Core_Top_Z</code> - the taper’s own top landmark coincides with the absolute
-top, again because there’s no clip pushing it down). Bennett does NOT
-override <code class="language-plaintext highlighter-rouge">Angle_Half_Step</code> the way Mignon does - v2 never sets it, so it
-stays at the shared lib’s default 0.5, verified algebraically: Bennett’s
-own <code class="language-plaintext highlighter-rouge">Theta=-(360/28*col+360/(2*28))</code> reduces to exactly
-<code class="language-plaintext highlighter-rouge">(0.5+col)*Latitude_Int</code>, the same formula shape as Blickensderfer/Postal,
-just with <code class="language-plaintext highlighter-rouge">Latitude_Int</code> negative instead of positive (same sign
-convention as Mignon).</p>
-
-<p>Everything else is fully bespoke, confirmed by direct comparison against
-<code class="language-plaintext highlighter-rouge">v2/bennett.scad</code>: two positioner pins with a small chamfer cone
-(<code class="language-plaintext highlighter-rouge">PositionerPins</code>) instead of a wire clip, a 9-point <code class="language-plaintext highlighter-rouge">rotate_extrude()</code>
-polygon shaft bore (<code class="language-plaintext highlighter-rouge">HollowBody</code>, built from landmark arrays + an index
-pattern, ported mechanically) instead of <code class="language-plaintext highlighter-rouge">core_shaft.scad</code>’s
-<code class="language-plaintext highlighter-rouge">HollowSpace()</code>+<code class="language-plaintext highlighter-rouge">BottomSlopedSpace()</code> combination, a full 3-row x
-28-column grid of physical alignment/screw holes (<code class="language-plaintext highlighter-rouge">AlignmentHoles</code>, no
-Blickensderfer/Postal equivalent at all), two independent flat
-whole-string engraved-text groups cut into the bottom face near the shaft
-(<code class="language-plaintext highlighter-rouge">LabelText</code> - v2 calls <code class="language-plaintext highlighter-rouge">text()</code> directly per whole string with
-<code class="language-plaintext highlighter-rouge">halign=valign="center"</code>, not a ring of individually angle-placed
-characters like Blickensderfer/Postal’s <code class="language-plaintext highlighter-rouge">LogoText</code> or Mignon’s
-<code class="language-plaintext highlighter-rouge">ElementLogo</code>/<code class="language-plaintext highlighter-rouge">ElementLabel</code> - see <code class="language-plaintext highlighter-rouge">cylinder_machine.build_text_string()</code>’s
-docstring for
-how whole-string layout was ported: each character placed at its natural
-FreeType advance, the assembled string centered on its total advance
-width - the same “native halign=center centers the ADVANCE box”
-convention this codebase already established for <code class="language-plaintext highlighter-rouge">AlignedText</code>), a simple
-fixed 8-hole <code class="language-plaintext highlighter-rouge">SpeedHoles</code> ring (own diameter/radius names, plus a
-half-step angular phase offset Blickensderfer/Postal/Mignon’s own
-<code class="language-plaintext highlighter-rouge">SpeedHoles</code> don’t have), top+bottom countersinks and an indicator
-hole/roof taper, and fully bespoke resin-support placement (own
-ring+groove+raft <code class="language-plaintext highlighter-rouge">rotate_extrude()</code>, 8+8+4 <code class="language-plaintext highlighter-rouge">ResinRod()</code> calls at three
-different radii/heights - no <code class="language-plaintext highlighter-rouge">CutGroove</code>/<code class="language-plaintext highlighter-rouge">SpeedHoleSupport</code>/
-<code class="language-plaintext highlighter-rouge">DrivePinSupport</code>/<code class="language-plaintext highlighter-rouge">BottomSupports</code> concepts at all, though it DOES reuse
-<code class="language-plaintext highlighter-rouge">cylinder_machine._resin_rod()</code> for the rod primitive itself, same as
-Mignon).</p>
-
-<p>No Shaft Gauge Test (<code class="language-plaintext highlighter-rouge">v2/bennett.scad:24</code>: “Sections with no Bennett
-equivalent (Print Tolerances, Shaft Gauge Test) are omitted” - same as
-Mignon). Its one engraved-text feature lives under its own <code class="language-plaintext highlighter-rouge">label:</code> config
-section/”Label” tab (not “Logo” - the field shapes don’t correspond to
-Blickensderfer/Postal/Mignon’s Logo schema at all, no text_spacing/
-position_offset_deg/radial_offset_mm concept). Composing this exposed a
-latent <code class="language-plaintext highlighter-rouge">tune.py</code> bug: <code class="language-plaintext highlighter-rouge">_compose_tuner_ui()</code> unconditionally composed a
-“Logo” tab for every machine (never previously exercised, since
-Blickensderfer/Postal/Mignon all have one) - now guarded by <code class="language-plaintext highlighter-rouge">"Logo" in
-self.SECTIONS</code>, matching the existing <code class="language-plaintext highlighter-rouge">"Label"</code>/<code class="language-plaintext highlighter-rouge">"Gauge"</code> guards right
-next to it.</p>
-
-<h3 id="helios-klimax-libheliospy---shares-the-glyph-pipeline-and-the-core_shaft-family-bespoke-body-otherwise">Helios Klimax (<code class="language-plaintext highlighter-rouge">lib/helios.py</code>) - shares the glyph pipeline AND the core_shaft family, bespoke body otherwise</h3>
-
-<p><code class="language-plaintext highlighter-rouge">v2/heliosklimax.scad</code> is unusually self-documenting - its own header
-records a real v1-&gt;v2 byte-check correction history, and explicitly lists
-what the ORIGINAL had no equivalent of at all: <code class="language-plaintext highlighter-rouge">SecondaryCore</code>/
-<code class="language-plaintext highlighter-rouge">CoreGrooves</code>/<code class="language-plaintext highlighter-rouge">CoreChamfer</code>/<code class="language-plaintext highlighter-rouge">CoreEllipses</code> (no <code class="language-plaintext highlighter-rouge">core_shaft.scad</code> family
-whatsoever), Logo/Label engraved text, and (same as Bennett/Mignon) a
-Shaft Gauge Test. <code class="language-plaintext highlighter-rouge">TextRing</code>/<code class="language-plaintext highlighter-rouge">CalibrationTextRing</code>/<code class="language-plaintext highlighter-rouge">place_on_cylinder</code>
-are shared the usual way (via <code class="language-plaintext highlighter-rouge">cylinder_machine._receive_config</code>).</p>
-
-<p><strong>Deliberate v4-only enhancement, not a v2 port (explicit user
-direction):</strong> the shaft bore now ALSO reuses <code class="language-plaintext highlighter-rouge">cylinder_machine.py</code>’s
-shared <code class="language-plaintext highlighter-rouge">Core()</code>/<code class="language-plaintext highlighter-rouge">CoreChamfer()</code>/<code class="language-plaintext highlighter-rouge">SecondaryCore()</code>/<code class="language-plaintext highlighter-rouge">CoreEllipses()</code>/
-<code class="language-plaintext highlighter-rouge">CoreGrooves()</code> - the same “fancy core stuff” Blickensderfer/Postal/
-Bennett have - in place of the plain straight bore the real v2 file had.
-Since v2 never had this system for Helios, <code class="language-plaintext highlighter-rouge">element.core_chamfer</code>/
-<code class="language-plaintext highlighter-rouge">core_bottom_offset</code>/<code class="language-plaintext highlighter-rouge">core_contact_length</code>/<code class="language-plaintext highlighter-rouge">core_web_*</code>/<code class="language-plaintext highlighter-rouge">core_groove_*</code>
-are NOT real-machine numbers - they’re starting estimates scaled from
-Bennett’s config (closest shaft diameter, 3.4mm vs Helios’s 4.16mm),
-meant to be tuned against the physical part the same way
-<code class="language-plaintext highlighter-rouge">baseline_row</code>/<code class="language-plaintext highlighter-rouge">cutout_row</code> already are. <code class="language-plaintext highlighter-rouge">Core_Top_Z</code>/<code class="language-plaintext highlighter-rouge">Core_Taper_Top_Z</code>
-follow Blickensderfer/Postal’s “has a clip” convention (not Bennett/
-Mignon’s clip-less one), since Helios’s own clip retainer puts it in that
-same situation - this also required a <code class="language-plaintext highlighter-rouge">Clip_Height</code> bridging alias in
-<code class="language-plaintext highlighter-rouge">configure()</code> (the shared functions reference that bare name; Helios’s
-own code uses <code class="language-plaintext highlighter-rouge">Element_Clip_Height</code>), and made <code class="language-plaintext highlighter-rouge">quality.cyl_fn</code> (declared
-but unused by the original port) genuinely used for the first time.</p>
-
-<p>Two real values <code class="language-plaintext highlighter-rouge">place_on_cylinder</code>’s own docstring had flagged as “not
-yet verified” for Helios are now resolved: <code class="language-plaintext highlighter-rouge">angle_half_step=0</code> (no
-half-column centering term, same as Mignon), and <code class="language-plaintext highlighter-rouge">placement_protrusion</code>
-left at its default (<code class="language-plaintext highlighter-rouge">Char_Protrusion</code>) - NOT v2’s raw <code class="language-plaintext highlighter-rouge">Letter_Placement_
-Protrusion=-.05</code>. That raw value shipped once as a real bug (characters
-sat far too deep/inset): v2’s <code class="language-plaintext highlighter-rouge">LetterPlacement</code> and <code class="language-plaintext highlighter-rouge">PlatenCutout</code> are
-two INDEPENDENT transforms, and <code class="language-plaintext highlighter-rouge">-.05</code> only ever moved the former (v2’s
-own comment: “a small built-in 0.05mm radial inset that only affects
-placement, not the platen-cutout radius”) - the latter, which actually
-sets the visible strike depth, uses the same <code class="language-plaintext highlighter-rouge">Element_Diameter/2+
-Platen_Diameter/2+Char_Protrusion</code> formula Blickensderfer/Postal do. v4
-has no such split (one combined transform), so reproducing v2’s real
-low point requires <code class="language-plaintext highlighter-rouge">placement_protrusion=Char_Protrusion</code> - the exact
-derivation <code class="language-plaintext highlighter-rouge">lib/bennett.py</code>’s port already had to make for the same
-reason. See <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> part 25.</p>
-
-<p><strong>A genuine two-stage <code class="language-plaintext highlighter-rouge">difference()</code>, not a flattenable additive/
-subtractive split.</strong> v2’s <code class="language-plaintext highlighter-rouge">Assemble()</code> nests three <code class="language-plaintext highlighter-rouge">difference()</code>s -
-<code class="language-plaintext highlighter-rouge">AlignmentPinSupport()</code>/<code class="language-plaintext highlighter-rouge">ClipRetainer()</code> (two bosses) are added only
-<em>after</em> the first round of cuts (<code class="language-plaintext highlighter-rouge">HollowingElement</code>/<code class="language-plaintext highlighter-rouge">MinkCleanup</code>/
-<code class="language-plaintext highlighter-rouge">IndicatorHole</code>), then are themselves cut by a second round
-(<code class="language-plaintext highlighter-rouge">AlignmentPinHole</code>/<code class="language-plaintext highlighter-rouge">WireClip</code>/the core_shaft family above). This isn’t
-cosmetic: <code class="language-plaintext highlighter-rouge">AlignmentPinSupport</code>’s boss position genuinely falls inside
-<code class="language-plaintext highlighter-rouge">HollowingElement</code>’s own cavity extent (verified against the real config
-values), so a naively flattened “union everything, subtract everything”
-(the shape every other machine’s <code class="language-plaintext highlighter-rouge">FullElement</code> uses) would incorrectly
-eat the boss. <code class="language-plaintext highlighter-rouge">lib/helios.py</code>’s <code class="language-plaintext highlighter-rouge">_assemble()</code> reproduces the real staged
-order directly - see its module docstring for the full derivation.
-(<code class="language-plaintext highlighter-rouge">AlignmentPinSupport()</code> itself is currently disabled by explicit user
-request - commented out, not deleted, in <code class="language-plaintext highlighter-rouge">lib/helios.py</code> - but the
-two-stage structure stays regardless, since <code class="language-plaintext highlighter-rouge">ClipRetainer()</code> independently
-needs it too; see <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> part 28.)
-<code class="language-plaintext highlighter-rouge">HollowingElement()</code> itself is a true <code class="language-plaintext highlighter-rouge">shapely</code> convex hull of 5 circles
-(matching v2’s <code class="language-plaintext highlighter-rouge">hull(){circle(); ...}</code> exactly, real rounded corners),
-the same hull-then-revolve technique <code class="language-plaintext highlighter-rouge">WireBite()</code>/Mignon’s
-<code class="language-plaintext highlighter-rouge">AlignmentPin()</code> already use, rather than <code class="language-plaintext highlighter-rouge">cylinder_machine.
-_hollow_space_profile()</code>’s hand-rounded point-list approximation - at
-<code class="language-plaintext highlighter-rouge">resolution=32</code>/<code class="language-plaintext highlighter-rouge">sections=Surface_Fn</code>, same as every other revolve in
-this file. (This briefly got dropped to a hardcoded lower value to work
-around a slow diagnostic - see <code class="language-plaintext highlighter-rouge">generate.py</code>’s entry below for why that
-diagnostic is gone entirely now instead, and <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> parts
-26-27 for the full story.)</p>
-
-<p><code class="language-plaintext highlighter-rouge">Resin_Support</code>/<code class="language-plaintext highlighter-rouge">Resin_Support_*</code> are declared in v2 but it never builds
-any actual support geometry with them - <code class="language-plaintext highlighter-rouge">ResinSupport()</code>/<code class="language-plaintext highlighter-rouge">ResinPrint()</code>
-here are a plain no-op/alias to <code class="language-plaintext highlighter-rouge">FullElement()</code> rather than inventing a
-resin system that was never really there (unlike <code class="language-plaintext highlighter-rouge">Cyl_Fn</code>, which was
-originally declared-but-unused the same way but is now wired up for real
-by the core_shaft reuse above - see that note).</p>
-
-<p>No Shaft Gauge Test, no Logo/Label tab (see the header note above) -
-<code class="language-plaintext highlighter-rouge">SECTIONS_BY_MACHINE["helios"]</code> has no <code class="language-plaintext highlighter-rouge">"Gauge"</code>/<code class="language-plaintext highlighter-rouge">"Logo"</code>/<code class="language-plaintext highlighter-rouge">"Label"</code> key,
-same generic-guard mechanism Mignon/Bennett already established. Layout
-tab: two named presets (<code class="language-plaintext highlighter-rouge">GERMAN_MOD</code> - v2’s real default/only-used one -
-and the superseded <code class="language-plaintext highlighter-rouge">GERMAN</code>, both inline in v2’s source), 4 physical rows
-(vs. everyone else’s 3) - required zero additional <code class="language-plaintext highlighter-rouge">tune.py</code> literal-
-count fixes, since the row-count-agnostic work from Mignon’s port (see
-“Layout tab” above) already covers this generically. See
-<code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> parts 23-24 for the full audit pass and verification,
-part 25 for the placement_protrusion fix, and part 26 for the
-hollow-cavity performance fix above.</p>
-
-<h3 id="performance">Performance</h3>
-
-<p>The draft taper is a real Minkowski sum (<code class="language-plaintext highlighter-rouge">manifold3d</code>), not plain
-coordinate math, so generation time is real and tunable via two knobs
-(<code class="language-plaintext highlighter-rouge">quality.minkowski_fn</code> / <code class="language-plaintext highlighter-rouge">--cone-segments</code> and
-<code class="language-plaintext highlighter-rouge">build.flatness_tolerance_mm</code> / <code class="language-plaintext highlighter-rouge">--flatness-tolerance-mm</code>, both
-config-driven) - <code class="language-plaintext highlighter-rouge">manifold3d</code>’s own docs warn
-Minkowski cost scales with the <em>product</em> of the two operands’ face counts.
-Measured for the full 84-character ring + assembly. <strong>These numbers are
-historical</strong>: they were taken under the old fixed-rate <code class="language-plaintext highlighter-rouge">points_per_mm</code>
-sampling, which no longer exists, so the left column is not a knob you
-can set today and the timings are not directly comparable to a current
-build. Kept for the shape of the tradeoff (cost falls off steeply as
-either knob drops), not as current figures. The adaptive tracer that
-replaced <code class="language-plaintext highlighter-rouge">points_per_mm</code> measured a 1.3x-4.5x build-time reduction on
-its own, with no correctness loss.</p>
-
-<table>
-  <thead>
-    <tr>
-      <th>points_per_mm (removed)</th>
-      <th>minkowski_fn</th>
-      <th>full ring + assembly</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>15 (then-default)</td>
-      <td>16 (config default)</td>
-      <td>~60-70s</td>
-    </tr>
-    <tr>
-      <td>8</td>
-      <td>12</td>
-      <td>~30-35s</td>
-    </tr>
-    <tr>
-      <td>6</td>
-      <td>8</td>
-      <td>~16s</td>
-    </tr>
-  </tbody>
-</table>
-
-<p>Quality difference between the fast and default settings is minor
-(confirmed visually on <code class="language-plaintext highlighter-rouge">e</code>/<code class="language-plaintext highlighter-rouge">m</code>, the hardest glyphs). Use the fast settings
-while iterating, the config defaults for a final export.</p>
-
-<p>For the fastest possible iteration (placement/layout only, no draft),
-set <code class="language-plaintext highlighter-rouge">build.minkowski_enabled: false</code> or pass <code class="language-plaintext highlighter-rouge">--no-minkowski</code> - this skips
-the Minkowski sweep entirely (by far the most expensive step) and returns
-each character as an undrafted block: correct platen curve and glyph
-footprint/placement, no taper. Measured: the full ring + assembly in
-~3s instead of ~30-70s. Not a substitute for a real export - re-enable
-before generating anything meant to be printed.</p>
-
-<h2 id="interactive-tuner-tunepy">Interactive tuner (<code class="language-plaintext highlighter-rouge">tune.py</code>)</h2>
-
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 tune.py                              # machine picker first
-python3 tune.py config/blickensderfer.yaml   # skip the picker, load directly
-</code></pre></div></div>
-
-<p>A <code class="language-plaintext highlighter-rouge">textual</code> TUI for iterating on the config without hand-editing YAML or
-re-running the CLI. Tabs: <strong>Font &amp; Alignment</strong>, <strong>Type Test</strong>, <strong>Resin</strong>,
-<strong>Gauge</strong>, <strong>Build</strong>, <strong>Layout</strong>, <strong>Quality</strong>, <strong>Logo</strong>, <strong>Element</strong> (the
-last flagged as advanced - core geometry, not usually touched). A
-persistent <strong>RENDER TEST TEXT</strong> button (outside the tab area, always
-visible) launches/raises <code class="language-plaintext highlighter-rouge">f3d</code> in orthographic Top View
-(<code class="language-plaintext highlighter-rouge">f3d_top_view_cmds.txt</code>, <code class="language-plaintext highlighter-rouge">set_camera top</code> - reverse-engineered from
-<code class="language-plaintext highlighter-rouge">libf3d.so</code>’s own command strings after a hand-derived
-<code class="language-plaintext highlighter-rouge">--camera-direction</code> guess came out rotated 90°) to preview the flat
-Type Test text.</p>
-
-<p><strong>Config tiers</strong>: the master YAML (<code class="language-plaintext highlighter-rouge">config/blickensderfer.yaml</code>) is never
-written to by the TUI. All edits/saves go to a gitignored per-master
-scratch copy, <code class="language-plaintext highlighter-rouge">config/blickensderfer.running.yaml</code>, created on first run
-and auto-migrated (<code class="language-plaintext highlighter-rouge">_migrate_running_config</code>) to backfill any top-level or
-nested keys that exist in master but not yet in a stale running copy,
-without touching your own customizations. “Reset to Defaults” discards the
-running copy and starts fresh from master. “Save” writes the running copy
-to a location you choose (<code class="language-plaintext highlighter-rouge">textual-fspicker</code>’s file browser) - that’s how
-a tuning session becomes a real, committable config.</p>
-
-<p><strong>Build tab</strong>: a 2-option dropdown (Element / Shaft Gauge) plus an
-independent “Resin supports” checkbox. Element builds <code class="language-plaintext highlighter-rouge">FullElement()</code>, or
-<code class="language-plaintext highlighter-rouge">ResinPrint()</code> (adds <code class="language-plaintext highlighter-rouge">ResinSupport()</code>’s rods/breakaway ring - see the
-Resin tab) when the checkbox is on. Shaft Gauge builds <code class="language-plaintext highlighter-rouge">GaugeTestSet()</code>
-(see the Gauge tab/section below) regardless of the checkbox - a gauge
-print always carries its own resin supports since it can’t stand on its
-own.</p>
-
-<p><strong>Quirks worth knowing</strong>: <code class="language-plaintext highlighter-rouge">q</code> alone doesn’t quit while any text field has
-focus (Textual consumes it as literal input) - <code class="language-plaintext highlighter-rouge">ctrl+q</code> always works, and
-either quit path saves the running config first. Quitting/closing the
-terminal also kills any <code class="language-plaintext highlighter-rouge">f3d</code> process the tuner launched.</p>
 
 <h2 id="layout">Layout</h2>
 
@@ -569,16 +188,16 @@ lib/
   contour_inspect.py         standalone contour diagnostic (not in the build path)
   heightfield_poc.py         abandoned height-field experiment, kept for reference; nothing imports it
   -- shared family modules --
-  cylinder_machine.py        Blickensderfer/Postal shared code - see "Multiple machines"
+  cylinder_machine.py        Blickensderfer/Postal shared code - see MACHINES.md
   spherical_machine.py       shared by the 3 IBM/Selectric machines
   wing_slug.py               shared by type_slug/vogue_slug/gauge_slug
   box_slug.py                shared by oliver_slug/lumi_slug
   -- one per machine --
   blickensderfer.py          configure() + drive-pin trio (HollowSpace/DrivePin/ResinSupport)
   postal.py                  configure() + drive-pin trio
-  mignon.py                  configure() + full body/shaft/resin-support (see "Mignon" below)
-  bennett.py                 see "Bennett" below
-  helios.py                  see "Helios Klimax" below
+  mignon.py                  configure() + full body/shaft/resin-support (see [`MACHINES.md`](/machines-detail/))
+  bennett.py                 see [`MACHINES.md`](/machines-detail/)
+  helios.py                  see [`MACHINES.md`](/machines-detail/)
   hammond.py / hammond_split.py
   selectric12.py / selectric3.py / selectric_composer.py
   type_slug.py / vogue_slug.py / gauge_slug.py / oliver_slug.py / lumi_slug.py
@@ -601,335 +220,6 @@ machines - are ported and working but have no prose section here yet;
 their own module docstrings and <code class="language-plaintext highlighter-rouge">CLAUDE.md</code>’s “Porting a new machine”
 section carry that detail for now.</p>
 
-<h2 id="the-glyph-pipeline-libglyph_pocpy">The glyph pipeline (<code class="language-plaintext highlighter-rouge">lib/glyph_poc.py</code>)</h2>
-
-<p>For one character (<code class="language-plaintext highlighter-rouge">build_glyph</code>):</p>
-
-<ol>
-  <li><strong><code class="language-plaintext highlighter-rouge">get_glyph_contours_and_advance</code></strong>: walk FreeType’s outline (on/
-off-curve tagged points) into flat polylines, subdividing curved spans
-adaptively to <code class="language-plaintext highlighter-rouge">build.flatness_tolerance_mm</code> via recursive de Casteljau
-(<code class="language-plaintext highlighter-rouge">flatten_quadratic</code>/<code class="language-plaintext highlighter-rouge">flatten_cubic</code>). Straight segments get ZERO
-subdivision; a curve gets exactly as many points as its own curvature
-needs. This replaced a fixed <code class="language-plaintext highlighter-rouge">points_per_mm</code> rate, which subdivided
-straight strokes as densely as curves. Both quadratic (TrueType) and
-cubic (CFF/OpenType) outlines are handled - the cubic path was a real
-bug once, now fixed (see “Known limitations”).</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">classify_and_triangulate</code></strong>: classify each closed contour by
-nesting-depth parity (even=solid island, odd=hole - not just “contained
-by something”, which breaks on genuinely nested glyphs like DejaVu’s
-<code class="language-plaintext highlighter-rouge">0</code> with its slash mark nested inside its own counter) and triangulate
-each island (with its holes) via <code class="language-plaintext highlighter-rouge">triangle</code>. Flat, z=0.</li>
-  <li><strong>Build a block</strong> (<code class="language-plaintext highlighter-rouge">trimesh.creation.extrude_triangulation</code>) sitting at
-the tip end, tall enough to contain the real platen cut for this
-specific glyph’s own Y-extent (computed from the exact circle-sag
-formula, not a fixed guess - see “Real platen cutout” below) - the
-undrafted, undilated glyph shape, plus margin.</li>
-  <li><strong>Carve the platen scallop with a REAL cylinder subtraction</strong>
-(<code class="language-plaintext highlighter-rouge">manifold3d</code> boolean, not a per-vertex approximation) - see “Real
-platen cutout” below.</li>
-  <li><strong>Minkowski-sum the scalloped block with a draft cone</strong>
-(<code class="language-plaintext highlighter-rouge">manifold3d.Manifold.minkowski_sum</code>) - apex (<code class="language-plaintext highlighter-rouge">radius=0</code>) registered
-exactly at the world origin so it lines up with the tip, wide base
-(<code class="language-plaintext highlighter-rouge">radius=expansion_width_mm</code>) below it at <code class="language-plaintext highlighter-rouge">z=-cone_height</code>. The sum’s
-cross-section at the tip is therefore the block’s own (curved, per step
-4) top surface unchanged; at the root (<code class="language-plaintext highlighter-rouge">z=0</code>) it’s that same surface
-dilated/offset outward by <code class="language-plaintext highlighter-rouge">expansion_width_mm</code> - the draft taper, with
-no self-intersection possible on any input topology (holes, disjoint
-islands, arbitrarily narrow gaps - a real Minkowski sum can’t fold).
-Skippable via <code class="language-plaintext highlighter-rouge">build.minkowski_enabled: false</code> (or <code class="language-plaintext highlighter-rouge">--no-minkowski</code>)
-for a fast, undrafted preview - see “Performance” above.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">alignment_x_offset</code></strong>: horizontal placement within the glyph’s own
-advance box (see “Alignment” below) - applied to the contours before
-step 2, not listed in pipeline order above.</li>
-</ol>
-
-<p><code class="language-plaintext highlighter-rouge">manifold3d</code>’s raw <code class="language-plaintext highlighter-rouge">minkowski_sum</code> output is drastically over-triangulated
-on flat regions (a single straight wall came out as ~24 near-coplanar
-micro-triangles with normals wobbling by a fraction of a degree from
-floating-point noise - visible as faceting on straight strokes). A
-<code class="language-plaintext highlighter-rouge">Manifold.simplify()</code> post-pass was tried to collapse that cleanly, but
-was removed fleet-wide after it was found to reintroduce its own thin
-spike/sliver defects against the adaptive contour method’s sparser input
-(see <code class="language-plaintext highlighter-rouge">CLAUDE.md</code>’s “Geometry invariants” - the adaptive contour tracing
-itself, not a <code class="language-plaintext highlighter-rouge">simplify()</code> post-pass, is what keeps triangle count in
-check now).</p>
-
-<p><code class="language-plaintext highlighter-rouge">cylinder_machine.TextRing</code> (shared, not per-machine) calls <code class="language-plaintext highlighter-rouge">build_glyph</code>
-84 times for Blickensderfer (3 rows x 28 columns) and places each result
-on the cylinder via <code class="language-plaintext highlighter-rouge">place_on_cylinder</code>.</p>
-
-<h3 id="real-platen-cutout">Real platen cutout</h3>
-
-<p>The platen scallop is a REAL boolean cylinder subtraction (matching the
-real machine and v2’s <code class="language-plaintext highlighter-rouge">PlatenCutout()</code>), not a per-vertex parabola
-approximation (an earlier version of this pipeline used the small-angle
-approximation of the same circle, <code class="language-plaintext highlighter-rouge">z = (y-radius_y_offset)^2 *
-platen_radius + separation_mm</code>, applied to whatever vertices happened to
-survive triangulation). <code class="language-plaintext highlighter-rouge">platen_radius_mm</code> is still that same
-approximation coefficient (<code class="language-plaintext highlighter-rouge">1/(2*Rp)</code>) - inverted internally to recover
-the real platen radius <code class="language-plaintext highlighter-rouge">Rp</code>, rather than adding a redundant parameter -
-used to build an actual cylinder (axis along X, tangent to the tip plane
-at <code class="language-plaintext highlighter-rouge">y=radius_y_offset</code>, <code class="language-plaintext highlighter-rouge">platen_fn</code> segments), boolean-subtracted from the
-block <em>before</em> the Minkowski sum.</p>
-
-<p>Before, not after, matters: an earlier version subtracted nothing and
-instead nudged only the <em>swept result’s</em> top ring into the parabola after
-the Minkowski sum. That’s wrong - the cone’s geometry, and therefore the
-realized draft angle, is only valid for whatever shape it’s actually
-summed with. Nudging just the final ring left the walls built as if the
-tip were still flat, so wherever the platen bulge is large (far from
-<code class="language-plaintext highlighter-rouge">radius_y_offset</code> - e.g. the bottom of <code class="language-plaintext highlighter-rouge">M</code>/<code class="language-plaintext highlighter-rouge">A</code>, vs. <code class="language-plaintext highlighter-rouge">L</code>/<code class="language-plaintext highlighter-rouge">I</code>’s mostly-
-vertical runs which stay close to it) the wall no longer tapered at the
-specified angle over the actual (now longer) distance to the tip - visible
-as inconsistent facets on those specific edges. Carving the scallop in
-first means the cone (unmodified, exactly as specified) sweeps a surface
-that’s already the correct curved shape, so the draft angle is preserved
-everywhere by construction.</p>
-
-<p>The cylinder’s axis position/radius depend only on <code class="language-plaintext highlighter-rouge">radius_y_offset</code> and
-<code class="language-plaintext highlighter-rouge">Rp</code> - both per-row constants, identical for every character in a row -
-so the underlying curve is the exact same real cylinder machine-wide per
-row, not independently approximated per glyph; only where it intersects
-each glyph’s own silhouette differs, which is correct.</p>
-
-<h3 id="character-mirroring">Character mirroring</h3>
-
-<p>A struck type element carries a MIRROR-IMAGE of the desired printed glyph</p>
-<ul>
-  <li>striking is a reflection through the contact plane, same reason a rubber
-stamp or hot-metal slug is cut reversed. <code class="language-plaintext highlighter-rouge">v2</code>’s <code class="language-plaintext highlighter-rouge">TwoDText</code> wraps the whole
-aligned/shifted glyph in <code class="language-plaintext highlighter-rouge">mirror([1,0,0])</code>; <code class="language-plaintext highlighter-rouge">v4</code> never did this until this
-was found and fixed in <code class="language-plaintext highlighter-rouge">build_glyph()</code> (negating X on the already-shifted
-contours, after <code class="language-plaintext highlighter-rouge">x_shift</code>, matching v2’s translate-then-mirror order).
-Fixing this also resolved a previously-reported “x offset wrong direction”
-bug as a side effect - both were the same missing mirror. Scoped to
-<code class="language-plaintext highlighter-rouge">build_glyph()</code> (struck characters) only - <code class="language-plaintext highlighter-rouge">build_flat_text()</code> (<code class="language-plaintext highlighter-rouge">LogoText</code>,
-Type Test) is deliberately untouched, since that text is read directly,
-never struck.</li>
-</ul>
-
-<h3 id="draft-angle-is-configurable">Draft angle is configurable</h3>
-
-<p><code class="language-plaintext highlighter-rouge">build.draft_angle_deg</code> (config + <code class="language-plaintext highlighter-rouge">--draft-angle-deg</code> CLI override, also
-on tune.py’s Font &amp; Alignment tab) sets the Minkowski draft cone’s
-half-angle - <code class="language-plaintext highlighter-rouge">expansion_width_mm = separation_mm * tan(draft_angle_deg /
-2)</code>. Defaults to <code class="language-plaintext highlighter-rouge">55.0</code>, the real machine value. Previously a fixed
-<code class="language-plaintext highlighter-rouge">glyph_poc.py</code> module constant with no override.</p>
-
-<h3 id="draft-direction-character-protrusion">Draft direction (character protrusion)</h3>
-
-<p>The print face’s deepest/narrowest point (at <code class="language-plaintext highlighter-rouge">y=radius_y_offset</code>, where the
-platen scallop is zero) sits at a FIXED radius,
-<code class="language-plaintext highlighter-rouge">Element_Diameter/2 + Char_Protrusion</code> - matching where
-<code class="language-plaintext highlighter-rouge">PlatenCutout()</code>’s cylinder actually touches the character in
-<code class="language-plaintext highlighter-rouge">v2/lib/glyph_pipeline.scad</code>. The root (the wider, <code class="language-plaintext highlighter-rouge">separation_mm</code>-drafted
-end) sits <strong>inward</strong> from that anchor by <code class="language-plaintext highlighter-rouge">separation_mm</code> - like a nail
-driven in with a wide head sitting proud, not a flush base that only
-widens sideways. This means the root’s reach toward the hollow chamber
-scales directly with <code class="language-plaintext highlighter-rouge">separation_mm</code>; it is not automatically safe just
-because it’s “the embedded end” (see the HollowSpace margin note below).</p>
-
-<h2 id="element-assembly-libblickensderferpy">Element assembly (<code class="language-plaintext highlighter-rouge">lib/blickensderfer.py</code>)</h2>
-
-<p>Ports <code class="language-plaintext highlighter-rouge">Additive()</code>/<code class="language-plaintext highlighter-rouge">Subtractive()</code>/<code class="language-plaintext highlighter-rouge">FullElement()</code> from
-<code class="language-plaintext highlighter-rouge">v2/blickensderfer.scad</code> close to 1:1, in the same origin/orientation
-convention (Z=0 at the bottom face of the main disk, Z+ up through the
-clip end). <code class="language-plaintext highlighter-rouge">Subtractive()</code>’s parts are unioned into one mesh, then
-subtracted from <code class="language-plaintext highlighter-rouge">Additive()</code> in a single <code class="language-plaintext highlighter-rouge">manifold3d</code> boolean - the same
-build-solid-then-hollow order the real file already uses.</p>
-
-<p>Ported features: <code class="language-plaintext highlighter-rouge">Cylinder</code>, <code class="language-plaintext highlighter-rouge">ClipCylinder</code>, <code class="language-plaintext highlighter-rouge">TextRing</code>, <code class="language-plaintext highlighter-rouge">Core</code>,
-<code class="language-plaintext highlighter-rouge">CoreGrooves</code> (16 twisted friction grooves), <code class="language-plaintext highlighter-rouge">CoreChamfer</code>, <code class="language-plaintext highlighter-rouge">SecondaryCore</code>
-(tapered friction-fit profile), <code class="language-plaintext highlighter-rouge">CoreEllipses</code> (web slots), <code class="language-plaintext highlighter-rouge">SpeedHoles</code>,
-<code class="language-plaintext highlighter-rouge">HollowSpace</code> (the real chamfered/roofed barrel profile, not a plain
-bore - see <code class="language-plaintext highlighter-rouge">scad_primitives.revolve_polygon</code>), <code class="language-plaintext highlighter-rouge">WireBite</code>, <code class="language-plaintext highlighter-rouge">DrivePin</code>,
-<code class="language-plaintext highlighter-rouge">BottomSlopedSpace</code>, <code class="language-plaintext highlighter-rouge">TopMinkCleanup</code>, <code class="language-plaintext highlighter-rouge">LogoText</code>.</p>
-
-<p>Not ported (out of scope so far): <code class="language-plaintext highlighter-rouge">Drive_Pin_Style=1</code> (old drive pin
-variant).</p>
-
-<h3 id="facet-count-knobs-quality-in-the-config">Facet-count knobs (<code class="language-plaintext highlighter-rouge">quality:</code> in the config)</h3>
-
-<p>Five separate <code class="language-plaintext highlighter-rouge">_fn</code> values, kept independent rather than sharing one
-catch-all, per user direction - each covers a distinct surface family:</p>
-
-<ul>
-  <li><code class="language-plaintext highlighter-rouge">body_fn</code> - the main visible/cosmetic element body (<code class="language-plaintext highlighter-rouge">Cylinder</code>,
-<code class="language-plaintext highlighter-rouge">ClipCylinder</code>) only.</li>
-  <li><code class="language-plaintext highlighter-rouge">cyl_fn</code> - the inner shaft/core bore (<code class="language-plaintext highlighter-rouge">Core()</code>) only. Kept separate from
-<code class="language-plaintext highlighter-rouge">body_fn</code> even though both currently default to the same value (360).</li>
-  <li><code class="language-plaintext highlighter-rouge">surface_fn</code> - everything else structural: <code class="language-plaintext highlighter-rouge">HollowSpace</code>, <code class="language-plaintext highlighter-rouge">SpeedHoles</code>,
-chamfers, resin details.</li>
-  <li><code class="language-plaintext highlighter-rouge">platen_fn</code> - the real platen cutout cylinder (see “Real platen cutout”
-above) - independent of the other four since it’s a per-glyph boolean,
-not a body-level revolve.</li>
-  <li><code class="language-plaintext highlighter-rouge">minkowski_fn</code> - the draft cone kernel (see “Performance” above) - by
-far the most cost-sensitive of the five, since <code class="language-plaintext highlighter-rouge">manifold3d</code>’s Minkowski
-cost scales with the product of the two operands’ face counts, and the
-glyph operand’s count is set by <code class="language-plaintext highlighter-rouge">flatness_tolerance_mm</code> (which replaced
-the old fixed-rate <code class="language-plaintext highlighter-rouge">points_per_mm</code>).</li>
-</ul>
-
-<p><code class="language-plaintext highlighter-rouge">quality:</code> also carries a sixth <code class="language-plaintext highlighter-rouge">_fn</code> key, <code class="language-plaintext highlighter-rouge">groove_fn</code>, which is NOT one
-of the five above: it’s the CoreGrooves twist angular sampling, not a
-facet count for any surface.</p>
-
-<h3 id="resin-print-supports-resinprint">Resin print supports (<code class="language-plaintext highlighter-rouge">ResinPrint</code>)</h3>
-
-<p>Ports <code class="language-plaintext highlighter-rouge">lib/resin_rod.scad</code> (<code class="language-plaintext highlighter-rouge">ResinRod</code> -&gt; <code class="language-plaintext highlighter-rouge">scad_primitives.resin_rod</code>, a
-generic hull-of-spheres tapered support rod, reusable across future
-machines) and <code class="language-plaintext highlighter-rouge">lib/resin_support.scad</code>’s cylinder-machine-family placement
-logic (<code class="language-plaintext highlighter-rouge">CutGroove</code>, <code class="language-plaintext highlighter-rouge">SpeedHoleSupport(s)</code>, <code class="language-plaintext highlighter-rouge">DrivePinSupport</code>,
-<code class="language-plaintext highlighter-rouge">BottomSupports</code>, <code class="language-plaintext highlighter-rouge">ResinPrint</code>) - shared between machines in
-<code class="language-plaintext highlighter-rouge">lib/cylinder_machine.py</code> (see “Multiple machines” above); only
-<code class="language-plaintext highlighter-rouge">ResinSupport()</code> itself is machine-specific (the drive-pin trio).
-<code class="language-plaintext highlighter-rouge">CutGroove()</code> - the breakaway ring - is built as <code class="language-plaintext highlighter-rouge">revolve(profile) -
-revolve(hole1) - revolve(hole2)</code>: the real file’s 2D difference happens
-<em>before</em> <code class="language-plaintext highlighter-rouge">rotate_extrude()</code>, so each hole becomes a full 360deg toroidal
-score line around the circumference, not discrete perforation points.</p>
-
-<p><code class="language-plaintext highlighter-rouge">ResinPrint()</code> unions <code class="language-plaintext highlighter-rouge">ResinSupport()</code> onto <code class="language-plaintext highlighter-rouge">FullElement()</code> (support
-material to be broken off after printing, not subtracted). Off by default
-(<code class="language-plaintext highlighter-rouge">build.resin_support: false</code> in the config) since it’s only needed right
-before slicing for print; enable via <code class="language-plaintext highlighter-rouge">--resin-support</code> or the config.</p>
-
-<p><strong><code class="language-plaintext highlighter-rouge">resin.raft</code></strong> (also on tune.py’s Resin tab as “Continuous raft”): <code class="language-plaintext highlighter-rouge">false</code>
-(default, both machines) - each support rod grows its own small raft
-cone. <code class="language-plaintext highlighter-rouge">true</code> - one continuous raft plate shared by every rod, reaching
-all the way to the element’s center axis. This was originally two
-separate hardcoded per-machine values (v2’s Blickensderfer always used
-individual rafts, Postal always used the continuous plate) - collapsed
-into one shared, user-facing toggle (<code class="language-plaintext highlighter-rouge">cylinder_machine.resin_raft_config</code>
-derives <code class="language-plaintext highlighter-rouge">Resin_Rod_Raft</code>/<code class="language-plaintext highlighter-rouge">Cut_Groove_Inner_X</code> from it) since the
-continuous-plate option is genuinely useful for either machine, not
-something that should silently differ by default between them. Verified
-all 4 combinations (each machine x both settings) watertight/winding-
-consistent/<code class="language-plaintext highlighter-rouge">is_volume</code>, and confirmed both machines’ <code class="language-plaintext highlighter-rouge">false</code> default and
-Postal’s <code class="language-plaintext highlighter-rouge">true</code> reproduce byte-identical geometry to before this change.</p>
-
-<h3 id="shaft-gauge-test-gaugetestset">Shaft Gauge Test (<code class="language-plaintext highlighter-rouge">GaugeTestSet</code>)</h3>
-
-<p>Ported from v2’s <code class="language-plaintext highlighter-rouge">[Shaft Gauge Test]</code> section (<code class="language-plaintext highlighter-rouge">blickensderfer.scad</code>
-~265-267/517-589). Not part of the real element - a standalone 6-pocket
-“revolver” calibration print for empirically finding
-<code class="language-plaintext highlighter-rouge">element.core_id_offset</code> (the print-tolerance addition to the shaft’s
-minor diameter). Each of the 6 pockets bores the shaft passage at
-<code class="language-plaintext highlighter-rouge">gauge.offset_start + n * gauge.offset_int</code> (n=0..5) and is engraved with
-its own offset value (<code class="language-plaintext highlighter-rouge">GaugeText</code>) so you can read off which pocket you
-test-fit on the real machine. <code class="language-plaintext highlighter-rouge">RevolverSolid()</code> (the hull of the 6
-cylinder pockets) uses <code class="language-plaintext highlighter-rouge">trimesh.util.concatenate(...).convex_hull</code>, the
-same pattern <code class="language-plaintext highlighter-rouge">CoreEllipses()</code> already used, since trimesh has no
-hull-of-solids primitive. Build via <code class="language-plaintext highlighter-rouge">generate.py --gauge</code> or tune.py’s
-Build tab (“Shaft Gauge”).</p>
-
-<h3 id="calibration-calibrationelement">Calibration (<code class="language-plaintext highlighter-rouge">CalibrationElement</code>)</h3>
-
-<p>Ported from v2’s <code class="language-plaintext highlighter-rouge">Cutout_Test</code>/<code class="language-plaintext highlighter-rouge">Baseline_Test</code>/<code class="language-plaintext highlighter-rouge">Test_Layout</code> mechanism
-(<code class="language-plaintext highlighter-rouge">lib/testing.scad</code>’s <code class="language-plaintext highlighter-rouge">testSweepArray</code> + <code class="language-plaintext highlighter-rouge">lib/glyph_pipeline.scad</code>’s
-<code class="language-plaintext highlighter-rouge">TextRing</code>/<code class="language-plaintext highlighter-rouge">TextRingDebug</code>, ~line 407-451) - a real, already-designed v2
-feature for empirically finding the right <code class="language-plaintext highlighter-rouge">layout.baseline_row</code>/
-<code class="language-plaintext highlighter-rouge">cutout_row</code> values, not invented for v4. Unlike the Shaft Gauge Test,
-this IS a real element (same <code class="language-plaintext highlighter-rouge">Subtractive()</code> hollow-out as a normal
-build) - only the additive text ring differs: every physical position
-strikes the SAME <code class="language-plaintext highlighter-rouge">calibration.test_char</code> (v2’s <code class="language-plaintext highlighter-rouge">Test_Layout</code>, always on
-here - the whole point is a consistent reference shape to compare across
-positions), while <code class="language-plaintext highlighter-rouge">calibration.vary_baseline</code>/<code class="language-plaintext highlighter-rouge">vary_cutout</code> (independent
-booleans, matching v2’s own separate <code class="language-plaintext highlighter-rouge">Cutout_Test</code>/<code class="language-plaintext highlighter-rouge">Baseline_Test</code> flags</p>
-<ul>
-  <li>usually only one is on at a time, but both CAN be on together, moving
-by the same shared offset) get a per-column swept offset
-(<code class="language-plaintext highlighter-rouge">calibration.start + calibration.interval * col</code>, matching
-<code class="language-plaintext highlighter-rouge">testSweepArray</code>) instead of its row’s normal fixed value. Default
-<code class="language-plaintext highlighter-rouge">start: -0.7</code> (<code class="language-plaintext highlighter-rouge">interval: 0.05</code> unchanged) sweeps from -0.7mm to +0.65mm
-across the 28 columns - both below AND above the reference, not just
-above it.</li>
-</ul>
-
-<p><strong>The reference (the row’s own normal value being swept around) is
-fixed, not read from whatever config is being built.</strong> <code class="language-plaintext highlighter-rouge">generate.py
---calibrate</code>’s reference defaults to the config being built (same as
-before, for direct CLI use), but <code class="language-plaintext highlighter-rouge">--calibration-reference-config PATH</code>
-loads <code class="language-plaintext highlighter-rouge">layout.baseline_row</code>/<code class="language-plaintext highlighter-rouge">cutout_row</code> from a SEPARATE file instead -
-tune.py always passes the MASTER config here, never the running copy.
-This matters because the Element tab’s baseline/cutout fields (see
-below) write to the RUNNING copy: without a fixed reference, dialing in
-a value from one calibration pass would shift where the NEXT pass
-centers its sweep - chasing an already-moving target instead of
-converging on the master’s stable original value. <code class="language-plaintext highlighter-rouge">CalibrationTextRing</code>
-always prints which reference arrays it’s actually using, so this is
-never ambiguous from the log.</p>
-
-<p>Build via <code class="language-plaintext highlighter-rouge">generate.py --calibrate</code> (plus <code class="language-plaintext highlighter-rouge">--calibration-char</code>/
-<code class="language-plaintext highlighter-rouge">--calibration-vary-baseline</code>/<code class="language-plaintext highlighter-rouge">--calibration-no-vary-baseline</code>/
-<code class="language-plaintext highlighter-rouge">--calibration-vary-cutout</code>/<code class="language-plaintext highlighter-rouge">--calibration-no-vary-cutout</code>/
-<code class="language-plaintext highlighter-rouge">--calibration-start</code>/<code class="language-plaintext highlighter-rouge">--calibration-interval</code>/
-<code class="language-plaintext highlighter-rouge">--calibration-reference-config</code> overrides) or tune.py’s Build tab
-(“Calibration Element”) + its Calibration tab’s two checkboxes. Prints
-one line per
-physical position - keyboard key, real placement angle, and the exact
-cutout/baseline value used there (computed from the actual physical
-placement angle via <code class="language-plaintext highlighter-rouge">PLACEMENT_MAP</code>, not v2’s raw content-order <code class="language-plaintext highlighter-rouge">col</code> -
-more directly useful for correlating against the printed part, and
-avoids relying on Blickensderfer’s non-identity <code class="language-plaintext highlighter-rouge">placement_map</code> lining up
-with v2’s o’clock-from-content-order convention, which only happens to
-hold for Postal’s identity map). <code class="language-plaintext highlighter-rouge">--calibrate</code> also writes a <code class="language-plaintext highlighter-rouge">.txt</code>
-sidecar next to the STL with the same per-position lines; tune.py’s Save
-copies that sidecar alongside the saved STL too (like the existing
-<code class="language-plaintext highlighter-rouge">.yaml</code> metadata sidecar), when the last build was a Calibration build.</p>
-
-<p>Test-fit each position on the real machine, read off which column’s value
-looks/fits best, and enter it directly in that row’s baseline/cutout field
-on tune.py’s Element tab (<code class="language-plaintext highlighter-rouge">layout.baseline_row</code>/<code class="language-plaintext highlighter-rouge">cutout_row</code> - list-valued,
-so not part of the generic FIELDS mechanism, but exposed as 6 bespoke
-per-row fields, <code class="language-plaintext highlighter-rouge">patch_yaml_list_item</code> patching just that one element of
-the inline YAML list).</p>
-
-<h3 id="hollowspace-margin-is-razor-thin-by-design-at-the-current-settings">HollowSpace margin is razor-thin by design at the current settings</h3>
-
-<p>At <code class="language-plaintext highlighter-rouge">separation_mm=2.0</code>, the character root lands at
-<code class="language-plaintext highlighter-rouge">Element_Diameter/2 + Char_Protrusion - separation_mm = 15.5mm</code> - which is
-<em>exactly</em> <code class="language-plaintext highlighter-rouge">HollowSpace</code>’s outer wall radius for the rows that fall in its
-wide z-band. Zero real clearance. This is exactly why the element is
-built solid-then-hollowed rather than pre-calibrated: the boolean handles
-either case cleanly, precise pre-calculation would be fragile here.</p>
-
-<p><code class="language-plaintext highlighter-rouge">generate.py</code> used to print whether any root vertex actually lands
-inside <code class="language-plaintext highlighter-rouge">HollowSpace</code> for the current settings, as a debug diagnostic -
-removed (see <code class="language-plaintext highlighter-rouge">SESSION_LOG.md</code> part 27) as redundant: it never gated or
-failed the build (purely informational), flipped between <code class="language-plaintext highlighter-rouge">True</code>/<code class="language-plaintext highlighter-rouge">False</code>
-run to run at low <code class="language-plaintext highlighter-rouge">points_per_mm</code> from floating-point/mesh-resolution
-noise at this exact boundary anyway (not actionable), and its <code class="language-plaintext highlighter-rouge">.contains()</code>
-ray-cast (no <code class="language-plaintext highlighter-rouge">pyembree</code> acceleration in this environment) could take tens
-of seconds against a large enough <code class="language-plaintext highlighter-rouge">HollowSpace()</code> mesh, running silently
-AFTER the STL was already written - long enough that a user watching the
-build finish would reasonably quit before it returned, which meant
-<code class="language-plaintext highlighter-rouge">tune.py</code>’s f3d auto-launch (gated on the subprocess’s exit code) never
-fired. Confirmed exactly this way for Helios (part 26 measured 33
-seconds on it alone) before removing the check across every machine
-instead of chasing per-machine mesh-resolution workarounds.</p>
-
-<h2 id="alignment-character-centering">Alignment (character centering)</h2>
-
-<p>Two base modes, plus two independent modified-character override groups
-layered on top - a from-scratch scheme (not a port of
-<code class="language-plaintext highlighter-rouge">v2/lib/glyph_pipeline.scad</code>’s 4-method <code class="language-plaintext highlighter-rouge">AlignedText</code>), configured under
-<code class="language-plaintext highlighter-rouge">alignment:</code> in the YAML:</p>
-
-<ul>
-  <li><code class="language-plaintext highlighter-rouge">mode: center</code> - shift by <code class="language-plaintext highlighter-rouge">-advance/2</code> (centers the ADVANCE box, same
-convention v2’s native <code class="language-plaintext highlighter-rouge">halign=center</code> uses - not the ink bounding box)
-plus <code class="language-plaintext highlighter-rouge">center_offset_mm</code>.</li>
-  <li><code class="language-plaintext highlighter-rouge">mode: left</code> - no centering shift, just <code class="language-plaintext highlighter-rouge">left_offset_mm</code> (0 = the
-glyph’s natural FreeType pen origin, unmoved).</li>
-  <li><code class="language-plaintext highlighter-rouge">modified_left_chars</code> (default <code class="language-plaintext highlighter-rouge">"!,.;:)"</code>) get an <em>additional</em> shift of
-<code class="language-plaintext highlighter-rouge">-modified_left_offset_mm</code>; <code class="language-plaintext highlighter-rouge">modified_right_chars</code> (default <code class="language-plaintext highlighter-rouge">"("</code>) get
-<code class="language-plaintext highlighter-rouge">+modified_right_offset_mm</code>. A character matching both resolves to the
-left group (checked first).</li>
-</ul>
-
-<p>All offsets default to <code class="language-plaintext highlighter-rouge">0.0</code> (no-op) until set in the config.</p>
-
 <h2 id="accessories">Accessories</h2>
 
 <p>Non-parametric companion parts that print alongside a machine’s type
@@ -937,90 +227,6 @@ elements but aren’t generated by this pipeline (no <code class="language-plain
 counterpart) live under <code class="language-plaintext highlighter-rouge">docs/</code>. See <code class="language-plaintext highlighter-rouge">docs/mignon_index_holder.md</code> for the
 first one - a legend-card holder that goes with the Mignon element.</p>
 
-<h2 id="known-limitations">Known limitations</h2>
-
-<ul>
-  <li><strong>TrueType-only outlines - RESOLVED.</strong> CFF/OpenType (cubic-curve) fonts
-used to mis-parse silently - <code class="language-plaintext highlighter-rouge">contour_to_points</code> (<code class="language-plaintext highlighter-rouge">lib/glyph_poc.py</code>)
-only checked FreeType’s on/off-curve bit, so a cubic off-curve point got
-misread as a lone quadratic control point, producing plausible-looking
-but geometrically wrong curves with no error raised (confirmed on
-<code class="language-plaintext highlighter-rouge">FreeMono-Bold.otf</code>: watertight-but-winding-inconsistent geometry).
-Fixed by checking the tag’s low 2 bits (<code class="language-plaintext highlighter-rouge">FT_CURVE_TAG</code>: 0=quadratic,
-2=cubic) and subdividing a real cubic Bézier (<code class="language-plaintext highlighter-rouge">flatten_cubic()</code>, the
-cubic arm of the adaptive de Casteljau tracer) for cubic spans
-instead. Verified against real CFF fonts (<code class="language-plaintext highlighter-rouge">Alma Mono.otf</code>,
-<code class="language-plaintext highlighter-rouge">FreeMono-Bold.otf</code>) end-to-end through <code class="language-plaintext highlighter-rouge">generate.py config/postal.yaml</code>
-    <ul>
-      <li>fully watertight/winding-consistent/<code class="language-plaintext highlighter-rouge">is_volume</code>, 0 skipped characters</li>
-      <li>and confirmed byte-identical output on the quadratic (TrueType) path
-for Blickensderfer before/after. Note this is only about which curve
-format is INSIDE the file - <code class="language-plaintext highlighter-rouge">.otf</code> itself doesn’t imply cubic (some OTF
-files are TrueType-flavored internally) and <code class="language-plaintext highlighter-rouge">.ttf</code> doesn’t guarantee
-quadratic either; the code now handles either correctly regardless of
-file extension.</li>
-    </ul>
-  </li>
-  <li><strong>Self-intersecting drafts - RESOLVED.</strong> The old per-vertex outline
-offset could fold through itself on narrow glyph features (71/84
-characters failed a <code class="language-plaintext highlighter-rouge">shapely</code> simplicity check at production settings -
-see git history for the detection/gated-repair machinery this used to
-need). A real Minkowski sum cannot produce a self-intersecting result on
-any input topology, so there is nothing left to detect or repair here;
-<code class="language-plaintext highlighter-rouge">TextRing()</code> no longer reports on this at all.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">place_on_cylinder()</code> needs <code class="language-plaintext highlighter-rouge">process=False</code>.</strong> Reconstructing a mesh
-via <code class="language-plaintext highlighter-rouge">trimesh.Trimesh(vertices=..., faces=...)</code> with the default
-<code class="language-plaintext highlighter-rouge">process=True</code> silently re-runs vertex merging and corrupts already-valid
-geometry post-placement (reproduced with an identity transform alone:
-2195-&gt;1507 vertices, <code class="language-plaintext highlighter-rouge">watertight</code> True-&gt;False, nothing to do with the
-rotation/translation itself). Placement is a pure coordinate move - no
-topology change, no reprocessing needed.</li>
-  <li><strong>Inter-character collisions are detected, not repaired.</strong>
-<code class="language-plaintext highlighter-rouge">_check_inter_character_collisions()</code> in <code class="language-plaintext highlighter-rouge">lib/cylinder_machine.py</code>
-(shared, not per-machine) uses
-<code class="language-plaintext highlighter-rouge">trimesh.collision.CollisionManager</code> across all 84 placed parts (this is
-what that tool is actually for - checking DIFFERENT registered objects
-against each other - unlike an earlier, meaningless attempt earlier in
-this project’s history that called it on a single mesh expecting
-self-intersection detection, which it never provided). At
-<code class="language-plaintext highlighter-rouge">separation_mm=2.0</code>, 61 adjacent-character pairs currently collide -
-confirmed real via a direct boolean intersection check (not just the
-collision manager’s flag), and confirmed to sit right at the embedded
-root end (radius ~15.6mm, vs. the root anchor at 15.5mm), not near the
-visible outer surface - which is why it isn’t visible just looking at
-the assembled ring from outside. Accepted as-is; there’s no simple
-automatic geometric fix for two overlapping solids short of redoing
-their placement/size (or reducing <code class="language-plaintext highlighter-rouge">separation_mm</code>, which shrinks how far
-each root reaches - confirmed to eliminate collisions entirely at
-<code class="language-plaintext highlighter-rouge">separation_mm=1.0</code>, at the cost of less embedding-depth margin into the
-main body).</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">FullElement</code>/<code class="language-plaintext highlighter-rouge">ResinPrint</code> run a detect + best-effort auto-repair
-pass</strong> (<code class="language-plaintext highlighter-rouge">scad_primitives.check_and_repair()</code>) using trimesh’s own
-<code class="language-plaintext highlighter-rouge">fill_holes</code>/<code class="language-plaintext highlighter-rouge">fix_winding</code>/<code class="language-plaintext highlighter-rouge">fix_inversion</code>/<code class="language-plaintext highlighter-rouge">fix_normals</code> on the final
-assembled solid, re-checking and reporting whether it actually helped.
-This targets combinatorial defects only (holes, inconsistent
-winding/normals) - it has no effect on overlapping geometry like the
-inter-character collisions above (confirmed: it never even runs there,
-since <code class="language-plaintext highlighter-rouge">watertight</code>/<code class="language-plaintext highlighter-rouge">winding_consistent</code>/<code class="language-plaintext highlighter-rouge">is_volume</code> all already report
-<code class="language-plaintext highlighter-rouge">True</code> for two overlapping-but-otherwise-valid solids).</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">LogoText</code> centers horizontally on the ink bounding box, not the
-advance box</strong> - unlike <code class="language-plaintext highlighter-rouge">TextRing</code> (which now does real advance-box
-centering, see “Alignment” above). Fine for a decorative logo, not
-attempted to match <code class="language-plaintext highlighter-rouge">v2</code>’s exact <code class="language-plaintext highlighter-rouge">halign=center</code> behavior there.
-Vertically, characters ARE aligned by baseline (<code class="language-plaintext highlighter-rouge">y=0</code>, FreeType’s own
-pen-origin convention) rather than each character’s own ink-bbox
-center - centering each character independently on its own ink bbox
-put ‘L’ (cap-height, no descender) and ‘e’ (x-height only) at different
-heights, breaking a common baseline across the ring.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">Drive_Pin_Style=1</code></strong> (the older drive pin variant) raises
-<code class="language-plaintext highlighter-rouge">NotImplementedError</code> - only the current/default style is ported.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">BottomSlopedSpace</code>’s <code class="language-plaintext highlighter-rouge">bottomX()</code></strong> (v2’s name for it; v4 inlines the
-same formula) is ported from the real
-<code class="language-plaintext highlighter-rouge">lib/resin_support.scad</code> formula (<code class="language-plaintext highlighter-rouge">Bottom_Slope</code>/<code class="language-plaintext highlighter-rouge">Bottom_Z_Offset</code>), not
-approximated - flagging here only because an earlier draft of this file
-used a wrong approximation before the real formula was found; the
-current code is correct.</li>
-</ul>
 
   </div>
 
