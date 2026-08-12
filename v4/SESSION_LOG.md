@@ -5737,3 +5737,145 @@ faces=76792 volume=5646.195mm3, plus clean `selectric12`/`selectric3`/
    true, and line 203 names `LAYOUT_PRESETS_MIGNON` without claiming a
    location. A full README pass against current code is still owed,
    though, the way CLAUDE.md just got one.
+
+---
+
+## 81. Blickensderfer catalog read end to end - 8 to 28 presets, and `CATALOG_INDEX.md`'s second table became generated (2026-08-12)
+
+Picks up part 80's punch-list item 2 ("Blickensderfer pages 0161-0168 - 8
+of 14 page scans unread") and closes it: all 14 pages are now read, and
+**73 of the 84 shuttles they contain are imported**, up from 10.
+
+Working from `~/Blickensderfer-Catalog` (local copies, ~2517x5548 px -
+markedly more legible than the Hammond scans; the letter rows read at
+620 px wide and no glyph needed more than 900%).
+
+### 20 new presets, from 8 to 28
+
+Two batches. The first covered the by-language pages and the British
+market (`GERMAN`, `DANISH`, `HUNGARIAN`,
+`BRITISH_SCIENTIFIC_FRACTION` + its Mimeograph variant,
+`DHIATENSOR_BRITISH`, `BRITISH_AMERICAN`, `BRITISH_INDIA`,
+`CHEMICAL_ENGLISH`, `CHEMICAL_UNIVERSAL`, `COSMOPOLITAN`,
+`UNIVERSAL_FRACTION`, `UNIVERSAL_LITERARY`, `UNIVERSAL_ACCENT`); the
+second the American wheels and two more German ones
+(`DHIATENSOR_FRACTION` + its 447 variant, `ENGLISH_JAPANESE`,
+`UNIVERSAL_FRACTION_US`, `GERMAN_ESZETT`, `GERMAN_FRACTION`).
+
+All 28 verified 28 columns wide, letter-inventory-consistent between
+rows 0 and 1, no two presets identical, and every non-ASCII character
+checked to have a real `unicodedata.name()`.
+
+The recurring structure is worth recording: `$`↔`£` is a **one-position**
+American/British split that appears four separate times
+(`QWERTY`/`QWERTY_BRITISH`, `DHIATENSOR`/`DHIATENSOR_BRITISH`,
+`DHIATENSOR_FRACTION`/`BRITISH_SCIENTIFIC_FRACTION`,
+`UNIVERSAL_FRACTION_US`/`UNIVERSAL_FRACTION`), and `BRITISH_AMERICAN` is
+the one wheel carrying both.
+
+### Two wrong deferrals, same failure mode
+
+Both were recorded in part 80 as reasons NOT to import, and both were
+wrong - a group judged on one glance instead of read:
+
+1. *"The British Imperial/Scientific/Universal fraction variants ... each
+   packs a different dense fraction bank ... needing per-entry checking
+   rather than one shared reading."* They don't. **Twenty-one entries
+   collapse to four layouts** plus four genuine one- or two-position
+   variants. This single deferral was hiding roughly a sixth of the
+   catalog.
+2. *"ENGLISH-JAPANESE 332/333: kana, needs its own pass."* There is no
+   kana on it at all - it is a Latin trading wheel carrying `¥ $ £`.
+
+Lesson, kept narrow: a shared *heading* predicts nothing about the rows
+under it. Read one entry per group before deferring the group.
+
+### Genuinely held (11 of 84), all script or codepoint, none legibility
+
+Bohemian 426/443 (doubled dead-key accents), Armenian 218, Ancient Greek
+309, Hebrew 354/358/348/351, Bulgarian 452½, British Telegraph 376
+(non-standard row shape), and Special British 387 - whose last five slots
+are shilling numerators `1⁄ 3⁄ 5⁄ 7⁄ 9⁄` cast as single pieces of type.
+Only the first has a codepoint (`⅟`, U+215F) and `layout.rows` is one
+character per position, so 387 is held on that alone; its reading is not
+in doubt. (`GERMAN_FRACTION`/204 uses that same `⅟` and DOES import,
+because there it appears alone.)
+
+### German came out three ways, and the third settled the first
+
+- `CHARIENSTU_DE` (v1/v2): `¨ … ö … ä … ß`
+- `GERMAN` (404/423/378/489): `№ … ä … ö … ₰`
+- `GERMAN_ESZETT` (303): `¨ … ä … ö … ß`
+
+303 carries CHARIENSTU_DE's `¨`/`ß` but GERMAN's `ä`/`ö` order, which
+confirms `¨`/`ß` as genuine rather than errors that `№`/`₰` correct, and
+leaves CHARIENSTU_DE's `ä`-at-19 as the minority reading (two catalogued
+wheels put `ä` at 8). **Not** enough to overwrite a v1/v2 array - unlike
+the `WKJU`→`WKJY` fix there is no letter-inventory argument here, only a
+2-to-1 count - so all three ship side by side. Separately, German 423's
+row 1 was a *third* independent confirmation of `WKJY`.
+
+An earlier draft of this work mis-attributed 303 to `GERMAN`; caught and
+corrected when page 18 was read properly.
+
+### `CATALOG_INDEX.md`'s Blickensderfer half is now generated
+
+It had gone stale ("6 read, 8 not yet surveyed ... Sighted: 29 shuttles")
+precisely because it was the one hand-maintained table in a document
+whose whole premise is computed status. New
+`lib/layouts/blickensderfer_catalog.py` holds all 84 entries as data and
+`gen_catalog_index.py` now emits both sections.
+
+The two machines get there differently, and the module says why: Hammond
+descriptions encode the layout, so status is classified from them;
+Blickensderfer descriptions don't ("Small Roman, British Scientific" is a
+plain wheel on one page and a fraction wheel on another), so the observed
+preset is recorded per entry and the generator instead **verifies that
+the named preset exists** - `SystemExit` on a rename, tested by
+temporarily renaming `BRITISH_INDIA` in a throwaway copy of the tree.
+Regenerating twice is byte-identical.
+
+Also fixed the index's own intro, which claimed both tables came from
+printed numerical indexes. Blickensderfer has none - its denominator is
+what the scans contain, which is a real count of what is in hand but not
+of what the company made.
+
+### Denominator
+
+Catalog pages present in the scans: 3-14, 18, 21, six entries each.
+Pages 1-2, 15-17, 19-20 are **absent** - roughly 42 more shuttles.
+Alphabetically 15-17 fall between English-Japanese and German (French and
+Esperanto sit there) and 19-20 between German and Greek. Nothing to be
+done without more scans, so this is now the binding Blickensderfer
+constraint rather than unread pages.
+
+### Verification
+
+Pure data/doc change; no geometry touched. Hard gate byte-identical on
+all three plausibly-affected configs:
+
+```
+blickensderfer  ResinPrint:  verts=38310  faces=76792  volume=5646.195mm3
+hammond         ResinPrint:  verts=470670 faces=942988 volume=4876.156mm3
+hammond_split   FullElement: verts=35240  faces=70544  volume=8081.034mm3
+```
+
+`lib/layouts` still imports identically under both of its names
+(`lib.layouts` and plain `layouts`), and headless `TuneApp` against
+scratch config copies reaches 28/45/46 presets for
+blickensderfer/hammond/hammond_split.
+
+### Resuming later
+
+1. **Blickensderfer scripts** - Armenian 218, Ancient Greek 309, Hebrew
+   354/348/351, Bulgarian 452½. All read cleanly at this resolution; each
+   needs a script-aware pass, not better scans. **358 needs no reading at
+   all once 354 is done** - the catalog states in prose that it is 354
+   with `£` for `$`.
+2. **Hammond 1915 Latin languages** - unchanged from part 80's item 1 and
+   still the biggest remaining vein.
+3. **Hammond 1920 leftovers** (41, 162, 184, 23E/23F/23G, 136) -
+   unchanged; try the ~300MB source TIFFs.
+4. Part 80's font-gap item 5 (both Hammond machines configured for
+   `OCR-A II Regular`, which cannot build their own default layout) is
+   **still open and untouched**.

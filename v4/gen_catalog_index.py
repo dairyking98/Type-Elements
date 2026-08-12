@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 """
-Regenerates CATALOG_INDEX.md from lib/layouts/hammond_catalog.py.
+Regenerates CATALOG_INDEX.md from lib/layouts/hammond_catalog.py and
+lib/layouts/blickensderfer_catalog.py.
 
-Import STATUS is computed here, never hand-maintained: each catalog entry's
-description is classified into (keyboard, language, variant) and matched
-against the layouts actually present in lib/layouts. Import a new layout,
-re-run this, and the index updates itself - the counts in the document can
-therefore never drift from the code.
+Import STATUS is computed here, never hand-maintained. Import a new
+layout, re-run this, and the index updates itself - the counts in the
+document can therefore never drift from the code. The two machines get
+there differently, because their catalogs differ:
 
-The classifier encodes the catalogs' own lesson: typeface words never
-change the layout, variant words (Fractions, Medical, Chemical, ...) do.
+  - Hammond descriptions encode the layout, so each entry is classified
+    into (keyboard, language, variant) and matched against the layouts
+    actually present in lib/layouts. The classifier encodes the catalogs'
+    own lesson: typeface words never change the layout, variant words
+    (Fractions, Medical, Chemical, ...) do.
+  - Blickensderfer descriptions do NOT ("Small Roman, British Scientific"
+    is a plain wheel on one page and a fraction wheel on another), so its
+    catalog module records the observed preset per entry and this script
+    only verifies that the named preset really exists - a rename or
+    deletion raises here rather than leaving a stale "imported" row.
 
     .venv/bin/python3 gen_catalog_index.py
 """
@@ -20,6 +28,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib.layouts.hammond_catalog import HAMMOND_CATALOG  # noqa: E402
+from lib.layouts.blickensderfer_catalog import (  # noqa: E402
+    BLICKENSDERFER_CATALOG, PAGES_MISSING, PAGES_PRESENT)
+from lib.layouts.blickensderfer_layout import LAYOUT_PRESETS as BLICK_PRESETS  # noqa: E402
 
 # Typeface words - never change the layout, only how it looks.
 FACES = ["Medium Roman", "Small Roman", "Large Roman", "Miniature Roman", "Petite Gothic",
@@ -145,6 +156,45 @@ def sort_key(num):
     return int(m.group(1)), m.group(2)
 
 
+def blick_section():
+    """Build the whole Blickensderfer section, counts included."""
+    unknown = sorted({p for _, _, _, p, _ in BLICKENSDERFER_CATALOG
+                      if p and p not in BLICK_PRESETS})
+    if unknown:
+        raise SystemExit(
+            "blickensderfer_catalog.py names presets that do not exist in "
+            "blickensderfer_layout.py: " + ", ".join(unknown))
+
+    n_imp = sum(1 for e in BLICKENSDERFER_CATALOG if e[3])
+    n_held = sum(1 for e in BLICKENSDERFER_CATALOG if not e[3] and e[4])
+    total = len(BLICKENSDERFER_CATALOG)
+    used = sorted({p for _, _, _, p, _ in BLICKENSDERFER_CATALOG if p})
+
+    out = ["## Blickensderfer", "",
+           f"**{n_imp} of {total} sighted shuttles are covered "
+           f"({100 * n_imp // total}%)** — {n_held} held on an unresolved "
+           "character or script.", "",
+           f"This catalog has no printed numerical index, so the denominator "
+           f"is what the scans actually contain: catalog pages "
+           f"{', '.join(PAGES_PRESENT)}, six entries each. Pages "
+           f"{', '.join(PAGES_MISSING)} are absent from the scans and are "
+           "worth roughly 42 more shuttles — the French and Esperanto "
+           "sections among them.", "",
+           f"{len(used)} of the {len(BLICK_PRESETS)} shipped presets are "
+           "accounted for below; the rest come from v1/v2 rather than these "
+           "scans.", "",
+           "| # | Description | Page | Status | Preset / note |",
+           "|---|---|---|---|---|"]
+    for num, desc, page, preset, note in BLICKENSDERFER_CATALOG:
+        if preset:
+            out.append(f"| {num} | {desc} | {page} | **imported** | {preset} |")
+        elif note:
+            out.append(f"| {num} | {desc} | {page} | held | {note} |")
+        else:
+            out.append(f"| {num} | {desc} | {page} | todo | |")
+    return "\n".join(out) + "\n", n_imp, n_held, total
+
+
 def main():
     rows = [(n, d, p, *status(n, d)) for n, d, p in HAMMOND_CATALOG]
     rows.sort(key=lambda r: sort_key(r[0]))
@@ -159,12 +209,17 @@ def main():
     for n, d, pg, st, note in rows:
         mark = {"imported": "**imported**", "held": "held", "todo": "todo"}[st]
         body.append(f"| {n} | {d} | {pg} | {mark} | {note} |")
-    rest = tail.split("\n---\n", 1)[1] if "\n---\n" in tail else ""
     head = re.sub(r"\*\*\d+ of \d+ catalogued shuttles are covered \(\d+%\)\*\* — \d+ held on an unresolved character,\n\d+ not yet transcribed\.",
                   f"**{n_imp} of {len(rows)} catalogued shuttles are covered "
                   f"({100*n_imp//len(rows)}%)** — {n_held} held on an unresolved character,\n"
                   f"{n_todo} not yet transcribed.", head)
-    pathlib.Path("CATALOG_INDEX.md").write_text(head + "\n".join(body) + "\n\n---\n" + rest)
+    # Everything after the Hammond table's horizontal rule is the
+    # Blickensderfer section, regenerated wholesale rather than preserved -
+    # hand-maintaining it is exactly how it went stale before.
+    blick, b_imp, b_held, b_total = blick_section()
+    print(f"Blickensderfer: {b_imp} imported / {b_held} held, of {b_total} sighted")
+    pathlib.Path("CATALOG_INDEX.md").write_text(
+        head + "\n".join(body) + "\n\n---\n\n" + blick)
     print("regenerated CATALOG_INDEX.md")
     return rows, n_imp, n_held, n_todo
 

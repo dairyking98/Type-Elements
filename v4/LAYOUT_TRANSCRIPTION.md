@@ -11,7 +11,9 @@ is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
 [`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 258 of 346 catalogued Hammond
-shuttles are currently covered.
+shuttles and 73 of 84 sighted Blickensderfer shuttles are currently
+covered. Both tables are generated, so those counts cannot drift from
+the code.
 
 ---
 
@@ -21,7 +23,7 @@ shuttles are currently covered.
 |---|---|---|
 | Hammond, 1920 | `windows_tailscale:C:/Users/Leonard/Documents/Python/images to pdf/HammondTypeShuttleCatalogSmall.pdf` | 6 PDF pages (4 are two-page spreads), organised **by shuttle number** |
 | Hammond, 1915 | `windows_tailscale:E:/Leonard/Typewriter/Books Manuals/Hammond_type_Catalog_1915.pdf` | 35 pages, organised **by language** |
-| Blickensderfer | `windows_tailscale:E:/Type Elements/Blickensderfer/Catalog/20230113_01{55..68}.jpg` | 14 page scans, organised **by language/market** |
+| Blickensderfer | `windows_tailscale:E:/Type Elements/Blickensderfer/Catalog/20230113_01{55..68}.jpg` (local copy: `~/Blickensderfer-Catalog`) | 14 page scans, organised **by language/market** |
 
 None have a text layer — all are scans, read as images. 200 dpi is enough
 for the letter rows; individual ambiguous glyphs needed 300–600 % crops.
@@ -113,8 +115,14 @@ apply to it.)
   entries 37/10 and 1/2 match the 1920-derived layouts character for
   character, five years apart. Two independent printings agreeing is much
   stronger evidence than one.
-- **Blickensderfer `DHIATENSOR`** — Small Roman 362 and Large Roman 409
-  print it identically, differing only in typeface.
+- **Blickensderfer `DHIATENSOR`** — fourteen English Scientific entries
+  (365, 407, 409, 455, 457, 356, 362, 374, 474, 440, 499, 201, 223, 308)
+  all print it identically, differing only in typeface. `QWERTY` gets the
+  same treatment from eight Universal entries (325, 406, 418, 364, 359,
+  497, 304, 216).
+- **Blickensderfer `WKJY`** — German 423's row 1 was a *third*
+  independent confirmation of the `WKJU`→`WKJY` correction above, after
+  the letter-inventory check and the Bohemian scan.
 
 ---
 
@@ -375,18 +383,47 @@ into the picker — with two characters corrected against the catalog
 (v2 had `⅌` and `§` where every catalogued Universal entry has `×` and
 `^`, which `hammond.yaml`'s own Universal row already spelled correctly).
 
-### Blickensderfer (8 presets)
+### Blickensderfer (28 presets, 20 of them from the catalog)
+
+All 14 pages have now been read: **73 of the 84 shuttles they contain**
+are covered. See [`CATALOG_INDEX.md`](CATALOG_INDEX.md) for the
+per-entry table.
 
 | Layout | Shuttles covered |
 |---|---|
+| `BRITISH_SCIENTIFIC_FRACTION` | Imperial 212, and Scientific E458, 412, 428, 435, 405, 363, 393, 357, 454, 300, 205 |
+| `UNIVERSAL_FRACTION` | Elite 350, Small Roman 494, Large Roman 379, Italic 371, Script 337, Vertical Script 217 |
+| `DHIATENSOR_FRACTION` | English Fractional 436, 424, 425 |
 | `BRITISH_LITERARY` | Elite Literary 381, Small Roman Literary 462, Extra Large Roman Literary 307, Italic Literary 383, Script Literary 395, Vertical Script Literary 213 |
+| `GERMAN` | Small Roman 404, Large Roman 423, Large Roman 378, Italic 489 |
 | `QWERTY_BRITISH` | Small Roman 441, Large Roman 442 |
+| `BRITISH_AMERICAN` | Large Roman 432, Small Roman 433 |
+| `ENGLISH_JAPANESE` | Small Roman 332, Large Roman 333 |
+| `CHEMICAL_ENGLISH` / `CHEMICAL_UNIVERSAL` | 385 / 222 |
+| `COSMOPOLITAN` / `UNIVERSAL_ACCENT` | 328 / 367 |
+| `BRITISH_INDIA` / `DHIATENSOR_BRITISH` / `UNIVERSAL_LITERARY` | 458 / 407½ / 203 |
+| `UNIVERSAL_FRACTION_US` / `DHIATENSOR_FRACTION_ALT` | 494½ / 447 |
+| `GERMAN_ESZETT` / `GERMAN_FRACTION` / `DANISH` / `HUNGARIAN` | 303 / 204 / 420 / 415 |
 
-`BRITISH_LITERARY` keeps DHIATENSOR's letters but swaps two keys in the
-shifted row (the `.` key shifts to `&`; the `,` key to `?`) and has a
-wholly different figures row carrying ¼ ½ ¾ and £. `QWERTY_BRITISH`
-differs from the existing (American) `QWERTY` in **exactly one position**
-— `£` where it has `$`.
+Much of this catalog is one layout in many typefaces, and the same few
+one-position swaps recur across markets:
+
+- **`$` ↔ `£`** is the American/British split, and it is *only* that one
+  position, three times over: `QWERTY`/`QWERTY_BRITISH`,
+  `DHIATENSOR`/`DHIATENSOR_BRITISH`,
+  `DHIATENSOR_FRACTION`/`BRITISH_SCIENTIFIC_FRACTION`, and
+  `UNIVERSAL_FRACTION_US`/`UNIVERSAL_FRACTION`.
+- **`BRITISH_AMERICAN`** is the wheel that refuses to choose — the only
+  one carrying both `$` and `£`, paid for with three moved slots.
+- **`BRITISH_INDIA`** is the British fraction wheel with `₨` for `⅞` and
+  `⅓` for `⅛`.
+- **`ENGLISH_JAPANESE`** carries `¥`, `$` and `£` at once.
+
+Two of the four wheels that aren't a fraction bank are symbol banks:
+`CHEMICAL_*` swap the figures row for subscript digits (`₁₂₃₄₅` before
+the full-size digits, `₆₇₈₉₀` after, for formulae like H₂SO₄), and
+`COSMOPOLITAN`/`UNIVERSAL_ACCENT` spend nine slots on free-standing
+accents plus æ/œ, paying for them by dropping the digit `1` entirely.
 
 ---
 
@@ -437,15 +474,38 @@ just as silently as a wrong glyph.
 
 ### Blickensderfer
 
+Eleven of the 84 sighted shuttles, all for reasons of script or of type
+that has no codepoint — none for image quality, which is consistently
+better here than in the Hammond scans.
+
 - **Bohemian 426/443** — CHARIENSTU letters with a Czech figures row whose
   doubled dead-key accents (`´ ´` and `ˇ ˇ`) cannot be separated reliably.
-- **Armenian 218** — full Armenian script; needs a font with those glyphs.
-- **British Imperial / Scientific / Universal fraction variants** (212,
-  E458, 331, 454, 300, 205, 350, 494, 379, 387, 371, 337, 217) — each
-  packs a different dense fraction bank (⅛ ¼ ⅜ ½ ⅝ ¾ ⅞ in varying slots)
-  needing per-entry checking rather than one shared reading.
+- **Armenian 218**, **Ancient Greek 309**, **Hebrew 354/358/348/351** —
+  whole scripts, each needing its own pass rather than being folded into
+  a Latin-wheel batch. 358 needs no reading at all once 354 is done: the
+  catalog says in prose that it is 354 with `£` for `$`.
+- **Bulgarian 452½** — Cyrillic; the same case as the Hammond Bulgarian
+  shuttle, which alphabet accounting eventually solved.
+- **Special British 387** — `UNIVERSAL_FRACTION`'s row with its last five
+  slots given to shilling numerators `1⁄ 3⁄ 5⁄ 7⁄ 9⁄`, each cast as one
+  piece of type. Only the first has a codepoint (`⅟`, U+215F), and
+  `layout.rows` is strictly one character per position. The reading
+  itself is not in doubt.
 - **British Telegraph 376** — not the usual three-row 28-column shape.
-- **Pages 0161–0168** — further language sections, not yet sampled.
+
+**Two entries in this list used to be wrong, and both failed the same
+way — a group judged on one glance instead of read.**
+
+- *"Each fraction entry packs a different bank."* It doesn't. Twenty-one
+  entries collapse to four layouts plus four genuine one- or
+  two-position variants. This one deferral was hiding a sixth of the
+  whole catalog.
+- *"English-Japanese 332/333: kana."* There is no kana on it. It is a
+  Latin trading wheel carrying `¥ $ £`.
+
+The lesson is narrow and worth keeping: a shared *heading* ("Fractional",
+"English-Japanese") predicts nothing about the rows underneath it. Read
+one entry per group before deferring the group.
 
 ---
 
@@ -514,9 +574,18 @@ more languages there than the table above. Each section is one layout
 shared by several shuttles, so the yield per verified layout is high.
 Difficulty is ordinary accented Latin.
 
-**2. Blickensderfer pages 0161–0168 — 8 of 14 pages unsampled.** Only
-0155–0160 have been read. Same by-language/market structure, same
-three-row 28-column shape, same yield pattern. No known blockers.
+**2. Blickensderfer — done, except for scripts.** All 14 pages have been
+read; 73 of their 84 shuttles are imported. What is left is the eleven
+in "What was NOT imported" above, of which seven are whole scripts
+(Armenian, Greek, Hebrew ×4, Bulgarian) and the rest are Bohemian's
+dead-key accents, 387's shilling type and 376's odd shape.
+
+The bigger Blickensderfer gap is now the **missing pages**, not unread
+ones: the scans hold catalog pages 3–14, 18 and 21, so pages 1–2, 15–17,
+19–20 are absent — roughly 42 more shuttles at this catalog's steady six
+per page. Alphabetically, 15–17 fall between English-Japanese and German
+(so French and Esperanto sit there) and 19–20 between German and Greek.
+Nothing can be done about these without more scans.
 
 **3. Hammond 1920 leftovers — small and fiddly.** 41, 162, 184,
 23E/23F/23G, 136. Each is one or two unresolved figure slots, or a
@@ -525,15 +594,11 @@ higher-resolution TIFF originals rather than more zooming on the small
 PDF — that is the specific thing likely to settle 162's damaged glyph
 after `4%` and 41's fraction numerators.
 
-**4. Blickensderfer British fraction variants.** 212, E458, 331, 454,
-300, 205, 350, 494, 379, 387, 371, 337, 217. Legible, but each packs a
-*different* fraction bank, so this is thirteen separate verifications
-rather than one shared reading — high effort, low yield per entry.
-
-**5. Non-Latin scripts — transcribable, just unworked.** Hammond's
+**4. Non-Latin scripts — transcribable, just unworked.** Hammond's
 non-Latin sets (195 Astronomical, 196/197 Phonetic, 135/135B/135C
 Mathematical, 112C Greek, 165/167 Yiddish), the 1915 pre-reform Cyrillic
-(Russian 49/35, Servian 125), and Blickensderfer's Armenian 218. All of
+(Russian 49/35, Servian 125), and Blickensderfer's Armenian 218,
+Ancient Greek 309, Bulgarian 452½ and Hebrew 354/358/348/351. All of
 these have complete Unicode coverage — the pre-reform Cyrillic letters
 are ѣ U+0463, і U+0456, ъ U+044A, Ѳ U+0472 — so they meet the bar and
 can be catalogued by anyone willing to read them carefully. They need
