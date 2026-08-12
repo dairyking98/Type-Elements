@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 216 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 223 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -158,6 +158,14 @@ The payoff was disproportionate: `Ideal, German` turns out to differ from
 `Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.
 
+**An italic shuttle settled what the roman ones could not.** The guilder
+`ƒ` had been argued for from structure (row 0 already has an `f`) rather
+than seen cleanly. Dutch Universal 119E is an ITALIC face, and at that
+size the hooked form is unmistakable in the same slot — so the reading is
+now observed, not just inferred. Worth remembering as a tactic: when a
+glyph will not resolve, look for the same layout in a different TYPEFACE
+before reaching for a better scan.
+
 **Greek is held on the diacritics, not the letters.** The Greek shuttles
 (7, 75, 82, 8, 112A, 112B) are polytonic: alongside the alphabet they
 carry standalone breathing and accent marks, and what appear to be
@@ -276,6 +284,8 @@ both.
 | Universal, Russian | 143 |
 | Universal, Bohemian | 116 |
 | Ideal, Italian | 61A, 14A, 62A, 15A |
+| Universal, Dutch (Fractions) | 34D, 50C, 71F, 84C, 119E |
+| Universal, German (New Orthography, Fractions) | 119C, 117D, 117E, 55F, 101E, 71E |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

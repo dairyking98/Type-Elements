@@ -66,6 +66,7 @@ IMPORTED = {
     ("Universal", "Spanish", ()): "Universal, Spanish",
     ("Universal", "Chilian", ()): "Universal, Chilian",
     ("Universal", "Bohemian", ()): "Universal, Bohemian",
+    ("Universal", "Dutch", ("Fractions",)): "Universal, Dutch (Fractions)",
     ("Universal", "Russian", ()): "Universal, Russian",
     ("Universal", "Swedish-Finnish", ()): "Universal, Swedish-Finnish",
     ("Universal", "Danish-Norwegian", ()): "Universal, Danish-Norwegian",
@@ -75,6 +76,8 @@ HELD = {
     "88": "blank slot vs under-inked `_`",
     "29B": "Latin-form `N` at position 14: plain N, or `\u2116` without its raised o?",
     "29": "same as 29B", "29A": "same as 29B",
+    "49A": "figures row pairs duplicate row-0 letters; N/i unidentifiable",
+    "35A": "same as 49A",
     "31C": "catalog prints \u0436 twice in row 0 and omits \u046b (big yus)",
     "29C": "same as 31C", "42C": "same as 31C", "115C": "same as 31C",
     "71A": "stem-with-bowl glyph: `¶`, `Þ` or other",
@@ -111,6 +114,8 @@ def status(num, desc):
             return "imported", "Ideal, German (New Orthography)"
         if kb == "Universal" and not variants:
             return "imported", "Universal, German (New Orthography)"
+        if kb == "Universal" and variants == ["Fractions"]:
+            return "imported", "Universal, German (New Orthography, Fractions)"
     if lang == "Spanish" and kb == "Ideal" and "Caps and Small Caps" in desc:
         return "imported", "Ideal, Spanish (Caps and Small Caps)"
     if lang == "English" and kb == "Universal" and "Caps and Small Caps" in desc and not variants:

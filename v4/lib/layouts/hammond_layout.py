@@ -418,6 +418,24 @@ CATALOG_IDEAL_ITALIAN = [
     "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
     "¨%/èçù1à2.3ì4ò5" "6“7”8’9(0)ûôîêâ",
 ]
+# Dutch, Universal, FRACTIONS (34D, 50C, 71F, 84C, 119E). ¼/½/¾ take the
+# @/#/_ slots. The guilder is confirmed here rather than argued: 119E is
+# an ITALIC shuttle, and at that size the hooked ƒ is unmistakable where
+# the roman faces left it debatable.
+CATALOG_UNIVERSAL_DUTCH_FRACTIONS = [
+    "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    "1„¼2”½3$¾4%£5_-" "6&*7’§8(ƒ9);0=/",
+]
+# German, Universal, New Orthography, FRACTIONS (119C, 117D, 117E, 55F,
+# 101E, 71E). Identical to CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY
+# except ¼/½/¾ at positions 2/8/13 - the same three slots Dutch uses for
+# its fractions, which is a good sign both were read right.
+CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS = [
+    "qazwsxedcrfvtgb" "yhnujmik,olüpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK.OLÜPÄÖ",
+    "1„¼2”:3!½4%?5¾-" "6&*7’§8(ß9);0=/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -478,6 +496,8 @@ CATALOG_SHUTTLES = {
         "157A Italic"
     ),
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
+    "universal_dutch_fractions": "34D, 50C, 71F, 84C, 119E",
+    "universal_german_new_orthography_fractions": "119C, 117D, 117E, 55F, 101E, 71E",
     "universal_bohemian": "116 Medium Roman",
     "universal_chilian": "47A Large Roman, 89A Vertical Script, 16A/17A/46A/65A/66A/33A",
     "universal_russian": "143 Large Roman",
@@ -648,4 +668,10 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Russian": [r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN],
     "Universal, Bohemian": [r[::-1] for r in CATALOG_UNIVERSAL_BOHEMIAN],
     "Ideal, Italian": [r[::-1] for r in CATALOG_IDEAL_ITALIAN],
+    "Universal, Dutch (Fractions)": [
+        r[::-1] for r in CATALOG_UNIVERSAL_DUTCH_FRACTIONS
+    ],
+    "Universal, German (New Orthography, Fractions)": [
+        r[::-1] for r in CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY_FRACTIONS
+    ],
 }

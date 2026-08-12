@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**216 of 346 catalogued shuttles are covered (62%)** — 27 held on an unresolved character,
-103 not yet transcribed.
+**223 of 346 catalogued shuttles are covered (64%)** — 29 held on an unresolved character,
+94 not yet transcribed.
 
 Status meanings:
 
@@ -127,7 +127,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 34D | Medium Roman, Fractions, Dutch, Universal | 34 | held | same as 71A |
 | 34E | Lithuanian, English, German, Croatian | 53 | todo | ? / Lithuanian |
 | 35 | Italic, Russian, Ideal | 27 | todo | Ideal / Russian |
-| 35A | Italic, Bulgarian, Ideal | 15 | todo | Ideal / Bulgarian |
+| 35A | Italic, Bulgarian, Ideal | 15 | held | same as 49A |
 | 36 | Small Roman, German, Ideal | 21 | **imported** | Ideal, German |
 | 36A | Small Roman, Dutch, Ideal | 16 | **imported** | Ideal, Dutch |
 | 36B | Small Roman, German, Ideal (New Orthography) | 21 | **imported** | Ideal, German (New Orthography) |
@@ -154,7 +154,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 48B | Medium Roman, Fractions, English, Ideal | 18 | **imported** | Ideal, Fractions |
 | 48C | Medium Roman, Library, English, Ideal | 18 | todo | Ideal / English / Library |
 | 49 | Large Russian, Ideal | 26 | todo | Ideal / Russian |
-| 49A | Medium Bulgarian, Ideal | 15 | todo | Ideal / Bulgarian |
+| 49A | Medium Bulgarian, Ideal | 15 | held | figures row pairs duplicate row-0 letters; N/i unidentifiable |
 | 50 | Large Roman, German, Universal | 43 | todo | Universal / German |
 | 50A | Large Roman, Dutch, Universal | 34 | held | same as 71A |
 | 50B | Large Roman, Fractions, German, Universal | 43 | todo | Universal / German / Fractions |
@@ -170,7 +170,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 55C | Medium Roman, Fractions, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish / Fractions |
 | 55D | Medium Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 55E | Medium Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
-| 55F | Medium Roman, Fractions, German, Universal (New Orthography) | 43 | todo | Universal / German / Fractions |
+| 55F | Medium Roman, Fractions, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography, Fractions) |
 | 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | todo | Universal / Hungarian |
 | 57 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 58 | Medium Roman, Croatian, Ideal | 16 | **imported** | Ideal, Croatian |
@@ -204,7 +204,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 71B | Small Roman, Croatian, Universal | 33 | todo | Universal / Croatian |
 | 71C | Small Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
 | 71D | Small Roman, Fractions, German, Universal | 42 | todo | Universal / German / Fractions |
-| 71E | Small Roman, Fractions, German, Universal (New Orthography) | 42 | todo | Universal / German / Fractions |
+| 71E | Small Roman, Fractions, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography, Fractions) |
 | 71F | Small Roman, Fractions, Dutch, Universal | 34 | held | same as 71A |
 | 73 | Medium Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
 | 74 | Gothic Italic, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
@@ -227,7 +227,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 84 | Vertical Script, German, Universal | 45 | todo | Universal / German |
 | 84A | Vertical Script, Dutch, Universal | 35 | todo | Universal / Dutch |
 | 84B | Vertical Script, Fractions, German, Universal | 45 | todo | Universal / German / Fractions |
-| 84C | Vertical Script, Fractions, Dutch, Universal | 35 | todo | Universal / Dutch / Fractions |
+| 84C | Vertical Script, Fractions, Dutch, Universal | 35 | **imported** | Universal, Dutch (Fractions) |
 | 85 | Vertical Script, French, Universal | 41 | **imported** | Universal, French |
 | 85A | Vertical Script, Italian, Universal | 47 | **imported** | Universal, Italian |
 | 86 | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
@@ -257,7 +257,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 101B | Large Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
 | 101C | Large Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 101D | Large Roman, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
-| 101E | Large Roman, Fractions, German, Universal (New Orthography) | 43 | todo | Universal / German / Fractions |
+| 101E | Large Roman, Fractions, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography, Fractions) |
 | 102 | Italic, German, Ideal | 23 | **imported** | Ideal, German |
 | 102A | Italic, German, Ideal | 23 | **imported** | Ideal, German |
 | 102B | Italic, Dutch, Ideal | 17 | **imported** | Ideal, Dutch |
@@ -295,14 +295,14 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 117A | Italic, German, Universal | 44 | todo | Universal / German |
 | 117B | Italic, Dutch, Universal | 35 | todo | Universal / Dutch |
 | 117C | Italic, Croatian, Universal | 33 | todo | Universal / Croatian |
-| 117D | Italic, German, Fractions, Universal (New Orthography) | 41 | todo | Universal / German / Fractions |
-| 117E | Italic, German, Fractions, Universal (New Orthography) | 44 | todo | Universal / German / Fractions |
+| 117D | Italic, German, Fractions, Universal (New Orthography) | 41 | **imported** | Universal, German (New Orthography, Fractions) |
+| 117E | Italic, German, Fractions, Universal (New Orthography) | 44 | **imported** | Universal, German (New Orthography, Fractions) |
 | 117F | Italic, Dutch, Universal | 35 | todo | Universal / Dutch |
 | 118 | Law Italic, English, Ideal | 20 | **imported** | Ideal |
 | 119 | Gothic Italic, German, Universal | 43 | todo | Universal / German |
 | 119A | Gothic Italic, German, Universal | 44 | todo | Universal / German |
 | 119B | Gothic Italic, Dutch, Universal | 34 | todo | Universal / Dutch |
-| 119C | Gothic Italic, Fractions, German, Universal (New Orthography) | 44 | todo | Universal / German / Fractions |
+| 119C | Gothic Italic, Fractions, German, Universal (New Orthography) | 44 | **imported** | Universal, German (New Orthography, Fractions) |
 | 119D | Gothic Italic, Fractions, German, Universal | 44 | todo | Universal / German / Fractions |
 | 119E | Gothic Italic, Dutch, Universal | 35 | todo | Universal / Dutch |
 | 120 | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
