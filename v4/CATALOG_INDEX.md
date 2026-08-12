@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**211 of 346 catalogued shuttles are covered (60%)** — 17 held on an unresolved character,
-118 not yet transcribed.
+**212 of 346 catalogued shuttles are covered (61%)** — 21 held on an unresolved character,
+113 not yet transcribed.
 
 Status meanings:
 
@@ -103,12 +103,12 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 29 | Large Russian, Universal | 49 | held | same as 29B |
 | 29A | Large Russian, Universal, Old Style | 49 | held | same as 29B |
 | 29B | Large Russian, Universal, Old Style | 50 | held | Latin-form `N` at position 14: plain N, or `№` without its raised o? |
-| 29C | Large Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
+| 29C | Large Bulgarian, Universal | 32 | held | same as 31C |
 | 30 | Medium Roman, Polish, Universal | 48 | todo | Universal / Polish |
 | 31 | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
 | 31A | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
 | 31B | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
-| 31C | Medium Roman, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
+| 31C | Medium Roman, Bulgarian, Universal | 32 | held | catalog prints ж twice in row 0 and omits ѫ (big yus) |
 | 32 | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
 | 32A | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
 | 32B | Medium Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
@@ -139,7 +139,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 41 | Small Roman, Fractions, English, Universal | 36 | held | diagonal-fraction numerators |
 | 42 | Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 42A | Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
-| 42C | Italic, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
+| 42C | Italic, Bulgarian, Universal | 32 | held | same as 31C |
 | 43 | Medium Roman, Special Medical, English, Universal | 37 | todo | Universal / English / Special Medical, Medical, Special |
 | 43A | Medium Roman, Medical, English, Universal | 37 | todo | Universal / English / Medical |
 | 44 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
@@ -289,8 +289,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 115 | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 115A | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 115B | Large Italic, Russian, Universal | 50 | **imported** | Universal, Russian |
-| 115C | Large Italic, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
-| 116 | Medium Roman, Bohemian, Universal | 32 | todo | Universal / Bohemian |
+| 115C | Large Italic, Bulgarian, Universal | 32 | held | same as 31C |
+| 116 | Medium Roman, Bohemian, Universal | 32 | **imported** | Universal, Bohemian |
 | 117 | Italic, German, Universal | 44 | todo | Universal / German |
 | 117A | Italic, German, Universal | 44 | todo | Universal / German |
 | 117B | Italic, Dutch, Universal | 35 | todo | Universal / Dutch |

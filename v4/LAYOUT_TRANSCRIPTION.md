@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 211 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 212 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -158,6 +158,17 @@ The payoff was disproportionate: `Ideal, German` turns out to differ from
 `Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.
 
+**The inventory check can indict the SOURCE, not just the port.** It was
+built to catch v1/v2 transcription errors, but on Bulgarian 31C it fired
+against the catalog itself: `ж` is printed at both position 0 and
+position 12 of row 0, while `ѫ` (big yus) — which pre-1945 Bulgarian
+cannot do without — is absent from the shuttle entirely. A duplicated
+letter alongside a missing one is precisely the signature. Either the
+catalog has a typo or that glyph is not `ж`; either way it is not
+importable, so all four Bulgarian entries are held. Worth knowing that
+"primary source" does not mean "error-free" — it means *earlier*
+authority.
+
 **The letter-inventory check works on Cyrillic too**, and is what made a
 Russian read trustworthy rather than a guess. Of the six pre-reform
 letters absent from shuttle 143's row 0 (ж х ц э ѳ ѵ), five reappear in
@@ -254,6 +265,7 @@ both.
 | Ideal, Hungarian | 152, 44, 57, 151, 74 |
 | Universal, Chilian | 47A, 89A, 16A, 17A, 46A, 65A, 66A, 33A |
 | Universal, Russian | 143 |
+| Universal, Bohemian | 116 |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

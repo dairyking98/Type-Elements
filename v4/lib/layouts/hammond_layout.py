@@ -395,6 +395,19 @@ CATALOG_UNIVERSAL_RUSSIAN = [
     "ЙФЯІЫЧУВѢКЪСЕАМ" "НПИГРТШОЬЩЛБЗДЮ",
     '1Ѵ-2%"3э!4Э:5ц.' "6Ц№7х,8Х/9ж(0Ж)",
 ]
+# Bohemian/Czech, Universal (116 Medium Roman). Not a simple substitution
+# into the qwerty order - it uses all THREE levels of three keys to fit
+# Czech in. At positions 5/10/13 the unshifted level carries ě/é/í, the
+# shift level keeps the Latin capital X/F/G, and the FIGURE level carries
+# the Latin lowercase x/f/g. Row 0 accordingly contains no x, f or g.
+#
+# That three-level split is itself the check: a misread would almost
+# certainly have put a lowercase Latin letter back into row 0.
+CATALOG_UNIVERSAL_BOHEMIAN = [
+    "qazšsěedcrévtíb" "yhnujmik,olápčř",
+    "QAZŠSXEDCRFVTGB" "YHNUJMIK;OL.PČŘ",
+    '1„%2“x3ď!4f:5g-' "6§ň7úť8(?9)ůýq/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -454,6 +467,7 @@ CATALOG_SHUTTLES = {
         "157A Italic"
     ),
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
+    "universal_bohemian": "116 Medium Roman",
     "universal_chilian": "47A Large Roman, 89A Vertical Script, 16A/17A/46A/65A/66A/33A",
     "universal_russian": "143 Large Roman",
     "universal_spanish": "33 Medium Roman, 66/66B Small Roman, 47 Large Roman, 89 Vertical Script",
@@ -621,4 +635,5 @@ LAYOUT_PRESETS_HAMMOND = {
     "Ideal, Hungarian": [r[::-1] for r in CATALOG_IDEAL_HUNGARIAN],
     "Universal, Chilian": [r[::-1] for r in CATALOG_UNIVERSAL_CHILIAN],
     "Universal, Russian": [r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN],
+    "Universal, Bohemian": [r[::-1] for r in CATALOG_UNIVERSAL_BOHEMIAN],
 }
