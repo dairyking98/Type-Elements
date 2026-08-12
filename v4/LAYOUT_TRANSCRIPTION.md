@@ -340,6 +340,32 @@ A layout is only buildable if the selected font actually has its glyphs.
 
 ---
 
+## In flight — read and validated, not yet imported
+
+Transcribed and checked but not committed as a preset yet. Recorded here
+so the reading does not have to be redone from the scans.
+
+**Polish, Ideal** (155 Small Roman, 77/154 Medium Roman, 156 Large Roman,
+157 Italic, 153B Gothic, 121 Polish-German). 1915 catalog p.25, PDF page
+18, right column. Validated: 3x30, complete Polish set
+(ł Ł ż Ż ą Ą ę Ę ź Ź ć Ć ś Ś ń Ń ó Ó), every codepoint named, and it
+passes the same self-check Bohemian does — `q`/`Q` sit in the figures row
+because Polish does not use q natively, and row 0 contains no `q`.
+
+```
+row 0   łzxżkjgbmpcfld,ątaherisounwyvę
+row 1   ŁZXŻKJGBMPCFLD.ĄTAHERISOUNWYVĘ
+row 2   q%Q?Źź1-2&3Ć4ć5 6:7"8'9ś¨ŚńóŃÓ/     (no space; shown split at the half)
+```
+
+**Hungarian, Ideal** (152 Small Roman, 44/57 Medium Roman, 151 Large
+Roman, 74 Gothic Italic). Same page, left column. Rows 0/1 read
+`?zxqkjgbmpcfld,` / `átaherisounwyvé` and `!ZXQKJGBMPCFLD;` /
+`ÁTAHERISOUNWYVÉ`; the figures row is `…%!?.:*-2§3Ú4ú5` /
+`6ű7ő8Ü9üäÓ&ó=”/` with the FIRST character clipped by the crop — re-crop
+PDF 18 with more left margin than `+180` to get it. Not a scan problem,
+just a crop that needs redoing.
+
 ## Remaining work, prioritised
 
 **The test is character identification, not font availability.** A layout
