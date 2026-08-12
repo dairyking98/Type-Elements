@@ -7,12 +7,28 @@ set -euo pipefail
 cd "$(dirname "$0")/.."  # now in v4/
 SITE=site
 
+# Repo-relative doc links (README.md's documentation table, and the
+# cross-references the docs make to each other) are correct on GitHub but
+# would 404 on the site, where each doc is published at its own pretty
+# URL. Rewrite them on the way in so both work from one source.
+rewrite_links() {
+  sed -e 's|](PIPELINE\.md)|](/pipeline/)|g' \
+      -e 's|](MACHINES\.md)|](/machines-detail/)|g' \
+      -e 's|](TUNER\.md)|](/tuner/)|g' \
+      -e 's|](LIMITATIONS\.md)|](/limitations/)|g' \
+      -e 's|](LAYOUT_TRANSCRIPTION\.md)|](/layout-transcription/)|g' \
+      -e 's|](SESSION_LOG\.md)|](/changelog/)|g' \
+      -e 's|](PACKAGING_PLAN\.md)|](/roadmap-packaging/)|g' \
+      -e 's|](README\.md)|](/readme/)|g' \
+      -e 's|](CLAUDE\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/v4/CLAUDE.md)|g'
+}
+
 inject() {
   local src="$1" dest="$2" title="$3"
   mkdir -p "$(dirname "$dest")"
   {
     printf -- '---\nlayout: page\ntitle: "%s"\n---\n\n' "$title"
-    cat "$src"
+    rewrite_links < "$src"
   } > "$dest"
 }
 
@@ -20,6 +36,10 @@ inject README.md "$SITE/readme.md" "README"
 inject SESSION_LOG.md "$SITE/changelog.md" "Changelog"
 inject PACKAGING_PLAN.md "$SITE/roadmap-packaging.md" "Packaging Plan"
 inject LAYOUT_TRANSCRIPTION.md "$SITE/layout-transcription.md" "Layout Transcription"
+inject PIPELINE.md "$SITE/pipeline.md" "The Glyph Pipeline"
+inject MACHINES.md "$SITE/machines-detail.md" "Machines (detail)"
+inject TUNER.md "$SITE/tuner.md" "Interactive Tuner"
+inject LIMITATIONS.md "$SITE/limitations.md" "Known Limitations"
 
 for f in docs/*.md; do
   [ -e "$f" ] || continue

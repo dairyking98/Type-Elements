@@ -18,6 +18,10 @@ site/readme.md
 site/changelog.md
 site/roadmap-packaging.md
 site/layout-transcription.md
+site/pipeline.md
+site/machines-detail.md
+site/tuner.md
+site/limitations.md
 site/accessories/*.md
 site/assets/models/
 site/assets/legends/
