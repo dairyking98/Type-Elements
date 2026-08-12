@@ -40,6 +40,8 @@ from .hammond_layout import (
     CATALOG_UNIVERSAL_FRENCH,
     CATALOG_UNIVERSAL_FRENCH_GERMAN_ENGLISH,
     CATALOG_UNIVERSAL_GERMAN_NEW_ORTHOGRAPHY,
+    CATALOG_IDEAL_HUNGARIAN,
+    CATALOG_IDEAL_POLISH,
     CATALOG_IDEAL_PORTUGUESE,
     CATALOG_IDEAL_ROUMANIAN,
     CATALOG_IDEAL_FRACTIONS,
@@ -122,6 +124,8 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Universal, Swedish-Finnish": [3.74, -1.21, -5.71],
         "Universal, Danish-Norwegian": [3.74, -1.21, -5.71],
         "Ideal, Bohemian": [3.74, -1.21, -5.71],
+        "Ideal, Polish": [3.74, -1.21, -5.71],
+        "Ideal, Hungarian": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires

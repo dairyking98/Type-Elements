@@ -341,6 +341,34 @@ CATALOG_IDEAL_BOHEMIAN = [
     "ŽZXČKJGBMPCFLD:" ".TAHERISOUNŠYVŘ",
     'q%Q?íé1-2ö3ü4ä5' "6ě7\"8'9ů&úňwýW/",
 ]
+# Polish, Ideal (155 Small Roman, 77/154 Medium Roman, 156 Large Roman,
+# 157 Italic, 153B Gothic, 121 Polish-German). Complete Polish set:
+# ł ż ą ę ź ć ś ń ó with their capitals.
+#
+# Same self-check Bohemian passes: q and Q sit in the FIGURES row because
+# Polish has no native q, and row 0 contains none. Two languages
+# independently putting their unused Latin letters on the figure shift is
+# a good sign both letter rows were read correctly.
+CATALOG_IDEAL_POLISH = [
+    "łzxżkjgbmpcfld," "ątaherisounwyvę",
+    "ŁZXŻKJGBMPCFLD." "ĄTAHERISOUNWYVĘ",
+    'q%Q?Źź1-2&3Ć4ć5' "6:7\"8'9ś¨ŚńóŃÓ/",
+]
+# Hungarian, Ideal (152 Small Roman, 44/57 Medium Roman, 151 Large Roman,
+# 74 Gothic Italic). Complete Hungarian vowel set including the
+# double-acute ő and ű that no other language here needs.
+#
+# Figures-row position 0 is the digit 1, not a bare vertical bar, and the
+# row proves it internally: digits 2/3/4/5 sit at exactly their standard
+# Ideal positions (8/10/12/14) while 1 has moved from position 6 to 0,
+# displacing "=" - which then reappears in the right half at position 27.
+# Every character is accounted for, so no slot is left needing a glyph
+# that is not there.
+CATALOG_IDEAL_HUNGARIAN = [
+    "özxqkjgbmpcfld," "átaherisounwyvé",
+    "ÖZXQKJGBMPCFLD;" "ÁTAHERISOUNWYVÉ",
+    "1%!?.:*-2§3Ú4ú5" "6ű7ő8Ü9üäÓ&ó=”/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -390,6 +418,11 @@ CATALOG_SHUTTLES = {
     "universal_french_german_english": "32E Medium Roman",
     "universal_esperanto": "135A, 135D Medium Roman",
     "ideal_roumanian": "92 Medium Roman",
+    "ideal_hungarian": "152 Small Roman, 44/57 Medium Roman, 151 Large Roman, 74 Gothic Italic",
+    "ideal_polish": (
+        "155 Small Roman, 77/154 Medium Roman, 156 Large Roman, "
+        "157 Italic, 153B Gothic, 121 Polish-German"
+    ),
     "ideal_bohemian": (
         "54/86/120 Medium Roman, 153C Gothic, 154A/155A/156A Roman, "
         "157A Italic"
@@ -556,4 +589,6 @@ LAYOUT_PRESETS_HAMMOND = {
         r[::-1] for r in CATALOG_UNIVERSAL_DANISH_NORWEGIAN
     ],
     "Ideal, Bohemian": [r[::-1] for r in CATALOG_IDEAL_BOHEMIAN],
+    "Ideal, Polish": [r[::-1] for r in CATALOG_IDEAL_POLISH],
+    "Ideal, Hungarian": [r[::-1] for r in CATALOG_IDEAL_HUNGARIAN],
 }

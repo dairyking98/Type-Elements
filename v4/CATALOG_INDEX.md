@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**187 of 346 catalogued shuttles are covered (54%)** — 8 held on an unresolved character,
-151 not yet transcribed.
+**198 of 346 catalogued shuttles are covered (57%)** — 14 held on an unresolved character,
+134 not yet transcribed.
 
 Status meanings:
 
@@ -121,10 +121,10 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 33C | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | **imported** | Universal, Spanish |
 | 33D | Spanish, French, English | 53 | todo | ? / Spanish |
 | 34 | Medium Roman, German, Universal | 42 | todo | Universal / German |
-| 34A | Medium Roman, Dutch, Universal | 34 | todo | Universal / Dutch |
+| 34A | Medium Roman, Dutch, Universal | 34 | held | same as 71A |
 | 34B | Medium Roman, Croatian, Universal | 33 | todo | Universal / Croatian |
 | 34C | Medium Roman, Fractions, German, Universal | 42 | todo | Universal / German / Fractions |
-| 34D | Medium Roman, Fractions, Dutch, Universal | 34 | todo | Universal / Dutch / Fractions |
+| 34D | Medium Roman, Fractions, Dutch, Universal | 34 | held | same as 71A |
 | 34E | Lithuanian, English, German, Croatian | 53 | todo | ? / Lithuanian |
 | 35 | Italic, Russian, Ideal | 27 | todo | Ideal / Russian |
 | 35A | Italic, Bulgarian, Ideal | 15 | todo | Ideal / Bulgarian |
@@ -142,7 +142,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 42C | Italic, Bulgarian, Universal | 32 | todo | Universal / Bulgarian |
 | 43 | Medium Roman, Special Medical, English, Universal | 37 | todo | Universal / English / Special Medical, Medical, Special |
 | 43A | Medium Roman, Medical, English, Universal | 37 | todo | Universal / English / Medical |
-| 44 | Medium Roman, Hungarian, Ideal | 24 | todo | Ideal / Hungarian |
+| 44 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 45 | Large Roman, Argentine Government, Ideal or Universal | 54 | todo | Ideal/Universal / Argentine Government |
 | 46 | Large Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 46A | Large Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
@@ -156,9 +156,9 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 49 | Large Russian, Ideal | 26 | todo | Ideal / Russian |
 | 49A | Medium Bulgarian, Ideal | 15 | todo | Ideal / Bulgarian |
 | 50 | Large Roman, German, Universal | 43 | todo | Universal / German |
-| 50A | Large Roman, Dutch, Universal | 34 | todo | Universal / Dutch |
+| 50A | Large Roman, Dutch, Universal | 34 | held | same as 71A |
 | 50B | Large Roman, Fractions, German, Universal | 43 | todo | Universal / German / Fractions |
-| 50C | Large Roman, Fractions, Dutch, Universal | 34 | todo | Universal / Dutch / Fractions |
+| 50C | Large Roman, Fractions, Dutch, Universal | 34 | held | same as 71A |
 | 51 | Large Roman, English, Ideal | 19 | **imported** | Ideal |
 | 51A | Large Roman, English, Ideal | 19 | **imported** | Ideal |
 | 52 | Large Roman, Fractions, English, Universal | 38 | **imported** | Universal, Fractions |
@@ -172,7 +172,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 55E | Medium Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
 | 55F | Medium Roman, Fractions, German, Universal (New Orthography) | 43 | todo | Universal / German / Fractions |
 | 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | todo | Universal / Hungarian |
-| 57 | Medium Roman, Hungarian, Ideal | 24 | todo | Ideal / Hungarian |
+| 57 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 58 | Medium Roman, Croatian, Ideal | 16 | **imported** | Ideal, Croatian |
 | 59 | German Text, Universal | 43 | todo | Universal / German |
 | 60 | Gothic Italic, English, Ideal | 20 | **imported** | Ideal |
@@ -200,19 +200,19 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 69A | Large Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
 | 70 | Vertical Script, English, Ideal | 20 | **imported** | Ideal |
 | 71 | Small Roman, German, Universal | 42 | todo | Universal / German |
-| 71A | Small Roman, Dutch, Universal | 34 | todo | Universal / Dutch |
+| 71A | Small Roman, Dutch, Universal | 34 | held | stem-with-bowl glyph: `¶`, `Þ` or other |
 | 71B | Small Roman, Croatian, Universal | 33 | todo | Universal / Croatian |
 | 71C | Small Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
 | 71D | Small Roman, Fractions, German, Universal | 42 | todo | Universal / German / Fractions |
 | 71E | Small Roman, Fractions, German, Universal (New Orthography) | 42 | todo | Universal / German / Fractions |
-| 71F | Small Roman, Fractions, Dutch, Universal | 34 | todo | Universal / Dutch / Fractions |
+| 71F | Small Roman, Fractions, Dutch, Universal | 34 | held | same as 71A |
 | 73 | Medium Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
-| 74 | Gothic Italic, Hungarian, Ideal | 24 | todo | Ideal / Hungarian |
+| 74 | Gothic Italic, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 75 | Greek, Ideal | 24 | todo | Ideal / Greek |
 | 76 | Gothic Italic, German, Ideal | 22 | **imported** | Ideal, German |
 | 76A | Gothic Italic, Dutch, Ideal | 16 | **imported** | Ideal, Dutch |
 | 76B | Gothic Italic, German, Ideal | 22 | **imported** | Ideal, German |
-| 77 | Medium Roman, Polish, Ideal | 25 | todo | Ideal / Polish |
+| 77 | Medium Roman, Polish, Ideal | 25 | **imported** | Ideal, Polish |
 | 78 | Vertical Script, German, Ideal | 23 | **imported** | Ideal, German |
 | 78A | Vertical Script, Dutch, Ideal | 17 | **imported** | Ideal, Dutch |
 | 78B | Vertical Script, German, Ideal | 23 | **imported** | Ideal, German |
@@ -345,19 +345,19 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 150 | Italic, Portuguese, Universal | 49 | **imported** | Universal, Portuguese |
 | 150B | Italic, Italian, Universal | 47 | **imported** | Universal, Italian |
 | 150C | Italic, Polish, Universal | 48 | todo | Universal / Polish |
-| 151 | Large Roman, Hungarian, Ideal | 24 | todo | Ideal / Hungarian |
-| 152 | Small Roman, Hungarian, Ideal | 24 | todo | Ideal / Hungarian |
+| 151 | Large Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
+| 152 | Small Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 153 | Gothic, German, Ideal | 22 | **imported** | Ideal, German |
 | 153A | Gothic, German, Ideal (New Orthography) | 22 | **imported** | Ideal, German (New Orthography) |
-| 153B | Gothic, Polish, Ideal | 26 | todo | Ideal / Polish |
+| 153B | Gothic, Polish, Ideal | 26 | **imported** | Ideal, Polish |
 | 153C | Gothic, Bohemian, Ideal | 15 | **imported** | Ideal, Bohemian |
-| 154 | Medium Roman, Polish, Ideal | 25 | todo | Ideal / Polish |
+| 154 | Medium Roman, Polish, Ideal | 25 | **imported** | Ideal, Polish |
 | 154A | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
-| 155 | Small Roman, Polish, Ideal | 25 | todo | Ideal / Polish |
+| 155 | Small Roman, Polish, Ideal | 25 | **imported** | Ideal, Polish |
 | 155A | Small Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
-| 156 | Large Roman, Polish, Ideal | 26 | todo | Ideal / Polish |
+| 156 | Large Roman, Polish, Ideal | 26 | **imported** | Ideal, Polish |
 | 156A | Large Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
-| 157 | Italic, Polish, Ideal | 26 | todo | Ideal / Polish |
+| 157 | Italic, Polish, Ideal | 26 | **imported** | Ideal, Polish |
 | 157A | Italic, Bohemian, Ideal | 15 | **imported** | Ideal, Bohemian |
 | 158 | Miniature Roman, English, Universal | 39 | **imported** | Universal |
 | 158A | Miniature Roman, English, Universal | 39 | **imported** | Universal |
