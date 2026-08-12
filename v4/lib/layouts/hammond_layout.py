@@ -556,9 +556,6 @@ CATALOG_UNIVERSAL_POLISH = [
 # Mathematical Machine", per the catalog's own note - though it adds that
 # any Universal shuttle works on that machine.
 #
-# 135C is NOT here: besides the ν/μ pair it also differs at row 0
-# position 29, where 135/135B carry √ and 135C carries a clean v-shape
-# that will not separate into ν, υ or a poorly-printed √. Held.
 def _math_variant(base, a, b):
     """135B/135C differ from 135 only at figures-row positions 17 and 20."""
     rows = list(base)
@@ -576,7 +573,30 @@ CATALOG_UNIVERSAL_MATHEMATICAL = [
 ]
 CATALOG_UNIVERSAL_MATHEMATICAL_BRACES = _math_variant(
     CATALOG_UNIVERSAL_MATHEMATICAL, "{", "}")
+# 135C. Its row 0 position 29 prints as a clean v-shape rather than the
+# √ that 135/135B show; confirmed by the machine's owner as a badly
+# printed radical, not a separate character - so 135C differs from 135 in
+# the ν/μ pair alone.
+CATALOG_UNIVERSAL_MATHEMATICAL_GREEK = _math_variant(
+    CATALOG_UNIVERSAL_MATHEMATICAL, "ν", "μ")
 
+# Hungarian, Universal (134A Large Gothic, 56 Medium Roman, 64 Italic).
+#
+# Figures-row positions 4 and 7 are Ó and ó, not ó twice. They were read
+# as a duplicate at first; what settled it was cap height at 700% - the
+# first reaches the full height of the adjacent digits, the second sits
+# at x-height - corroborated by the inventory: Ideal Hungarian carries
+# both cases, and reading both as lowercase would leave Ó absent from the
+# shuttle entirely.
+#
+# Note there is no í anywhere on the Hungarian shuttles, on either
+# keyboard. That is correct rather than a gap, per the machine's owner,
+# so the usual "a letter is missing" alarm does not apply here.
+CATALOG_UNIVERSAL_HUNGARIAN = [
+    "qazwsxedcrfvtgb" "yhnujmik,ol.péá",
+    "QAZWSXEDCRFVTGB" "YHNUJMIKÜOL|PÉÁ",
+    "*ä;2Ó:3ó-4%!5úÖ" '6&ö7"§8Űü9ű?ő=/',
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -642,6 +662,8 @@ CATALOG_SHUTTLES = {
     "universal_german": "119A, 84, 34, 50, 71, 117, 119 (old orthography)",
     "universal_mathematical": "135 (= the Universal, Math preset)",
     "universal_mathematical_braces": "135B",
+    "universal_mathematical_greek": "135C",
+    "universal_hungarian": "134A Large Gothic, 56 Medium Roman, 64 Italic",
     "universal_polish": "141 Large Roman, 30 Medium Roman, 150C Italic",
     "universal_bulgarian": "31C, 29C, 42C, 115C",
     "universal_russian_old_style": "29, 29A, 29B",
@@ -834,4 +856,8 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Math (braces)": [
         r[::-1] for r in CATALOG_UNIVERSAL_MATHEMATICAL_BRACES
     ],
+    "Universal, Math (Greek)": [
+        r[::-1] for r in CATALOG_UNIVERSAL_MATHEMATICAL_GREEK
+    ],
+    "Universal, Hungarian": [r[::-1] for r in CATALOG_UNIVERSAL_HUNGARIAN],
 }

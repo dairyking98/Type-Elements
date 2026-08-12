@@ -69,6 +69,7 @@ IMPORTED = {
     ("Universal", "Bohemian", ()): "Universal, Bohemian",
     ("Universal", "Bulgarian", ()): "Universal, Bulgarian",
     ("Universal", "Polish", ()): "Universal, Polish",
+    ("Universal", "Hungarian", ()): "Universal, Hungarian",
     ("Universal", "Dutch", ("Fractions",)): "Universal, Dutch (Fractions)",
     ("Universal", "Dutch", ()): "Universal, Dutch",
     ("Universal", "German", ()): "Universal, German",
@@ -93,9 +94,6 @@ HELD = {
     "23F": "one unidentifiable figure slot",
     "23G": "one unidentifiable figure slot",
     "136": "chemical figures row not legible",
-    "135C": "row 0 position 29 is a clean v-shape: \u03bd, \u03c5 or a poor \u221a?",
-    "134A": "figures row prints \u00f3 twice; \u00ed absent from the shuttle",
-    "56": "same as 134A", "64": "same as 134A",
     "7": "polytonic diacritics not separable at this resolution",
     "75": "same as 7", "82": "same as 7", "8": "same as 7",
     "112A": "same as 7", "112B": "same as 7",
@@ -112,6 +110,7 @@ def classify(desc):
 
 
 BY_NUMBER = {"135": "Universal, Math",
+             "135C": "Universal, Math (Greek)",
              "135B": "Universal, Math (braces)",
              "29": "Universal, Russian (Old Style)",
              "29A": "Universal, Russian (Old Style)",

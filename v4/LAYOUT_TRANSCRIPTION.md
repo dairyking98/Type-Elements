@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 254 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 258 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -192,6 +192,20 @@ tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.
 
+**Cap height is evidence.** Hungarian Universal read as `ó` twice in its
+figures row, which looked like the duplicate signature. At 700% the first
+reaches the full height of the adjacent digits and the second sits at
+x-height: `Ó` and `ó`, not a duplicate at all. The inventory agreed —
+Ideal Hungarian carries both cases, and reading both as lowercase would
+have left `Ó` absent from the shuttle entirely.
+
+**A missing letter is only evidence if the letter should be there.** The
+same entry appeared to be missing `í`, which reinforced the false
+duplicate reading. It isn't missing: no Hungarian shuttle on either
+keyboard carries `í`, per the machine's owner. The check is only as good
+as the alphabet you compare against, and for a 1915 shuttle that alphabet
+is a question about the machine, not about the language.
+
 **Derive a near-identical variant, don't retype it.** The three
 Mathematical shuttles differ in exactly two figures-row positions — 135
 `*`/`|`, 135B `{`/`}`, 135C `ν`/`μ`. 135B is built from 135 by
@@ -352,6 +366,8 @@ both.
 | Ideal, Chilian | 65A, 16A, 46A, 17A, 83A |
 | Universal, Polish | 141, 30, 150C |
 | Universal, Math (braces) | 135B |
+| Universal, Math (Greek) | 135C |
+| Universal, Hungarian | 134A, 56, 64 |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

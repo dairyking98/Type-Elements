@@ -12,7 +12,7 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**254 of 346 catalogued shuttles are covered (73%)** — 26 held on an unresolved character,
+**258 of 346 catalogued shuttles are covered (74%)** — 22 held on an unresolved character,
 66 not yet transcribed.
 
 Status meanings:
@@ -171,7 +171,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 55D | Medium Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 55E | Medium Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
 | 55F | Medium Roman, Fractions, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography, Fractions) |
-| 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | held | same as 134A |
+| 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | **imported** | Universal, Hungarian |
 | 57 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 58 | Medium Roman, Croatian, Ideal | 16 | **imported** | Ideal, Croatian |
 | 59 | German Text, Universal | 43 | **imported** | Universal, German |
@@ -185,7 +185,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 63 | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 63A | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 63B | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
-| 64 | Italic, Hungarian, Universal, Old Style | 46 | held | same as 134A |
+| 64 | Italic, Hungarian, Universal, Old Style | 46 | **imported** | Universal, Hungarian |
 | 65 | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 65A | Small Roman, Chilian, Ideal | 15 | **imported** | Ideal, Chilian |
 | 65B | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
@@ -317,7 +317,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 131 | Small Roman, Argentine Government, Universal or Ideal | 54 | todo | Ideal/Universal / Argentine Government |
 | 133 | Display Type, Universal | 57 | **imported** | Universal |
 | 134 | Large Gothic, English, Universal | 38 | **imported** | Universal |
-| 134A | Large Gothic, Hungarian, Universal | 46 | held | figures row prints ó twice; í absent from the shuttle |
+| 134A | Large Gothic, Hungarian, Universal | 46 | **imported** | Universal, Hungarian |
 | 134B | Large Gothic, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
 | 134C | Large Gothic, Danish-Norwegian, Universal | 34 | **imported** | Universal, Danish-Norwegian |
 | 134D | Large Gothic, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
@@ -326,7 +326,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 135 | Medium Roman, Mathematical, English, Universal | 47 | **imported** | Universal, Math |
 | 135A | Medium Roman, Esperanto, Universal | 40 | **imported** | Universal, Esperanto |
 | 135B | Medium Roman, Mathematical, English, Universal | 48 | **imported** | Universal, Math (braces) |
-| 135C | Medium Roman, Mathematical, English, Universal | 48 | held | row 0 position 29 is a clean v-shape: ν, υ or a poor √? |
+| 135C | Medium Roman, Mathematical, English, Universal | 48 | **imported** | Universal, Math (Greek) |
 | 135D | Medium Roman, Esperanto, Universal | 40 | **imported** | Universal, Esperanto |
 | 136 | Special Gothic, English, Universal | 38 | held | chemical figures row not legible |
 | 137 | Medium Roman, French (Belgian Keyboard), Ideal and Universal | 55 | todo | Ideal/Universal / French |

@@ -34,6 +34,8 @@ from .hammond_layout import (
     CATALOG_UNIVERSAL_ESPERANTO,
     CATALOG_UNIVERSAL_ITALIAN,
     CATALOG_UNIVERSAL_MATHEMATICAL_BRACES,
+    CATALOG_UNIVERSAL_HUNGARIAN,
+    CATALOG_UNIVERSAL_MATHEMATICAL_GREEK,
     CATALOG_UNIVERSAL_POLISH,
     CATALOG_UNIVERSAL_PORTUGUESE,
     CATALOG_UNIVERSAL_ROUMANIAN,
@@ -152,6 +154,8 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Ideal, Chilian": [3.74, -1.21, -5.71],
         "Universal, Polish": [3.74, -1.21, -5.71],
         "Universal, Math (braces)": [3.74, -1.21, -5.71, -9.89],
+        "Universal, Math (Greek)": [3.74, -1.21, -5.71, -9.89],
+        "Universal, Hungarian": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
