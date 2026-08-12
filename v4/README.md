@@ -68,13 +68,20 @@ either platform.
 ## Usage
 
 ```
-python3 generate.py config/blickensderfer.yaml
-python3 generate.py config/blickensderfer.yaml --points-per-mm 20 --separation-mm 1.5
-python3 generate.py config/blickensderfer.yaml --no-core-groove   # skip the slow twisted grooves
-python3 generate.py config/blickensderfer.yaml --resin-support    # add ResinPrint()'s support rods
-python3 generate.py config/blickensderfer.yaml --out /tmp/test.stl
-python3 generate.py config/blickensderfer.yaml --points-per-mm 8 --cone-segments 12   # faster iteration
+.venv/bin/python3 generate.py config/blickensderfer.yaml
+.venv/bin/python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.002 --separation-mm 1.5
+.venv/bin/python3 generate.py config/blickensderfer.yaml --no-core-groove   # skip the slow twisted grooves
+.venv/bin/python3 generate.py config/blickensderfer.yaml --resin-support    # add ResinPrint()'s support rods
+.venv/bin/python3 generate.py config/blickensderfer.yaml --out /tmp/test.stl
+.venv/bin/python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.05 --cone-segments 12   # faster iteration
 ```
+
+`.venv/bin/python3` rather than bare `python3` - `trimesh`/`manifold3d`
+and the rest of the build stack are only installed in the venv Setup
+creates (or activate it first). `--flatness-tolerance-mm` is the glyph
+outline's flatness budget in mm: SMALLER is finer and slower (config
+default `0.005`), larger is coarser and faster. It replaced the old
+fixed-rate `--points-per-mm`, which no longer exists.
 
 All real-machine numbers live in the config file, not in code. A second
 machine is mostly just a new YAML file under `config/` - `machine:
@@ -123,13 +130,16 @@ CFF/cubic-curve OTFs, which used to silently mis-render (see "TrueType-
 only outlines - RESOLVED" in "Known limitations" below) - now handled
 correctly and verified end-to-end.
 
-`python3 tune.py` (no args) starts at a machine picker - pick
-Blickensderfer or Postal and it loads that machine's default config
-(`MACHINES` in `tune.py`) into a Postal-scoped Element tab (27 fields vs.
-Blickensderfer's 32, since Postal has no drive-pin countersink) and its
-own Layout tab (a single "QWERTY" preset - v2/postal.scad has only one
-physical layout, no preset-switching menu like Blickensderfer's 6 - still
-hand-editable via Modify glyphs if you need something else). The tuner
+`python3 tune.py` (no args) starts at a machine picker listing all 15
+machines (`MACHINES` in `tune.py`, grouped by real-world type-element
+mechanism), and loads the picked machine's default config into tabs
+scoped to that machine. Taking Postal as the example: a Postal-scoped
+Element tab (27 fields vs. Blickensderfer's 32, since Postal has no
+drive-pin countersink) and its own Layout tab - a single "QWERTY" preset,
+since `v2/postal.scad` has only one physical layout, with no
+preset-switching menu like Blickensderfer's (which has 8, including two
+taken from the type-wheel catalog scans - see `LAYOUT_TRANSCRIPTION.md`)
+- still hand-editable via Modify glyphs if you need something else. The tuner
 form's status row gains a "Change Machine" button once a machine is
 picked, which saves the current form and returns to the picker (uses
 Textual's `recompose()` to fully rebuild the form - `TuneApp.SECTIONS`/
@@ -272,7 +282,8 @@ whole-string engraved-text groups cut into the bottom face near the shaft
 (`LabelText` - v2 calls `text()` directly per whole string with
 `halign=valign="center"`, not a ring of individually angle-placed
 characters like Blickensderfer/Postal's `LogoText` or Mignon's
-`ElementLogo`/`ElementLabel` - see `_build_text_string()`'s docstring for
+`ElementLogo`/`ElementLabel` - see `cylinder_machine.build_text_string()`'s
+docstring for
 how whole-string layout was ported: each character placed at its natural
 FreeType advance, the assembled string centered on its total advance
 width - the same "native halign=center centers the ADVANCE box"
@@ -393,14 +404,22 @@ hollow-cavity performance fix above.
 
 The draft taper is a real Minkowski sum (`manifold3d`), not plain
 coordinate math, so generation time is real and tunable via two knobs
-(`quality.minkowski_fn` / `--cone-segments` and `build.points_per_mm` /
-`--points-per-mm`, both config-driven) - `manifold3d`'s own docs warn
+(`quality.minkowski_fn` / `--cone-segments` and
+`build.flatness_tolerance_mm` / `--flatness-tolerance-mm`, both
+config-driven) - `manifold3d`'s own docs warn
 Minkowski cost scales with the *product* of the two operands' face counts.
-Measured for the full 84-character ring + assembly:
+Measured for the full 84-character ring + assembly. **These numbers are
+historical**: they were taken under the old fixed-rate `points_per_mm`
+sampling, which no longer exists, so the left column is not a knob you
+can set today and the timings are not directly comparable to a current
+build. Kept for the shape of the tradeoff (cost falls off steeply as
+either knob drops), not as current figures. The adaptive tracer that
+replaced `points_per_mm` measured a 1.3x-4.5x build-time reduction on
+its own, with no correctness loss.
 
-| points_per_mm | minkowski_fn | full ring + assembly |
+| points_per_mm (removed) | minkowski_fn | full ring + assembly |
 |---|---|---|
-| 15 (config default) | 16 (config default) | ~60-70s |
+| 15 (then-default) | 16 (config default) | ~60-70s |
 | 8 | 12 | ~30-35s |
 | 6 | 8 | ~16s |
 
@@ -464,34 +483,72 @@ generate.py                 entry point - loads a config, builds, exports
 tune.py                     interactive TUI for editing the config (see above)
 type_test.py                flat CPI/LPI-spaced text preview used by tune.py's Type Test tab
 export_glyphs.py            exports every configured character to its own STL, for visual inspection
+font_coverage.py            scans a font library for glyph coverage against a layout/config/string
+generate_legend.py          keyboard-legend sheet renderer
+generate_supports.py        standalone resin-support generator
+generate_thumbnails.py      batch thumbnail renders
 config/
-  blickensderfer.yaml        every real machine parameter + build/alignment settings
-  blickensderfer.running.yaml   gitignored scratch copy tune.py actually edits/saves (see above)
-  postal.yaml                 Postal's parameters - see "Multiple machines" below
-  mignon.yaml                 Mignon's parameters - see "Mignon" below (own schema, not shared with Blick/Postal)
-  helios.yaml                 Helios Klimax's parameters - see "Helios Klimax" below (own schema, not shared with Blick/Postal)
+  <machine>.yaml             every real machine parameter + build/alignment settings, one per machine
+  <machine>.running.yaml     gitignored scratch copy tune.py actually edits/saves (see above)
+                             15 machines: blickensderfer, postal, mignon, bennett, helios,
+                             hammond, hammond_split, selectric12, selectric3,
+                             selectric_composer, type_slug, vogue_slug, gauge_slug,
+                             oliver_slug, lumi_slug
 lib/
   glyph_poc.py               single-glyph mesh pipeline (the core technique)
   scad_primitives.py         revolve_polygon/extrude/transform helpers, generic (not machine-specific)
-  cylinder_machine.py         shared cylinder-machine-family code (Blickensderfer/Postal) - see "Multiple machines"
-  blickensderfer.py          Blickensderfer's own configure() + drive-pin trio (HollowSpace/DrivePin/ResinSupport)
-  postal.py                   Postal's own configure() + drive-pin trio
-  mignon.py                   Mignon's own configure() + full body/shaft/resin-support (see "Mignon" below)
-  helios.py                   Helios Klimax's own configure() + full body/shaft (see "Helios Klimax" below)
+  build_log.py               the ONE progress/mesh-report/atomic-export format (see CLAUDE.md)
+  resin_support.py           shared resin-support geometry
+  svg_import.py              SVG path -> polygon import (logos/marks)
+  f3d_bootstrap.py           finds or downloads the pinned f3d used by tune.py's preview
+  contour_inspect.py         standalone contour diagnostic (not in the build path)
+  heightfield_poc.py         abandoned height-field experiment, kept for reference; nothing imports it
+  -- shared family modules --
+  cylinder_machine.py        Blickensderfer/Postal shared code - see "Multiple machines"
+  spherical_machine.py       shared by the 3 IBM/Selectric machines
+  wing_slug.py               shared by type_slug/vogue_slug/gauge_slug
+  box_slug.py                shared by oliver_slug/lumi_slug
+  -- one per machine --
+  blickensderfer.py          configure() + drive-pin trio (HollowSpace/DrivePin/ResinSupport)
+  postal.py                  configure() + drive-pin trio
+  mignon.py                  configure() + full body/shaft/resin-support (see "Mignon" below)
+  bennett.py                 see "Bennett" below
+  helios.py                  see "Helios Klimax" below
+  hammond.py / hammond_split.py
+  selectric12.py / selectric3.py / selectric_composer.py
+  type_slug.py / vogue_slug.py / gauge_slug.py / oliver_slug.py / lumi_slug.py
+  hammond_legend.py, mignon_legend.py    keyboard-legend sheets for those machines
+  layouts/                   ALL machines' keyboard/typeball layout presets - one
+                             <machine>_layout.py each, aggregated by __init__.py.
+                             tune.py imports from here and hardcodes no layout data.
+                             See LAYOUT_TRANSCRIPTION.md for where the values came from.
 output/
-  blickensderfer_running.stl         latest generated result (scratch/working file, not a keeper - see tune.py's Save button)
-  experiments/                       diagnostic renders/sweeps from development (not regenerated by generate.py)
+  <machine>_running.stl      latest generated result (scratch/working file, not a keeper - see tune.py's Save button)
+  experiments/               diagnostic renders/sweeps from development (not regenerated by generate.py)
+assets/                      SVG logos/marks (see svg_import.py)
+docs/                        per-machine accessory docs (e.g. mignon_index_holder)
 ```
+
+**Machines documented in detail below**: Blickensderfer/Postal
+("Multiple machines"), Mignon, Bennett, Helios Klimax. The other ten -
+Hammond, Hammond Split, the three Selectrics and the five Type Slug
+machines - are ported and working but have no prose section here yet;
+their own module docstrings and `CLAUDE.md`'s "Porting a new machine"
+section carry that detail for now.
 
 ## The glyph pipeline (`lib/glyph_poc.py`)
 
 For one character (`build_glyph`):
 
-1. **`get_glyph_contours_and_advance`**: walk FreeType's TrueType outline
-   (on/off-curve tagged points) into flat polylines, sampling curved spans
-   at `points_per_mm` density. **TrueType (quadratic) only** - a CFF/
-   OpenType font's cubic curves will silently mis-parse (see "Known
-   limitations").
+1. **`get_glyph_contours_and_advance`**: walk FreeType's outline (on/
+   off-curve tagged points) into flat polylines, subdividing curved spans
+   adaptively to `build.flatness_tolerance_mm` via recursive de Casteljau
+   (`flatten_quadratic`/`flatten_cubic`). Straight segments get ZERO
+   subdivision; a curve gets exactly as many points as its own curvature
+   needs. This replaced a fixed `points_per_mm` rate, which subdivided
+   straight strokes as densely as curves. Both quadratic (TrueType) and
+   cubic (CFF/OpenType) outlines are handled - the cubic path was a real
+   bug once, now fixed (see "Known limitations").
 2. **`classify_and_triangulate`**: classify each closed contour by
    nesting-depth parity (even=solid island, odd=hole - not just "contained
    by something", which breaks on genuinely nested glyphs like DejaVu's
@@ -531,8 +588,9 @@ spike/sliver defects against the adaptive contour method's sparser input
 itself, not a `simplify()` post-pass, is what keeps triangle count in
 check now).
 
-`blickensderfer.TextRing` calls `build_glyph` 84 times (3 rows x 28
-columns) and places each result on the cylinder via `place_on_cylinder`.
+`cylinder_machine.TextRing` (shared, not per-machine) calls `build_glyph`
+84 times for Blickensderfer (3 rows x 28 columns) and places each result
+on the cylinder via `place_on_cylinder`.
 
 ### Real platen cutout
 
@@ -813,8 +871,9 @@ first one - a legend-card holder that goes with the Mignon element.
   but geometrically wrong curves with no error raised (confirmed on
   `FreeMono-Bold.otf`: watertight-but-winding-inconsistent geometry).
   Fixed by checking the tag's low 2 bits (`FT_CURVE_TAG`: 0=quadratic,
-  2=cubic) and evaluating a real cubic Bézier (`cubic_bezier()`) for cubic
-  spans instead. Verified against real CFF fonts (`Alma Mono.otf`,
+  2=cubic) and subdividing a real cubic Bézier (`flatten_cubic()`, the
+  cubic arm of the adaptive de Casteljau tracer) for cubic spans
+  instead. Verified against real CFF fonts (`Alma Mono.otf`,
   `FreeMono-Bold.otf`) end-to-end through `generate.py config/postal.yaml`
   - fully watertight/winding-consistent/`is_volume`, 0 skipped characters
   - and confirmed byte-identical output on the quadratic (TrueType) path
@@ -838,7 +897,8 @@ first one - a legend-card holder that goes with the Mignon element.
   rotation/translation itself). Placement is a pure coordinate move - no
   topology change, no reprocessing needed.
 - **Inter-character collisions are detected, not repaired.**
-  `_check_inter_character_collisions()` in `lib/blickensderfer.py` uses
+  `_check_inter_character_collisions()` in `lib/cylinder_machine.py`
+  (shared, not per-machine) uses
   `trimesh.collision.CollisionManager` across all 84 placed parts (this is
   what that tool is actually for - checking DIFFERENT registered objects
   against each other - unlike an earlier, meaningless attempt earlier in
@@ -875,7 +935,8 @@ first one - a legend-card holder that goes with the Mignon element.
   heights, breaking a common baseline across the ring.
 - **`Drive_Pin_Style=1`** (the older drive pin variant) raises
   `NotImplementedError` - only the current/default style is ported.
-- **`BottomSlopedSpace`'s `bottomX()`** is ported from the real
+- **`BottomSlopedSpace`'s `bottomX()`** (v2's name for it; v4 inlines the
+  same formula) is ported from the real
   `lib/resin_support.scad` formula (`Bottom_Slope`/`Bottom_Z_Offset`), not
   approximated - flagging here only because an earlier draft of this file
   used a wrong approximation before the real formula was found; the
