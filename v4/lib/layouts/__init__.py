@@ -119,7 +119,10 @@ LAYOUT_PICKER_HELP = {
     "blickensderfer": (
         "All layouts share the same physical placement_map - only glyph "
         "content per row changes. HEBREW_ENGL needs a Hebrew-capable font "
-        "path; v4 doesn't auto-switch fonts per layout like v2 did."
+        "path; v4 doesn't auto-switch fonts per layout like v2 did. "
+        "BRITISH_LITERARY and QWERTY_BRITISH come from the Blickensderfer "
+        "type-wheel catalog scans - QWERTY_BRITISH differs from QWERTY in "
+        "exactly one position, £ where the American wheel has $."
     ),
     "postal": (
         "Postal has only one physical layout, QWERTY. Use Modify glyphs "
