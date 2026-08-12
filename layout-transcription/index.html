@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.0 -->
+<title>Layout Transcription | v4 Type Elements</title>
+<meta name="generator" content="Jekyll v4.4.1" />
+<meta property="og:title" content="Layout Transcription" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<meta name="twitter:description" property="og:description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<link rel="canonical" href="https://type-elements.leonardchau.com/layout-transcription/" />
+<meta property="og:url" content="https://type-elements.leonardchau.com/layout-transcription/" />
+<meta property="og:site_name" content="v4 Type Elements" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Layout Transcription" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.","headline":"Layout Transcription","url":"https://type-elements.leonardchau.com/layout-transcription/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://type-elements.leonardchau.com/feed.xml" title="v4 Type Elements" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">v4 Type Elements</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Layout Transcription</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="layout-transcription-from-primary-sources">Layout transcription from primary sources</h1>
+
+<p>Record of transcribing real manufacturer type catalogs into v4’s
+<code class="language-plaintext highlighter-rouge">layout.rows</code> presets: what was read, what was imported, what was
+deliberately left out, and — most importantly — <strong>why each judgement call
+went the way it did</strong>. Several imports rest on reasoning rather than on
+reading a glyph off a scan, and that reasoning is the part worth keeping.</p>
+
+<p>All layout data lives in <code class="language-plaintext highlighter-rouge">lib/layouts/&lt;machine&gt;_layout.py</code>. This document
+is the narrative; those modules are the source of truth for the values.</p>
+
+<hr />
+
+<h2 id="sources">Sources</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Source</th>
+      <th>Location</th>
+      <th>Form</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Hammond, 1920</td>
+      <td><code class="language-plaintext highlighter-rouge">windows_tailscale:C:/Users/Leonard/Documents/Python/images to pdf/HammondTypeShuttleCatalogSmall.pdf</code></td>
+      <td>6 PDF pages (4 are two-page spreads), organised <strong>by shuttle number</strong></td>
+    </tr>
+    <tr>
+      <td>Hammond, 1915</td>
+      <td><code class="language-plaintext highlighter-rouge">windows_tailscale:E:/Leonard/Typewriter/Books Manuals/Hammond_type_Catalog_1915.pdf</code></td>
+      <td>35 pages, organised <strong>by language</strong></td>
+    </tr>
+    <tr>
+      <td>Blickensderfer</td>
+      <td><code class="language-plaintext highlighter-rouge">windows_tailscale:E:/Type Elements/Blickensderfer/Catalog/20230113_01{55..68}.jpg</code></td>
+      <td>14 page scans, organised <strong>by language/market</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>None have a text layer — all are scans, read as images. 200 dpi is enough
+for the letter rows; individual ambiguous glyphs needed 300–600 % crops.</p>
+
+<p>Higher-resolution originals exist if a glyph is ever contested: the
+Hammond 1920 source TIFFs (<code class="language-plaintext highlighter-rouge">HammondShuttles143-148.tif</code>, ~300 MB each)
+and the full-size <code class="language-plaintext highlighter-rouge">HammondTypeShuttleCatalog.pdf</code> (48 MB). The
+Blickensderfer directory’s <code class="language-plaintext highlighter-rouge">BLICKENSDERFER FONTS_..._2023.zip</code> is the
+same page images zipped, not a separate source.</p>
+
+<p><strong>These catalogs outrank <code class="language-plaintext highlighter-rouge">v1</code>/<code class="language-plaintext highlighter-rouge">v2</code> <code class="language-plaintext highlighter-rouge">.scad</code> on layout content.</strong> That is a
+deliberate, narrow exception to CLAUDE.md’s “v2 is ground truth” rule:
+v2 was itself transcribed from these catalogs, so where they disagree the
+catalog is the earlier authority. It is <em>only</em> an exception for layout
+character content — v2 remains ground truth for geometry and dimensions.</p>
+
+<hr />
+
+<h2 id="method">Method</h2>
+
+<p>Four habits did most of the work. They generalise to any future catalog.</p>
+
+<p><strong>1. Read by column, not by row.</strong> Each column is one physical key with
+three levels: unshifted / shifted / figure. The three rows therefore
+constrain each other, and a reading that breaks the column is wrong even
+if the glyph “looks like” something. This turned several judgement calls
+into near-certainties (below), and let print artifacts be dismissed
+rather than transcribed.</p>
+
+<p><strong>2. Check the letter inventory.</strong> Compare the lowercase row’s letters
+against the uppercase row’s. A <strong>duplicated letter plus a missing one</strong>
+is the signature of the transcription-error class that turned up twice.
+This is mechanical, needs no scan, and found the Blickensderfer bug
+independently of the catalog.</p>
+
+<p><strong>3. Group by identical rows; typeface is not layout.</strong> Most catalog
+entries differ only in typeface — Small/Medium/Large Roman, Gothic,
+Italic, Clarendon, Script all print the <em>same</em> rows. Within a keyboard
+the letter rows are constant, so essentially all real variation is in the
+figures row. ~80 Hammond entries collapse to a handful of layouts. One
+preset per distinct layout; the typeface is the Font tab’s job.</p>
+
+<p><strong>4. When it can’t be settled, don’t import it.</strong> A guessed glyph
+silently builds a wrong shuttle — there is no error, just a wrong part.
+No layout beats a wrong layout. Every exclusion below is recorded at its
+definition site with the specific reason.</p>
+
+<hr />
+
+<h2 id="bugs-found-and-fixed">Bugs found and fixed</h2>
+
+<p>Two real defects, both the same shape, both in the <strong>original</strong> source
+rather than the v4 port, and both silently dropping a letter an English
+typewriter cannot do without.</p>
+
+<h3 id="hammond-ideal--missing-b">Hammond Ideal — missing <code class="language-plaintext highlighter-rouge">b</code></h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>v1/Hammond/HammondSplitShuttle.scad:24   IDEAL=["?zxqkjgdmpcfld,…
+v2/hammond_split.scad:76                 Ideal_Element=["?zxqkjgdmpcfld,…
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">d</code> where the catalog reads <code class="language-plaintext highlighter-rouge">b</code> — leaving <strong><code class="language-plaintext highlighter-rouge">b</code> absent entirely and <code class="language-plaintext highlighter-rouge">d</code>
+duplicated</strong>. Every Ideal entry in both catalogs reads
+<code class="language-plaintext highlighter-rouge">?zxqkjgbmpcfld,</code> / <code class="language-plaintext highlighter-rouge">!ZXQKJGBMPCFLD;</code>. Confirmed at 200 dpi.</p>
+
+<h3 id="blickensderfer-charienstu--missing-y">Blickensderfer CHARIENSTU — missing <code class="language-plaintext highlighter-rouge">Y</code></h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>v1/Blickensderfer/Blickensderfer2.scad:82,85,88   "XQZV&amp;PFLOCHARIENSTUGMDB:WKJU"
+v2/lib/layouts/blick_layouts.scad:18,21,24        "XQZV&amp;PFLOCHARIENSTUGMDB:WKJU"
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">U</code> where it should be <code class="language-plaintext highlighter-rouge">Y</code>, in both <code class="language-plaintext highlighter-rouge">CHARIENSTU_DE</code> and
+<code class="language-plaintext highlighter-rouge">CHARIENSTU_DE_MOD</code>. Found by habit 2 — the uppercase row’s inventory was
+a–z with <strong>U duplicated and Y missing</strong>, while its own lowercase row was
+clean. The catalog then confirmed it (<code class="language-plaintext highlighter-rouge">GMDB:WKJY</code>, Bohemian 426/443).</p>
+
+<p>The same inventory check now passes on every Blickensderfer preset.
+(<code class="language-plaintext highlighter-rouge">HEBREW_ENGL</code>’s row 0 is Hebrew, so the Latin check correctly does not
+apply to it.)</p>
+
+<h3 id="what-the-catalogs-confirmed-unchanged">What the catalogs <em>confirmed</em> unchanged</h3>
+
+<ul>
+  <li><strong>Hammond <code class="language-plaintext highlighter-rouge">Normal Universal</code></strong> — an independent transcription of the
+1920 catalog’s Universal rows, reversed into this machine’s storage
+order, came out byte-identical to the shipped preset on all three rows.</li>
+  <li><strong>Hammond Ideal standard / fractions</strong> — the 1915 catalog’s English
+entries 37/10 and 1/2 match the 1920-derived layouts character for
+character, five years apart. Two independent printings agreeing is much
+stronger evidence than one.</li>
+  <li><strong>Blickensderfer <code class="language-plaintext highlighter-rouge">DHIATENSOR</code></strong> — Small Roman 362 and Large Roman 409
+print it identically, differing only in typeface.</li>
+</ul>
+
+<hr />
+
+<h2 id="judgement-calls">Judgement calls</h2>
+
+<p>The decisions that were reasoned rather than simply read. Each records
+what would have to be true for it to be wrong.</p>
+
+<p><strong><code class="language-plaintext highlighter-rouge">ƒ</code> not <code class="language-plaintext highlighter-rouge">f</code></strong> (Dutch Ideal, position 29). Row 0 already carries a
+lowercase <code class="language-plaintext highlighter-rouge">f</code>; a figures row does not repeat a letter that has its own
+key. The guilder sign is also the one currency mark a Dutch machine needs
+that <code class="language-plaintext highlighter-rouge">£</code>/<code class="language-plaintext highlighter-rouge">$</code> don’t cover. The 200 dpi scan shows the hooked italic form.</p>
+
+<p><strong><code class="language-plaintext highlighter-rouge">ç</code> not <code class="language-plaintext highlighter-rouge">¢</code></strong> (Spanish Ideal, position 4). At 600 % the glyph has a
+cedilla hook and <strong>no vertical stroke</strong>; the <code class="language-plaintext highlighter-rouge">¢</code> in the CENT variant at
+that same position clearly has one. The two were compared side by side.</p>
+
+<p><strong><code class="language-plaintext highlighter-rouge">1ó2</code> not <code class="language-plaintext highlighter-rouge">162</code></strong> (Spanish Ideal, positions 7–9). The accent is visible,
+and a second <code class="language-plaintext highlighter-rouge">6</code> would collide with the <code class="language-plaintext highlighter-rouge">6</code> already at position 16. The
+resulting accent set — á é í ó ú ñ ¡ ¿ plus <code class="language-plaintext highlighter-rouge">¨</code> as the diaeresis dead key
+for ü — is complete and self-consistent for Spanish.</p>
+
+<p><strong><code class="language-plaintext highlighter-rouge">&amp;</code> re-homed onto the shifted <code class="language-plaintext highlighter-rouge">.</code> key</strong> (Universal Fractions). Nine
+figure slots became fractions, displacing <code class="language-plaintext highlighter-rouge">&amp;</code>; it reappears at the shifted
+<code class="language-plaintext highlighter-rouge">.</code> position, which is the one key printing a bare dot at all three levels
+on the catalog’s own keyboard plate — i.e. the only spare slot. A
+mechanical diff confirms exactly those 9 + 1 positions move and nothing
+else.</p>
+
+<p><strong>Two print artifacts dismissed, not transcribed.</strong> Shuttle 26’s row 0
+<code class="language-plaintext highlighter-rouge">p:-</code> and 41’s row 1 <code class="language-plaintext highlighter-rouge">P::</code> are both the <code class="language-plaintext highlighter-rouge">;</code>/<code class="language-plaintext highlighter-rouge">:</code> key, whose unshifted and
+shifted forms are fixed by the keyboard. Transcribing them literally would
+have invented characters that key cannot produce.</p>
+
+<p><strong>“LARGE FRACTIONS” is a typeface, not a layout.</strong> Shuttle 40 prints the
+same rows as 26/52 in a larger fraction face.</p>
+
+<p><strong>“Caps and Small Caps” is a typeface, not a layout.</strong> Row 0 stores
+<strong>lowercase</strong>, because on a small-caps face the lowercase codepoints <em>are</em>
+the small capitals — a correctly-designed font then renders the row as the
+catalog prints it, with the cases matching. Storing capitals would
+hard-code the appearance into the layout and fight whatever font is
+selected. Consequence: <code class="language-plaintext highlighter-rouge">Universal, Caps and Small Caps</code> (27, 27E)
+collapses into <code class="language-plaintext highlighter-rouge">Universal, Standard</code> and is now defined by reference so
+the two cannot drift. Spanish <code class="language-plaintext highlighter-rouge">5A</code> does <strong>not</strong> collapse — its figures-row
+accented letters really are full capitals (<code class="language-plaintext highlighter-rouge">ÑÍÉÚ</code> where plain Spanish has
+<code class="language-plaintext highlighter-rouge">ñíéú</code>), and those are reached by the <em>figure</em> shift rather than the case
+shift, so that is a genuine character difference.</p>
+
+<p><strong>Two spellings kept rather than one picked.</strong> v1/v2 read <code class="language-plaintext highlighter-rouge">9[0]</code> where
+every catalogued Ideal entry reads <code class="language-plaintext highlighter-rouge">9(0)</code>. Both survive as separate
+presets — <code class="language-plaintext highlighter-rouge">IDEAL (£)</code>/<code class="language-plaintext highlighter-rouge">IDEAL (⅌)</code> preserve the shipped source history,
+<code class="language-plaintext highlighter-rouge">IDEAL, Fractions</code> preserves the printed catalog. Same treatment as the
+pre-existing £/⅌ pair.</p>
+
+<p><strong>Storage order is load-bearing and differs per machine.</strong> <code class="language-plaintext highlighter-rouge">hammond</code>
+stores rows <strong>reversed</strong>; <code class="language-plaintext highlighter-rouge">hammond_split</code> stores them in catalog reading
+order (its <code class="language-plaintext highlighter-rouge">TextAssemble</code> does its own per-half <code class="language-plaintext highlighter-rouge">[14-i]</code>/<code class="language-plaintext highlighter-rouge">[29-i]</code>
+reversal). Reversal is applied programmatically, never by retyping.</p>
+
+<hr />
+
+<h2 id="what-was-imported">What was imported</h2>
+
+<h3 id="hammond-both-machines--10-presets-on-hammond-11-on-hammond_split">Hammond (both machines — 10 presets on <code class="language-plaintext highlighter-rouge">hammond</code>, 11 on <code class="language-plaintext highlighter-rouge">hammond_split</code>)</h3>
+
+<p>Universal is qwerty; Ideal is Hammond’s own proprietary arrangement, not a
+qwerty remap. Both are real for both machines, so both are offered on
+both.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Layout</th>
+      <th>Shuttles covered</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Universal, standard</td>
+      <td>23/23B, 24/24B, 25/25A/25B, 158/158A, 180, 96, 134, 170, 68, 169, 97B, 28, 80, 145</td>
+    </tr>
+    <tr>
+      <td>Universal, fractions</td>
+      <td>26, 40 (LARGE), 52, 80A, 97</td>
+    </tr>
+    <tr>
+      <td>Universal, caps &amp; small caps</td>
+      <td>27, 27E <em>(same rows as standard — typeface)</em></td>
+    </tr>
+    <tr>
+      <td>Ideal, standard</td>
+      <td>10/10A/10B/94, 37A, 51/51A/3B, 60, 118, 70, 144A</td>
+    </tr>
+    <tr>
+      <td>Ideal, fractions</td>
+      <td>1/48/48A, 2, 3/3A, 4, 5, 6, 9</td>
+    </tr>
+    <tr>
+      <td>Ideal, Dutch</td>
+      <td>36A, 11A, 12A, 76A, 13A/102B, 91A, 78A</td>
+    </tr>
+    <tr>
+      <td>Ideal, Spanish</td>
+      <td>65, 16, 46</td>
+    </tr>
+    <tr>
+      <td>Ideal, Spanish (¢)</td>
+      <td>65B, 16B, 46B</td>
+    </tr>
+    <tr>
+      <td>Ideal, Spanish caps &amp; small caps</td>
+      <td>5A</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><code class="language-plaintext highlighter-rouge">hammond_split</code>’s <code class="language-plaintext highlighter-rouge">UNIVERSAL</code> also revives v2’s <code class="language-plaintext highlighter-rouge">Qwerty_Element</code>
+(<code class="language-plaintext highlighter-rouge">Layout_Selection=1</code>), which was complete in the source but never wired
+into the picker — with two characters corrected against the catalog
+(v2 had <code class="language-plaintext highlighter-rouge">⅌</code> and <code class="language-plaintext highlighter-rouge">§</code> where every catalogued Universal entry has <code class="language-plaintext highlighter-rouge">×</code> and
+<code class="language-plaintext highlighter-rouge">^</code>, which <code class="language-plaintext highlighter-rouge">hammond.yaml</code>’s own Universal row already spelled correctly).</p>
+
+<h3 id="blickensderfer-8-presets">Blickensderfer (8 presets)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Layout</th>
+      <th>Shuttles covered</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">BRITISH_LITERARY</code></td>
+      <td>Elite Literary 381, Small Roman Literary 462, Extra Large Roman Literary 307, Italic Literary 383, Script Literary 395, Vertical Script Literary 213</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">QWERTY_BRITISH</code></td>
+      <td>Small Roman 441, Large Roman 442</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><code class="language-plaintext highlighter-rouge">BRITISH_LITERARY</code> keeps DHIATENSOR’s letters but swaps two keys in the
+shifted row (the <code class="language-plaintext highlighter-rouge">.</code> key shifts to <code class="language-plaintext highlighter-rouge">&amp;</code>; the <code class="language-plaintext highlighter-rouge">,</code> key to <code class="language-plaintext highlighter-rouge">?</code>) and has a
+wholly different figures row carrying ¼ ½ ¾ and £. <code class="language-plaintext highlighter-rouge">QWERTY_BRITISH</code>
+differs from the existing (American) <code class="language-plaintext highlighter-rouge">QWERTY</code> in <strong>exactly one position</strong>
+— <code class="language-plaintext highlighter-rouge">£</code> where it has <code class="language-plaintext highlighter-rouge">$</code>.</p>
+
+<hr />
+
+<h2 id="what-was-not-imported-and-why">What was NOT imported, and why</h2>
+
+<p>Recorded here in summary; the authoritative per-entry reasons live in
+<code class="language-plaintext highlighter-rouge">CATALOG_SHUTTLES</code> in <code class="language-plaintext highlighter-rouge">lib/layouts/hammond_layout.py</code> and in the comment
+block at the end of <code class="language-plaintext highlighter-rouge">lib/layouts/blickensderfer_layout.py</code>.</p>
+
+<h3 id="hammond-1920">Hammond 1920</h3>
+
+<ul>
+  <li><strong>41</strong> Small Roman Fractions — a genuinely <em>different</em> second fractions
+scheme (diagonal fractions, and it keeps <code class="language-plaintext highlighter-rouge">&amp;</code> in the figures row rather
+than moving it). Numerators not separable at this resolution.</li>
+  <li><strong>162</strong> Medium Gothic Fractions — right half matches the imported
+fractions layout exactly, but the left half’s glyph after <code class="language-plaintext highlighter-rouge">4%</code> is
+scan-damaged.</li>
+  <li><strong>184</strong> Gothic Special Fractions — prints <strong>four</strong> lines, so it does not
+fit the three-row shape without deciding which line is the figures row.</li>
+  <li><strong>23E / 23F / 23G / 136</strong> — each differs from standard in only one or
+two figure slots, and those slots are exactly the unidentifiable ones.</li>
+  <li><strong>Medical / chemical</strong> (43, 43A, 107, 179, 21, 18) — purpose-made symbol
+sets with no reliable Unicode reading from this scan.</li>
+  <li><strong>Diacritical / library</strong> (113, 122, 48C) — bare combining accents
+printed in isolation; which precomposed/combining codepoint each means
+is a judgement call, not a reading.</li>
+  <li><strong>Literary</strong> (192, 193, 194) — subscript/superscript digit banks.</li>
+  <li><strong>Non-Latin / special</strong> — 195 Astronomical, 196/197 International
+Phonetic, 135/135B/135C Mathematical, 112C Greek, 59/20 German Text
+(fraktur), 165/167 Yiddish (Hebrew), 185 Check Writer (perforating,
+prints as dot matrices).</li>
+</ul>
+
+<h3 id="hammond-1915-per-language">Hammond 1915 (per-language)</h3>
+
+<p>Not scan-quality problems — these entries are legible — but each needs its
+own character-by-character pass, and a wrong accent builds a wrong shuttle
+just as silently as a wrong glyph.</p>
+
+<ul>
+  <li><strong>Latin, accents only</strong>: Croatian (58, 12C), Danish (87, 88),
+Portuguese (63, 63A, 63B, 106), Roumanian (92), Polish (156, 153B, 157),
+plus the language sections on pp. 10–20 not yet sampled.</li>
+  <li><strong>Pre-reform Cyrillic</strong>: Russian (49, 35), Servian (125) — use letters
+dropped in the 1918 reform (ѣ, і, hard-sign ъ) and need a font carrying
+them.</li>
+  <li><strong>Ornate faces</strong>: language-specific Vertical Script / Italic Script
+(e.g. 83A Chilian, 78A Dutch) whose forms make individual accent marks
+hard to separate even where the underlying layout is known.</li>
+</ul>
+
+<h3 id="blickensderfer">Blickensderfer</h3>
+
+<ul>
+  <li><strong>Bohemian 426/443</strong> — CHARIENSTU letters with a Czech figures row whose
+doubled dead-key accents (<code class="language-plaintext highlighter-rouge">´ ´</code> and <code class="language-plaintext highlighter-rouge">ˇ ˇ</code>) cannot be separated reliably.</li>
+  <li><strong>Armenian 218</strong> — full Armenian script; needs a font with those glyphs.</li>
+  <li><strong>British Imperial / Scientific / Universal fraction variants</strong> (212,
+E458, 331, 454, 300, 205, 350, 494, 379, 387, 371, 337, 217) — each
+packs a different dense fraction bank (⅛ ¼ ⅜ ½ ⅝ ¾ ⅞ in varying slots)
+needing per-entry checking rather than one shared reading.</li>
+  <li><strong>British Telegraph 376</strong> — not the usual three-row 28-column shape.</li>
+  <li><strong>Pages 0161–0168</strong> — further language sections, not yet sampled.</li>
+</ul>
+
+<hr />
+
+<h2 id="font-implications">Font implications</h2>
+
+<p>A layout is only buildable if the selected font actually has its glyphs.
+<code class="language-plaintext highlighter-rouge">font_coverage.py --preset MACHINE:"Preset Name"</code> reports this.</p>
+
+<ul>
+  <li><strong><code class="language-plaintext highlighter-rouge">OCR-A II Regular</code></strong>, configured for both Hammond machines, lacks the
+fractions and every accent. This is <strong>not</strong> a regression from the
+imports — it equally lacks <code class="language-plaintext highlighter-rouge">¢</code>/<code class="language-plaintext highlighter-rouge">°</code>/<code class="language-plaintext highlighter-rouge">×</code> from the already-shipped
+<code class="language-plaintext highlighter-rouge">Normal Universal</code>, so every Hammond preset including the defaults is
+in the same position.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">AverageMono Mod</code></strong> covers all four per-language layouts and the
+fractions set with no missing glyphs.</li>
+  <li>529 of 1377 fonts in the library cover the Universal fractions set.</li>
+  <li>The Caps and Small Caps entries need an actual small-caps face to look
+right — by design, since that is now the only thing distinguishing them.</li>
+</ul>
+
+<hr />
+
+<h2 id="remaining-work-prioritised">Remaining work, prioritised</h2>
+
+<p>Ordered by value per unit of effort. The first two are the large, clean
+veins; everything below them is either small, ambiguous, or blocked on a
+font.</p>
+
+<p><strong>1. Hammond 1915 Latin languages — biggest remaining vein, low risk.</strong>
+The catalog has roughly twenty language sections and only English, Dutch
+and Spanish have been done. The sections already sighted, with the
+shuttles each carries:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Language</th>
+      <th>Shuttles</th>
+      <th>Page (PDF)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Croatian</td>
+      <td>58, 12C</td>
+      <td>14</td>
+    </tr>
+    <tr>
+      <td>Danish</td>
+      <td>87, 88</td>
+      <td>14</td>
+    </tr>
+    <tr>
+      <td>Portuguese</td>
+      <td>63, 63A, 63B, 106</td>
+      <td>20</td>
+    </tr>
+    <tr>
+      <td>Roumanian</td>
+      <td>92</td>
+      <td>20</td>
+    </tr>
+    <tr>
+      <td>Polish</td>
+      <td>156, 153B, 157</td>
+      <td>20</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Pages 10–13, 15–19 and 21–35 have <strong>not been sampled at all</strong> — there are
+more languages there than the table above. Each section is one layout
+shared by several shuttles, so the yield per verified layout is high.
+Difficulty is ordinary accented Latin.</p>
+
+<p><strong>2. Blickensderfer pages 0161–0168 — 8 of 14 pages unsampled.</strong> Only
+0155–0160 have been read. Same by-language/market structure, same
+three-row 28-column shape, same yield pattern. No known blockers.</p>
+
+<p><strong>3. Hammond 1920 leftovers — small and fiddly.</strong> 41, 162, 184,
+23E/23F/23G, 136. Each is one or two unresolved figure slots, or a
+non-standard row shape (184’s four lines). Worth a pass with the
+higher-resolution TIFF originals rather than more zooming on the small
+PDF — that is the specific thing likely to settle 162’s damaged glyph
+after <code class="language-plaintext highlighter-rouge">4%</code> and 41’s fraction numerators.</p>
+
+<p><strong>4. Blickensderfer British fraction variants.</strong> 212, E458, 331, 454,
+300, 205, 350, 494, 379, 387, 371, 337, 217. Legible, but each packs a
+<em>different</em> fraction bank, so this is thirteen separate verifications
+rather than one shared reading — high effort, low yield per entry.</p>
+
+<p><strong>5. Blocked on fonts, not on reading.</strong> Hammond’s non-Latin sets (195
+Astronomical, 196/197 Phonetic, 135/135B/135C Mathematical, 112C Greek,
+59/20 Fraktur, 165/167 Yiddish), the 1915 pre-reform Cyrillic (Russian
+49/35, Servian 125 — need ѣ, і, hard-sign ъ), and Blickensderfer’s
+Armenian 218. Transcribing these is pointless until a font carrying the
+glyphs is identified, since the build would fail on missing characters
+anyway. Check with <code class="language-plaintext highlighter-rouge">font_coverage.py</code> before starting any of them.</p>
+
+<p><strong>Not worth doing:</strong> Hammond’s medical/chemical (43, 43A, 107, 179, 21,
+18), diacritical/library (113, 122, 48C) and literary (192, 193, 194)
+sets, and Blickensderfer’s British Telegraph 376. These are purpose-made
+symbol banks with no reliable Unicode reading from these scans; they would
+need a different, better source rather than more effort on this one.</p>
+
+<h2 id="continuing-this-work">Continuing this work</h2>
+
+<ol>
+  <li>Pick a target from the priority list above.</li>
+  <li>Render the page at 200 dpi (<code class="language-plaintext highlighter-rouge">pdftoppm -r 200 -png -f N -l N</code>), crop the
+entry, and zoom to 300–600 % for any contested glyph.</li>
+  <li>Apply the four habits above — especially the column reading and the
+letter-inventory check.</li>
+  <li>Verify every shuttle claimed to share a layout actually prints the same
+rows; don’t extrapolate from one entry to its siblings.</li>
+  <li>Add the layout to the machine’s <code class="language-plaintext highlighter-rouge">lib/layouts/</code> module, wire it into
+both Hammond machines if it’s a Hammond layout (respecting the per-
+machine storage order), and add a <code class="language-plaintext highlighter-rouge">LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE</code>
+entry for <code class="language-plaintext highlighter-rouge">hammond</code>.</li>
+  <li>Run the hard gate (see CLAUDE.md) — adding a preset should leave every
+config’s mesh output byte-identical, since it doesn’t touch the active
+<code class="language-plaintext highlighter-rouge">layout.rows</code>.</li>
+  <li>Move the entry out of the “not imported” list and into
+<code class="language-plaintext highlighter-rouge">CATALOG_SHUTTLES</code>, with the shuttles it covers.</li>
+</ol>
+
+<h3 id="note-on-configblickensderferyaml">Note on <code class="language-plaintext highlighter-rouge">config/blickensderfer.yaml</code></h3>
+
+<p>Its row 2 reads <code class="language-plaintext highlighter-rouge">*</code> where the <code class="language-plaintext highlighter-rouge">DHIATENSOR</code> preset has <code class="language-plaintext highlighter-rouge">%</code>. That is a
+deliberate hand-edit through the Layout tab (<code class="language-plaintext highlighter-rouge">modify_glyphs: true</code>), not
+drift — don’t “correct” it.</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">v4 Type Elements</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">v4 Type Elements</li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
