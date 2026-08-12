@@ -19,9 +19,17 @@ header_pages:
   - accessories.md
   - behind-the-scenes.md
   - layout-transcription.md
+  - catalog-index.md
   - roadmap.md
   - changelog.md
   - readme.md
+
+# Off-site nav entries, appended after header_pages by
+# _includes/header.html. The project story (collaborators, real prints,
+# the machines) lives on the main site; this one is the technical docs.
+external_nav:
+  - title: "Project Story ↗"
+    url: "https://leonardchau.com/projects/type-elements/"
 
 exclude:
   - sync_docs.sh

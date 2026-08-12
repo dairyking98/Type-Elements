@@ -9,6 +9,7 @@ on:
       - "v4/SESSION_LOG.md"
       - "v4/PACKAGING_PLAN.md"
       - "v4/LAYOUT_TRANSCRIPTION.md"
+      - "v4/CATALOG_INDEX.md"
       - "v4/PIPELINE.md"
       - "v4/MACHINES.md"
       - "v4/TUNER.md"

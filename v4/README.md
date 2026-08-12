@@ -28,6 +28,7 @@ lives in its own document so this one stays short:
 | [`MACHINES.md`](MACHINES.md) | Per-machine architecture, what each shares with the others, element assembly, resin supports, calibration |
 | [`TUNER.md`](TUNER.md) | `tune.py` - the interactive tuner and its config tiers |
 | [`LAYOUT_TRANSCRIPTION.md`](LAYOUT_TRANSCRIPTION.md) | How the keyboard layouts were transcribed from real manufacturer type catalogs, and what's still un-transcribed |
+| [`CATALOG_INDEX.md`](CATALOG_INDEX.md) | Every catalogued Hammond and Blickensderfer shuttle, with its import status |
 | [`LIMITATIONS.md`](LIMITATIONS.md) | Known limitations, and resolved ones worth remembering |
 | [`CLAUDE.md`](CLAUDE.md) | Conventions and hard-won invariants - read before changing geometry code |
 | [`SESSION_LOG.md`](SESSION_LOG.md) | Chronological development history and the current resume point |

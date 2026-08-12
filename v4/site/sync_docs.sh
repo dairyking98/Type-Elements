@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Copies the real source-of-truth docs (README.md, SESSION_LOG.md,
-# PACKAGING_PLAN.md, LAYOUT_TRANSCRIPTION.md, docs/*.md) into site/ with Jekyll front matter
+# PACKAGING_PLAN.md, LAYOUT_TRANSCRIPTION.md, CATALOG_INDEX.md,
+# docs/*.md) into site/ with Jekyll front matter
 # prepended, so the site always reflects whatever is actually in the repo
 # at build time instead of a hand-duplicated copy that can drift.
 set -euo pipefail
@@ -17,6 +18,7 @@ rewrite_links() {
       -e 's|](TUNER\.md)|](/tuner/)|g' \
       -e 's|](LIMITATIONS\.md)|](/limitations/)|g' \
       -e 's|](LAYOUT_TRANSCRIPTION\.md)|](/layout-transcription/)|g' \
+      -e 's|](CATALOG_INDEX\.md)|](/catalog-index/)|g' \
       -e 's|](SESSION_LOG\.md)|](/changelog/)|g' \
       -e 's|](PACKAGING_PLAN\.md)|](/roadmap-packaging/)|g' \
       -e 's|](README\.md)|](/readme/)|g' \
@@ -36,6 +38,7 @@ inject README.md "$SITE/readme.md" "README"
 inject SESSION_LOG.md "$SITE/changelog.md" "Changelog"
 inject PACKAGING_PLAN.md "$SITE/roadmap-packaging.md" "Packaging Plan"
 inject LAYOUT_TRANSCRIPTION.md "$SITE/layout-transcription.md" "Layout Transcription"
+inject CATALOG_INDEX.md "$SITE/catalog-index.md" "Catalog Index"
 inject PIPELINE.md "$SITE/pipeline.md" "The Glyph Pipeline"
 inject MACHINES.md "$SITE/machines-detail.md" "Machines (detail)"
 inject TUNER.md "$SITE/tuner.md" "Interactive Tuner"

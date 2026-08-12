@@ -9,6 +9,10 @@ reading a glyph off a scan, and that reasoning is the part worth keeping.
 All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
+For the complete shuttle-by-shuttle enumeration with import status, see
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 98 of 346 catalogued Hammond
+shuttles are currently covered.
+
 ---
 
 ## Sources
