@@ -55,7 +55,7 @@ reading a glyph off a scan, and that reasoning is the part worth keeping.</p>
 is the narrative; those modules are the source of truth for the values.</p>
 
 <p>For the complete shuttle-by-shuttle enumeration with import status, see
-<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 212 of 346 catalogued Hammond
+<a href="/catalog-index/"><code class="language-plaintext highlighter-rouge">CATALOG_INDEX.md</code></a> — 216 of 346 catalogued Hammond
 shuttles are currently covered.</p>
 
 <hr />
@@ -223,6 +223,15 @@ callable; one ambiguous glyph on its own would not have been.</p>
 <p>The payoff was disproportionate: <code class="language-plaintext highlighter-rouge">Ideal, German</code> turns out to differ from
 <code class="language-plaintext highlighter-rouge">Ideal, Dutch</code> in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.</p>
+
+<p><strong>Greek is held on the diacritics, not the letters.</strong> The Greek shuttles
+(7, 75, 82, 8, 112A, 112B) are polytonic: alongside the alphabet they
+carry standalone breathing and accent marks, and what appear to be
+iota-subscript vowel forms. The letters read fine; assigning the <em>marks</em>
+to codepoints is the problem — acute vs tonos, perispomeni vs a plain
+tilde, psili vs a left quote are all distinguishable in principle and not
+at this scan resolution. This one wants someone who reads polytonic
+Greek, not a better crop.</p>
 
 <p><strong>The inventory check can indict the SOURCE, not just the port.</strong> It was
 built to catch v1/v2 transcription errors, but on Bulgarian 31C it fired
@@ -433,6 +442,10 @@ both.</p>
     <tr>
       <td>Universal, Bohemian</td>
       <td>116</td>
+    </tr>
+    <tr>
+      <td>Ideal, Italian</td>
+      <td>61A, 14A, 62A, 15A</td>
     </tr>
   </tbody>
 </table>
