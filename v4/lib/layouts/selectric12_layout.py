@@ -47,7 +47,7 @@ assert len(S12_HEMISPHERE_MAP) == 44
 # left-to-right, top-to-bottom", so it only produces a correct typeball
 # for a layout.rows whose i-th character is genuinely THAT SAME PHYSICAL
 # US KEY, substituted in place. Confirmed by direct construction: the
-# real Finnish/Swedish keyboard (tune.py's FINNISH_SWEDISH preset, see
+# real Finnish/Swedish keyboard (the "Finnish-Swedish" preset, see
 # config/selectric12.yaml's layout.hemisphere_map) rearranges more than
 # just character content relative to US - some physical keys' natural
 # reading-order position genuinely differs (e.g. the row-0 case symbol
@@ -107,7 +107,7 @@ LAYOUT_PRESETS_SELECTRIC12 = {
     # v2 S12_88_Language==0 (LOWERCASE88_US/UPPERCASE88_US) - the only
     # real named language S12 has (S12_88_Language's other option is
     # Custom, i.e. this machine's own Modify glyphs switch).
-    "UNITED_STATES": [
+    "United States": [
         "1234567890-=",
         "qwertyuiop½",
         "asdfghjkl;'",
@@ -118,7 +118,7 @@ LAYOUT_PRESETS_SELECTRIC12 = {
         "ZXCVBNM,.?",
     ],
     # v4-only addition, not from v2 (v2's S12_88_Language only ever had
-    # US/Custom - see UNITED_STATES's own comment). Real Finnish/Swedish
+    # US/Custom - see "United States"'s own comment). Real Finnish/Swedish
     # keyboard content, in genuine natural reading order (NOT pre-shuffled
     # to fake-fit S12_HEMISPHERE_MAP's US-specific position calibration -
     # an earlier attempt at that is exactly why this preset needs its own
@@ -135,7 +135,7 @@ LAYOUT_PRESETS_SELECTRIC12 = {
     # reference and round-tripped back to an exact match against it - see
     # SESSION_LOG.md's matching chapter for the full derivation, not
     # hand-arranged by eye.
-    "FINNISH_SWEDISH": [
+    "Finnish-Swedish": [
         "1234567890´ü",
         "qwertyuiop-",
         "asdfghjkl.,",
@@ -166,8 +166,8 @@ LAYOUT_PRESETS_SELECTRIC12 = {
 # at import instead makes adding a layout without pairing it impossible
 # to miss.
 PRESET_HEMISPHERE_MAP = {
-    "UNITED_STATES": "us",
-    "FINNISH_SWEDISH": "finnish_swedish",
+    "United States": "us",
+    "Finnish-Swedish": "finnish_swedish",
 }
 assert set(PRESET_HEMISPHERE_MAP) == set(LAYOUT_PRESETS_SELECTRIC12), (
     "every LAYOUT_PRESETS_SELECTRIC12 layout preset must name its hemisphere map: "

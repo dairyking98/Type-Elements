@@ -11,6 +11,41 @@ tables below are the machine-name -> data indexes tune.py looks up, and
 LAYOUT_PICKER_HELP is the Layout tab's per-machine banner prose (kept
 with the data it describes, per CLAUDE.md's "one dict entry, not an
 if/elif chain" rule).
+
+PRESET NAMING CONVENTION - fleet-wide, all ten machines:
+
+    <Keyboard>[, <Language>][ (<Variant>)]
+
+Title Case throughout. A comma introduces the LANGUAGE, or the variant
+when there is no language; parentheses hold the variant once a language
+is already named. Multiple variants are comma-separated inside the one
+pair of parentheses. So:
+
+    Universal                                     (keyboard alone)
+    Universal, Math                               (variant, no language)
+    Ideal, Dutch                                  (language)
+    Ideal, Spanish (¢)                            (language + variant)
+    DHIATENSOR, British (Fractions, Mimeograph)   (two variants)
+
+"Keyboard" means whatever axis that machine's own sources divide its
+range along: Ideal/Universal for the Hammonds, the letter arrangement
+(DHIATENSOR/QWERTY/CHARIENSTU) for Blickensderfer. A machine with only
+one keyboard just starts at the language - Bennett's "British",
+Selectric's "United States", Mignon's "Danish 2".
+
+This used to be a Hammond-only rule while Blickensderfer, Bennett,
+Helios and the three Selectrics spelled their presets SCREAMING_SNAKE
+("QWERTY_BRITISH", "UNITED_STATES", "GERMAN_MOD"). Unified in one pass;
+see SESSION_LOG.md. A SCREAMING_SNAKE name appearing in a comment is
+therefore a quote of a v1/v2 .scad array, not a v4 preset - the two
+Selectric modules, helios_layout.py and blickensderfer_layout.py all
+carry such quotes deliberately and say so.
+
+Renaming presets is safe because no config file stores a preset NAME,
+only the rows it produced; the picker is a template chooser, not
+persisted state. The one place names ARE stored is
+blickensderfer_catalog.py's preset column, and gen_catalog_index.py
+fails loudly when one no longer resolves.
 """
 
 # RELATIVE imports are required here, not absolute "from lib.layouts...".
@@ -187,12 +222,14 @@ LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE = {
 # machine's entry here instead of an if/elif in _compose_layout_tab).
 LAYOUT_PICKER_HELP = {
     "blickensderfer": (
-        "All layouts share the same physical placement_map - only glyph "
-        "content per row changes. HEBREW_ENGL needs a Hebrew-capable font "
-        "path; v4 doesn't auto-switch fonts per layout like v2 did. "
-        "BRITISH_LITERARY and QWERTY_BRITISH come from the Blickensderfer "
-        "type-wheel catalog scans - QWERTY_BRITISH differs from QWERTY in "
-        "exactly one position, £ where the American wheel has $."
+        "Named for the letter arrangement they use - DHIATENSOR, QWERTY "
+        "or CHARIENSTU - then market and variant. All share the same "
+        "physical placement_map; only glyph content per row changes. "
+        "Hebrew-English needs a Hebrew-capable font path; v4 doesn't "
+        "auto-switch fonts per layout like v2 did. Most of these come "
+        "from the type-wheel catalog, where a British wheel usually "
+        "differs from its American twin in exactly one position - £ "
+        "where the American has $."
     ),
     "postal": (
         "Postal has only one physical layout, QWERTY. Use Modify glyphs "
@@ -207,14 +244,15 @@ LAYOUT_PICKER_HELP = {
     "bennett": (
         "Ported from v2/lib/layouts/bennett_layouts.scad's ENGLISH/BRITISH/"
         "INTERNATIONAL plus v2/bennett.scad's own CUSTOM (identical to "
-        "ENGLISH by default - edit it via Modify glyphs below). All share "
+        "English by default - edit it via Modify glyphs below). All share "
         "the same 3-row/28-column layout. Rows are shown in keyboard-legend "
         "order (as printed on the physical keyboard/manual) - "
         "layout.char_legend remaps this to build order internally."
     ),
     "helios": (
-        "GERMAN_MOD is v2's real default/only-used layout; GERMAN is a "
-        "second array present in the source but superseded there. Both "
+        "German (Modified) is v2's real default/only-used layout; German "
+        "is a second array present in the source but superseded there. "
+        "Rotunda is a third, from v1 only. All "
         "share the same 4-row/21-column physical layout, identity "
         "placement_map."
     ),

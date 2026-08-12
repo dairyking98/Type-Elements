@@ -150,7 +150,7 @@ LAYOUT_PRESETS_MIGNON = {
         '£§ჰჭჟჯფპკ#ჳ/',
         '1234567890%½',
     ],
-    'Greek (new ortography)': [
+    "Greek (New Orthography)": [
         '£123456789-;',
         "&ΠΡΚΓΞπρκγξ'",
         '½ΛΤΗΑΒλτηαβ͂',
@@ -231,7 +231,7 @@ LAYOUT_PRESETS_MIGNON = {
         '%YXJZQyxjzqâ',
         '½23456789,.-',
     ],
-    'Russian (new ortography)': [
+    "Russian (New Orthography)": [
         '№ХЬЯЛУхьялу!',
         '1ТГСЮЙтгсюй/',
         '2РПОИЫрпоиы"',

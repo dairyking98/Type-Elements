@@ -414,8 +414,23 @@ the cited section for the full incident).
   `LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE` if that machine needs them) -
   never a new `LAYOUT_PRESETS_*` dict in the TUI. Per explicit user
   direction; ~840 lines of preset data were moved out of `tune.py` to
-  establish this, verified table-for-table identical before/after. Two
-  consequences worth knowing:
+  establish this, verified table-for-table identical before/after.
+- **Preset NAMES follow one fleet-wide convention, stated authoritatively
+  in `lib/layouts/__init__.py`'s docstring: `<Keyboard>[, <Language>][
+  (<Variant>)]`, Title Case.** Don't restate it per machine and don't let
+  a new machine arrive spelling its presets `SCREAMING_SNAKE` - six
+  machines did (Blickensderfer, Bennett, Helios, the three Selectrics)
+  and were unified in one pass. A `SCREAMING_SNAKE` name in a comment is
+  therefore now a QUOTE of a v1/v2 `.scad` array, not a v4 preset; keep
+  those quotes as they are. Renaming presets is safe because no config
+  stores a preset name, only the rows it produced - the one exception is
+  `lib/layouts/blickensderfer_catalog.py`'s preset column, and
+  `gen_catalog_index.py` exits non-zero when a name there stops
+  resolving, so a half-done rename is loud rather than silent. If you do
+  rename, prove the row DATA is untouched (compare each old key's rows
+  against its new key's, plus every unrenamed preset) - that check is
+  what makes the change reviewable at all.
+  Two more consequences of the package layout worth knowing:
   - **`lib/layouts/` is reachable under TWO module names** - `lib.layouts`
     (repo root on `sys.path`: `tune.py`, `font_coverage.py`) and plain
     `layouts` (`lib/` itself on `sys.path`: `lib/selectric12.py`'s `from

@@ -757,12 +757,12 @@ CATALOG_SHUTTLES = {
     #     expertise and, for several, a font that has the glyphs at all.
     "not_imported": "see the comment above this key",
 }
-# PRESET NAMING CONVENTION (both Hammond machines, keep it):
-#     <Keyboard>[, <Language>][ (<Variant>)]
-# A comma introduces the LANGUAGE, or the variant when there is no
-# language; parentheses hold the variant once a language is already
-# named. So: "Universal", "Universal, Math", "Universal, Fractions",
-# "Ideal, Dutch", "Ideal, Spanish (¢)", "Ideal, Danish (Fractions)".
+# PRESET NAMING CONVENTION: <Keyboard>[, <Language>][ (<Variant>)].
+# This started here but is now FLEET-WIDE - the authoritative statement
+# of it lives in this package's __init__.py docstring; keep that one
+# current rather than re-describing it per machine. For these two
+# machines the keyboard axis is Ideal/Universal, giving "Universal",
+# "Universal, Math", "Ideal, Dutch", "Ideal, Spanish (¢)".
 # Title Case throughout, on BOTH machines - hammond_split used to spell
 # the same two keyboards ALL CAPS ("IDEAL, Dutch"), and hammond's first
 # two presets predated the convention entirely ("Normal Universal",

@@ -7,15 +7,26 @@ modules in this package rather than hardcoded in the TUI - see this
 package's __init__.py for how the per-machine tables are aggregated.
 """
 
-# Named Blickensderfer keyboard layouts, ported verbatim from
-# v2/lib/layouts/blick_layouts.scad's DHIATENSOR/QWERTY/SCANDI/
-# HEBREW_ENGL/CHARIENSTU_DE/CHARIENSTU_DE_MOD arrays. All share the same
-# 3-row structure and the same physical placement_map/latitude_columns -
-# only the glyph content per row differs, so switching presets only ever
-# rewrites layout.rows. HEBREW_ENGL needs a Hebrew-capable font
-# (font.path) to actually render correctly - v2 auto-switches Font_Hebrew
-# when this layout is selected, v4 does not (no per-layout font-switching
-# wired up), so you'll need to set font.path yourself too.
+# Named Blickensderfer keyboard layouts. The first six were ported
+# verbatim from v2/lib/layouts/blick_layouts.scad's DHIATENSOR, QWERTY,
+# SCANDI, HEBREW_ENGL, CHARIENSTU_DE and CHARIENSTU_DE_MOD arrays - those
+# SCREAMING_SNAKE spellings are v2's, kept here only as source
+# references; the preset names below follow the fleet-wide convention
+# documented in hammond_layout.py:
+#
+#     <Keyboard>[, <Language>][ (<Variant>)]
+#
+# For this machine the keyboard axis is the letter arrangement itself -
+# DHIATENSOR, QWERTY or CHARIENSTU - which is also how the catalog's own
+# section headings divide the range.
+#
+# All presets share the same 3-row structure and the same physical
+# placement_map/latitude_columns - only the glyph content per row
+# differs, so switching presets only ever rewrites layout.rows.
+# "DHIATENSOR, Hebrew-English" needs a Hebrew-capable font (font.path) to
+# actually render correctly - v2 auto-switches Font_Hebrew when this
+# layout is selected, v4 does not (no per-layout font-switching wired
+# up), so you'll need to set font.path yourself too.
 LAYOUT_PRESETS = {
     "DHIATENSOR": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
@@ -27,12 +38,12 @@ LAYOUT_PRESETS = {
         "QWERTASDFGZXCVBNM?HJKL.YUIOP",
         "\"#$%_/-¢@;23456789:!^1.&'(0)",
     ],
-    "SCANDI": [
+    "DHIATENSOR, Scandinavian": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
         "-Å_(ä/'\"!1234567890;?åö$)ÄÖ:",
     ],
-    "HEBREW_ENGL": [
+    "DHIATENSOR, Hebrew-English": [
         "זךכגװפףץצדהעאתןנםשרלסמיטבוקח",
         "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
         "-^_(./'\"!1234567890;?%¢$)@#:",
@@ -48,12 +59,12 @@ LAYOUT_PRESETS = {
     # omits Y; (2) the Blickensderfer type-wheel catalog scans (Bohemian
     # No. 426/443, "Catalog/20230113_0155.jpg") print "GMDB:WKJY" plainly at
     # 300%. DHIATENSOR was checked the same way and is clean in both rows.
-    "CHARIENSTU_DE": [
+    "CHARIENSTU, German": [
         "xqzv.pflocharienstugmdb,wkjy",
         "XQZV&PFLOCHARIENSTUGMDB:WKJY",
         "(%¨+-/'\"ö1234567890äü!;?=ß§)",
     ],
-    "CHARIENSTU_DE_MOD": [
+    "CHARIENSTU, German (Modified)": [
         "xqzv.pflocharienstugmdb,wkjy",
         "XQZV&PFLOCHARIENSTUGMDB:WKJY",
         "(%*+-/'\"^1234567890`´!;?=@§)",
@@ -66,7 +77,7 @@ LAYOUT_PRESETS = {
     # Roman Literary 307, Italic Literary 383, Script Literary 395,
     # Vertical Script Literary 213 - all six print identical rows, differing
     # only in typeface.
-    "BRITISH_LITERARY": [
+    "DHIATENSOR, British (Literary)": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/_¼!1234567890½+¾=£;*':",
@@ -74,18 +85,18 @@ LAYOUT_PRESETS = {
     # QWERTY above is the American wheel; this is the British one, which
     # differs from it in EXACTLY one position - £ where American has $.
     # Shuttles: Small Roman 441, Large Roman 442.
-    "QWERTY_BRITISH": [
+    "QWERTY, British": [
         "qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL.YUIOP",
         "\"#£%_/-¢@;23456789:!^1.&'(0)",
     ],
     # --- From the by-language pages of the same catalog scans ---------
     # German (404 Small Roman, 423 Large Roman, 378 Large Roman, 489
-    # Italic). Its LETTER rows are identical to CHARIENSTU_DE's; the two
-    # differ in four figures-row positions:
+    # Italic). Its LETTER rows are identical to "CHARIENSTU, German"'s;
+    # the two differ in four figures-row positions:
     #
-    #     CHARIENSTU_DE   ¨ … ö … ä … ß      (from v1/v2)
-    #     GERMAN          № … ä … ö … ₰      (from the catalog)
+    #     CHARIENSTU, German             ¨ … ö … ä … ß   (from v1/v2)
+    #     CHARIENSTU, German (Pfennig)   № … ä … ö … ₰   (from the catalog)
     #
     # So ö/ä are swapped, and the catalogued shuttle carries № (numero)
     # and ₰ (Pfennig, U+20B0 - printed as the Pf ligature, verified at
@@ -93,30 +104,35 @@ LAYOUT_PRESETS = {
     # wrong until you count: Blickensderfer has 28 positions to Hammond's
     # 30, and this shuttle spends its scarce slots on the two symbols
     # German COMMERCE needed. Both are plausible real products, so
-    # CHARIENSTU_DE is left alone rather than "corrected" into this.
+    # "CHARIENSTU, German" is left alone rather than "corrected" into
+    # this.
     #
     # Its row 1 also ends WKJY, a third independent confirmation of the
     # WKJY fix at the top of this file.
-    "GERMAN": [
+    "CHARIENSTU, German (Pfennig)": [
         "xqzv.pflocharienstugmdb,wkjy",
         "XQZV&PFLOCHARIENSTUGMDB:WKJY",
         "(%№+-/'\"ä1234567890öü!;?=₰§)",
     ],
-    # Danish (420 Small Roman). The same CHARIENSTU arrangement as GERMAN
-    # with æ and ø taking the "." and "," keys - two positions in each
+    # Danish (420 Small Roman). The same CHARIENSTU arrangement as the
+    # German wheels with æ and ø taking the "." and "," keys - two
+    # positions in each
     # letter row, nothing else moved.
-    "DANISH": [
+    "CHARIENSTU, Danish": [
         "xqzvæpflocharienstugmdbøwkjy",
         "XQZVÆPFLOCHARIENSTUGMDBØWKJY",
         "(%№+-/'\".1234567890,:!;?&£§)",
     ],
-    # Hungarian (415 Small Roman). A wholly different letter arrangement -
-    # not CHARIENSTU, not DHIATENSOR - built around "hiatensyrlcmo".
+    # Hungarian (415 Small Roman). Filed under DHIATENSOR because it IS
+    # that family, not a third arrangement: positions 0, 2, 3, 6, 7 and
+    # 8 are unchanged, "hiatens" sits at 10-16 exactly as on the plain
+    # wheel, and "lcm" follows at 19-21. Only the vowel/accent slots
+    # move.
     #
     # It self-checks the same way the Hammond Czech and Polish shuttles
     # do: q/Q and x/X sit in the FIGURES row because Hungarian uses
     # neither natively, and row 0 accordingly contains no q and no x.
-    "HUNGARIAN": [
+    "DHIATENSOR, Hungarian": [
         "zpkgüáwfuvhiatensyrlcmoébdöj",
         "ZPKGÜÁWFUVHIATENSYRLCMOÉBDÖJ",
         '§/&q%!;-ú.23456789,?:ÓóäQxX"',
@@ -128,12 +144,12 @@ LAYOUT_PRESETS = {
     # 393, 357, 454, 300, 205 - print this one layout character for
     # character, differing only in typeface. The eighths read
     # unambiguously at 800% (the 8 of ⅛ is a closed double loop, plainly
-    # not the 3 of BRITISH_INDIA's ⅓ below).
+    # not the 3 of "DHIATENSOR, British-India"'s ⅓ below).
     #
-    # Its shifted row is BRITISH_LITERARY's, and its figures row is
-    # BRITISH_LITERARY's with the fraction slots filled in - the two are
+    # Its shifted row is the Literary wheel's, and its figures row is
+    # that wheel's with the fraction slots filled in - the two are
     # the same wheel at two levels of fraction coverage.
-    "BRITISH_SCIENTIFIC_FRACTION": [
+    "DHIATENSOR, British (Fractions)": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/⅛¼⅜1234567890½⅝¾⅞£;@':",
@@ -141,15 +157,15 @@ LAYOUT_PRESETS = {
     # Mimeograph 331, the one member of that group that is NOT identical:
     # it ends @": where the other ten end @':. Checked at 600% - two
     # distinct marks, not one apostrophe with a scanning artifact.
-    "BRITISH_SCIENTIFIC_FRACTION_MIMEO": [
+    "DHIATENSOR, British (Fractions, Mimeograph)": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/⅛¼⅜1234567890½⅝¾⅞£;@\":",
     ],
     # Small Roman 407½. DHIATENSOR with £ for $, in EXACTLY one position -
-    # the same American/British relationship QWERTY and QWERTY_BRITISH
-    # already have, on the other keyboard.
-    "DHIATENSOR_BRITISH": [
+    # the same American/British relationship QWERTY and "QWERTY,
+    # British" already have, on the other keyboard.
+    "DHIATENSOR, British": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG.PWFUDHIATENSORLCMY&BVQJ",
         "-^_(./'\"!1234567890;?%¢£)@#:",
@@ -158,7 +174,7 @@ LAYOUT_PRESETS = {
     # name is literal: it is the only wheel here carrying BOTH $ and £.
     # Three positions moved off DHIATENSOR to pay for it - shifted row
     # gains & at 4 and £ at 23, figures row gains § at 4.
-    "BRITISH_AMERICAN": [
+    "DHIATENSOR, British-American": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY£BVQJ",
         "-^_(§/'\"!1234567890;?%¢$)@#:",
@@ -167,7 +183,7 @@ LAYOUT_PRESETS = {
     # above with two substitutions: ⅓ for ⅛, and ₨ (U+20A8, printed as
     # the Rs ligature) for ⅞. Both verified at 900% against the
     # corresponding glyphs on the plain Scientific wheel.
-    "BRITISH_INDIA": [
+    "DHIATENSOR, British-India": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/⅓¼⅜1234567890½⅝¾₨£;@':",
@@ -176,7 +192,7 @@ LAYOUT_PRESETS = {
     # ₁₂₃₄₅ before the full-size digits and ₆₇₈₉₀ after - for writing
     # formulae like H₂SO₄. Every one is a real codepoint (U+2080..2089),
     # so this transcribes exactly despite looking exotic.
-    "CHEMICAL_ENGLISH": [
+    "DHIATENSOR (Chemical)": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG’PWFUDHIATENSORLCMY°BVQJ",
         "—+=(₁₂₃₄₅1234567890₆₇₈₉₀)@%:",
@@ -187,57 +203,57 @@ LAYOUT_PRESETS = {
     # entirely; æ sits in DHIATENSOR's "1" position and the remaining
     # digits keep their own slots. The mark before £ is a BREVE, not a
     # caron - confirmed at 700%, a smooth cup with no angular vertex.
-    "COSMOPOLITAN": [
+    "DHIATENSOR, Cosmopolitan": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/^´`æ234567890œ¨~˘£¸°':",
     ],
     # --- The Universal (QWERTY) market wheels -------------------------
     # All four below share a shifted row that differs from plain QWERTY's
-    # in one position: & where QWERTY has "." (except CHEMICAL_UNIVERSAL,
-    # which puts ’ there and ° in the "?" slot, matching CHEMICAL_ENGLISH
-    # on the other keyboard).
+    # in one position: & where QWERTY has "." (except the Chemical
+    # wheel, which puts ’ there and ° in the "?" slot, matching
+    # "DHIATENSOR (Chemical)" on the other keyboard).
     #
     # Universal fraction (Elite 350, Small Roman 494, Large Roman 379,
     # Italic 371, Script 337, Vertical Script 217) - six entries, one
     # layout. Cross-checks against QWERTY: digits 2-9 stay at positions
     # 10-17 and 1 stays at 21, exactly where the plain wheel has them.
-    "UNIVERSAL_FRACTION": [
+    "QWERTY, British (Fractions)": [
         "qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL&YUIOP",
         "\"@/%;-⅛¼⅜½23456789⅝¾⅞1£:'(0)",
     ],
     # Universal literary (Small Roman Literary 203) - the QWERTY
-    # counterpart of BRITISH_LITERARY, carrying only ¼ ½ ¾ where
-    # UNIVERSAL_FRACTION carries the full eighths bank.
-    "UNIVERSAL_LITERARY": [
+    # counterpart of "DHIATENSOR, British (Literary)", carrying only
+    # ¼ ½ ¾ where the fraction wheel carries the full eighths bank.
+    "QWERTY, British (Literary)": [
         "qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL&YUIOP",
         "\"*/%;-=¼!½23456789+¾_1£:'(0)",
     ],
-    # Chemical, Universal (British) No. 222 - CHEMICAL_ENGLISH's subscript
-    # bank on the QWERTY wheel.
-    "CHEMICAL_UNIVERSAL": [
+    # Chemical, Universal (British) No. 222 - "DHIATENSOR (Chemical)"'s
+    # subscript bank on the QWERTY wheel.
+    "QWERTY, British (Chemical)": [
         "qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM°HJKL’YUIOP",
         "₁₂₃₄₅+—=[;23456789%]@1£₆₇₈₉₀",
     ],
-    # Universal Small Roman No. 367 - COSMOPOLITAN's accent bank on the
-    # QWERTY wheel, and the one wheel here whose figures row does NOT
+    # Universal Small Roman No. 367 - the Cosmopolitan accent bank on
+    # the QWERTY wheel, and the one wheel here whose figures row does NOT
     # keep the digits in their usual slots: it splits them 2345 … 67890
     # around the accents and drops 1, so the row IS the mapping rather
     # than a permutation of the standard one.
-    "UNIVERSAL_ACCENT": [
+    "QWERTY, Cosmopolitan": [
         "qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL&YUIOP",
         "%2345/˘æ´`()¨°¸\"-:^'~œ£67890",
     ],
     # --- The American (English Fractional) wheels ----------------------
     # Elite 436, Small Roman 424, Large Roman 425. Identical to
-    # BRITISH_SCIENTIFIC_FRACTION but for $ in place of £ - the same
-    # single-position American/British split as QWERTY/QWERTY_BRITISH and
-    # DHIATENSOR/DHIATENSOR_BRITISH.
-    "DHIATENSOR_FRACTION": [
+    # "DHIATENSOR, British (Fractions)" but for $ in place of £ - the
+    # same single-position American/British split as QWERTY / "QWERTY,
+    # British" and DHIATENSOR / "DHIATENSOR, British".
+    "DHIATENSOR (Fractions)": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/⅛¼⅜1234567890½⅝¾⅞$;@':",
@@ -246,7 +262,7 @@ LAYOUT_PRESETS = {
     # of it at all: it moves the fractions to the FRONT of the figures
     # row (⅛¼½ where DHIATENSOR has -^_), keeps $, adds £ in the last
     # slot, and puts : where its siblings have ? in the shifted row.
-    "DHIATENSOR_FRACTION_ALT": [
+    "DHIATENSOR (Fractions, Alternate)": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY:BVQJ",
         "⅛¼½(-/'\"!1234567890;?%¢$)@#£",
@@ -256,27 +272,30 @@ LAYOUT_PRESETS = {
     # there is no kana on it. It is a TRADING wheel - plain DHIATENSOR
     # letters whose figures row carries all three of ¥, $ and £, paid for
     # by dropping ⅜ and ¾ from the fraction bank.
-    "ENGLISH_JAPANESE": [
+    "DHIATENSOR, English-Japanese": [
         "zxkg.pwfudhiatensorlcmy,bvqj",
         "ZXKG&PWFUDHIATENSORLCMY?BVQJ",
         "\"()-%/⅛¼_1234567890½⅝¥$£;@':",
     ],
-    # Universal Small Roman 494½ - UNIVERSAL_FRACTION with $ for £.
-    "UNIVERSAL_FRACTION_US": [
+    # Universal Small Roman 494½ - "QWERTY, British (Fractions)" with $
+    # for £.
+    "QWERTY (Fractions)": [
         "qwertasdfgzxcvbnm,hjkl.yuiop",
         "QWERTASDFGZXCVBNM?HJKL&YUIOP",
         "\"@/%;-⅛¼⅜½23456789⅝¾⅞1$:'(0)",
     ],
     # --- Two more German wheels ---------------------------------------
     # Extra Large Roman 303. A third German reading, and the one that
-    # settles what GERMAN above could not: it carries CHARIENSTU_DE's ¨
+    # settles what the Pfennig wheel above could not: it carries
+    # "CHARIENSTU, German"'s ¨
     # and ß, but GERMAN's ä/ö ORDER. So the catalog corroborates ¨/ß as
     # genuine (they are not errors that GERMAN's №/₰ correct), while
-    # leaving CHARIENSTU_DE's ä-at-19/ö-at-8 as the minority reading -
+    # leaving "CHARIENSTU, German"'s ä-at-19/ö-at-8 as the minority
+    # reading -
     # two catalogued wheels put ä at 8. Not enough to overwrite a v1/v2
     # array on (unlike WKJY, there is no letter-inventory argument here,
     # just a 2-to-1 count), so all three ship side by side.
-    "GERMAN_ESZETT": [
+    "CHARIENSTU, German (Eszett)": [
         "xqzv.pflocharienstugmdb,wkjy",
         "XQZV&PFLOCHARIENSTUGMDB:WKJY",
         "(%¨+-/'\"ä1234567890öü!;?=ß§)",
@@ -286,7 +305,7 @@ LAYOUT_PRESETS = {
     # arbitrary fractions - the same piece of type whose 3⁄ 5⁄ 7⁄ 9⁄
     # siblings are why Special British 387 is held below; here the ONE
     # form that does have a codepoint appears alone, so this one imports).
-    "GERMAN_FRACTION": [
+    "CHARIENSTU, German (Fractions)": [
         "xqzv.pflocharienstugmdb,wkjy",
         "XQZV&PFLOCHARIENSTUGMDB:WKJY",
         "(%¼+-/'\"ä⅟23456789½öü!;?=¾§)",
@@ -315,7 +334,8 @@ LAYOUT_PRESETS = {
 #     doubled dead-key accents (´ ´ and ˇ ˇ) can't be separated reliably
 #     at this scan resolution.
 #   - Armenian 218: full Armenian script, needs a font with those glyphs.
-#   - Special British 387: UNIVERSAL_FRACTION's row with its last five
+#   - Special British 387: "QWERTY, British (Fractions)"'s row with its
+#     last five
 #     slots given over to shilling numerators - 1⁄ 3⁄ 5⁄ 7⁄ 9⁄, each cast
 #     as ONE piece of type. Only the first has a single codepoint (⅟,
 #     U+215F); the rest would each need two, and layout.rows is strictly
@@ -323,7 +343,8 @@ LAYOUT_PRESETS = {
 #     is not in doubt.
 #   - British Telegraph 376: a non-standard row shape, not the usual
 #     three-row 28-column form.
-#   - The Hebrew wheels beyond HEBREW_ENGL (354, 358, HEBREW-BRITISH 348,
+#   - The Hebrew wheels beyond "DHIATENSOR, Hebrew-English" (354, 358,
+#     HEBREW-BRITISH 348,
 #     HEBREW-ENGLISH No. 2 351) and Ancient Greek 309: both scripts read
 #     cleanly at this resolution, but each needs a transcription pass of
 #     its own rather than being folded into a Latin-wheel batch. Note 358
@@ -335,9 +356,10 @@ LAYOUT_PRESETS = {
 # TWO deferrals in this list turned out to be wrong, both from judging a
 # group on one glance rather than reading it:
 #   - "each fraction entry packs a different bank" - no. Twenty-one
-#     entries collapse to four layouts (BRITISH_SCIENTIFIC_FRACTION,
-#     UNIVERSAL_FRACTION and their $ twins DHIATENSOR_FRACTION /
-#     UNIVERSAL_FRACTION_US), plus four genuine one- or two-position
+#     entries collapse to four layouts ("DHIATENSOR, British
+#     (Fractions)", "QWERTY, British (Fractions)" and their $ twins
+#     "DHIATENSOR (Fractions)" / "QWERTY (Fractions)"), plus four
+#     genuine one- or two-position
 #     variants (331, 458, 447, 387).
 #   - "ENGLISH-JAPANESE 332/333: kana" - no kana on it whatsoever; it is
 #     a Latin trading wheel carrying ¥ $ £, and imported above.

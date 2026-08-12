@@ -164,7 +164,7 @@ def configure(config_path):
     # if layout.rows' i-th character is genuinely the same physical key
     # the permutation was calibrated against). "us" (default) for the
     # real v2 US layout; tune.py's layout-preset picker keeps this in
-    # sync with whichever named preset (UNITED_STATES/FINNISH_SWEDISH)
+    # sync with whichever named preset (United States/Finnish-Swedish)
     # is selected - hand-editing layout.rows via Modify glyphs must set
     # this explicitly to whichever real map the custom rows were built
     # against.

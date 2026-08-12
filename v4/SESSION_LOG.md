@@ -5879,3 +5879,105 @@ blickensderfer/hammond/hammond_split.
 4. Part 80's font-gap item 5 (both Hammond machines configured for
    `OCR-A II Regular`, which cannot build their own default layout) is
    **still open and untouched**.
+
+---
+
+## 82. Preset naming unified fleet-wide - six machines moved off SCREAMING_SNAKE onto Hammond's documented convention (2026-08-12)
+
+Two naming conventions had been coexisting. Hammond and Hammond Split
+used a documented, compositional scheme; Mignon informally matched it;
+Blickensderfer, Bennett, Helios and the three Selectrics spelled their
+presets `SCREAMING_SNAKE`. Part 81's twenty new Blickensderfer presets
+made the split conspicuous enough to fix.
+
+One convention now, all ten machines and 166 presets:
+
+```
+<Keyboard>[, <Language>][ (<Variant>)]
+```
+
+Title Case; a comma introduces the language, or the variant when there is
+no language; parentheses hold the variant once a language is named, with
+multiple variants comma-separated inside one pair.
+
+"Keyboard" means whatever axis a machine's own sources divide its range
+along - Ideal/Universal for the Hammonds, the letter arrangement for
+Blickensderfer. A machine with one keyboard starts at the language.
+
+### Blickensderfer gained a real keyboard axis in the process
+
+Its 28 presets had been named ad hoc by whatever distinguished them
+(`BRITISH_LITERARY`, `UNIVERSAL_ACCENT`, `CHARIENSTU_DE`), which hid the
+structure. Sorting them under the three letter arrangements the catalog
+itself divides by - DHIATENSOR, QWERTY, CHARIENSTU - made two things
+visible that the old names actively obscured:
+
+- **`HUNGARIAN` is a DHIATENSOR wheel**, not the "wholly different letter
+  arrangement" its own comment claimed. Positions 0/2/3/6/7/8 are
+  unchanged, "hiatens" sits at 10-16 exactly as on the plain wheel, and
+  "lcm" follows at 19-21; only the vowel/accent slots move. Now
+  `DHIATENSOR, Hungarian`, with the offsets recorded.
+- **`COSMOPOLITAN` and `UNIVERSAL_ACCENT` are one market on two
+  keyboards** (catalog p.9 prints them under the same COSMOPOLITAN
+  heading). Now `DHIATENSOR, Cosmopolitan` and `QWERTY, Cosmopolitan`,
+  which also corrects part 81's `$`↔`£` claim from "three times over" to
+  four - the pairing is easier to count when the names line up.
+
+### SCREAMING_SNAKE now means "v1/v2 source quote"
+
+`blickensderfer_layout.py`, `helios_layout.py` and the two Selectric
+modules all quote v1/v2 `.scad` array names in their comments
+(`LAYOUT=GERMAN_MOD`, `Layouts=[GERMAN, GERMAN_MOD, ROTUNDA]`,
+`S12_HEMISPHERE_MAP_FINNISH_SWEDISH`). Those were deliberately NOT
+renamed - they are citations, and each module now says so. This is also
+why the rename could not be done as a blanket text substitution: the
+mechanical pass touched only quoted dict keys and
+`blickensderfer_catalog.py`'s preset column, and every prose reference
+was rewritten by hand.
+
+The convention's authoritative statement moved from `hammond_layout.py`
+(where it read "both Hammond machines, keep it") to
+`lib/layouts/__init__.py`'s docstring, since it is no longer a per-machine
+rule; `hammond_layout.py` now points at it rather than restating it.
+CLAUDE.md gained a matching bullet.
+
+### Verification - the point of the exercise is that NOTHING moved
+
+- **Row data identical.** Each machine's set of row-tuples compared
+  against `HEAD` - byte-for-byte unchanged across all ten.
+- **Associations preserved.** Every old key's rows compared against its
+  new key's rows through the explicit rename map, plus a check that no
+  unrenamed preset changed and no count changed. All pass.
+- The Selectric 12/3 modules' import-time asserts (`PRESET_HEMISPHERE_MAP`
+  must cover `LAYOUT_PRESETS` exactly) would have caught a half-done
+  rename on those two; they pass, and the derived
+  `LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE` came out renamed in lockstep.
+- `lib/layouts` still imports identically under both of its names.
+- Headless `TuneApp` against scratch config copies reaches the right
+  preset count on all ten machines (28/1/30/4/3/45/46/2/2/5).
+- `font_coverage.py --preset` exercised on five renamed presets across
+  five machines; its unknown-preset error still lists the real choices.
+- Hard gate unchanged: `blickensderfer verts=38310 faces=76792
+  volume=5646.195mm3`. (Nothing here can reach geometry - `generate.py`
+  reads `layout.rows` from YAML and never sees a preset name - but the
+  gate was run anyway.)
+
+Renaming is safe in general because no config stores a preset NAME, only
+the rows it produced. The one place names ARE stored is
+`blickensderfer_catalog.py`'s preset column, and `gen_catalog_index.py`
+exits non-zero when one stops resolving - so a future half-done rename
+fails loudly instead of leaving stale "imported" rows.
+
+### Resuming later
+
+Part 81's punch list is unchanged and still current. Nothing new opened
+here. Two naming judgements were deliberately left alone rather than
+"unified", and should stay that way unless there is a reason:
+
+1. **Mignon's variant numbers** (`English 2`, `Danish 3`) are the real
+   Mignon type-cylinder numbers, not an informal suffix - left bare
+   rather than parenthesised into `English (2)`.
+2. **`Roumanian` (Hammond) vs `Romanian` (Mignon)** is a real spelling
+   difference between two primary sources of different dates. Each is
+   faithful to its own catalog; unifying them would make one of them
+   wrong.

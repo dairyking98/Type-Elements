@@ -301,7 +301,7 @@ by the core_shaft reuse above - see that note).
 No Shaft Gauge Test, no Logo/Label tab (see the header note above) -
 `SECTIONS_BY_MACHINE["helios"]` has no `"Gauge"`/`"Logo"`/`"Label"` key,
 same generic-guard mechanism Mignon/Bennett already established. Layout
-tab: two named presets (`GERMAN_MOD` - v2's real default/only-used one -
+tab: two named presets (`German (Modified)` - v2's real default/only-used one -
 and the superseded `GERMAN`, both inline in v2's source), 4 physical rows
 (vs. everyone else's 3) - required zero additional `tune.py` literal-
 count fixes, since the row-count-agnostic work from Mignon's port (see

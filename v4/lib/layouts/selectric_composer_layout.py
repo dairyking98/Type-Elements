@@ -66,7 +66,7 @@ def longitude_latitude(cases_lower):
 # languages per v2's own comment - see lib/layouts/
 # selectric_composer_layout.py) - only glyph content changes per preset.
 LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
-    "UNITED_STATES": [
+    "United States": [
         "1234567890-=",
         "qwertyuiop?",
         "asdfghjkl][",
@@ -76,7 +76,7 @@ LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
         "ASDFGHJKL¼½",
         "ZXCVBNM‘’:",
     ],
-    "UNITED_KINGDOM": [
+    "United Kingdom": [
         "1234567890-=",
         "qwertyuiop?",
         "asdfghjkl][",
@@ -86,7 +86,7 @@ LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
         "ASDFGHJKL¼½",
         "ZXCVBNM‘’:",
     ],
-    "NORDIC": [
+    "Nordic": [
         "1234567890-ø",
         "qwertyuiopå",
         "asdfghjklöä",
@@ -96,7 +96,7 @@ LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
         "ASDFGHJKLÖÄ",
         "ZXCVBNM‘’:",
     ],
-    "GERMAN": [
+    "German": [
         "1234567890-ß",
         "qwertyuiopü",
         "asdfghjklöä",
@@ -106,7 +106,7 @@ LAYOUT_PRESETS_SELECTRIC_COMPOSER = {
         "ASDFGHJKLÖÄ",
         "ZXCVBNM‘’:",
     ],
-    "LATIN": [
+    "Latin": [
         "1234567890-ñ",
         "qwertyuiopˆ",
         "asdfghjkl´ç",

@@ -57,7 +57,7 @@ assert len(S3_HEMISPHERE_MAP) == 48
 # S12's first attempt was) - each of the reference's 4 physical rows
 # (12 lowercase + 12 uppercase chars, reading column 0..11) was matched
 # by character identity against this layout's own natural keyboard rows
-# (tune.py's FINNISH_SWEDISH preset below) to build the permutation,
+# (the "Finnish-Swedish" preset below) to build the permutation,
 # then round-tripped: replaying the derived permutation against the
 # natural rows reproduces all 4 physical reference rows byte-for-byte
 # (both cases), confirming it's a real bijection over 0..47, not a
@@ -109,7 +109,7 @@ LAYOUT_PRESETS_SELECTRIC3 = {
     # ("Selectric III has no custom-language variant yet",
     # ibm_layouts.scad:203) - LOWERCASE96_US/UPPERCASE96_US is the only
     # real layout.
-    "UNITED_STATES": [
+    "United States": [
         "±1234567890-=",
         "qwertyuiop½]",
         "asdfghjkl;'",
@@ -120,7 +120,7 @@ LAYOUT_PRESETS_SELECTRIC3 = {
         "ZXCVBNM,.?³¶",
     ],
     # v4-only addition, not from v2 (v2's Selectric III has no language
-    # variant at all - see UNITED_STATES's own comment). Real Finnish/
+    # variant at all - see "United States"'s own comment). Real Finnish/
     # Swedish Selectric III keyboard content, in genuine natural reading
     # order - it's a real ISO keyboard (has the extra key left of Z that
     # US/ANSI lacks), so its own row lengths are 13/12/12/11, not US's
@@ -134,7 +134,7 @@ LAYOUT_PRESETS_SELECTRIC3 = {
     # reference and round-tripped back to an exact match against it (see
     # lib/layouts/selectric3_layout.py's own derivation comment) - not
     # hand-arranged by eye.
-    "FINNISH_SWEDISH": [
+    "Finnish-Swedish": [
         "½1234567890+´",
         "qwertyuiopå¨",
         "asdfghjklöä'",
@@ -165,8 +165,8 @@ LAYOUT_PRESETS_SELECTRIC3 = {
 # at import instead makes adding a layout without pairing it impossible
 # to miss.
 PRESET_HEMISPHERE_MAP = {
-    "UNITED_STATES": "us",
-    "FINNISH_SWEDISH": "finnish_swedish",
+    "United States": "us",
+    "Finnish-Swedish": "finnish_swedish",
 }
 assert set(PRESET_HEMISPHERE_MAP) == set(LAYOUT_PRESETS_SELECTRIC3), (
     "every LAYOUT_PRESETS_SELECTRIC3 layout preset must name its hemisphere map: "

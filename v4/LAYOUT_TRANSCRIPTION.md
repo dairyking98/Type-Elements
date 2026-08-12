@@ -73,6 +73,44 @@ definition site with the specific reason.
 
 ---
 
+## Preset naming
+
+One convention, all ten machines:
+
+    <Keyboard>[, <Language>][ (<Variant>)]
+
+Title Case. A comma introduces the language, or the variant when there is
+no language; parentheses hold the variant once a language is named, with
+multiple variants comma-separated inside the one pair. So `Universal`,
+`Universal, Math`, `Ideal, Spanish (¢)`,
+`DHIATENSOR, British (Fractions, Mimeograph)`.
+
+"Keyboard" is whatever axis that machine's own sources divide its range
+along — Ideal/Universal for the Hammonds, the letter arrangement
+(DHIATENSOR/QWERTY/CHARIENSTU) for Blickensderfer. A machine with only
+one keyboard starts at the language: Bennett's `British`, Selectric's
+`United States`.
+
+This was a Hammond-only rule while six other machines spelled their
+presets `SCREAMING_SNAKE` (`QWERTY_BRITISH`, `UNITED_STATES`,
+`GERMAN_MOD`). Unified in one pass, verified by checking that every
+renamed key still maps to byte-identical rows and that no unrenamed
+preset moved.
+
+Two consequences worth knowing:
+
+- A `SCREAMING_SNAKE` name in a code comment is now a **quote of a v1/v2
+  `.scad` array**, not a v4 preset. `blickensderfer_layout.py`,
+  `helios_layout.py` and the two Selectric modules all carry such quotes
+  deliberately and say so.
+- Renaming is safe because **no config stores a preset name**, only the
+  rows it produced — the picker is a template chooser, not persisted
+  state. The one place names are stored is `blickensderfer_catalog.py`'s
+  preset column, and `gen_catalog_index.py` exits non-zero when one stops
+  resolving.
+
+---
+
 ## Bugs found and fixed
 
 Two real defects, both the same shape, both in the **original** source
@@ -97,14 +135,15 @@ v1/Blickensderfer/Blickensderfer2.scad:82,85,88   "XQZV&PFLOCHARIENSTUGMDB:WKJU"
 v2/lib/layouts/blick_layouts.scad:18,21,24        "XQZV&PFLOCHARIENSTUGMDB:WKJU"
 ```
 
-`U` where it should be `Y`, in both `CHARIENSTU_DE` and
-`CHARIENSTU_DE_MOD`. Found by habit 2 — the uppercase row's inventory was
+`U` where it should be `Y`, in both CHARIENSTU arrays (v4's
+`CHARIENSTU, German` and `CHARIENSTU, German (Modified)`). Found by
+habit 2 — the uppercase row's inventory was
 a–z with **U duplicated and Y missing**, while its own lowercase row was
 clean. The catalog then confirmed it (`GMDB:WKJY`, Bohemian 426/443).
 
 The same inventory check now passes on every Blickensderfer preset.
-(`HEBREW_ENGL`'s row 0 is Hebrew, so the Latin check correctly does not
-apply to it.)
+(`DHIATENSOR, Hebrew-English`'s row 0 is Hebrew, so the Latin check
+correctly does not apply to it.)
 
 ### What the catalogs *confirmed* unchanged
 
@@ -391,38 +430,40 @@ per-entry table.
 
 | Layout | Shuttles covered |
 |---|---|
-| `BRITISH_SCIENTIFIC_FRACTION` | Imperial 212, and Scientific E458, 412, 428, 435, 405, 363, 393, 357, 454, 300, 205 |
-| `UNIVERSAL_FRACTION` | Elite 350, Small Roman 494, Large Roman 379, Italic 371, Script 337, Vertical Script 217 |
-| `DHIATENSOR_FRACTION` | English Fractional 436, 424, 425 |
-| `BRITISH_LITERARY` | Elite Literary 381, Small Roman Literary 462, Extra Large Roman Literary 307, Italic Literary 383, Script Literary 395, Vertical Script Literary 213 |
-| `GERMAN` | Small Roman 404, Large Roman 423, Large Roman 378, Italic 489 |
-| `QWERTY_BRITISH` | Small Roman 441, Large Roman 442 |
-| `BRITISH_AMERICAN` | Large Roman 432, Small Roman 433 |
-| `ENGLISH_JAPANESE` | Small Roman 332, Large Roman 333 |
-| `CHEMICAL_ENGLISH` / `CHEMICAL_UNIVERSAL` | 385 / 222 |
-| `COSMOPOLITAN` / `UNIVERSAL_ACCENT` | 328 / 367 |
-| `BRITISH_INDIA` / `DHIATENSOR_BRITISH` / `UNIVERSAL_LITERARY` | 458 / 407½ / 203 |
-| `UNIVERSAL_FRACTION_US` / `DHIATENSOR_FRACTION_ALT` | 494½ / 447 |
-| `GERMAN_ESZETT` / `GERMAN_FRACTION` / `DANISH` / `HUNGARIAN` | 303 / 204 / 420 / 415 |
+| `DHIATENSOR, British (Fractions)` | Imperial 212, and Scientific E458, 412, 428, 435, 405, 363, 393, 357, 454, 300, 205 |
+| `QWERTY, British (Fractions)` | Elite 350, Small Roman 494, Large Roman 379, Italic 371, Script 337, Vertical Script 217 |
+| `DHIATENSOR (Fractions)` | English Fractional 436, 424, 425 |
+| `DHIATENSOR, British (Literary)` | Elite Literary 381, Small Roman Literary 462, Extra Large Roman Literary 307, Italic Literary 383, Script Literary 395, Vertical Script Literary 213 |
+| `CHARIENSTU, German (Pfennig)` | Small Roman 404, Large Roman 423, Large Roman 378, Italic 489 |
+| `QWERTY, British` | Small Roman 441, Large Roman 442 |
+| `DHIATENSOR, British-American` | Large Roman 432, Small Roman 433 |
+| `DHIATENSOR, English-Japanese` | Small Roman 332, Large Roman 333 |
+| `DHIATENSOR (Chemical)` / `QWERTY, British (Chemical)` | 385 / 222 |
+| `DHIATENSOR, Cosmopolitan` / `QWERTY, Cosmopolitan` | 328 / 367 |
+| `DHIATENSOR, British-India` / `DHIATENSOR, British` / `QWERTY, British (Literary)` | 458 / 407½ / 203 |
+| `QWERTY (Fractions)` / `DHIATENSOR (Fractions, Alternate)` | 494½ / 447 |
+| `CHARIENSTU, German (Eszett)` / `CHARIENSTU, German (Fractions)` | 303 / 204 |
+| `CHARIENSTU, Danish` / `DHIATENSOR, Hungarian` | 420 / 415 |
 
 Much of this catalog is one layout in many typefaces, and the same few
 one-position swaps recur across markets:
 
 - **`$` ↔ `£`** is the American/British split, and it is *only* that one
-  position, three times over: `QWERTY`/`QWERTY_BRITISH`,
-  `DHIATENSOR`/`DHIATENSOR_BRITISH`,
-  `DHIATENSOR_FRACTION`/`BRITISH_SCIENTIFIC_FRACTION`, and
-  `UNIVERSAL_FRACTION_US`/`UNIVERSAL_FRACTION`.
-- **`BRITISH_AMERICAN`** is the wheel that refuses to choose — the only
-  one carrying both `$` and `£`, paid for with three moved slots.
-- **`BRITISH_INDIA`** is the British fraction wheel with `₨` for `⅞` and
-  `⅓` for `⅛`.
-- **`ENGLISH_JAPANESE`** carries `¥`, `$` and `£` at once.
+  position, four times over: `QWERTY` / `QWERTY, British`,
+  `DHIATENSOR` / `DHIATENSOR, British`,
+  `DHIATENSOR (Fractions)` / `DHIATENSOR, British (Fractions)`, and
+  `QWERTY (Fractions)` / `QWERTY, British (Fractions)`.
+- **`DHIATENSOR, British-American`** is the wheel that refuses to
+  choose — the only one carrying both `$` and `£`, paid for with three
+  moved slots.
+- **`DHIATENSOR, British-India`** is the British fraction wheel with `₨`
+  for `⅞` and `⅓` for `⅛`.
+- **`DHIATENSOR, English-Japanese`** carries `¥`, `$` and `£` at once.
 
 Two of the four wheels that aren't a fraction bank are symbol banks:
 `CHEMICAL_*` swap the figures row for subscript digits (`₁₂₃₄₅` before
 the full-size digits, `₆₇₈₉₀` after, for formulae like H₂SO₄), and
-`COSMOPOLITAN`/`UNIVERSAL_ACCENT` spend nine slots on free-standing
+the two `Cosmopolitan` wheels spend nine slots on free-standing
 accents plus æ/œ, paying for them by dropping the digit `1` entirely.
 
 ---
@@ -486,8 +527,8 @@ better here than in the Hammond scans.
   catalog says in prose that it is 354 with `£` for `$`.
 - **Bulgarian 452½** — Cyrillic; the same case as the Hammond Bulgarian
   shuttle, which alphabet accounting eventually solved.
-- **Special British 387** — `UNIVERSAL_FRACTION`'s row with its last five
-  slots given to shilling numerators `1⁄ 3⁄ 5⁄ 7⁄ 9⁄`, each cast as one
+- **Special British 387** — `QWERTY, British (Fractions)`'s row with its
+  last five slots given to shilling numerators `1⁄ 3⁄ 5⁄ 7⁄ 9⁄`, each cast as one
   piece of type. Only the first has a codepoint (`⅟`, U+215F), and
   `layout.rows` is strictly one character per position. The reading
   itself is not in doubt.

@@ -405,45 +405,45 @@ This catalog has no printed numerical index, so the denominator is what the scan
 | 426 | Small Roman, Bohemian | 3 | held | doubled dead-key accents (´´ / ˇˇ) not separable at this resolution |
 | 443 | Small Roman, Bohemian No. 2 | 3 | held | same case as 426 |
 | 452½ | Bulgarian | 3 | held | Cyrillic; solvable by alphabet accounting, not yet done |
-| 435 | Elite, British Scientific | 3 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 405 | Small Roman, British Scientific | 3 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 412 | Large Roman, British Scientific | 4 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 428 | Extra Large Roman, British Scientific | 4 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 363 | Small Roman, British Scientific | 4 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 393 | Large Roman, British Scientific | 4 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 357 | Roman, British Scientific | 4 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 407½ | Small Roman, British Scientific | 4 | **imported** | DHIATENSOR_BRITISH |
-| 212 | Imperial, British | 5 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| E458 | Narrow Roman, British Scientific | 5 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 331 | Mimeograph, British Scientific | 5 | **imported** | BRITISH_SCIENTIFIC_FRACTION_MIMEO |
-| 454 | Italic, British Scientific | 5 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 300 | Script, British Scientific | 5 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 205 | Vertical Script, British Scientific | 5 | **imported** | BRITISH_SCIENTIFIC_FRACTION |
-| 381 | Elite Literary, British | 6 | **imported** | BRITISH_LITERARY |
-| 462 | Small Roman Literary, British | 6 | **imported** | BRITISH_LITERARY |
-| 307 | Extra Large Roman Literary, British | 6 | **imported** | BRITISH_LITERARY |
-| 383 | Italic Literary, British | 6 | **imported** | BRITISH_LITERARY |
-| 395 | Script Literary, British | 6 | **imported** | BRITISH_LITERARY |
-| 213 | Vertical Script Literary, British | 6 | **imported** | BRITISH_LITERARY |
+| 435 | Elite, British Scientific | 3 | **imported** | DHIATENSOR, British (Fractions) |
+| 405 | Small Roman, British Scientific | 3 | **imported** | DHIATENSOR, British (Fractions) |
+| 412 | Large Roman, British Scientific | 4 | **imported** | DHIATENSOR, British (Fractions) |
+| 428 | Extra Large Roman, British Scientific | 4 | **imported** | DHIATENSOR, British (Fractions) |
+| 363 | Small Roman, British Scientific | 4 | **imported** | DHIATENSOR, British (Fractions) |
+| 393 | Large Roman, British Scientific | 4 | **imported** | DHIATENSOR, British (Fractions) |
+| 357 | Roman, British Scientific | 4 | **imported** | DHIATENSOR, British (Fractions) |
+| 407½ | Small Roman, British Scientific | 4 | **imported** | DHIATENSOR, British |
+| 212 | Imperial, British | 5 | **imported** | DHIATENSOR, British (Fractions) |
+| E458 | Narrow Roman, British Scientific | 5 | **imported** | DHIATENSOR, British (Fractions) |
+| 331 | Mimeograph, British Scientific | 5 | **imported** | DHIATENSOR, British (Fractions, Mimeograph) |
+| 454 | Italic, British Scientific | 5 | **imported** | DHIATENSOR, British (Fractions) |
+| 300 | Script, British Scientific | 5 | **imported** | DHIATENSOR, British (Fractions) |
+| 205 | Vertical Script, British Scientific | 5 | **imported** | DHIATENSOR, British (Fractions) |
+| 381 | Elite Literary, British | 6 | **imported** | DHIATENSOR, British (Literary) |
+| 462 | Small Roman Literary, British | 6 | **imported** | DHIATENSOR, British (Literary) |
+| 307 | Extra Large Roman Literary, British | 6 | **imported** | DHIATENSOR, British (Literary) |
+| 383 | Italic Literary, British | 6 | **imported** | DHIATENSOR, British (Literary) |
+| 395 | Script Literary, British | 6 | **imported** | DHIATENSOR, British (Literary) |
+| 213 | Vertical Script Literary, British | 6 | **imported** | DHIATENSOR, British (Literary) |
 | 376 | British Telegraph | 7 | held | non-standard row shape, not the usual three-row 28-column form |
-| 350 | Elite, British Universal | 7 | **imported** | UNIVERSAL_FRACTION |
-| 441 | Small Roman, British Universal | 7 | **imported** | QWERTY_BRITISH |
-| 442 | Large Roman, British Universal | 7 | **imported** | QWERTY_BRITISH |
-| 494 | Small Roman, British Universal | 7 | **imported** | UNIVERSAL_FRACTION |
-| 379 | Large Roman, British Universal | 7 | **imported** | UNIVERSAL_FRACTION |
+| 350 | Elite, British Universal | 7 | **imported** | QWERTY, British (Fractions) |
+| 441 | Small Roman, British Universal | 7 | **imported** | QWERTY, British |
+| 442 | Large Roman, British Universal | 7 | **imported** | QWERTY, British |
+| 494 | Small Roman, British Universal | 7 | **imported** | QWERTY, British (Fractions) |
+| 379 | Large Roman, British Universal | 7 | **imported** | QWERTY, British (Fractions) |
 | 387 | Special British, Universal | 8 | held | last five slots are shilling numerators (1⁄ 3⁄ 5⁄ 7⁄ 9⁄) cast as single type; only ⅟ has a codepoint |
-| 371 | Italic, British Universal | 8 | **imported** | UNIVERSAL_FRACTION |
-| 337 | Script, British Universal | 8 | **imported** | UNIVERSAL_FRACTION |
-| 217 | Vertical Script, British Universal | 8 | **imported** | UNIVERSAL_FRACTION |
-| 203 | Small Roman Literary, British Universal | 8 | **imported** | UNIVERSAL_LITERARY |
-| 433 | Small Roman, British-American Scientific | 8 | **imported** | BRITISH_AMERICAN |
-| 432 | Large Roman, British-American Scientific | 9 | **imported** | BRITISH_AMERICAN |
-| 458 | Narrow Roman, British-India Scientific | 9 | **imported** | BRITISH_INDIA |
-| 385 | Chemical, English Scientific | 9 | **imported** | CHEMICAL_ENGLISH |
-| 222 | Chemical, Universal (British) | 9 | **imported** | CHEMICAL_UNIVERSAL |
-| 328 | Cosmopolitan Scientific | 9 | **imported** | COSMOPOLITAN |
-| 367 | Small Roman, Universal | 9 | **imported** | UNIVERSAL_ACCENT |
-| 420 | Small Roman, Danish | 10 | **imported** | DANISH |
+| 371 | Italic, British Universal | 8 | **imported** | QWERTY, British (Fractions) |
+| 337 | Script, British Universal | 8 | **imported** | QWERTY, British (Fractions) |
+| 217 | Vertical Script, British Universal | 8 | **imported** | QWERTY, British (Fractions) |
+| 203 | Small Roman Literary, British Universal | 8 | **imported** | QWERTY, British (Literary) |
+| 433 | Small Roman, British-American Scientific | 8 | **imported** | DHIATENSOR, British-American |
+| 432 | Large Roman, British-American Scientific | 9 | **imported** | DHIATENSOR, British-American |
+| 458 | Narrow Roman, British-India Scientific | 9 | **imported** | DHIATENSOR, British-India |
+| 385 | Chemical, English Scientific | 9 | **imported** | DHIATENSOR (Chemical) |
+| 222 | Chemical, Universal (British) | 9 | **imported** | QWERTY, British (Chemical) |
+| 328 | Cosmopolitan Scientific | 9 | **imported** | DHIATENSOR, Cosmopolitan |
+| 367 | Small Roman, Universal | 9 | **imported** | QWERTY, Cosmopolitan |
+| 420 | Small Roman, Danish | 10 | **imported** | CHARIENSTU, Danish |
 | 365 | Elite, English Scientific | 10 | **imported** | DHIATENSOR |
 | 407 | Small Roman, English Scientific | 10 | **imported** | DHIATENSOR |
 | 409 | Large Roman, English Scientific | 10 | **imported** | DHIATENSOR |
@@ -466,22 +466,22 @@ This catalog has no printed numerical index, so the denominator is what the scan
 | 497 | Italic, Universal | 13 | **imported** | QWERTY |
 | 304 | Script, Universal | 13 | **imported** | QWERTY |
 | 216 | Vertical Script, Universal | 13 | **imported** | QWERTY |
-| 436 | Elite, English Fractional Scientific | 13 | **imported** | DHIATENSOR_FRACTION |
-| 424 | Small Roman, English Fractional | 14 | **imported** | DHIATENSOR_FRACTION |
-| 425 | Large Roman, English Fractional | 14 | **imported** | DHIATENSOR_FRACTION |
-| 447 | Small Roman, English Fractional | 14 | **imported** | DHIATENSOR_FRACTION_ALT |
-| 494½ | Small Roman, Universal Fractional | 14 | **imported** | UNIVERSAL_FRACTION_US |
-| 332 | Small Roman, English-Japanese Scientific | 14 | **imported** | ENGLISH_JAPANESE |
-| 333 | Large Roman, English-Japanese Scientific | 14 | **imported** | ENGLISH_JAPANESE |
-| 404 | Small Roman, German | 18 | **imported** | GERMAN |
-| 423 | Large Roman, German | 18 | **imported** | GERMAN |
-| 303 | Extra Large Roman, German | 18 | **imported** | GERMAN_ESZETT |
-| 378 | Large Roman, German | 18 | **imported** | GERMAN |
-| 204 | Large Roman, German | 18 | **imported** | GERMAN_FRACTION |
-| 489 | Italic, German | 18 | **imported** | GERMAN |
+| 436 | Elite, English Fractional Scientific | 13 | **imported** | DHIATENSOR (Fractions) |
+| 424 | Small Roman, English Fractional | 14 | **imported** | DHIATENSOR (Fractions) |
+| 425 | Large Roman, English Fractional | 14 | **imported** | DHIATENSOR (Fractions) |
+| 447 | Small Roman, English Fractional | 14 | **imported** | DHIATENSOR (Fractions, Alternate) |
+| 494½ | Small Roman, Universal Fractional | 14 | **imported** | QWERTY (Fractions) |
+| 332 | Small Roman, English-Japanese Scientific | 14 | **imported** | DHIATENSOR, English-Japanese |
+| 333 | Large Roman, English-Japanese Scientific | 14 | **imported** | DHIATENSOR, English-Japanese |
+| 404 | Small Roman, German | 18 | **imported** | CHARIENSTU, German (Pfennig) |
+| 423 | Large Roman, German | 18 | **imported** | CHARIENSTU, German (Pfennig) |
+| 303 | Extra Large Roman, German | 18 | **imported** | CHARIENSTU, German (Eszett) |
+| 378 | Large Roman, German | 18 | **imported** | CHARIENSTU, German (Pfennig) |
+| 204 | Large Roman, German | 18 | **imported** | CHARIENSTU, German (Fractions) |
+| 489 | Italic, German | 18 | **imported** | CHARIENSTU, German (Pfennig) |
 | 309 | Ancient Greek | 21 | held | Greek script; needs its own transcription pass |
 | 354 | Hebrew | 21 | held | Hebrew script; needs its own transcription pass |
 | 358 | Hebrew | 21 | held | catalog states in prose: 354 with £ for $ - do 354 first |
 | 348 | Hebrew-English (Hebrew-British) | 21 | held | Hebrew script; needs its own transcription pass |
 | 351 | Hebrew-English No. 2 | 21 | held | Hebrew script; needs its own transcription pass |
-| 415 | Small Roman, Hungarian | 21 | **imported** | HUNGARIAN |
+| 415 | Small Roman, Hungarian | 21 | **imported** | DHIATENSOR, Hungarian |

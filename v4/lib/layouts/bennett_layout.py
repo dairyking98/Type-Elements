@@ -12,22 +12,22 @@ Bennett keyboard layout presets (see blickensderfer_layout.py's note).
 # config/bennett.yaml's layout.char_legend remap - see lib/bennett.py's
 # configure().
 LAYOUT_PRESETS_BENNETT = {
-    "ENGLISH": [
+    "English": [
         "qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
         "12347890\"#$%56;?:,£@_(&-)/'.",
     ],
-    "BRITISH": [
+    "British": [
         "qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
         "12347890\"¾$%56;?:½£@_(&-)/'¼",
     ],
-    "CUSTOM": [
+    "Custom": [
         "qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKL,ZXCVGHBNM.",
         "12347890\"#$%56;?:,£@_(&-)/'.",
     ],
-    "INTERNATIONAL": [
+    "International": [
         "qweruiopasdftyjkl,zxcvghbnm.",
         "QWERUIOPASDFTYJKLÖZXCVGHBNMÄ",
         "1234789üà#£%56?Ååö§@:(&-)/\"ä",
