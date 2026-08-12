@@ -102,7 +102,7 @@ apply to it.)
 
 ### What the catalogs *confirmed* unchanged
 
-- **Hammond `Normal Universal`** — an independent transcription of the
+- **Hammond `Universal`** — an independent transcription of the
   1920 catalog's Universal rows, reversed into this machine's storage
   order, came out byte-identical to the shipped preset on all three rows.
 - **Hammond Ideal standard / fractions** — the 1915 catalog's English
@@ -162,8 +162,8 @@ shift, so that is a genuine character difference.
 
 **Two spellings kept rather than one picked.** v1/v2 read `9[0]` where
 every catalogued Ideal entry reads `9(0)`. Both survive as separate
-presets — `IDEAL (£)`/`IDEAL (⅌)` preserve the shipped source history,
-`IDEAL, Fractions` preserves the printed catalog. Same treatment as the
+presets — `Ideal (£)`/`Ideal (⅌)` preserve the shipped source history,
+`Ideal, Fractions` preserves the printed catalog. Same treatment as the
 pre-existing £/⅌ pair.
 
 **Storage order is load-bearing and differs per machine.** `hammond`
@@ -195,6 +195,8 @@ both.
 | Ideal, Croatian | 58, 12C |
 | Ideal, Danish (fractions) | 87 |
 | Ideal, Portuguese | 63 |
+| Ideal, French | 61, 14, 62, 15 |
+| Ideal, German (New Orthography) | 36B, 114 |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired
@@ -284,7 +286,7 @@ A layout is only buildable if the selected font actually has its glyphs.
 - **`OCR-A II Regular`**, configured for both Hammond machines, lacks the
   fractions and every accent. This is **not** a regression from the
   imports — it equally lacks `¢`/`°`/`×` from the already-shipped
-  `Normal Universal`, so every Hammond preset including the defaults is
+  `Universal`, so every Hammond preset including the defaults is
   in the same position.
 - **`AverageMono Mod`** covers all four per-language layouts and the
   fractions set with no missing glyphs.
@@ -321,6 +323,20 @@ of the rest already sighted:
 | Portuguese | 63A, 63B, 106 | 20 | unread |
 | Roumanian | 92 | 20 | held — the mark closing row 1 won't separate from `¸` |
 | Polish | 156, 153B, 157 | 20 | unread |
+| French | 61, 14, 62, 15 | 16 | **imported** |
+| French | 39 (Special) | 16 | unread — a fractions variant |
+| German (New Orthography) | 36B, 114 | 16 | **imported** |
+| German (old orthography) | 36, 11, 12 | 16 | held — long-s `ſ` or a worn `ß`? |
+| Esperanto | 105 | 16 | letter rows clear (ĥ ĵ ŝ ĉ ĝ ŭ); figures row not yet resolved |
+| French-German | 79 | 16 | unread |
+
+**The catalog has a full index on PDF page 12**, listing every shuttle
+number, its description and the page it appears on — including languages
+not yet sighted anywhere above: Hungarian, Swedish-Finnish,
+Danish-Norwegian, Italian, Bohemian, Polish-German, Argentine, Braille,
+Turkey-Persian, Arabic, Arabic-Persian-Turkish, Bell Visible Speech, and
+Dutch-German-French-English. Start there rather than paging through the
+scans.
 
 Pages 10–13, 15–19 and 21–35 have **not been sampled at all** — there are
 more languages there than the table above. Each section is one layout

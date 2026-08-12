@@ -32,7 +32,7 @@
 #
 # Default layout is Normal_U (LAYOUTS[0] in v2/lib/layouts/hammond_layouts.
 # scad, 3 rows x 30 columns, Layout_Selection=0's default) - Hammond's other
-# 7 named presets (Normal Ideal/Math Universal/DVORAK/DHIATENSOR/Comic Mono/
+# 7 named presets (Normal Ideal/Universal, Math/DVORAK/DHIATENSOR/Comic Mono/
 # Glagolitic/Attic) are real alternate v2 presets, not yet wired into
 # tune.py's named-preset picker (see SESSION_LOG.md).
 #
@@ -104,7 +104,7 @@ element:
   angular_divisions: 32
   # Is_Math (v2:128 - search(LAYOUTS[Layout_Selection][3],"Math")) is
   # DERIVED in lib/hammond.py's configure() from len(layout.rows)==4 (the
-  # Math Universal preset is the only real 4-row layout - see tune.py's
+  # Universal, Math preset is the only real 4-row layout - see tune.py's
   # Layout tab) - not a separate settable toggle here, so it can't drift
   # out of sync with which preset is actually selected.
   # Rib()'s fillet region insets its resin-support-clearance corner by this
@@ -183,9 +183,9 @@ quality:
 # Baseline (v2:130) is [Lowercase, Uppercase, Figures, Math], measured from
 # the bottom RIB plane (Baseline_Z_Offset=Rib_Bottom_Z, a derived value -
 # see lib/hammond.py's configure()). This master config's default layout
-# (Normal Universal) has only 3 rows, so only the first 3 entries apply
+# (Universal) has only 3 rows, so only the first 3 entries apply
 # here - the real 4th (Math, -9.89) value lives in tune.py's
-# LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE["hammond"]["Math Universal"],
+# LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE["hammond"]["Universal, Math"],
 # applied automatically when that layout preset is selected (switches
 # baseline_row/cutout_row to 4 entries at the same time as rows, since
 # Is_Math is derived from row count - see lib/hammond.py's configure()).

@@ -24,7 +24,7 @@ CATALOG_UNIVERSAL_STANDARD's comment.
 # Both appear in the catalog and both are real for either machine, so
 # both are offered on hammond AND hammond_split below. NOTE the storage
 # order differs per machine and is load-bearing: hammond stores rows
-# REVERSED (see its "Normal Universal" preset), hammond_split stores them
+# REVERSED (see its "Universal" preset), hammond_split stores them
 # in catalog reading order (lib/hammond_split.py's TextAssemble does its
 # own per-half [14-i]/[29-i] reversal). The reversal is applied
 # programmatically below rather than by hand-retyping the strings.
@@ -59,7 +59,7 @@ CATALOG_IDEAL_FRACTIONS = [
 # ¼¾⅞), and the "&" those displaced was re-homed onto the shifted "."
 # key - which is why row 1 is untouched but row 2 reads ...?OL&P:! where
 # standard reads ...?OL.P:!. That "." key is the one with a bare dot on
-# all three levels (visible on the "UNIVERSAL" KEYBOARD plate, p.2), so
+# all three levels (visible on the "Universal" KEYBOARD plate, p.2), so
 # it was the only spare slot to move & into.
 CATALOG_UNIVERSAL_FRACTIONS = [
     "qazwsxedcrfvtgb" "yhnujmik,ol.p;-",
@@ -166,6 +166,35 @@ CATALOG_IDEAL_PORTUGUESE = [
     "ÃZXQKJGBMPCFLDÇ" "ÕTAHERISOUNWYV&",
     'á%/!ê;ó,2:3£4$5' "6+7\"8'9(ôú-)é°?",
 ]
+# French (61 Small Roman, 14 Medium Roman, 62 Large Roman, 15 Italic).
+# Only one position outside the figures row differs from English Ideal -
+# é replaces "." at position 15 - so the whole language fits in row 2.
+CATALOG_IDEAL_FRENCH = [
+    "?zxqkjgbmpcfld," "étaherisounwyv:",
+    "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
+    "¨%/èçù1à2.3£4$5" "6“7”8’9(0)ûôîêâ",
+]
+# German, New Orthography (36B Small Roman, 114 Medium Roman). Its letter
+# rows match CATALOG_IDEAL_DUTCH's except that row 1 carries capital
+# Ö/Ü/Ä where Dutch has !/./& - and the figures row ends in ß where Dutch
+# ends in ƒ.
+#
+# That ƒ/ß pairing is worth noting: the same physical slot holds each
+# language's own extra character - the Dutch guilder, the German eszett -
+# which independently corroborates the ƒ reading argued for above.
+#
+# The OLD-orthography German shuttles (36, 11, 12) are NOT here: they
+# print a different glyph in that slot, a stem with a top-right hook and
+# a foot serif that reads as long-s (ſ, U+017F) rather than the clearly
+# looped ß that 36B prints. Old-orthography German really did use long-s,
+# so that is plausible rather than a misprint - but ß is also needed in
+# both orthographies, which makes an ſ-only shuttle odd. Not confident
+# enough to call, so held.
+CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY = [
+    "özxqkjgbmpcfld," "ütaherisounwyvä",
+    "ÖZXQKJGBMPCFLD." "ÜTAHERISOUNWYVÄ",
+    "¾%&?½:1-2§3;4!5" "6„7”8’9(0)¼*_ß/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -204,6 +233,8 @@ CATALOG_SHUTTLES = {
     "ideal_croatian": "58 Medium Roman, 12C Large Roman",
     "ideal_danish_fractions": "87 Medium Roman, Fractions",
     "ideal_portuguese": "63 Medium Roman",
+    "ideal_french": "61 Small Roman, 14 Medium Roman, 62 Large Roman, 15 Italic",
+    "ideal_german_new_orthography": "36B Small Roman, 114 Medium Roman",
     # 1915-catalog languages NOT imported yet.
     #
     # THE TEST IS CHARACTER IDENTIFICATION, NOT FONT AVAILABILITY. A
@@ -279,9 +310,20 @@ CATALOG_SHUTTLES = {
     #     expertise and, for several, a font that has the glyphs at all.
     "not_imported": "see the comment above this key",
 }
+# PRESET NAMING CONVENTION (both Hammond machines, keep it):
+#     <Keyboard>[, <Language>][ (<Variant>)]
+# A comma introduces the LANGUAGE, or the variant when there is no
+# language; parentheses hold the variant once a language is already
+# named. So: "Universal", "Universal, Math", "Universal, Fractions",
+# "Ideal, Dutch", "Ideal, Spanish (¢)", "Ideal, Danish (Fractions)".
+# Title Case throughout, on BOTH machines - hammond_split used to spell
+# the same two keyboards ALL CAPS ("IDEAL, Dutch"), and hammond's first
+# two presets predated the convention entirely ("Normal Universal",
+# "Math Universal"). Both were normalised; no config stores a preset
+# NAME, only its rows, so that rename was safe.
 # v2/lib/layouts/hammond_layouts.scad's LAYOUTS[0]/LAYOUTS[2] (Normal_U/
 # Math_U) - the two real presets that differ in ROW COUNT (3 vs 4), which
-# no other machine's layout presets do. "Math Universal" is the "math
+# no other machine's layout presets do. "Universal, Math" is the "math
 # shuttle" variant - confirmed identical in v1/Hammond/HammondShuttle.scad
 # (the pre-v2-migration original), nothing extra hiding there. Is_Math
 # auto-derives from len(rows)==4 (lib/hammond.py's configure()), so
@@ -290,12 +332,12 @@ CATALOG_SHUTTLES = {
 # for how baseline_row/cutout_row (which ALSO need a 4th entry for this
 # preset) get resized to match.
 LAYOUT_PRESETS_HAMMOND = {
-    "Normal Universal": [
+    "Universal": [
         "-;p.lo,kimjunhybgtvfrcdexswzaq",
         "!:P.LO?KIMJUNHYBGTVFRCDEXSWZAQ",
         "/=0.)9°(8^'7*&6¢_5£%4+$3×#2@\"1",
     ],
-    "Math Universal": [
+    "Universal, Math": [
         "√·p.lo,kimjunhybgtvfrcdexswzaq",
         "∫:P∂LO?KIMJUNHYBGTVFRCDEXSWZAQ",
         "/=0>)9<(8|'7*÷6]Γ5[∝4+Δ3×∑2_\"1",
@@ -315,8 +357,12 @@ LAYOUT_PRESETS_HAMMOND = {
     "Ideal, Dutch": [r[::-1] for r in CATALOG_IDEAL_DUTCH],
     "Ideal, Spanish": [r[::-1] for r in CATALOG_IDEAL_SPANISH],
     "Ideal, Spanish (¢)": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CENT],
-    "Ideal, Spanish Caps and Small Caps": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CAPS],
+    "Ideal, Spanish (Caps and Small Caps)": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CAPS],
     "Ideal, Croatian": [r[::-1] for r in CATALOG_IDEAL_CROATIAN],
-    "Ideal, Danish, Fractions": [r[::-1] for r in CATALOG_IDEAL_DANISH_FRACTIONS],
+    "Ideal, Danish (Fractions)": [r[::-1] for r in CATALOG_IDEAL_DANISH_FRACTIONS],
     "Ideal, Portuguese": [r[::-1] for r in CATALOG_IDEAL_PORTUGUESE],
+    "Ideal, French": [r[::-1] for r in CATALOG_IDEAL_FRENCH],
+    "Ideal, German (New Orthography)": [
+        r[::-1] for r in CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY
+    ],
 }

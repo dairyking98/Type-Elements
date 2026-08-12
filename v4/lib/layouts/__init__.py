@@ -26,6 +26,8 @@ from .hammond_layout import (
     CATALOG_IDEAL_CROATIAN,
     CATALOG_IDEAL_DANISH_FRACTIONS,
     CATALOG_IDEAL_DUTCH,
+    CATALOG_IDEAL_FRENCH,
+    CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY,
     CATALOG_IDEAL_PORTUGUESE,
     CATALOG_IDEAL_FRACTIONS,
     CATALOG_IDEAL_SPANISH,
@@ -75,11 +77,11 @@ LAYOUT_PRESETS_BY_MACHINE = {
 # session - see SESSION_LOG.md's Hammond chapter.
 LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
     "hammond": {
-        "Normal Universal": [3.74, -1.21, -5.71],
-        "Math Universal": [3.74, -1.21, -5.71, -9.89],
+        "Universal": [3.74, -1.21, -5.71],
+        "Universal, Math": [3.74, -1.21, -5.71, -9.89],
         # Ideal is an ordinary 3-row (non-Math) shuttle, so it takes the
-        # same baselines as Normal Universal - listed explicitly rather
-        # than left to fall through, so switching Math Universal -> Ideal
+        # same baselines as Universal - listed explicitly rather
+        # than left to fall through, so switching Universal, Math -> Ideal
         # resizes baseline_row/cutout_row back down to 3 entries.
         "Ideal": [3.74, -1.21, -5.71],
         "Ideal, Fractions": [3.74, -1.21, -5.71],
@@ -88,10 +90,12 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Ideal, Dutch": [3.74, -1.21, -5.71],
         "Ideal, Spanish": [3.74, -1.21, -5.71],
         "Ideal, Spanish (¢)": [3.74, -1.21, -5.71],
-        "Ideal, Spanish Caps and Small Caps": [3.74, -1.21, -5.71],
+        "Ideal, Spanish (Caps and Small Caps)": [3.74, -1.21, -5.71],
         "Ideal, Croatian": [3.74, -1.21, -5.71],
-        "Ideal, Danish, Fractions": [3.74, -1.21, -5.71],
+        "Ideal, Danish (Fractions)": [3.74, -1.21, -5.71],
         "Ideal, Portuguese": [3.74, -1.21, -5.71],
+        "Ideal, French": [3.74, -1.21, -5.71],
+        "Ideal, German (New Orthography)": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
@@ -156,22 +160,22 @@ LAYOUT_PICKER_HELP = {
     ),
     "hammond": (
         "Universal is qwerty; Ideal is Hammond's own proprietary key "
-        "arrangement, not a qwerty remap. Math Universal has 4 rows instead "
+        "arrangement, not a qwerty remap. Universal, Math has 4 rows instead "
         "of 3 - selecting it switches Shuttle_Height and the resin-support "
         "layout automatically (Is_Math derives from the row count) and "
         "resizes baseline_row/cutout_row to match. The rest come from "
         "Hammond's own 1920 and 1915 type-shuttle catalogs; most catalogued "
         "shuttles differ only in TYPEFACE, which is the Font tab's job, not "
         "a layout change - Caps and Small Caps deliberately has the same "
-        "rows as Normal Universal for that reason, so pair it with a "
+        "rows as Universal for that reason, so pair it with a "
         "small-caps font."
     ),
     "hammond_split": (
         "IDEAL is Hammond's proprietary key arrangement; UNIVERSAL is "
-        "qwerty. IDEAL (£) is the shipped default and IDEAL (⅌) swaps the "
+        "qwerty. Ideal (£) is the shipped default and Ideal (⅌) swaps the "
         "per-unit sign at that one figures-row position - both are real "
         "source-history values (SESSION_LOG.md part 77), and Char_Mod (Font "
-        "& Alignment tab) only has an effect under IDEAL (⅌). The rest come "
+        "& Alignment tab) only has an effect under Ideal (⅌). The rest come "
         "from Hammond's own 1920 and 1915 catalogs; the per-language entries "
         "keep the Ideal key order and substitute that language's "
         "characters. Caps and Small Caps is a typeface, not a layout - "

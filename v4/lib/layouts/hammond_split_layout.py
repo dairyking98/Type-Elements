@@ -8,6 +8,8 @@ from .hammond_layout import (
     CATALOG_IDEAL_CROATIAN,
     CATALOG_IDEAL_DANISH_FRACTIONS,
     CATALOG_IDEAL_DUTCH,
+    CATALOG_IDEAL_FRENCH,
+    CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY,
     CATALOG_IDEAL_PORTUGUESE,
     CATALOG_IDEAL_FRACTIONS,
     CATALOG_IDEAL_SPANISH,
@@ -32,12 +34,12 @@ from .hammond_layout import (
 # one. Rows 0/1 are identical between them; only row 2's one £/⅌
 # character differs.
 LAYOUT_PRESETS_HAMMOND_SPLIT = {
-    "IDEAL (£)": [
+    "Ideal (£)": [
         "?zxqkjgbmpcfld,.taherisounwyv:",
         "!ZXQKJGBMPCFLD;-TAHERISOUNWYV&",
         "¾%⅞⅝½⅜1⅛2¢3£4$56“7”8’9[0]¼*⅓†⅔",
     ],
-    "IDEAL (⅌)": [
+    "Ideal (⅌)": [
         "?zxqkjgbmpcfld,.taherisounwyv:",
         "!ZXQKJGBMPCFLD;-TAHERISOUNWYV&",
         "¾%⅞⅝½⅜1⅛2¢3⅌4$56“7”8’9[0]¼*⅓†⅔",
@@ -45,15 +47,15 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     # Catalog-derived (see CATALOG_* above). This machine stores rows in
     # catalog reading order, so they go in unreversed.
     #
-    # "IDEAL, Fractions" is the same shuttle family as "IDEAL (£)" above
+    # "Ideal, Fractions" is the same shuttle family as "Ideal (£)" above
     # but transcribed from the catalog rather than from v1/v2, and the two
     # differ in one place: v1/v2 read "9[0]" where every catalogued Ideal
     # entry reads "9(0)" (square vs round brackets). Both are kept -
-    # "IDEAL (£)"/"IDEAL (⅌)" preserve the source history v4 shipped with,
+    # "Ideal (£)"/"Ideal (⅌)" preserve the source history v4 shipped with,
     # these preserve the printed catalog - rather than silently picking a
     # winner, same treatment as the £/⅌ pair itself.
-    "IDEAL, Standard": list(CATALOG_IDEAL_STANDARD),
-    "IDEAL, Fractions": list(CATALOG_IDEAL_FRACTIONS),
+    "Ideal, Standard": list(CATALOG_IDEAL_STANDARD),
+    "Ideal, Fractions": list(CATALOG_IDEAL_FRACTIONS),
     # Universal (qwerty). v2/hammond_split.scad:80-82 already had this as
     # Qwerty_Element (Layout_Selection=1) but it was never wired into the
     # picker; ported here with two characters corrected against the
@@ -61,17 +63,21 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     # neither of which any catalogued Universal entry shows, and both of
     # which hammond.yaml's own Universal row already spells the catalog's
     # way (× and ^).
-    "UNIVERSAL": list(CATALOG_UNIVERSAL_STANDARD),
-    "UNIVERSAL, Fractions": list(CATALOG_UNIVERSAL_FRACTIONS),
-    "UNIVERSAL, Caps and Small Caps": list(
+    "Universal": list(CATALOG_UNIVERSAL_STANDARD),
+    "Universal, Fractions": list(CATALOG_UNIVERSAL_FRACTIONS),
+    "Universal, Caps and Small Caps": list(
         CATALOG_UNIVERSAL_CAPS_SMALL_CAPS
     ),
     # Per-language Ideal shuttles (1915 catalog)
-    "IDEAL, Dutch": list(CATALOG_IDEAL_DUTCH),
-    "IDEAL, Spanish": list(CATALOG_IDEAL_SPANISH),
-    "IDEAL, Spanish (¢)": list(CATALOG_IDEAL_SPANISH_CENT),
-    "IDEAL, Spanish Caps and Small Caps": list(CATALOG_IDEAL_SPANISH_CAPS),
-    "IDEAL, Croatian": list(CATALOG_IDEAL_CROATIAN),
-    "IDEAL, Danish, Fractions": list(CATALOG_IDEAL_DANISH_FRACTIONS),
-    "IDEAL, Portuguese": list(CATALOG_IDEAL_PORTUGUESE),
+    "Ideal, Dutch": list(CATALOG_IDEAL_DUTCH),
+    "Ideal, Spanish": list(CATALOG_IDEAL_SPANISH),
+    "Ideal, Spanish (¢)": list(CATALOG_IDEAL_SPANISH_CENT),
+    "Ideal, Spanish (Caps and Small Caps)": list(CATALOG_IDEAL_SPANISH_CAPS),
+    "Ideal, Croatian": list(CATALOG_IDEAL_CROATIAN),
+    "Ideal, Danish (Fractions)": list(CATALOG_IDEAL_DANISH_FRACTIONS),
+    "Ideal, Portuguese": list(CATALOG_IDEAL_PORTUGUESE),
+    "Ideal, French": list(CATALOG_IDEAL_FRENCH),
+    "Ideal, German (New Orthography)": list(
+        CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY
+    ),
 }

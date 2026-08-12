@@ -11,15 +11,15 @@ found matters (e.g. Blackletter Asterisk's blank +=£§äöü, both real gaps
 but different in kind) - here as a reusable tool instead of a one-off pass.
 
 Usage:
-    python3 font_coverage.py --preset hammond:"Math Universal"
-    python3 font_coverage.py --preset hammond:"Math Universal" --font-dir ~/fonts/Library
+    python3 font_coverage.py --preset hammond:"Universal, Math"
+    python3 font_coverage.py --preset hammond:"Universal, Math" --font-dir ~/fonts/Library
     python3 font_coverage.py --chars "ABCabc0123" --font-dir ~/fonts
     python3 font_coverage.py --config config/hammond.yaml --out report.md
 
     # also runs each glyph through the real contour/triangulate pipeline
     # (catches the self-intersection/all-off-curve/debris-contour classes
     # FONT_AUDIT.md found - slow, minutes over a 1000+ font library):
-    python3 font_coverage.py --preset hammond:"Math Universal" --deep
+    python3 font_coverage.py --preset hammond:"Universal, Math" --deep
 
 --preset reads lib/layouts, which is plain data with no third-party
 imports, so it no longer needs tune.py's TUI dependency stack installed.
@@ -120,7 +120,7 @@ def main():
                                       formatter_class=argparse.RawDescriptionHelpFormatter)
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--preset", metavar='MACHINE:"Preset Name"',
-                      help='e.g. hammond:"Math Universal"')
+                      help='e.g. hammond:"Universal, Math"')
     src.add_argument("--config", help="config YAML to read layout.rows from")
     src.add_argument("--chars", help="literal character set string")
     parser.add_argument("--font-dir", default=DEFAULT_FONT_DIR,

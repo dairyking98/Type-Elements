@@ -1658,7 +1658,7 @@ def patch_yaml_list_item(text, key, index, value):
 
     index==len(items) APPENDS a new item instead of raising - needed for
     Hammond, the first machine whose own presets vary in row count
-    (Math Universal is 4 rows, everything else 3): the Element tab
+    ("Universal, Math" is 4 rows, everything else 3): the Element tab
     always composes an editable field for every row any real preset
     could need (see _compose_baseline_cutout_fields), even ones the
     CURRENTLY selected preset doesn't use yet, so the underlying array
@@ -1687,7 +1687,7 @@ def patch_yaml_inline_list(text, key, values):
     """Replaces the WHOLE inline flow-style YAML list (key: [a, b, c]),
     not just one element like patch_yaml_list_item - needed when the
     list's own LENGTH changes, e.g. Hammond's layout.baseline_row/
-    cutout_row growing from 3 to 4 entries when the Math Universal layout
+    cutout_row growing from 3 to 4 entries when the "Universal, Math" layout
     preset is selected (see LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE) - a
     per-index patch can't add/remove elements."""
     pattern = re.compile(rf'^(\s*{re.escape(key)}:\s*\[)([^\]]*)(\])', re.MULTILINE)
@@ -1929,7 +1929,7 @@ class TuneApp(App):
         # "row count can differ between this machine's own presets"
         # concept BASELINE_CUTOUT_KEYS below already handles for
         # baseline_row/cutout_row (currently only Hammond: Normal
-        # Universal is 3 rows, Math Universal is 4), generalized for the
+        # Universal is 3 rows, "Universal, Math" is 4), generalized for the
         # Layout tab's own row preview/edit widgets so picking Math
         # Universal actually shows/allows editing a real 4th row instead
         # of it being silently invisible until a recompose. Derived
@@ -1952,7 +1952,7 @@ class TuneApp(App):
             # row count varies per machine (3 for Blickensderfer/Postal, 7
             # for Mignon) - see BASELINE_CUTOUT_KEYS' module comment.
             # Hammond's own presets additionally vary in row count from
-            # EACH OTHER (Math Universal is 4 rows, everything else is 3)
+            # EACH OTHER ("Universal, Math" is 4 rows, everything else is 3)
             # - using just the CURRENT config's row count here would only
             # ever show 3 editable baseline/cutout fields, with no way to
             # reach/edit a 4th row until some other action (switching
@@ -2207,7 +2207,7 @@ class TuneApp(App):
         widget actually exists - silently no-ops otherwise instead of
         raising. Needed because Hammond's layout presets can have a
         DIFFERENT row count than whatever was on disk at compose() time
-        (Math Universal is 4 rows, everything else is 3) - the per-row
+        ("Universal, Math" is 4 rows, everything else is 3) - the per-row
         preview/edit widgets are a fixed set sized once at compose time
         and can't grow reactively when a longer preset is picked
         mid-session. A recompose (switching machine and back, or
@@ -2320,7 +2320,7 @@ class TuneApp(App):
         # n_rows is the max across every real preset for this machine
         # (see BASELINE_CUTOUT_KEYS' own comment) - may exceed the
         # CURRENTLY selected preset/config's own row count (e.g. Hammond's
-        # 3-row Normal Universal vs. its 4-row Math Universal), so every
+        # 3-row Normal Universal vs. its 4-row "Universal, Math"), so every
         # row up to n_rows is always composed/editable here, even ones
         # not used by the layout that's active right now - missing values
         # (not yet present in self.cfg) default to 0.0, a "not set yet"
@@ -2419,7 +2419,7 @@ class TuneApp(App):
 
                 # Read-only preview widgets always go up to LAYOUT_MAX_ROWS
                 # (not just the CURRENTLY selected preset's own row count)
-                # so a longer preset (Hammond's 4-row Math Universal vs.
+                # so a longer preset (Hammond's 4-row "Universal, Math" vs.
                 # 3-row Normal Universal) has a real widget to update into
                 # when picked - see _update_row_widget's own docstring for
                 # what silently breaks without this. A row beyond what the
@@ -2432,7 +2432,7 @@ class TuneApp(App):
                     yield static
 
                 # This machine's own presets vary in row count (currently
-                # only Hammond: Normal Universal 3 rows, Math Universal 4)
+                # only Hammond: Normal Universal 3 rows, "Universal, Math" 4)
                 # - row count is real DATA (lib/hammond.py's configure()
                 # derives Is_Math from len(rows)==4, driving Shuttle_Height/
                 # the resin-support array shape), not a Modify-glyphs
@@ -2677,7 +2677,7 @@ class TuneApp(App):
         """"__current__" -> this config's active layout.rows, a preset
         name -> that preset's rows (LAYOUT_PRESETS_BY_MACHINE, same dict
         the Layout tab's own picker uses - lets you check e.g. Hammond's
-        "Math Universal" without actually switching the loaded config to
+        "Universal, Math" without actually switching the loaded config to
         it), anything else (including "__custom__") -> leave whatever's
         already typed in #coverage-chars alone."""
         if value == "__current__":

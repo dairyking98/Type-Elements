@@ -182,7 +182,7 @@ def configure(config_path):
     g["Shuttle_Height_Offset"] = e["shuttle_height_offset"]
     # Is_Math (v2:128) is a derived tag lookup on the SELECTED layout
     # preset in v2 - simplified here to "does the active layout have 4
-    # rows" (the Math Universal preset is the only real 4-row layout;
+    # rows" (the "Universal, Math" preset is the only real 4-row layout;
     # every other preset has 3), per explicit user direction, rather than
     # a separate manually-set config toggle that could drift out of sync
     # with the actual layout.rows content.
