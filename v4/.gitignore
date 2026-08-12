@@ -17,6 +17,7 @@ site/Gemfile.lock
 site/readme.md
 site/changelog.md
 site/roadmap-packaging.md
+site/layout-transcription.md
 site/accessories/*.md
 site/assets/models/
 site/assets/legends/

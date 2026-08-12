@@ -1,4 +1,38 @@
 # 3D Printed Type Elements for Typewriters
+
+Type elements (shuttles, wheels, typeballs, slugs) for antique
+typewriters, generated to order and 3D printed.
+
+The project has three generations. **`v4/` is where active development
+happens**; `v2/` and `v1/` are the OpenSCAD lineage it was ported from,
+and both still open and render exactly as before.
+
+## v4 (current): Python pipeline + interactive tuner
+
+A Python/`manifold3d` pipeline rather than OpenSCAD - the draft taper is
+a real Minkowski sum, every assembly step is a real boolean, and each of
+the **15 supported machines** is driven by its own config YAML with an
+interactive TUI (`tune.py`) for editing and live-previewing it.
+
+- **[Live documentation site](https://type-elements.leonardchau.com)**
+- [`v4/README.md`](v4/README.md) - setup, usage, architecture
+- [`v4/LAYOUT_TRANSCRIPTION.md`](v4/LAYOUT_TRANSCRIPTION.md) - how the
+  keyboard layouts were transcribed from real manufacturer type catalogs
+- [`v4/SESSION_LOG.md`](v4/SESSION_LOG.md) - full development history
+- [`v4/CLAUDE.md`](v4/CLAUDE.md) - the conventions and hard-won
+  invariants that keep the pipeline correct
+
+Machines: Blickensderfer, Postal, Mignon, Bennett, Helios Klimax,
+Hammond, Hammond Split, Selectric I/II, Selectric III, Selectric
+Composer, and the Type Slug family (Type Slug, Vogue Slug, Gauge Slug,
+Oliver Slug, Lumi Slug).
+
+## v1 / v2 (OpenSCAD): usage
+
+The rest of this file covers the original OpenSCAD workflow. `v2/` is
+the shared-library refactor of `v1/`; see
+[CHANGELOG.md](CHANGELOG.md) for what moved where.
+
 ## Download OpenSCAD snapshot
 Download a development snapshot of [OpenSCAD](https://openscad.org/downloads.html#snapshot).
 

@@ -1,5 +1,10 @@
 # Changelog
 
+This file covers the **OpenSCAD generations only** (v1 → v2). v4, the
+current Python pipeline, keeps its own far more detailed history in
+[`v4/SESSION_LOG.md`](v4/SESSION_LOG.md) — nothing about v4 is recorded
+here.
+
 ## v2.0 — Shared library refactor
 
 Executes `docs/refactoring-plan.md`'s target architecture. All work lives in

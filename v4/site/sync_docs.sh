@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copies the real source-of-truth docs (README.md, SESSION_LOG.md,
-# PACKAGING_PLAN.md, docs/*.md) into site/ with Jekyll front matter
+# PACKAGING_PLAN.md, LAYOUT_TRANSCRIPTION.md, docs/*.md) into site/ with Jekyll front matter
 # prepended, so the site always reflects whatever is actually in the repo
 # at build time instead of a hand-duplicated copy that can drift.
 set -euo pipefail
@@ -19,6 +19,7 @@ inject() {
 inject README.md "$SITE/readme.md" "README"
 inject SESSION_LOG.md "$SITE/changelog.md" "Changelog"
 inject PACKAGING_PLAN.md "$SITE/roadmap-packaging.md" "Packaging Plan"
+inject LAYOUT_TRANSCRIPTION.md "$SITE/layout-transcription.md" "Layout Transcription"
 
 for f in docs/*.md; do
   [ -e "$f" ] || continue
