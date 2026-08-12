@@ -75,9 +75,13 @@ unrelated keys) untouched.
 Tabs (in display order):
   Font & Alignment - font.* + alignment.* (combined, both are "how
     characters are placed/rendered" concerns). alignment.mode is a
-    dropdown ("center"/"left"), not free text. font.path has a "Browse"
-    button (textual_fspicker.FileOpen, filtered to .ttf/.otf/.ttc)
-    opening at the current path's directory.
+    dropdown ("center"/"left"), not free text. font.path has two
+    pickers: "Installed" lists every font installed on this machine by
+    NAME (fontconfig on Linux, the Windows font directories on Windows -
+    see lib/system_fonts.py) with a type-to-filter box, and "File" is a
+    plain file browser (textual_fspicker.FileOpen, filtered to
+    .ttf/.otf/.ttc) opening at the current path's directory, for a font
+    that isn't installed. Either way the config still stores a path.
   Type Test        - NOT part of the real element. A flat, CPI/LPI-spaced
     test block (matches v2's TypeTest() fixed-pitch convention; LPI is
     the vertical equivalent for multi-line text, default 6) using the
@@ -148,8 +152,8 @@ Tabs (in display order):
     here - Render always forces it on and Quick Preview always forces
     it off (see _run_build), so a config-file toggle would just be
     dead weight/a second source of truth.
-  Logo             - logo.* (font_path also has the same "Browse" button
-    as font.path above)
+  Logo             - logo.* (font_path also has the same "Installed"/
+    "File" pickers as font.path above)
   Element          - element.* - flagged ADVANCED: real machine geometry,
     not something you'd normally tune - plus layout.baseline_row/
     cutout_row's 6 per-row fields at the bottom (bespoke, see
@@ -180,8 +184,10 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.css.query import NoMatches
 from textual.events import Resize
-from textual.widgets import (Button, Footer, Header, Input, ProgressBar, Select, Static, Switch,
-                              RichLog, TabbedContent, TabPane, TextArea)
+from textual.screen import ModalScreen
+from textual.widgets import (Button, Footer, Header, Input, OptionList, ProgressBar, Select, Static,
+                              Switch, RichLog, TabbedContent, TabPane, TextArea)
+from textual.widgets.option_list import Option
 from textual_fspicker import FileOpen, FileSave, Filters, SelectDirectory
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -333,9 +339,10 @@ YAML_FILE_FILTERS = Filters(
 # font.path (Font & Alignment tab), logo.font_path (Logo tab), Mignon's
 # label.font_path (Logo tab, label_font_path key - see LOGO_FIELDS_MIGNON),
 # and Bennett's label.font_path (Label tab, plain font_path key - see
-# LABEL_FIELDS_BENNETT) are the font-picking fields - each gets a "Browse"
-# button, see _compose_section_tab and on_button_pressed's "browse-" id
-# handling
+# LABEL_FIELDS_BENNETT) are the font-picking fields - each gets an
+# "Installed" button (SystemFontPicker, pick by font name) and a "File"
+# button (FileOpen, pick any font file); see _compose_section_tab and
+# on_button_pressed's "sysfont-"/"browse-" id handling
 FONT_PATH_FIELD_KEYS = ("path", "font_path", "label_font_path", "legend_font_path")
 
 
@@ -362,6 +369,12 @@ def _font_display_name(path):
     if not family:
         return "Currently selected: (font has no family name)"
     return f"Currently selected: {family}" + (f" {style}" if style and style != "Regular" else "")
+
+# Installed-font enumeration (fontconfig on Linux, the Windows font
+# directories on Windows) lives in lib/system_fonts.py, NOT here - see
+# that module's docstring for what counts as "installed" per platform.
+from lib.system_fonts import display_name as font_display_name  # noqa: E402
+from lib.system_fonts import list_system_fonts  # noqa: E402
 
 # Layout presets/help for every machine live in lib/layouts/ (one module
 # per machine), NOT here - tune.py hardcodes no layout data of its own.
@@ -1785,6 +1798,155 @@ class ReflowingRichLog(RichLog):
         self._reflow_width = new_width
 
 
+class SystemFontPicker(ModalScreen[str | None]):
+    """The "Installed" button next to every font path field (see
+    FONT_PATH_FIELD_KEYS): pick a font BY NAME out of everything
+    installed on this machine, instead of hunting for its file with the
+    "File" button's FileOpen browser. Dismisses with the chosen font's
+    path (the config value is still a plain path - this only changes how
+    it's chosen) or None if cancelled.
+
+    A filtered list rather than a plain Select dropdown because the real
+    font count is not dropdown-sized - this development machine reports
+    ~2200 installed files, and a 2200-row overlay with no way to type at
+    it is unusable. The filter matches all whitespace-separated tokens
+    against family + style + path together, so "alma bold" and "ocr otf"
+    both narrow the way you'd expect. Only the first MAX_SHOWN matches
+    are rendered (rebuilding thousands of options on every keystroke is
+    the one thing that makes this feel slow); the count line always says
+    how many matched vs how many are shown, so a truncated list is never
+    silently mistaken for the whole answer.
+
+    Enumeration itself (which directories count as "installed" on Linux
+    vs Windows) is lib/system_fonts.py's job, not this screen's."""
+
+    BINDINGS = [
+        ("escape", "cancel", "Cancel"),
+        # Up/down while the filter Input has focus - an Input doesn't
+        # consume vertical arrows (it's single-line), so these reach the
+        # screen and drive the list's highlight without having to tab
+        # away from the filter first.
+        ("down", "move(1)", "Next"),
+        ("up", "move(-1)", "Previous"),
+    ]
+
+    MAX_SHOWN = 300
+
+    def __init__(self, current_path=None, title="Installed fonts"):
+        super().__init__()
+        self._current_path = current_path or ""
+        self._title = title
+        self._fonts = []
+        self._shown = []
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="fontpicker"):
+            yield Static(self._title, classes="picker-title")
+            yield Static(
+                "Type to filter, up/down to move, Enter to pick, Esc to cancel.",
+                classes="picker-help")
+            yield Input(placeholder="family, style or filename", id="fontpicker-filter")
+            yield OptionList(id="fontpicker-list")
+            yield Static("", id="fontpicker-path", classes="picker-help")
+            yield Static("", id="fontpicker-count", classes="picker-help")
+            yield Button("Cancel", id="fontpicker-cancel")
+
+    def on_mount(self) -> None:
+        # The currently-configured font is passed in as an extra path so
+        # a font living outside any installed location (picked earlier
+        # with "File") still appears - and is pre-highlighted - instead
+        # of the picker opening on an unrelated font.
+        self._fonts = list_system_fonts(extra_paths=(self._current_path,))
+        self._repopulate("")
+        self.query_one("#fontpicker-filter", Input).focus()
+
+    def _abs_current(self):
+        """The configured path in the same absolutized form
+        lib/system_fonts.py stores, so identity comparisons against
+        enumerated entries actually match."""
+        if not self._current_path:
+            return ""
+        return os.path.abspath(os.path.expanduser(self._current_path))
+
+    def _repopulate(self, query):
+        tokens = query.lower().split()
+        matches = [e for e in self._fonts
+                   if all(t in f"{e.family} {e.style} {e.path}".lower() for t in tokens)]
+        # The currently-configured font is pinned to the top of whatever
+        # matched (and highlighted, below) - without this it's only
+        # visible when it happens to fall inside the first MAX_SHOWN of
+        # an alphabetical list of a couple thousand fonts, so the picker
+        # would usually open showing "A..." with no sign of what's
+        # actually selected right now.
+        current = self._abs_current()
+        if current:
+            for i, e in enumerate(matches):
+                if e.path == current:
+                    matches.insert(0, matches.pop(i))
+                    break
+        self._shown = matches[:self.MAX_SHOWN]
+        option_list = self.query_one("#fontpicker-list", OptionList)
+        option_list.clear_options()
+        # Options are looked up by INDEX into self._shown, not by an
+        # Option id - two installed files can legitimately produce the
+        # same display name, and duplicate ids raise.
+        option_list.add_options(
+            [Option(f"{font_display_name(e)}  -  {os.path.basename(e.path)}") for e in self._shown])
+        if self._shown:
+            option_list.highlighted = next(
+                (i for i, e in enumerate(self._shown) if e.path == current), 0)
+        count = self.query_one("#fontpicker-count", Static)
+        if len(matches) > len(self._shown):
+            count.update(f"{len(matches)} of {len(self._fonts)} fonts match - "
+                         f"showing the first {len(self._shown)}, narrow the filter to see the rest")
+        else:
+            count.update(f"{len(matches)} of {len(self._fonts)} fonts match")
+        if not self._shown:
+            self.query_one("#fontpicker-path", Static).update("")
+
+    def _pick(self, index):
+        if index is None or not 0 <= index < len(self._shown):
+            return
+        self.dismiss(self._shown[index].path)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "fontpicker-filter":
+            event.stop()
+            self._repopulate(event.value)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Enter while still typing in the filter picks whatever's
+        highlighted, so a narrow-then-Enter never needs a Tab in
+        between."""
+        if event.input.id == "fontpicker-filter":
+            event.stop()
+            self._pick(self.query_one("#fontpicker-list", OptionList).highlighted)
+
+    def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        event.stop()
+        if 0 <= event.option_index < len(self._shown):
+            self.query_one("#fontpicker-path", Static).update(self._shown[event.option_index].path)
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        event.stop()
+        self._pick(event.option_index)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "fontpicker-cancel":
+            event.stop()
+            self.dismiss(None)
+
+    def action_move(self, delta: int) -> None:
+        option_list = self.query_one("#fontpicker-list", OptionList)
+        if not self._shown:
+            return
+        option_list.highlighted = max(
+            0, min(len(self._shown) - 1, (option_list.highlighted or 0) + delta))
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class TuneApp(App):
     CSS = """
     Screen { layout: horizontal; }
@@ -1805,6 +1967,14 @@ class TuneApp(App):
     .field-row Select { width: 1fr; height: 1; border: none; }
     .field-row Select > SelectCurrent { border: none; padding: 0 1; background: $panel; }
     .browse-btn { width: 10; height: 1; min-width: 10; border: none; margin-left: 1; }
+    .sysfont-btn { width: 11; height: 1; min-width: 11; border: none; margin-left: 1; }
+    .font-btn-row { height: 1; align-horizontal: right; }
+    SystemFontPicker { align: center middle; }
+    #fontpicker { width: 90%; height: 90%; padding: 1 2; background: $surface; border: thick $accent; }
+    #fontpicker-filter { height: 1; border: none; padding: 0 1; background: $panel; margin-bottom: 1; }
+    #fontpicker-list { height: 1fr; border: none; background: $panel; }
+    #fontpicker-path { margin-top: 1; }
+    #fontpicker-cancel { width: 100%; height: 3; margin-top: 1; }
     #btn-reset-layout-rows { width: auto; height: 1; min-width: 0; border: none; margin-left: 1; }
     .field-help { color: $text-muted; height: auto; }
     #buttons { height: 11; dock: bottom; padding: 0 1; }
@@ -2250,9 +2420,21 @@ class TuneApp(App):
                                 inp = Input(value=str(current), id=f"field-{key}")
                                 self.inputs[key] = inp
                                 yield inp
-                                if key in FONT_PATH_FIELD_KEYS:
-                                    yield Button("Browse", id=f"browse-{key}", classes="browse-btn")
                         if key in FONT_PATH_FIELD_KEYS:
+                            # Two ways to fill the path field above, on
+                            # their own row rather than beside the Input
+                            # (the form pane is 58 columns - label plus
+                            # two buttons would leave a path field too
+                            # narrow to read). "Installed" is the normal
+                            # one: pick by font name out of everything
+                            # installed on this machine (see
+                            # SystemFontPicker). "File" is the original
+                            # FileOpen browser, kept because a font
+                            # doesn't have to be installed to be usable
+                            # here - the pipeline just reads the file.
+                            with Horizontal(classes="font-btn-row"):
+                                yield Button("Installed", id=f"sysfont-{key}", classes="sysfont-btn")
+                                yield Button("File", id=f"browse-{key}", classes="browse-btn")
                             yield Static(_font_display_name(current), id=f"font-name-{key}", classes="field-help")
                         if help_text:
                             yield Static(help_text, classes="field-help")
@@ -3729,6 +3911,21 @@ class TuneApp(App):
             extra.append(os.path.basename(mapping_dst))
         self.log_line(f"[green]saved[/green] {stl_path} (+ {', '.join(extra)})")
 
+    async def _pick_system_font(self, key):
+        """The "Installed" button - pick a font by name (see
+        SystemFontPicker) rather than by file. Sets the same Input
+        _browse_font() does, so everything downstream (the "Currently
+        selected" label via on_input_changed, _collect_values,
+        _save_to_yaml) is unchanged - the config still stores a path."""
+        current = self.inputs[key].value
+        # Which of the (up to four) font fields this is - the picker
+        # looks identical for all of them otherwise
+        label = next((f[3] for f in self.FIELDS if f[0] == key), "font")
+        result = await self.push_screen_wait(
+            SystemFontPicker(current_path=current, title=f"Installed fonts - {label}"))
+        if result is not None:
+            self.inputs[key].value = str(result)
+
     async def _browse_font(self, key):
         current = self.inputs[key].value
         start_dir = os.path.dirname(current) if current and os.path.isdir(os.path.dirname(current)) \
@@ -3953,6 +4150,10 @@ class TuneApp(App):
             # not exclusive - browsing for a font shouldn't cancel (or be
             # blocked by) an in-progress build worker
             self.run_worker(self._browse_font(button_id.removeprefix("browse-")))
+        elif button_id.startswith("sysfont-"):
+            # same non-exclusive reasoning as browse- above; this one
+            # picks by font NAME instead of by file (SystemFontPicker)
+            self.run_worker(self._pick_system_font(button_id.removeprefix("sysfont-")))
 
 
 if __name__ == "__main__":

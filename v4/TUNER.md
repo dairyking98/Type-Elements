@@ -31,6 +31,19 @@ running copy and starts fresh from master. "Save" writes the running copy
 to a location you choose (`textual-fspicker`'s file browser) - that's how
 a tuning session becomes a real, committable config.
 
+**Picking a font**: every font path field (Font & Alignment's `font.path`,
+Logo's `logo.font_path`, the per-machine label/legend font paths) has two
+buttons. **Installed** opens a searchable list of every font installed on
+this machine, by name - fontconfig's own list on Linux (so anything
+`fc-list` knows about, including per-user directories added to
+`fonts.conf`), `%WINDIR%\Fonts` plus the per-user
+`%LOCALAPPDATA%\Microsoft\Windows\Fonts` on Windows; see
+[`lib/system_fonts.py`](lib/system_fonts.py). Type to filter on family,
+style or filename; the currently-selected font is pinned to the top of
+the list. **File** is the original file browser, for a font that isn't
+installed anywhere - the config stores a plain path either way, so
+nothing downstream changes.
+
 **Build tab**: a 2-option dropdown (Element / Shaft Gauge) plus an
 independent "Resin supports" checkbox. Element builds `FullElement()`, or
 `ResinPrint()` (adds `ResinSupport()`'s rods/breakaway ring - see the
