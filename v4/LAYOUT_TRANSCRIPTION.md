@@ -1,0 +1,319 @@
+# Layout transcription from primary sources
+
+Record of transcribing real manufacturer type catalogs into v4's
+`layout.rows` presets: what was read, what was imported, what was
+deliberately left out, and — most importantly — **why each judgement call
+went the way it did**. Several imports rest on reasoning rather than on
+reading a glyph off a scan, and that reasoning is the part worth keeping.
+
+All layout data lives in `lib/layouts/<machine>_layout.py`. This document
+is the narrative; those modules are the source of truth for the values.
+
+---
+
+## Sources
+
+| Source | Location | Form |
+|---|---|---|
+| Hammond, 1920 | `windows_tailscale:C:/Users/Leonard/Documents/Python/images to pdf/HammondTypeShuttleCatalogSmall.pdf` | 6 PDF pages (4 are two-page spreads), organised **by shuttle number** |
+| Hammond, 1915 | `windows_tailscale:E:/Leonard/Typewriter/Books Manuals/Hammond_type_Catalog_1915.pdf` | 35 pages, organised **by language** |
+| Blickensderfer | `windows_tailscale:E:/Type Elements/Blickensderfer/Catalog/20230113_01{55..68}.jpg` | 14 page scans, organised **by language/market** |
+
+None have a text layer — all are scans, read as images. 200 dpi is enough
+for the letter rows; individual ambiguous glyphs needed 300–600 % crops.
+
+Higher-resolution originals exist if a glyph is ever contested: the
+Hammond 1920 source TIFFs (`HammondShuttles143-148.tif`, ~300 MB each)
+and the full-size `HammondTypeShuttleCatalog.pdf` (48 MB). The
+Blickensderfer directory's `BLICKENSDERFER FONTS_..._2023.zip` is the
+same page images zipped, not a separate source.
+
+**These catalogs outrank `v1`/`v2` `.scad` on layout content.** That is a
+deliberate, narrow exception to CLAUDE.md's "v2 is ground truth" rule:
+v2 was itself transcribed from these catalogs, so where they disagree the
+catalog is the earlier authority. It is *only* an exception for layout
+character content — v2 remains ground truth for geometry and dimensions.
+
+---
+
+## Method
+
+Four habits did most of the work. They generalise to any future catalog.
+
+**1. Read by column, not by row.** Each column is one physical key with
+three levels: unshifted / shifted / figure. The three rows therefore
+constrain each other, and a reading that breaks the column is wrong even
+if the glyph "looks like" something. This turned several judgement calls
+into near-certainties (below), and let print artifacts be dismissed
+rather than transcribed.
+
+**2. Check the letter inventory.** Compare the lowercase row's letters
+against the uppercase row's. A **duplicated letter plus a missing one**
+is the signature of the transcription-error class that turned up twice.
+This is mechanical, needs no scan, and found the Blickensderfer bug
+independently of the catalog.
+
+**3. Group by identical rows; typeface is not layout.** Most catalog
+entries differ only in typeface — Small/Medium/Large Roman, Gothic,
+Italic, Clarendon, Script all print the *same* rows. Within a keyboard
+the letter rows are constant, so essentially all real variation is in the
+figures row. ~80 Hammond entries collapse to a handful of layouts. One
+preset per distinct layout; the typeface is the Font tab's job.
+
+**4. When it can't be settled, don't import it.** A guessed glyph
+silently builds a wrong shuttle — there is no error, just a wrong part.
+No layout beats a wrong layout. Every exclusion below is recorded at its
+definition site with the specific reason.
+
+---
+
+## Bugs found and fixed
+
+Two real defects, both the same shape, both in the **original** source
+rather than the v4 port, and both silently dropping a letter an English
+typewriter cannot do without.
+
+### Hammond Ideal — missing `b`
+
+```
+v1/Hammond/HammondSplitShuttle.scad:24   IDEAL=["?zxqkjgdmpcfld,…
+v2/hammond_split.scad:76                 Ideal_Element=["?zxqkjgdmpcfld,…
+```
+
+`d` where the catalog reads `b` — leaving **`b` absent entirely and `d`
+duplicated**. Every Ideal entry in both catalogs reads
+`?zxqkjgbmpcfld,` / `!ZXQKJGBMPCFLD;`. Confirmed at 200 dpi.
+
+### Blickensderfer CHARIENSTU — missing `Y`
+
+```
+v1/Blickensderfer/Blickensderfer2.scad:82,85,88   "XQZV&PFLOCHARIENSTUGMDB:WKJU"
+v2/lib/layouts/blick_layouts.scad:18,21,24        "XQZV&PFLOCHARIENSTUGMDB:WKJU"
+```
+
+`U` where it should be `Y`, in both `CHARIENSTU_DE` and
+`CHARIENSTU_DE_MOD`. Found by habit 2 — the uppercase row's inventory was
+a–z with **U duplicated and Y missing**, while its own lowercase row was
+clean. The catalog then confirmed it (`GMDB:WKJY`, Bohemian 426/443).
+
+The same inventory check now passes on every Blickensderfer preset.
+(`HEBREW_ENGL`'s row 0 is Hebrew, so the Latin check correctly does not
+apply to it.)
+
+### What the catalogs *confirmed* unchanged
+
+- **Hammond `Normal Universal`** — an independent transcription of the
+  1920 catalog's Universal rows, reversed into this machine's storage
+  order, came out byte-identical to the shipped preset on all three rows.
+- **Hammond Ideal standard / fractions** — the 1915 catalog's English
+  entries 37/10 and 1/2 match the 1920-derived layouts character for
+  character, five years apart. Two independent printings agreeing is much
+  stronger evidence than one.
+- **Blickensderfer `DHIATENSOR`** — Small Roman 362 and Large Roman 409
+  print it identically, differing only in typeface.
+
+---
+
+## Judgement calls
+
+The decisions that were reasoned rather than simply read. Each records
+what would have to be true for it to be wrong.
+
+**`ƒ` not `f`** (Dutch Ideal, position 29). Row 0 already carries a
+lowercase `f`; a figures row does not repeat a letter that has its own
+key. The guilder sign is also the one currency mark a Dutch machine needs
+that `£`/`$` don't cover. The 200 dpi scan shows the hooked italic form.
+
+**`ç` not `¢`** (Spanish Ideal, position 4). At 600 % the glyph has a
+cedilla hook and **no vertical stroke**; the `¢` in the CENT variant at
+that same position clearly has one. The two were compared side by side.
+
+**`1ó2` not `162`** (Spanish Ideal, positions 7–9). The accent is visible,
+and a second `6` would collide with the `6` already at position 16. The
+resulting accent set — á é í ó ú ñ ¡ ¿ plus `¨` as the diaeresis dead key
+for ü — is complete and self-consistent for Spanish.
+
+**`&` re-homed onto the shifted `.` key** (Universal Fractions). Nine
+figure slots became fractions, displacing `&`; it reappears at the shifted
+`.` position, which is the one key printing a bare dot at all three levels
+on the catalog's own keyboard plate — i.e. the only spare slot. A
+mechanical diff confirms exactly those 9 + 1 positions move and nothing
+else.
+
+**Two print artifacts dismissed, not transcribed.** Shuttle 26's row 0
+`p:-` and 41's row 1 `P::` are both the `;`/`:` key, whose unshifted and
+shifted forms are fixed by the keyboard. Transcribing them literally would
+have invented characters that key cannot produce.
+
+**"LARGE FRACTIONS" is a typeface, not a layout.** Shuttle 40 prints the
+same rows as 26/52 in a larger fraction face.
+
+**"Caps and Small Caps" is a typeface, not a layout.** Row 0 stores
+**lowercase**, because on a small-caps face the lowercase codepoints *are*
+the small capitals — a correctly-designed font then renders the row as the
+catalog prints it, with the cases matching. Storing capitals would
+hard-code the appearance into the layout and fight whatever font is
+selected. Consequence: `Universal, Caps and Small Caps` (27, 27E)
+collapses into `Universal, Standard` and is now defined by reference so
+the two cannot drift. Spanish `5A` does **not** collapse — its figures-row
+accented letters really are full capitals (`ÑÍÉÚ` where plain Spanish has
+`ñíéú`), and those are reached by the *figure* shift rather than the case
+shift, so that is a genuine character difference.
+
+**Two spellings kept rather than one picked.** v1/v2 read `9[0]` where
+every catalogued Ideal entry reads `9(0)`. Both survive as separate
+presets — `IDEAL (£)`/`IDEAL (⅌)` preserve the shipped source history,
+`IDEAL, Fractions` preserves the printed catalog. Same treatment as the
+pre-existing £/⅌ pair.
+
+**Storage order is load-bearing and differs per machine.** `hammond`
+stores rows **reversed**; `hammond_split` stores them in catalog reading
+order (its `TextAssemble` does its own per-half `[14-i]`/`[29-i]`
+reversal). Reversal is applied programmatically, never by retyping.
+
+---
+
+## What was imported
+
+### Hammond (both machines — 10 presets on `hammond`, 11 on `hammond_split`)
+
+Universal is qwerty; Ideal is Hammond's own proprietary arrangement, not a
+qwerty remap. Both are real for both machines, so both are offered on
+both.
+
+| Layout | Shuttles covered |
+|---|---|
+| Universal, standard | 23/23B, 24/24B, 25/25A/25B, 158/158A, 180, 96, 134, 170, 68, 169, 97B, 28, 80, 145 |
+| Universal, fractions | 26, 40 (LARGE), 52, 80A, 97 |
+| Universal, caps & small caps | 27, 27E *(same rows as standard — typeface)* |
+| Ideal, standard | 10/10A/10B/94, 37A, 51/51A/3B, 60, 118, 70, 144A |
+| Ideal, fractions | 1/48/48A, 2, 3/3A, 4, 5, 6, 9 |
+| Ideal, Dutch | 36A, 11A, 12A, 76A, 13A/102B, 91A, 78A |
+| Ideal, Spanish | 65, 16, 46 |
+| Ideal, Spanish (¢) | 65B, 16B, 46B |
+| Ideal, Spanish caps & small caps | 5A |
+
+`hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
+(`Layout_Selection=1`), which was complete in the source but never wired
+into the picker — with two characters corrected against the catalog
+(v2 had `⅌` and `§` where every catalogued Universal entry has `×` and
+`^`, which `hammond.yaml`'s own Universal row already spelled correctly).
+
+### Blickensderfer (8 presets)
+
+| Layout | Shuttles covered |
+|---|---|
+| `BRITISH_LITERARY` | Elite Literary 381, Small Roman Literary 462, Extra Large Roman Literary 307, Italic Literary 383, Script Literary 395, Vertical Script Literary 213 |
+| `QWERTY_BRITISH` | Small Roman 441, Large Roman 442 |
+
+`BRITISH_LITERARY` keeps DHIATENSOR's letters but swaps two keys in the
+shifted row (the `.` key shifts to `&`; the `,` key to `?`) and has a
+wholly different figures row carrying ¼ ½ ¾ and £. `QWERTY_BRITISH`
+differs from the existing (American) `QWERTY` in **exactly one position**
+— `£` where it has `$`.
+
+---
+
+## What was NOT imported, and why
+
+Recorded here in summary; the authoritative per-entry reasons live in
+`CATALOG_SHUTTLES` in `lib/layouts/hammond_layout.py` and in the comment
+block at the end of `lib/layouts/blickensderfer_layout.py`.
+
+### Hammond 1920
+
+- **41** Small Roman Fractions — a genuinely *different* second fractions
+  scheme (diagonal fractions, and it keeps `&` in the figures row rather
+  than moving it). Numerators not separable at this resolution.
+- **162** Medium Gothic Fractions — right half matches the imported
+  fractions layout exactly, but the left half's glyph after `4%` is
+  scan-damaged.
+- **184** Gothic Special Fractions — prints **four** lines, so it does not
+  fit the three-row shape without deciding which line is the figures row.
+- **23E / 23F / 23G / 136** — each differs from standard in only one or
+  two figure slots, and those slots are exactly the unidentifiable ones.
+- **Medical / chemical** (43, 43A, 107, 179, 21, 18) — purpose-made symbol
+  sets with no reliable Unicode reading from this scan.
+- **Diacritical / library** (113, 122, 48C) — bare combining accents
+  printed in isolation; which precomposed/combining codepoint each means
+  is a judgement call, not a reading.
+- **Literary** (192, 193, 194) — subscript/superscript digit banks.
+- **Non-Latin / special** — 195 Astronomical, 196/197 International
+  Phonetic, 135/135B/135C Mathematical, 112C Greek, 59/20 German Text
+  (fraktur), 165/167 Yiddish (Hebrew), 185 Check Writer (perforating,
+  prints as dot matrices).
+
+### Hammond 1915 (per-language)
+
+Not scan-quality problems — these entries are legible — but each needs its
+own character-by-character pass, and a wrong accent builds a wrong shuttle
+just as silently as a wrong glyph.
+
+- **Latin, accents only**: Croatian (58, 12C), Danish (87, 88),
+  Portuguese (63, 63A, 63B, 106), Roumanian (92), Polish (156, 153B, 157),
+  plus the language sections on pp. 10–20 not yet sampled.
+- **Pre-reform Cyrillic**: Russian (49, 35), Servian (125) — use letters
+  dropped in the 1918 reform (ѣ, і, hard-sign ъ) and need a font carrying
+  them.
+- **Ornate faces**: language-specific Vertical Script / Italic Script
+  (e.g. 83A Chilian, 78A Dutch) whose forms make individual accent marks
+  hard to separate even where the underlying layout is known.
+
+### Blickensderfer
+
+- **Bohemian 426/443** — CHARIENSTU letters with a Czech figures row whose
+  doubled dead-key accents (`´ ´` and `ˇ ˇ`) cannot be separated reliably.
+- **Armenian 218** — full Armenian script; needs a font with those glyphs.
+- **British Imperial / Scientific / Universal fraction variants** (212,
+  E458, 331, 454, 300, 205, 350, 494, 379, 387, 371, 337, 217) — each
+  packs a different dense fraction bank (⅛ ¼ ⅜ ½ ⅝ ¾ ⅞ in varying slots)
+  needing per-entry checking rather than one shared reading.
+- **British Telegraph 376** — not the usual three-row 28-column shape.
+- **Pages 0161–0168** — further language sections, not yet sampled.
+
+---
+
+## Font implications
+
+A layout is only buildable if the selected font actually has its glyphs.
+`font_coverage.py --preset MACHINE:"Preset Name"` reports this.
+
+- **`OCR-A II Regular`**, configured for both Hammond machines, lacks the
+  fractions and every accent. This is **not** a regression from the
+  imports — it equally lacks `¢`/`°`/`×` from the already-shipped
+  `Normal Universal`, so every Hammond preset including the defaults is
+  in the same position.
+- **`AverageMono Mod`** covers all four per-language layouts and the
+  fractions set with no missing glyphs.
+- 529 of 1377 fonts in the library cover the Universal fractions set.
+- The Caps and Small Caps entries need an actual small-caps face to look
+  right — by design, since that is now the only thing distinguishing them.
+
+---
+
+## Continuing this work
+
+1. Pick a target from "not imported" above; the Hammond 1915 Latin
+   languages and Blickensderfer pages 0161–0168 are the largest remaining
+   veins and the least ambiguous.
+2. Render the page at 200 dpi (`pdftoppm -r 200 -png -f N -l N`), crop the
+   entry, and zoom to 300–600 % for any contested glyph.
+3. Apply the four habits above — especially the column reading and the
+   letter-inventory check.
+4. Verify every shuttle claimed to share a layout actually prints the same
+   rows; don't extrapolate from one entry to its siblings.
+5. Add the layout to the machine's `lib/layouts/` module, wire it into
+   both Hammond machines if it's a Hammond layout (respecting the per-
+   machine storage order), and add a `LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE`
+   entry for `hammond`.
+6. Run the hard gate (see CLAUDE.md) — adding a preset should leave every
+   config's mesh output byte-identical, since it doesn't touch the active
+   `layout.rows`.
+7. Move the entry out of the "not imported" list and into
+   `CATALOG_SHUTTLES`, with the shuttles it covers.
+
+### Note on `config/blickensderfer.yaml`
+
+Its row 2 reads `*` where the `DHIATENSOR` preset has `%`. That is a
+deliberate hand-edit through the Layout tab (`modify_glyphs: true`), not
+drift — don't "correct" it.
