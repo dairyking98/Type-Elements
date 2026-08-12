@@ -138,6 +138,34 @@ CATALOG_IDEAL_SPANISH_CAPS = [
     "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
     "¨%/_ç¡1ó2.3£4$5" "6“7”8’9(0)ÑÍÉÚ¿",
 ]
+# Croatian (58 Medium Roman, 12C Large Roman). Rows 0/1 are identical to
+# CATALOG_IDEAL_DUTCH's - the ö/ü/ä in the three "extra" slots are not a
+# transcription slip: this is a 1915 catalog and Croatia was still
+# Austria-Hungary, where German was co-official, so a Croatian machine
+# carrying German vowels is exactly what you would expect. All the
+# language-specific characters are in the figures row.
+CATALOG_IDEAL_CROATIAN = [
+    "özxqkjgbmpcfld," "ütaherisounwyvä",
+    "!ZXQKJGBMPCFLD;" ".TAHERISOUNWYV&",
+    "ž%Ž?ć:Ć-2§3č4Č5" "6„7”8=9(+)Š*_š/",
+]
+# Danish, fractions (87 Medium Roman). Note this layout SHIFTS relative to
+# every other Ideal one: æ takes position 14 (where the others have ","),
+# which pushes "," into position 15 and "." into 15 of the shifted row -
+# so the diff against the standard Ideal rows is 4 positions in row 0, not
+# the 1-3 the other languages show.
+CATALOG_IDEAL_DANISH_FRACTIONS = [
+    "øzxqkjgbmpcfldæ" ",taherisounwyvå",
+    "ØZXQKJGBMPCFLDÆ" ".TAHERISOUNWYVÅ",
+    "¾¼%÷½×1:2-3⅓4⅔5" "6”7⅛8’9_0⅜£⅝⅞/&",
+]
+# Portuguese (63 Medium Roman). Full ã/õ/ç set in the letter rows plus
+# á/ê/ó/ô/ú/é in the figures row.
+CATALOG_IDEAL_PORTUGUESE = [
+    "ãzxqkjgbmpcfldç" "õtaherisounwyv.",
+    "ÃZXQKJGBMPCFLDÇ" "ÕTAHERISOUNWYV&",
+    'á%/!ê;ó,2:3£4$5' "6+7\"8'9(ôú-)é°?",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -173,24 +201,42 @@ CATALOG_SHUTTLES = {
         "65B Small Roman, 16B Medium Roman, 46B Large Roman"
     ),
     "ideal_spanish_caps": "5A Caps and Small Caps",
-    # 1915-catalog languages NOT imported. Unlike the 1920 exclusions
-    # below these are not scan-quality problems - the entries are legible
-    # - but each needs its own character-by-character verification pass
-    # (and, for several, script knowledge) before it can be trusted, and
-    # a wrong accent silently builds a wrong shuttle just like a wrong
-    # glyph does. Listed so the remaining work is visible, roughly in
-    # increasing difficulty:
-    #   Latin, accents only ...... Croatian (58, 12C), Danish (87, 88),
-    #     Portuguese (63, 63A, 63B, 106), Roumanian (92), Polish (156,
-    #     153B, 157), plus the other language sections across pp.10-20
-    #     not sampled yet.
-    #   Pre-reform Cyrillic ...... Russian (49, 35), Servian (125) - use
-    #     letters dropped in the 1918 reform (ѣ, і, ъ as a hard sign) and
-    #     need a font carrying them.
-    #   Also present: language-specific Vertical Script / Italic Script
-    #     faces (e.g. 83A Chilian, 78A Dutch) whose ornate forms make
-    #     individual accent marks hard to separate at this scan
-    #     resolution even where the underlying layout is known.
+    "ideal_croatian": "58 Medium Roman, 12C Large Roman",
+    "ideal_danish_fractions": "87 Medium Roman, Fractions",
+    "ideal_portuguese": "63 Medium Roman",
+    # 1915-catalog languages NOT imported yet.
+    #
+    # THE TEST IS CHARACTER IDENTIFICATION, NOT FONT AVAILABILITY. A
+    # layout is catalogued as soon as every character can be identified
+    # and has a Unicode codepoint; whether any font on this machine
+    # currently carries the glyphs is a separate, solvable problem (fonts
+    # can be found or made), and is NOT a reason to leave a layout out.
+    # An earlier version of this list wrongly treated "no font here" as a
+    # blocker - it isn't, and the non-Latin scripts below are all
+    # transcribable on that basis whenever someone works through them.
+    # What genuinely blocks an import is a character the scan will not
+    # resolve, since a guessed glyph silently builds a wrong shuttle.
+    #
+    #   Held on ONE unresolved character each:
+    #     Danish 88 - the figures row shows a gap at right-half position
+    #       8, where its sibling 87 has "_". Blank wheel slot or an
+    #       under-inked underscore? The two are indistinguishable here,
+    #       and they are different characters.
+    #     Roumanian 92 - the mark closing row 1 is a comma-below/cedilla
+    #       shape that will not separate from ¸ (U+00B8) at 600%.
+    #   Not yet read (no blocker known, just unworked): Polish (156,
+    #     153B, 157), Portuguese 63A/63B/106, Croatian/Danish/Portuguese
+    #     siblings beyond the ones imported, and every language section on
+    #     pp.10-13, 15-19 and 21-35, which have not been sampled at all.
+    #   Non-Latin, transcribable, needs script care rather than a font:
+    #     Russian (49, 35) and Servian (125) use pre-1918 letters, all
+    #     encoded - ѣ U+0463, і U+0456, ъ U+044A, Ѳ U+0472. Greek (112C),
+    #     Armenian (218, Blickensderfer) and Yiddish/Hebrew (165, 167)
+    #     likewise have complete Unicode coverage.
+    #   Hardest to read, regardless of script: the language-specific
+    #     Vertical Script / Italic Script faces (83A Chilian, 78A Dutch,
+    #     106 Portuguese, 70/91A) - ornate forms make individual accent
+    #     marks hard to separate even where the layout is known.
     #
     # Catalogued but NOT imported, with the reason each one was left out.
     # These are deliberate exclusions, not an unworked backlog: where the
@@ -270,4 +316,7 @@ LAYOUT_PRESETS_HAMMOND = {
     "Ideal, Spanish": [r[::-1] for r in CATALOG_IDEAL_SPANISH],
     "Ideal, Spanish (¢)": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CENT],
     "Ideal, Spanish Caps and Small Caps": [r[::-1] for r in CATALOG_IDEAL_SPANISH_CAPS],
+    "Ideal, Croatian": [r[::-1] for r in CATALOG_IDEAL_CROATIAN],
+    "Ideal, Danish, Fractions": [r[::-1] for r in CATALOG_IDEAL_DANISH_FRACTIONS],
+    "Ideal, Portuguese": [r[::-1] for r in CATALOG_IDEAL_PORTUGUESE],
 }

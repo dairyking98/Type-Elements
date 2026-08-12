@@ -5,7 +5,10 @@ hammond_layout.py, since the printed catalog covers both machines.
 """
 
 from .hammond_layout import (
+    CATALOG_IDEAL_CROATIAN,
+    CATALOG_IDEAL_DANISH_FRACTIONS,
     CATALOG_IDEAL_DUTCH,
+    CATALOG_IDEAL_PORTUGUESE,
     CATALOG_IDEAL_FRACTIONS,
     CATALOG_IDEAL_SPANISH,
     CATALOG_IDEAL_SPANISH_CAPS,
@@ -68,4 +71,7 @@ LAYOUT_PRESETS_HAMMOND_SPLIT = {
     "IDEAL, Spanish": list(CATALOG_IDEAL_SPANISH),
     "IDEAL, Spanish (¢)": list(CATALOG_IDEAL_SPANISH_CENT),
     "IDEAL, Spanish Caps and Small Caps": list(CATALOG_IDEAL_SPANISH_CAPS),
+    "IDEAL, Croatian": list(CATALOG_IDEAL_CROATIAN),
+    "IDEAL, Danish, Fractions": list(CATALOG_IDEAL_DANISH_FRACTIONS),
+    "IDEAL, Portuguese": list(CATALOG_IDEAL_PORTUGUESE),
 }

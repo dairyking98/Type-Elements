@@ -23,7 +23,10 @@ if/elif chain" rule).
 from .bennett_layout import LAYOUT_PRESETS_BENNETT
 from .blickensderfer_layout import LAYOUT_PRESETS
 from .hammond_layout import (
+    CATALOG_IDEAL_CROATIAN,
+    CATALOG_IDEAL_DANISH_FRACTIONS,
     CATALOG_IDEAL_DUTCH,
+    CATALOG_IDEAL_PORTUGUESE,
     CATALOG_IDEAL_FRACTIONS,
     CATALOG_IDEAL_SPANISH,
     CATALOG_IDEAL_SPANISH_CAPS,
@@ -86,6 +89,9 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Ideal, Spanish": [3.74, -1.21, -5.71],
         "Ideal, Spanish (¢)": [3.74, -1.21, -5.71],
         "Ideal, Spanish Caps and Small Caps": [3.74, -1.21, -5.71],
+        "Ideal, Croatian": [3.74, -1.21, -5.71],
+        "Ideal, Danish, Fractions": [3.74, -1.21, -5.71],
+        "Ideal, Portuguese": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
