@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**249 of 346 catalogued shuttles are covered (71%)** — 22 held on an unresolved character,
-75 not yet transcribed.
+**252 of 346 catalogued shuttles are covered (72%)** — 25 held on an unresolved character,
+69 not yet transcribed.
 
 Status meanings:
 
@@ -104,7 +104,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 29A | Large Russian, Universal, Old Style | 49 | **imported** | Universal, Russian (Old Style) |
 | 29B | Large Russian, Universal, Old Style | 50 | **imported** | Universal, Russian (Old Style) |
 | 29C | Large Bulgarian, Universal | 32 | **imported** | Universal, Bulgarian |
-| 30 | Medium Roman, Polish, Universal | 48 | todo | Universal / Polish |
+| 30 | Medium Roman, Polish, Universal | 48 | **imported** | Universal, Polish |
 | 31 | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
 | 31A | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
 | 31B | Medium Roman, Russian, Universal | 49 | **imported** | Universal, Russian |
@@ -171,7 +171,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 55D | Medium Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 55E | Medium Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
 | 55F | Medium Roman, Fractions, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography, Fractions) |
-| 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | todo | Universal / Hungarian |
+| 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | held | same as 134A |
 | 57 | Medium Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 58 | Medium Roman, Croatian, Ideal | 16 | **imported** | Ideal, Croatian |
 | 59 | German Text, Universal | 43 | **imported** | Universal, German |
@@ -185,7 +185,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 63 | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 63A | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
 | 63B | Medium Roman, Portuguese, Ideal | 26 | **imported** | Ideal, Portuguese |
-| 64 | Italic, Hungarian, Universal, Old Style | 46 | todo | Universal / Hungarian |
+| 64 | Italic, Hungarian, Universal, Old Style | 46 | held | same as 134A |
 | 65 | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 65A | Small Roman, Chilian, Ideal | 15 | **imported** | Ideal, Chilian |
 | 65B | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
@@ -317,7 +317,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 131 | Small Roman, Argentine Government, Universal or Ideal | 54 | todo | Ideal/Universal / Argentine Government |
 | 133 | Display Type, Universal | 57 | **imported** | Universal |
 | 134 | Large Gothic, English, Universal | 38 | **imported** | Universal |
-| 134A | Large Gothic, Hungarian, Universal | 46 | todo | Universal / Hungarian |
+| 134A | Large Gothic, Hungarian, Universal | 46 | held | figures row prints ó twice; í absent from the shuttle |
 | 134B | Large Gothic, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
 | 134C | Large Gothic, Danish-Norwegian, Universal | 34 | **imported** | Universal, Danish-Norwegian |
 | 134D | Large Gothic, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
@@ -333,7 +333,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 138 | Small Roman, French (Belgian Keyboard), Ideal and Universal | 54 | todo | Ideal/Universal / French |
 | 139 | Italic, French (Belgian Keyboard), Ideal and Universal | 55 | todo | Ideal/Universal / French |
 | 140 | Large Roman, French (Belgian Keyboard), Ideal and Universal | 55 | todo | Ideal/Universal / French |
-| 141 | Large Roman, Polish, Universal | 48 | todo | Universal / Polish |
+| 141 | Large Roman, Polish, Universal | 48 | **imported** | Universal, Polish |
 | 142 | Medium Roman, Mathematical, English, Ideal | 25 | todo | Ideal / English / Mathematical |
 | 143 | Large Roman, Russian, Universal | 50 | **imported** | Universal, Russian |
 | 144 | Multigraph (Pica), Spanish, Ideal | 28 | **imported** | Ideal, Spanish |
@@ -344,7 +344,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 145B | Multigraph (Pica), French, Universal | 45 | **imported** | Universal, French |
 | 150 | Italic, Portuguese, Universal | 49 | **imported** | Universal, Portuguese |
 | 150B | Italic, Italian, Universal | 47 | **imported** | Universal, Italian |
-| 150C | Italic, Polish, Universal | 48 | todo | Universal / Polish |
+| 150C | Italic, Polish, Universal | 48 | **imported** | Universal, Polish |
 | 151 | Large Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 152 | Small Roman, Hungarian, Ideal | 24 | **imported** | Ideal, Hungarian |
 | 153 | Gothic, German, Ideal | 22 | **imported** | Ideal, German |

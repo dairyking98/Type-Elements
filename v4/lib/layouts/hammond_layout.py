@@ -523,6 +523,19 @@ CATALOG_IDEAL_CHILIAN = [
     "!ZXQKJGBMPCFLD;" "-TAHERISOUNWYV&",
     "ü%/_öä1ó2.3£4$5" "6“7”8’9(0)ñíéú¿",
 ]
+# Polish, Universal (141 Large Roman, 30 Medium Roman, 150C Italic).
+# Same structural signature as CATALOG_IDEAL_POLISH: ż takes the x key,
+# and x/X move to the FIGURE shift, so row 0 contains no x. Two
+# keyboards independently doing that with the same letter is a good sign
+# both letter rows were read correctly.
+#
+# ó is the one Polish letter not cut on this shuttle; the acute at
+# position 28 is the dead key for composing it.
+CATALOG_UNIVERSAL_POLISH = [
+    "qazwsżedcrfvtgb" "yhnujmikąolłpćś",
+    "QAZWSŻEDCRFVTGB" "YHNUJMIKĄOLŁPĆŚ",
+    '1x-2X"3ń?4ę:5§.' "6%;7ź,8Ź/9!(0')",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -586,6 +599,7 @@ CATALOG_SHUTTLES = {
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
     "universal_dutch": "71A, 117B, 34A, 50A, 119B",
     "universal_german": "119A, 84, 34, 50, 71, 117, 119 (old orthography)",
+    "universal_polish": "141 Large Roman, 30 Medium Roman, 150C Italic",
     "universal_bulgarian": "31C, 29C, 42C, 115C",
     "universal_russian_old_style": "29, 29A, 29B",
     "universal_dutch_fractions": "34D, 50C, 71F, 84C, 119E",
@@ -773,4 +787,5 @@ LAYOUT_PRESETS_HAMMOND = {
     ],
     "Universal, Bulgarian": [r[::-1] for r in CATALOG_UNIVERSAL_BULGARIAN],
     "Ideal, Chilian": [r[::-1] for r in CATALOG_IDEAL_CHILIAN],
+    "Universal, Polish": [r[::-1] for r in CATALOG_UNIVERSAL_POLISH],
 }

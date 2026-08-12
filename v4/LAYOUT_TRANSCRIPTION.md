@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 249 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 252 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -337,6 +337,7 @@ both.
 | Universal, Russian (Old Style) | 29, 29A, 29B |
 | Universal, Bulgarian | 31C, 29C, 42C, 115C |
 | Ideal, Chilian | 65A, 16A, 46A, 17A, 83A |
+| Universal, Polish | 141, 30, 150C |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

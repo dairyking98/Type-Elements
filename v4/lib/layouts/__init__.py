@@ -33,6 +33,7 @@ from .hammond_layout import (
     CATALOG_IDEAL_GERMAN_NEW_ORTHOGRAPHY,
     CATALOG_UNIVERSAL_ESPERANTO,
     CATALOG_UNIVERSAL_ITALIAN,
+    CATALOG_UNIVERSAL_POLISH,
     CATALOG_UNIVERSAL_PORTUGUESE,
     CATALOG_UNIVERSAL_ROUMANIAN,
     CATALOG_UNIVERSAL_DANISH_NORWEGIAN,
@@ -148,6 +149,7 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Universal, Russian (Old Style)": [3.74, -1.21, -5.71],
         "Universal, Bulgarian": [3.74, -1.21, -5.71],
         "Ideal, Chilian": [3.74, -1.21, -5.71],
+        "Universal, Polish": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
