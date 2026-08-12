@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**146 of 346 catalogued shuttles are covered (42%)** — 14 held on an unresolved character,
-186 not yet transcribed.
+**179 of 346 catalogued shuttles are covered (51%)** — 8 held on an unresolved character,
+159 not yet transcribed.
 
 Status meanings:
 
@@ -99,7 +99,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 27A | Caps and Small Caps, Italian, Universal | 47 | **imported** | Universal, Italian |
 | 27B | Caps and Small Caps, Italian, Universal | 47 | **imported** | Universal, Italian |
 | 28 | Law Italic, English, Universal | 39 | **imported** | Universal |
-| 28A | Law Italic, Spanish, Universal | 51 | todo | Universal / Spanish |
+| 28A | Law Italic, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 29 | Large Russian, Universal | 49 | todo | Universal / Russian |
 | 29A | Large Russian, Universal, Old Style | 49 | todo | Universal / Russian |
 | 29B | Large Russian, Universal, Old Style | 50 | todo | Universal / Russian |
@@ -112,13 +112,13 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 32 | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
 | 32A | Medium Roman, French, Universal | 40 | **imported** | Universal, French |
 | 32B | Medium Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
-| 32C | Medium Roman, Roumanian, Universal | 49 | todo | Universal / Roumanian |
-| 32D | Medium Roman, Roumanian, Universal | 49 | todo | Universal / Roumanian |
+| 32C | Medium Roman, Roumanian, Universal | 49 | **imported** | Universal, Roumanian |
+| 32D | Medium Roman, Roumanian, Universal | 49 | **imported** | Universal, Roumanian |
 | 32E | Medium Roman, French, German, English, Universal | 41 | **imported** | Universal |
-| 33 | Medium Roman, Spanish, Universal | 51 | todo | Universal / Spanish |
+| 33 | Medium Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 33A | Medium Roman, Chilian, Universal | 32 | todo | Universal / Chilian |
-| 33B | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | todo | Universal / Spanish |
-| 33C | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | todo | Universal / Spanish |
+| 33B | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | **imported** | Universal, Spanish |
+| 33C | Medium Roman, Spanish, Universal (Mexican-Spanish Keyboard) | 51 | **imported** | Universal, Spanish |
 | 33D | Spanish, French, English | 53 | todo | ? / Spanish |
 | 34 | Medium Roman, German, Universal | 42 | todo | Universal / German |
 | 34A | Medium Roman, Dutch, Universal | 34 | todo | Universal / Dutch |
@@ -147,7 +147,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 46 | Large Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 46A | Large Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
 | 46B | Large Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
-| 47 | Large Roman, Spanish, Universal | 51 | todo | Universal / Spanish |
+| 47 | Large Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 47A | Large Roman, Chilian, Universal | 33 | todo | Universal / Chilian |
 | 48 | Medium Roman, Fractions, English, Ideal | 19 | **imported** | Ideal, Fractions |
 | 48A | Medium Roman, Fractions, English, Ideal | 18 | **imported** | Ideal, Fractions |
@@ -164,11 +164,11 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 52 | Large Roman, Fractions, English, Universal | 38 | **imported** | Universal, Fractions |
 | 53 | Irish, Gaelic, Universal or Ideal | 55 | todo | Ideal/Universal / Gaelic |
 | 54 | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
-| 55 | Medium Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 55A | Medium Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 55B | Medium Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
+| 55 | Medium Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 55A | Medium Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 55B | Medium Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
 | 55C | Medium Roman, Fractions, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish / Fractions |
-| 55D | Medium Roman, Danish-Norwegian, Universal | 33 | held | Æ/Ä/Ö reading contradicts the Danish-Norwegian label |
+| 55D | Medium Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 55E | Medium Roman, German, Universal (New Orthography) | 42 | **imported** | Universal, German (New Orthography) |
 | 55F | Medium Roman, Fractions, German, Universal (New Orthography) | 43 | todo | Universal / German / Fractions |
 | 56 | Medium Roman, Hungarian, Universal, Old Style | 45 | todo | Universal / Hungarian |
@@ -189,13 +189,13 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 65 | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
 | 65A | Small Roman, Chilian, Ideal | 15 | todo | Ideal / Chilian |
 | 65B | Small Roman, Spanish, Ideal | 27 | **imported** | Ideal, Spanish |
-| 66 | Small Roman, Spanish, Universal | 50 | todo | Universal / Spanish |
+| 66 | Small Roman, Spanish, Universal | 50 | **imported** | Universal, Spanish |
 | 66A | Small Roman, Chilian, Universal | 32 | todo | Universal / Chilian |
-| 66B | Small Roman, Spanish, Universal | 51 | todo | Universal / Spanish |
+| 66B | Small Roman, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 67 | Small Roman, French, Universal | 40 | **imported** | Universal, French |
 | 67A | Small Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
 | 68 | Italic, English, Universal | 39 | **imported** | Universal |
-| 68A | Italic, Spanish, Universal | 51 | todo | Universal / Spanish |
+| 68A | Italic, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 69 | Large Roman, French, Universal | 41 | **imported** | Universal, French |
 | 69A | Large Roman, Italian, Universal | 46 | **imported** | Universal, Italian |
 | 70 | Vertical Script, English, Ideal | 20 | **imported** | Ideal |
@@ -233,37 +233,37 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 86 | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
 | 87 | Medium Roman, Fractions, Danish, Ideal | 16 | **imported** | Ideal, Danish (Fractions) |
 | 88 | Medium Roman, Danish, Ideal | 16 | held | blank slot vs under-inked `_` |
-| 89 | Vertical Script, Spanish, Universal | 51 | todo | Universal / Spanish |
+| 89 | Vertical Script, Spanish, Universal | 51 | **imported** | Universal, Spanish |
 | 89A | Vertical Script, Chilian, Universal | 33 | todo | Universal / Chilian |
-| 90 | Italic, Swedish-Finnish, Universal | 53 | todo | Universal / Swedish-Finnish |
-| 90A | Italic, Danish-Norwegian, Universal | 34 | held | same as 55D |
+| 90 | Italic, Swedish-Finnish, Universal | 53 | **imported** | Universal, Swedish-Finnish |
+| 90A | Italic, Danish-Norwegian, Universal | 34 | **imported** | Universal, Danish-Norwegian |
 | 91 | Italic Script, German, Ideal | 22 | **imported** | Ideal, German |
 | 91A | Italic Script, Dutch, Ideal | 17 | **imported** | Ideal, Dutch |
 | 91B | Italic Script, German, Ideal | 22 | **imported** | Ideal, German |
-| 92 | Medium Roman, Roumanian, Ideal | 26 | held | row-1 closing mark vs `¸` |
-| 93 | Small Roman, Swedish-Finnish, Universal | 51 | todo | Universal / Swedish-Finnish |
-| 93A | Small Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 93B | Small Roman, Danish-Norwegian, Universal | 33 | held | same as 55D |
+| 92 | Medium Roman, Roumanian, Ideal | 26 | **imported** | Ideal, Roumanian |
+| 93 | Small Roman, Swedish-Finnish, Universal | 51 | **imported** | Universal, Swedish-Finnish |
+| 93A | Small Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 93B | Small Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 94 | Medium Roman, English, Ideal | 18 | **imported** | Ideal |
 | 95A | Hebrew-English, Ideal | 29 | todo | Ideal / Hebrew-English |
 | 96 | Gothic, English, Universal | 38 | **imported** | Universal |
 | 97 | Gothic Italic, Fractions, English, Universal | 38 | **imported** | Universal, Fractions |
-| 97A | Gothic Italic, Roumanian, Universal | 49 | todo | Universal / Roumanian |
+| 97A | Gothic Italic, Roumanian, Universal | 49 | **imported** | Universal, Roumanian |
 | 97B | Gothic Italic, English, Universal | 39 | **imported** | Universal |
 | 98 | Arabic, Ideal-Universal | 54 | todo | Ideal/Universal / Arabic |
 | 100 | Display Type, Ideal | 57 | **imported** | Ideal |
-| 101 | Large Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 101A | Large Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 101B | Large Roman, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 101C | Large Roman, Danish-Norwegian, Universal | 33 | held | same as 55D |
+| 101 | Large Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 101A | Large Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 101B | Large Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 101C | Large Roman, Danish-Norwegian, Universal | 33 | **imported** | Universal, Danish-Norwegian |
 | 101D | Large Roman, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
 | 101E | Large Roman, Fractions, German, Universal (New Orthography) | 43 | todo | Universal / German / Fractions |
 | 102 | Italic, German, Ideal | 23 | **imported** | Ideal, German |
 | 102A | Italic, German, Ideal | 23 | **imported** | Ideal, German |
 | 102B | Italic, Dutch, Ideal | 17 | **imported** | Ideal, Dutch |
-| 103 | Medium Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
-| 103A | Medium Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
-| 103B | Medium Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
+| 103 | Medium Roman, Portuguese, Universal | 48 | **imported** | Universal, Portuguese |
+| 103A | Medium Roman, Portuguese, Universal | 48 | **imported** | Universal, Portuguese |
+| 103B | Medium Roman, Portuguese, Universal | 48 | **imported** | Universal, Portuguese |
 | 104 | Italic, French, Universal | 41 | **imported** | Universal, French |
 | 104A | Italic, French, Universal | 41 | **imported** | Universal, French |
 | 104B | Italic, Italian, Universal | 47 | **imported** | Universal, Italian |
@@ -318,8 +318,8 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 133 | Display Type, Universal | 57 | **imported** | Universal |
 | 134 | Large Gothic, English, Universal | 38 | **imported** | Universal |
 | 134A | Large Gothic, Hungarian, Universal | 46 | todo | Universal / Hungarian |
-| 134B | Large Gothic, Swedish-Finnish, Universal | 52 | todo | Universal / Swedish-Finnish |
-| 134C | Large Gothic, Danish-Norwegian, Universal | 34 | held | same as 55D |
+| 134B | Large Gothic, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
+| 134C | Large Gothic, Danish-Norwegian, Universal | 34 | **imported** | Universal, Danish-Norwegian |
 | 134D | Large Gothic, German, Universal (New Orthography) | 43 | **imported** | Universal, German (New Orthography) |
 | 134E | Large Gothic, French, Universal | 41 | **imported** | Universal, French |
 | 134F | Large Gothic, Italian, Universal, Old Style | 47 | **imported** | Universal, Italian |
@@ -342,7 +342,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 145 | Multigraph (Pica), English, Universal | 39 | **imported** | Universal |
 | 145A | Multigraph (Pica), German, Universal (New Orthography) | 45 | **imported** | Universal, German (New Orthography) |
 | 145B | Multigraph (Pica), French, Universal | 45 | **imported** | Universal, French |
-| 150 | Italic, Portuguese, Universal | 49 | todo | Universal / Portuguese |
+| 150 | Italic, Portuguese, Universal | 49 | **imported** | Universal, Portuguese |
 | 150B | Italic, Italian, Universal | 47 | **imported** | Universal, Italian |
 | 150C | Italic, Polish, Universal | 48 | todo | Universal / Polish |
 | 151 | Large Roman, Hungarian, Ideal | 24 | todo | Ideal / Hungarian |
@@ -361,7 +361,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 157A | Italic, Bohemian, Ideal | 15 | todo | Ideal / Bohemian |
 | 158 | Miniature Roman, English, Universal | 39 | **imported** | Universal |
 | 158A | Miniature Roman, English, Universal | 39 | **imported** | Universal |
-| 159 | Small Roman, Portuguese, Universal | 48 | todo | Universal / Portuguese |
+| 159 | Small Roman, Portuguese, Universal | 48 | **imported** | Universal, Portuguese |
 | 161 | Bell Visible Speech Shuttle | 55 | todo | ? / Bell Visible Speech |
 | 162 | Medium Gothic, English, Universal | 38 | held | scan-damaged glyph after `4%` |
 | 165 | English-Yiddish, Universal | 53 | todo | Universal / English-Yiddish |

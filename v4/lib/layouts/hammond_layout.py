@@ -268,6 +268,66 @@ CATALOG_UNIVERSAL_ITALIAN = [
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OL;P:!",
     "1”+2×ù3¨=4%°5_à" "6&-7èò8(ì9)§0ç/",
 ]
+# Portuguese (150 Italic, 103/103A/103B Medium Roman, 159 Small Roman).
+# ã/õ/ç in the letter rows, á/ê/ó/ô/é in the figures row, plus º the
+# masculine ordinal indicator - the mark that makes it unmistakably
+# Portuguese rather than Spanish.
+CATALOG_UNIVERSAL_PORTUGUESE = [
+    "qazwsxedcrfvtgb" "yhnujmik,olãpçõ",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OLÃPÇÕ",
+    '1";2:á3$_4%£5ê-' "6&ó7'ô8(§9)éº./",
+]
+# Roumanian (32C, 32D Medium Roman, 97A Gothic Italic). Carries the full
+# breve/cedilla set - ă ĕ ĭ ŭ, ş, ţ - plus â/î/ê, and a standalone ¸
+# (cedilla, U+00B8) as its own character in the figures row.
+CATALOG_UNIVERSAL_ROUMANIAN = [
+    "qazwsxedcrfvtgb" "yhnujmik,olĕp;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    "1“¸2ş”3§ă4%ĭ5_ŭ" "6&*7’î8(â9)ê0ţ/",
+]
+# Roumanian, Ideal (92). Held for a while on the mark closing row 1,
+# which would not separate from ¸ at 600%. Settled by the Universal
+# Roumanian shuttle (32C) above, which carries ¸ (U+00B8) outright as a
+# standalone figures-row character: once the language is known to have a
+# bare cedilla in its repertoire, and the shape matches, it is the only
+# reading left. Same corroborate-from-a-sibling-shuttle move that settled
+# the German ſ.
+#
+# ş/ţ are the CEDILLA codepoints (U+015F/U+0163), not the modern
+# comma-below ș/ț - the cedilla forms are what 1915 Romanian typography
+# used, and what the Universal shuttle prints.
+CATALOG_IDEAL_ROUMANIAN = [
+    "îzxqkjgbmpcfld," "ătaherisounwyvĭ",
+    ";ZXQKJGBMPCFLDŭ" "ĕTAHERISOUNWYV¸",
+    "!%/?_:1-2.3â4ê5" "6ţ7*8’9ş0§“(”)&",
+]
+# Spanish (33 Medium Roman, 66/66B Small Roman, 47 Large Roman, 89
+# Vertical Script, 28A Law Italic, 68A Italic). Same ¨/½ split the Ideal
+# Spanish shuttles have - 66B carries ½ where 33 carries ¨.
+CATALOG_UNIVERSAL_SPANISH = [
+    "qazwsxedcrfvtgb" "yhnujmik,oláp;-",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OL.P:!",
+    '1"@2¨¡3$¿4%£5_ñ' "6&ó7'í8(ú9)é0ç/",
+]
+# The two Scandinavian shuttles are a matched pair, and reading them
+# together is what makes each trustworthy: they differ in exactly ONE
+# letter position - å for Swedish-Finnish, æ for Danish-Norwegian - plus
+# two figures-row slots. The catalog demonstrably had both å and æ and
+# chose between them, so neither is a misreading of the other.
+#
+# Danish-Norwegian carrying Æ Ä Ö rather than Æ Ø Å is historically
+# unusual (Danish needs ø), and it was held on that basis until the pair
+# above settled it. Recorded as read, not as one might expect it to be.
+CATALOG_UNIVERSAL_SWEDISH_FINNISH = [
+    "qazwsxedcrfvtgb" "yhnujmik,olåpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OLÅPÄÖ",
+    '1"ü2:é3!à4%£5+-' "6&½7*#8(.9);0=/",
+]
+CATALOG_UNIVERSAL_DANISH_NORWEGIAN = [
+    "qazwsxedcrfvtgb" "yhnujmik,olæpäö",
+    "QAZWSXEDCRFVTGB" "YHNUJMIK?OLÆPÄÖ",
+    '1"ü2:é3!à4%£5+-' "6&½7'§8(.9);0=/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -316,6 +376,12 @@ CATALOG_SHUTTLES = {
     ),
     "universal_french_german_english": "32E Medium Roman",
     "universal_esperanto": "135A, 135D Medium Roman",
+    "ideal_roumanian": "92 Medium Roman",
+    "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
+    "universal_spanish": "33 Medium Roman, 66/66B Small Roman, 47 Large Roman, 89 Vertical Script",
+    "universal_swedish_finnish": "93A Small Roman, 90 Italic, 101/101A/101B Large Roman, 134B Large Gothic",
+    "universal_danish_norwegian": "55D, 90A, 93B, 101C, 134C",
+    "universal_roumanian": "32C/32D Medium Roman, 97A Gothic Italic",
     "universal_italian": (
         "134F Large Gothic, 73/32B Medium Roman, 67A Small Roman, "
         "69A Large Roman, 104B/150B Italic, 85A/111B Vertical Script"
@@ -337,21 +403,11 @@ CATALOG_SHUTTLES = {
     # What genuinely blocks an import is a character the scan will not
     # resolve, since a guessed glyph silently builds a wrong shuttle.
     #
-    #   Held because the READING contradicts the LABEL:
-    #     Danish-Norwegian (55D, 90A, 93B, 101C, 134C) - the vowels print
-    #       as unmistakable two-dot diacritics, Æ Ä Ö, at 500%. But Danish
-    #       and Norwegian need ø and å; a shuttle with Ä/Ö and neither ø
-    #       nor å would be unusable for either language. Either Hammond
-    #       shipped a Swedish-style compromise under that name, or those
-    #       glyphs are not what they look like. Identifiable as glyphs,
-    #       not trustworthy as a layout.
     #   Held on ONE unresolved character each:
     #     Danish 88 - the figures row shows a gap at right-half position
     #       8, where its sibling 87 has "_". Blank wheel slot or an
     #       under-inked underscore? The two are indistinguishable here,
     #       and they are different characters.
-    #     Roumanian 92 - the mark closing row 1 is a comma-below/cedilla
-    #       shape that will not separate from ¸ (U+00B8) at 600%.
     #   Not yet read (no blocker known, just unworked): Polish (156,
     #     153B, 157), Portuguese 63A/63B/106, Croatian/Danish/Portuguese
     #     siblings beyond the ones imported, and every language section on
@@ -472,4 +528,14 @@ LAYOUT_PRESETS_HAMMOND = {
     ],
     "Universal, Esperanto": [r[::-1] for r in CATALOG_UNIVERSAL_ESPERANTO],
     "Universal, Italian": [r[::-1] for r in CATALOG_UNIVERSAL_ITALIAN],
+    "Universal, Portuguese": [r[::-1] for r in CATALOG_UNIVERSAL_PORTUGUESE],
+    "Universal, Roumanian": [r[::-1] for r in CATALOG_UNIVERSAL_ROUMANIAN],
+    "Ideal, Roumanian": [r[::-1] for r in CATALOG_IDEAL_ROUMANIAN],
+    "Universal, Spanish": [r[::-1] for r in CATALOG_UNIVERSAL_SPANISH],
+    "Universal, Swedish-Finnish": [
+        r[::-1] for r in CATALOG_UNIVERSAL_SWEDISH_FINNISH
+    ],
+    "Universal, Danish-Norwegian": [
+        r[::-1] for r in CATALOG_UNIVERSAL_DANISH_NORWEGIAN
+    ],
 }

@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 146 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 179 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -158,6 +158,19 @@ The payoff was disproportionate: `Ideal, German` turns out to differ from
 `Ideal, Dutch` in exactly ONE position (ƒ vs ſ), and resolving that single
 character moved 18 catalogued shuttles from held to covered.
 
+**Read the siblings, not just the entry.** Two holds were cleared this
+way rather than by better optics. Roumanian Ideal 92's unresolved closing
+mark was settled by Universal Roumanian 32C, which carries a bare ¸
+(U+00B8) outright — once the language is known to have a standalone
+cedilla, and the shape matches, no other reading is left. And the
+Scandinavian pair settled each other: Swedish-Finnish and
+Danish-Norwegian differ in exactly ONE letter position, å against æ, so
+the catalog demonstrably had both and chose — neither is a misreading of
+the other. Danish-Norwegian carrying Æ Ä Ö rather than Æ Ø Å is
+historically odd, and was held on exactly that basis until its sibling
+made the reading certain. It is recorded as read, not as one would
+expect it to be.
+
 **Two print artifacts dismissed, not transcribed.** Shuttle 26's row 0
 `p:-` and 41's row 1 `P::` are both the `;`/`:` key, whose unshifted and
 shifted forms are fixed by the keyboard. Transcribing them literally would
@@ -221,6 +234,12 @@ both.
 | Universal, French-German-English | 32E |
 | Universal, Esperanto | 135A, 135D |
 | Universal, Italian | 134F, 73, 32B, 67A, 69A, 104B, 150B, 85A, 111B |
+| Universal, Spanish | 33, 66, 66B, 47, 89, 28A, 68A |
+| Universal, Portuguese | 150, 103, 103A, 103B, 159 |
+| Universal, Roumanian | 32C, 32D, 97A |
+| Universal, Swedish-Finnish | 93A, 90, 101, 101A, 101B, 134B |
+| Universal, Danish-Norwegian | 55D, 90A, 93B, 101C, 134C |
+| Ideal, Roumanian | 92 |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired
