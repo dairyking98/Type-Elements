@@ -291,11 +291,63 @@ A layout is only buildable if the selected font actually has its glyphs.
 
 ---
 
+## Remaining work, prioritised
+
+Ordered by value per unit of effort. The first two are the large, clean
+veins; everything below them is either small, ambiguous, or blocked on a
+font.
+
+**1. Hammond 1915 Latin languages — biggest remaining vein, low risk.**
+The catalog has roughly twenty language sections and only English, Dutch
+and Spanish have been done. The sections already sighted, with the
+shuttles each carries:
+
+| Language | Shuttles | Page (PDF) |
+|---|---|---|
+| Croatian | 58, 12C | 14 |
+| Danish | 87, 88 | 14 |
+| Portuguese | 63, 63A, 63B, 106 | 20 |
+| Roumanian | 92 | 20 |
+| Polish | 156, 153B, 157 | 20 |
+
+Pages 10–13, 15–19 and 21–35 have **not been sampled at all** — there are
+more languages there than the table above. Each section is one layout
+shared by several shuttles, so the yield per verified layout is high.
+Difficulty is ordinary accented Latin.
+
+**2. Blickensderfer pages 0161–0168 — 8 of 14 pages unsampled.** Only
+0155–0160 have been read. Same by-language/market structure, same
+three-row 28-column shape, same yield pattern. No known blockers.
+
+**3. Hammond 1920 leftovers — small and fiddly.** 41, 162, 184,
+23E/23F/23G, 136. Each is one or two unresolved figure slots, or a
+non-standard row shape (184's four lines). Worth a pass with the
+higher-resolution TIFF originals rather than more zooming on the small
+PDF — that is the specific thing likely to settle 162's damaged glyph
+after `4%` and 41's fraction numerators.
+
+**4. Blickensderfer British fraction variants.** 212, E458, 331, 454,
+300, 205, 350, 494, 379, 387, 371, 337, 217. Legible, but each packs a
+*different* fraction bank, so this is thirteen separate verifications
+rather than one shared reading — high effort, low yield per entry.
+
+**5. Blocked on fonts, not on reading.** Hammond's non-Latin sets (195
+Astronomical, 196/197 Phonetic, 135/135B/135C Mathematical, 112C Greek,
+59/20 Fraktur, 165/167 Yiddish), the 1915 pre-reform Cyrillic (Russian
+49/35, Servian 125 — need ѣ, і, hard-sign ъ), and Blickensderfer's
+Armenian 218. Transcribing these is pointless until a font carrying the
+glyphs is identified, since the build would fail on missing characters
+anyway. Check with `font_coverage.py` before starting any of them.
+
+**Not worth doing:** Hammond's medical/chemical (43, 43A, 107, 179, 21,
+18), diacritical/library (113, 122, 48C) and literary (192, 193, 194)
+sets, and Blickensderfer's British Telegraph 376. These are purpose-made
+symbol banks with no reliable Unicode reading from these scans; they would
+need a different, better source rather than more effort on this one.
+
 ## Continuing this work
 
-1. Pick a target from "not imported" above; the Hammond 1915 Latin
-   languages and Blickensderfer pages 0161–0168 are the largest remaining
-   veins and the least ambiguous.
+1. Pick a target from the priority list above.
 2. Render the page at 200 dpi (`pdftoppm -r 200 -png -f N -l N`), crop the
    entry, and zoom to 300–600 % for any contested glyph.
 3. Apply the four habits above — especially the column reading and the

@@ -5581,3 +5581,159 @@ simultaneously for the first time. `type_slug`/`gauge_slug` (`vogue_
 enabled: false` in both, `scale_mm_per_unit` unchanged at `0.02`) hard-
 gate re-verified byte-identical (`--no-minkowski`) to confirm zero side
 effects on the two machines that weren't the point of this fix.
+
+## 80. Layout presets extracted out of `tune.py` into `lib/layouts/`; three real manufacturer catalogs transcribed; two inherited missing-letter bugs found and fixed (2026-08-11)
+
+Long session, four distinct threads. Ordered as they happened.
+
+**Thread 1 - two inherited transcription bugs, same shape.** The user
+supplied a Hammond type-shuttle catalog (Form QQ-10M-11-20-W, Nov 1920)
+and later Blickensderfer type-wheel catalog scans. Both turned up a real
+defect that had shipped since v1:
+
+- Hammond Ideal read `?zxqkjg**d**mpcfld,` where the catalog reads `b` -
+  dropping `b` from the layout entirely and duplicating `d`
+  (`v1/Hammond/HammondSplitShuttle.scad:24`, `v2/hammond_split.scad:76`).
+- Blickensderfer `CHARIENSTU_DE`/`_MOD` read `...GMDB:WKJ**U**` where it
+  should be `Y` - dropping `Y`, duplicating `U`
+  (`v1/Blickensderfer/Blickensderfer2.scad:82,85,88`,
+  `v2/lib/layouts/blick_layouts.scad:18,21,24`).
+
+Neither is a v4 porting slip; both are errors in the ORIGINAL source, so
+this is the documented narrow exception to CLAUDE.md's "v2 is ground
+truth" rule - v2 was itself transcribed from these catalogs, so on layout
+CONTENT specifically the catalog is the earlier authority. Recorded at
+both config/definition sites so neither gets "corrected" back.
+
+**The cheap check that generalises**: compare the lowercase row's letter
+inventory against the uppercase row's. A duplicated letter plus a missing
+one is this bug class's signature. It found the Blickensderfer bug
+mechanically, without reading the scan at all, and would have found the
+Hammond one. Now run over every Blickensderfer preset - all clean
+(`HEBREW_ENGL`'s row 0 is Hebrew so the Latin check correctly doesn't
+apply).
+
+**Thread 2 - `tune.py` no longer holds layout data** (per explicit user
+direction: "layouts should not be hardcoded in tune.py"). ~840 lines
+moved out (4802 -> 3964) into `lib/layouts/<machine>_layout.py`,
+aggregated by a new `lib/layouts/__init__.py`. That package already
+existed for the 3 Selectric machines' hemisphere permutations, so this
+extended an established home rather than inventing one. Blocks were
+relocated verbatim by line range, not retyped; all 18 layout tables
+dumped to JSON before and after are byte-identical.
+
+Two things the move surfaced, both worth remembering:
+
+- **The package is reachable under TWO module names** - `lib.layouts`
+  (repo root on `sys.path`: `tune.py`, `font_coverage.py`) and plain
+  `layouts` (`lib/` on `sys.path`: `lib/selectric12.py`'s `from
+  layouts.selectric12_layout import ...`). Adding `__init__.py` turned it
+  from a namespace package into a real one, so that `__init__` now
+  executes on BOTH paths - its imports must therefore be RELATIVE. The
+  first version used absolute imports and only passed because `cwd`
+  happened to be on `sys.path`; it would have broken the Selectric build
+  path from any other directory. Verified both names resolve from a
+  foreign cwd and by a real `selectric12` build.
+- `font_coverage.py --preset` used to `import tune` purely to reach these
+  tables, so listing a charset required `textual`. It now reads
+  `lib/layouts` directly, which has no third-party imports - confirmed by
+  loading it on bare system python where `import textual` fails.
+
+**Thread 3 - Selectric layout/mapping pairing.** The user asked whether
+Selectric's multiple character mappings belong in `layouts` too (they
+already did) and observed that several layouts can share one mapping. Each
+layout now NAMES its map via a `PRESET_HEMISPHERE_MAP` in the same module,
+many-to-one, with `LAYOUT_PRESET_HEMISPHERE_MAP_BY_MACHINE` DERIVED from
+those rather than hand-written. This closed a silent bad-geometry hole:
+an unpaired preset does not fall back to a default - `_save_to_yaml`
+(`tune.py:3052`) only patches `layout.hemisphere_map` when the lookup
+hits, so the config silently kept the PREVIOUS preset's value, and these
+maps are position-only, so a mismatch builds a WRONG typeball with every
+character present. Each module now asserts full pairing coverage at
+import; verified by adding an unpaired `GERMAN` preset in a scratch copy
+(fails with `unpaired=['GERMAN']`). Composer is deliberately exempt
+(one fixed map, no `hemisphere_map` config key at all) and says so.
+
+**Thread 4 - catalog transcription.** Three sources: Hammond 1920 (by
+shuttle number), Hammond 1915 (35pp, by LANGUAGE - the more comprehensive
+one), Blickensderfer (14 page scans, by language/market). The 1915
+catalog independently CONFIRMS the 1920-derived Ideal layouts character
+for character, five years apart; the Blickensderfer scans confirm
+`DHIATENSOR` likewise; and an independent re-transcription of Hammond's
+Universal rows came out byte-identical to the shipped `Normal Universal`.
+
+Imported 9 catalog-derived layouts total (hammond 10 presets,
+hammond_split 11, blickensderfer 8). Full narrative, every judgement call
+with what would have to be true for it to be wrong, the complete
+not-imported list with per-entry reasons, and a prioritised backlog now
+live in **`LAYOUT_TRANSCRIPTION.md`** - written because several imports
+rest on reasoning rather than on reading a glyph, and that reasoning
+previously existed only in commit messages.
+
+The single most useful technique: **read the catalog by COLUMN, not by
+row.** Each column is one physical key at three shift levels, so the rows
+constrain each other. That is what settled `ƒ` vs `f` (row 0 already has
+an `f`; a figures row doesn't repeat a letter with its own key), the `&`
+re-homed onto the shifted `.` key in the fractions shuttles, and two
+apparent oddities that turned out to be print artifacts rather than
+characters (shuttle 26's `p:-`, 41's `P::` - both the `;`/`:` key, whose
+forms are fixed by the keyboard).
+
+Also established, from the user: **"Caps and Small Caps" is a TYPEFACE,
+not a layout.** Row 0 stores lowercase, because on a small-caps face the
+lowercase codepoints ARE the small capitals, so a correct font makes the
+cases match on its own. Universal 27/27E consequently collapses into the
+standard layout and is defined by reference to it. Spanish 5A does NOT
+collapse - its figures-row accents are genuinely full capitals (`ÑÍÉÚ`),
+reached by the figure shift rather than the case shift.
+
+**Also fixed along the way**: CLAUDE.md's hard-gate command no longer
+parsed (`--points-per-mm` was removed fleet-wide when contour sampling
+became adaptive; it is `--flatness-tolerance-mm`, and needs
+`.venv/bin/python3`). A full audit of CLAUDE.md against the tree found
+four more stale claims - `save_config()` (now `_save_to_yaml()`), the
+`simplify()` "no exceptions" claim (`lib/heightfield_poc.py` still has it,
+but is an unimported dead POC outside the pipeline), Bennett's
+`alignment_hole_height` (since resolved as case (b)), and the "five
+`quality.*_fn` knobs" (a config has six - `groove_fn` is deliberately not
+one, being twist sampling rather than a facet count). README's Minkowski
+note still explained cost scaling via `points_per_mm`.
+
+**Verified throughout**: all 18 layout tables byte-identical across the
+extraction; `TuneApp` constructs for all 10 machines (scratch config
+copies only, per the standing warning); hard gate unchanged on every
+config touched - `hammond` verts=470670 faces=942988 volume=4876.156mm3,
+`hammond_split` verts=35240 faces=70544 volume=8081.034mm3 (moved once,
+by exactly the `d`->`b` fix, then stable), `blickensderfer` verts=38310
+faces=76792 volume=5646.195mm3, plus clean `selectric12`/`selectric3`/
+`selectric_composer`/`mignon` builds.
+
+### Resuming later
+
+1. **Hammond 1915 Latin languages - biggest clean vein.** Only English,
+   Dutch, Spanish done. Croatian (58, 12C) and Danish (87, 88) on PDF
+   p.14; Portuguese (63, 63A, 63B, 106), Roumanian (92), Polish (156,
+   153B, 157) on p.20. **Pages 10-13, 15-19, 21-35 not sampled at all** -
+   more languages live there.
+2. **Blickensderfer pages 0161-0168** - 8 of 14 page scans unread, same
+   structure and yield as the ones already done.
+3. **Hammond 1920 leftovers** (41, 162, 184, 23E/23F/23G, 136) - try the
+   ~300MB source TIFFs rather than more zooming on the small PDF; that is
+   the specific thing likely to settle 162's damaged glyph after `4%`.
+4. **Blocked on fonts, not reading**: all non-Latin sets, and the 1915
+   pre-reform Cyrillic (needs ѣ, і, hard-sign ъ). Check
+   `font_coverage.py` before starting - transcribing is pointless if no
+   available font carries the glyphs.
+5. **Known font gap, pre-existing, NOT caused by these imports**: both
+   Hammond machines are configured for `OCR-A II Regular`, which lacks
+   the fractions and every accent - but equally lacks `¢`/`°`/`×` from
+   the already-shipped `Normal Universal`. `AverageMono Mod` covers all
+   the new layouts. Worth deciding whether the shipped configs should
+   point at a font that can actually build their own default layout.
+6. `README.md` was NOT audited this session (only CLAUDE.md was, plus one
+   stale `points_per_mm` line in README's Minkowski note). Its two
+   surviving `LAYOUT_PRESETS` mentions were checked and are fine - line
+   136 describes `TuneApp.LAYOUT_PRESETS` as an instance attribute, still
+   true, and line 203 names `LAYOUT_PRESETS_MIGNON` without claiming a
+   location. A full README pass against current code is still owed,
+   though, the way CLAUDE.md just got one.
