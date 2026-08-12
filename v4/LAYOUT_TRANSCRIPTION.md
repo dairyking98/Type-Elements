@@ -10,7 +10,7 @@ All layout data lives in `lib/layouts/<machine>_layout.py`. This document
 is the narrative; those modules are the source of truth for the values.
 
 For the complete shuttle-by-shuttle enumeration with import status, see
-[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 240 of 346 catalogued Hammond
+[`CATALOG_INDEX.md`](CATALOG_INDEX.md) — 244 of 346 catalogued Hammond
 shuttles are currently covered.
 
 ---
@@ -192,6 +192,22 @@ tilde, psili vs a left quote are all distinguishable in principle and not
 at this scan resolution. This one wants someone who reads polytonic
 Greek, not a better crop.
 
+**Bulgarian: solved by accounting, not by reading.** Three glyphs on this
+shuttle would not resolve visually at any zoom. What settled them was
+counting the alphabet. With `ѫ` at position 0, row 0 holds 30 distinct
+letters and no duplicates; pre-1945 Bulgarian has 33; the three absent
+are `х`, `щ` and `ѭ`; `х/Х` and `щ/Щ` are plainly in the figures row —
+leaving *exactly* `ѭ` unaccounted for and *exactly* one unidentified pair
+left to hold it. The layout is forced, without ever reading the glyph.
+
+The same accounting rejected a plausible-sounding alternative. `Ѣ` (yat)
+was proposed for position 0, and the form is stylised enough to invite
+it — but yat is already on this shuttle at position 28, in a plainly
+different shape (stem, top crossbar, bottom bowl), and putting it at
+position 0 too would have duplicated a letter while leaving the alphabet
+short. The count says which readings are *possible*, not just which are
+plausible.
+
 **The inventory check can indict the SOURCE, not just the port.** It was
 built to catch v1/v2 transcription errors, but on Bulgarian 31C it fired
 against the catalog itself: `ж` is printed at both position 0 and
@@ -306,6 +322,7 @@ both.
 | Universal, Dutch | 71A, 117B, 34A, 50A, 119B |
 | Universal, German | 119A, 84, 34, 50, 71, 117, 119 |
 | Universal, Russian (Old Style) | 29, 29A, 29B |
+| Universal, Bulgarian | 31C, 29C, 42C, 115C |
 
 `hammond_split`'s `UNIVERSAL` also revives v2's `Qwerty_Element`
 (`Layout_Selection=1`), which was complete in the source but never wired

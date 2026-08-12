@@ -476,6 +476,33 @@ CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE = [
     "ЫАЦВСЗЕДЧРФЖТГБ" "ЮІНУЯМИКЬОЛЪПѢЙ",
     '1х-2Х"3э?4Э:5N.' "6%;7ш,8Ш/9щѵ§ЩѴ",
 ]
+# Bulgarian, Universal (31C, 29C, 42C, 115C). Pre-1945 orthography, and
+# the only layout here that needed BOTH yus letters distinguished.
+#
+# This one was held twice and resolved by accounting rather than by
+# reading. The letter-inventory check first fired against the CATALOG:
+# position 0 looked like a second ж, which would have duplicated a letter
+# while leaving the alphabet short. It is ѫ (big yus). That fixed row 0
+# but left the figures-row pair looking like ж/Ж too.
+#
+# What settled it: with ѫ at position 0, row 0 holds 30 distinct letters
+# and no duplicates, and pre-1945 Bulgarian's 33 letters are short by
+# exactly three - х, щ and ѭ. х/Х and щ/Щ are plainly in the figures row,
+# leaving exactly ѭ unaccounted for and exactly one unidentified pair
+# left to hold it. ѭ (iotified big yus) is visually ѫ plus the iotified
+# element, which is why the two read alike at this resolution.
+#
+# Note ѣ (yat) is ALSO on this shuttle, at position 28, and is a plainly
+# different shape - stem, top crossbar, bottom bowl. It was briefly
+# proposed for position 0; that would have put yat on the wheel twice.
+#
+# The "I" at position 22 is a Latin I, not Cyrillic І - the alphabet is
+# complete without it, so it is an extra symbol rather than a letter.
+CATALOG_UNIVERSAL_BULGARIAN = [
+    "ѫацвсзедчрфжтгб" "юшнуямикьолъпѣй",
+    "ѪАЦВСЗЕДЧРФЖТГБ" "ЮШНУЯМИКЬОЛЪПѢЙ",
+    '1х-2Х"3&?4ѭ:5§.' "6%;7Ѭ,8I/9щ(0Щ)",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -538,6 +565,7 @@ CATALOG_SHUTTLES = {
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
     "universal_dutch": "71A, 117B, 34A, 50A, 119B",
     "universal_german": "119A, 84, 34, 50, 71, 117, 119 (old orthography)",
+    "universal_bulgarian": "31C, 29C, 42C, 115C",
     "universal_russian_old_style": "29, 29A, 29B",
     "universal_dutch_fractions": "34D, 50C, 71F, 84C, 119E",
     "universal_german_new_orthography_fractions": "119C, 117D, 117E, 55F, 101E, 71E",
@@ -722,4 +750,5 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Russian (Old Style)": [
         r[::-1] for r in CATALOG_UNIVERSAL_RUSSIAN_OLD_STYLE
     ],
+    "Universal, Bulgarian": [r[::-1] for r in CATALOG_UNIVERSAL_BULGARIAN],
 }

@@ -53,6 +53,7 @@ from .hammond_layout import (
     CATALOG_SHUTTLES,
     CATALOG_UNIVERSAL_CAPS_SMALL_CAPS,
     CATALOG_UNIVERSAL_BOHEMIAN,
+    CATALOG_UNIVERSAL_BULGARIAN,
     CATALOG_UNIVERSAL_CHILIAN,
     CATALOG_UNIVERSAL_DUTCH_FRACTIONS,
     CATALOG_UNIVERSAL_DUTCH,
@@ -144,6 +145,7 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Universal, Dutch": [3.74, -1.21, -5.71],
         "Universal, German": [3.74, -1.21, -5.71],
         "Universal, Russian (Old Style)": [3.74, -1.21, -5.71],
+        "Universal, Bulgarian": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
