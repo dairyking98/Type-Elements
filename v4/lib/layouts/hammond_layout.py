@@ -328,6 +328,19 @@ CATALOG_UNIVERSAL_DANISH_NORWEGIAN = [
     "QAZWSXEDCRFVTGB" "YHNUJMIK?OLÆPÄÖ",
     '1"ü2:é3!à4%£5+-' "6&½7'§8(.9);0=/",
 ]
+# Bohemian/Czech, Ideal (54, 86, 120, 153C Gothic, 154A/155A/156A Roman,
+# 157A Italic). Full caron/ring set: ž č š ř ě ů ň plus á í é ý and
+# ö/ü/ä.
+#
+# It self-checks in a satisfying way: q and w live in the FIGURES row,
+# not the letter rows, because Czech does not use them in native words -
+# and sure enough row 0 contains neither. A misreading of the letter rows
+# would almost certainly have broken that.
+CATALOG_IDEAL_BOHEMIAN = [
+    "žzxčkjgbmpcfld," "átaherisounšyvř",
+    "ŽZXČKJGBMPCFLD:" ".TAHERISOUNŠYVŘ",
+    'q%Q?íé1-2ö3ü4ä5' "6ě7\"8'9ů&úňwýW/",
+]
 # Which catalogued shuttles use each layout above, and what was left out.
 # Reference data for the Layout tab's help banner and for anyone adding
 # the remaining variants later - not consumed as layout content itself.
@@ -377,6 +390,10 @@ CATALOG_SHUTTLES = {
     "universal_french_german_english": "32E Medium Roman",
     "universal_esperanto": "135A, 135D Medium Roman",
     "ideal_roumanian": "92 Medium Roman",
+    "ideal_bohemian": (
+        "54/86/120 Medium Roman, 153C Gothic, 154A/155A/156A Roman, "
+        "157A Italic"
+    ),
     "universal_portuguese": "150 Italic, 103/103A/103B Medium Roman, 159 Small Roman",
     "universal_spanish": "33 Medium Roman, 66/66B Small Roman, 47 Large Roman, 89 Vertical Script",
     "universal_swedish_finnish": "93A Small Roman, 90 Italic, 101/101A/101B Large Roman, 134B Large Gothic",
@@ -538,4 +555,5 @@ LAYOUT_PRESETS_HAMMOND = {
     "Universal, Danish-Norwegian": [
         r[::-1] for r in CATALOG_UNIVERSAL_DANISH_NORWEGIAN
     ],
+    "Ideal, Bohemian": [r[::-1] for r in CATALOG_IDEAL_BOHEMIAN],
 }

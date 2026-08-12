@@ -12,8 +12,8 @@ the judgement calls, and why the held entries are held.
 
 ## Hammond
 
-**179 of 346 catalogued shuttles are covered (51%)** — 8 held on an unresolved character,
-159 not yet transcribed.
+**187 of 346 catalogued shuttles are covered (54%)** — 8 held on an unresolved character,
+151 not yet transcribed.
 
 Status meanings:
 
@@ -163,7 +163,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 51A | Large Roman, English, Ideal | 19 | **imported** | Ideal |
 | 52 | Large Roman, Fractions, English, Universal | 38 | **imported** | Universal, Fractions |
 | 53 | Irish, Gaelic, Universal or Ideal | 55 | todo | Ideal/Universal / Gaelic |
-| 54 | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
+| 54 | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
 | 55 | Medium Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
 | 55A | Medium Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
 | 55B | Medium Roman, Swedish-Finnish, Universal | 52 | **imported** | Universal, Swedish-Finnish |
@@ -230,7 +230,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 84C | Vertical Script, Fractions, Dutch, Universal | 35 | todo | Universal / Dutch / Fractions |
 | 85 | Vertical Script, French, Universal | 41 | **imported** | Universal, French |
 | 85A | Vertical Script, Italian, Universal | 47 | **imported** | Universal, Italian |
-| 86 | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
+| 86 | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
 | 87 | Medium Roman, Fractions, Danish, Ideal | 16 | **imported** | Ideal, Danish (Fractions) |
 | 88 | Medium Roman, Danish, Ideal | 16 | held | blank slot vs under-inked `_` |
 | 89 | Vertical Script, Spanish, Universal | 51 | **imported** | Universal, Spanish |
@@ -305,7 +305,7 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 119C | Gothic Italic, Fractions, German, Universal (New Orthography) | 44 | todo | Universal / German / Fractions |
 | 119D | Gothic Italic, Fractions, German, Universal | 44 | todo | Universal / German / Fractions |
 | 119E | Gothic Italic, Dutch, Universal | 35 | todo | Universal / Dutch |
-| 120 | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
+| 120 | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
 | 121 | Medium Roman, Polish-German, Ideal | 25 | todo | Ideal / Polish-German |
 | 122 | Attic, Diacritical, English, Universal | 38 | todo | Universal / English / Diacritical |
 | 123 | Large Italic, German, Ideal | 23 | **imported** | Ideal, German |
@@ -350,15 +350,15 @@ page appear in the 1920 catalog, which numbers beyond the 1915 index.
 | 153 | Gothic, German, Ideal | 22 | **imported** | Ideal, German |
 | 153A | Gothic, German, Ideal (New Orthography) | 22 | **imported** | Ideal, German (New Orthography) |
 | 153B | Gothic, Polish, Ideal | 26 | todo | Ideal / Polish |
-| 153C | Gothic, Bohemian, Ideal | 15 | todo | Ideal / Bohemian |
+| 153C | Gothic, Bohemian, Ideal | 15 | **imported** | Ideal, Bohemian |
 | 154 | Medium Roman, Polish, Ideal | 25 | todo | Ideal / Polish |
-| 154A | Medium Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
+| 154A | Medium Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
 | 155 | Small Roman, Polish, Ideal | 25 | todo | Ideal / Polish |
-| 155A | Small Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
+| 155A | Small Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
 | 156 | Large Roman, Polish, Ideal | 26 | todo | Ideal / Polish |
-| 156A | Large Roman, Bohemian, Ideal | 14 | todo | Ideal / Bohemian |
+| 156A | Large Roman, Bohemian, Ideal | 14 | **imported** | Ideal, Bohemian |
 | 157 | Italic, Polish, Ideal | 26 | todo | Ideal / Polish |
-| 157A | Italic, Bohemian, Ideal | 15 | todo | Ideal / Bohemian |
+| 157A | Italic, Bohemian, Ideal | 15 | **imported** | Ideal, Bohemian |
 | 158 | Miniature Roman, English, Universal | 39 | **imported** | Universal |
 | 158A | Miniature Roman, English, Universal | 39 | **imported** | Universal |
 | 159 | Small Roman, Portuguese, Universal | 48 | **imported** | Universal, Portuguese |

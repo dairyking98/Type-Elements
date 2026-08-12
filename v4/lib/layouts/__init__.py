@@ -23,6 +23,7 @@ if/elif chain" rule).
 from .bennett_layout import LAYOUT_PRESETS_BENNETT
 from .blickensderfer_layout import LAYOUT_PRESETS
 from .hammond_layout import (
+    CATALOG_IDEAL_BOHEMIAN,
     CATALOG_IDEAL_CROATIAN,
     CATALOG_IDEAL_DANISH_FRACTIONS,
     CATALOG_IDEAL_DUTCH,
@@ -120,6 +121,7 @@ LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE = {
         "Universal, Spanish": [3.74, -1.21, -5.71],
         "Universal, Swedish-Finnish": [3.74, -1.21, -5.71],
         "Universal, Danish-Norwegian": [3.74, -1.21, -5.71],
+        "Ideal, Bohemian": [3.74, -1.21, -5.71],
     },
 }
 # v4-only, not a v1/v2 concept - which named layout.rows preset requires
