@@ -6647,6 +6647,34 @@ QWERTY and the resin-support switch off, and <code class="language-plaintext hig
 restores them after the widgets are scribbled over - which is what makes
 “defaults” mean anything.</p>
 
+<h3 id="example-renders-refreshed-to-the-new-defaults">Example renders refreshed to the new defaults</h3>
+
+<p><code class="language-plaintext highlighter-rouge">example_renders/blickensderfer.stl</code> and its cross-section companion
+rebuilt from the promoted config, and both thumbnails regenerated through
+<code class="language-plaintext highlighter-rouge">generate_thumbnails.py</code> (the headless-Chrome/Three.js harness, so they
+match the live viewer rather than a second renderer).</p>
+
+<p>Checked before publishing that the running copy really was the committed
+config rather than assuming it: a full-quality build from
+<code class="language-plaintext highlighter-rouge">config/blickensderfer.yaml</code> gives faces=164004 volume=4470.243mm3,
+identical to <code class="language-plaintext highlighter-rouge">output/blickensderfer_running.stl</code>. The only difference is
+verts (81962 vs 81921), which is STL reload merging coincident vertices,
+not a different mesh. Worth noting both files also report
+<code class="language-plaintext highlighter-rouge">watertight=False</code> when loaded back through trimesh - that is STL being a
+triangle soup on round-trip, true of every example render here and not a
+defect; <code class="language-plaintext highlighter-rouge">generate.py</code>’s own in-memory summary says watertight=True.</p>
+
+<p>The cross-section was regenerated too rather than left behind: it is
+produced by <code class="language-plaintext highlighter-rouge">generate.py --cross-section-angle-deg 0</code> (tune.py’s Build
+tab exposes the same thing as a switch + angle), so it is reproducible
+rather than a hand-made one-off, and leaving it on the old round-body
+Royal Vogue geometry next to a freshly notched main render would have
+been a visible inconsistency on the site.</p>
+
+<p>Both now show what the promoted defaults actually build: the notched
+faceting with its corner grooves, mirrored FreeMono Thin glyphs, and the
+QWERTY layout.</p>
+
 <h3 id="resuming-later-9">Resuming later</h3>
 
 <ol>
