@@ -253,7 +253,7 @@ build:
   # from-scratch Minkowski helper rather than reusing either shared
   # function directly - see lib/hammond_split.py's _letter_text_drafted().
   minkowski_enabled: false          # Mink_On default (v2:66)
-  mink_draft_angle_deg: 60.0        # Mink_Draft_Angle
+  draft_angle_deg: 60.0             # Mink_Draft_Angle
   mink_height: 2.0                  # Mink_Height
 
 # Resin Supports - v2:202-216 (rod shape - reuses resin_support.resin_rod/

@@ -6501,6 +6501,74 @@ never anything to act on. The function is kept for calling by hand when a
 specific glyph pair needs investigating; its docstring now says all of
 this.
 
+### Font & Alignment profiles, machine-independent
+
+Named profiles for the Font & Alignment tab, saved to
+`config/profiles/font_and_alignment/<slug>.yaml` and applicable to ANY
+machine - dial a font in on Blickensderfer, then carry it to Hammond or a
+Selectric without retyping. `lib/font_profiles.py` holds the load/save/
+match logic, kept out of `tune.py` for the same reason `lib/layouts/` and
+`lib/system_fonts.py` are, and free of third-party imports beyond PyYAML.
+
+Profile `values` are keyed by DOTTED CONFIG PATH (`font.size_mm`), not by
+tune.py field key: field keys are per-machine table entries that can be
+renamed, the config path is the thing actually being set, and it keeps a
+profile file readable and hand-editable without knowing anything about
+the TUI.
+
+Cross-machine application is partial and lossless-by-omission - a path
+the target has is applied, one it lacks is skipped, one it has that the
+profile is silent about keeps its value. Nothing is coerced or invented.
+All three counts are reported in the log. Measured with a Blickensderfer
+profile:
+
+| target | applied | ignored | left as-is |
+| --- | --- | --- | --- |
+| blickensderfer / mignon | 13 | 0 | 0 |
+| hammond_split | 13 | 0 | 4 (its char_mod trio + mink_height) |
+| selectric12 | 6 | 7 | 9 |
+
+The universally-portable core is six values: `font.path`, `font.size_mm`,
+`alignment.mode`, `alignment.caret_drop_mm`,
+`alignment.underscore_lift_mm`, `build.draft_angle_deg`.
+
+"Current selection" is DERIVED by comparing values, never stored in the
+config - same convention as `_current_layout_preset()`, so hand-editing a
+field correctly clears the selection instead of leaving a stale name
+pointing at something no longer true. Only the paths a profile actually
+carries are compared, so a profile from another family still reads as
+active when everything it does specify matches.
+
+Rather than a persistent per-field warning UI (the user was unsure it was
+needed - "or maybe dont need that at all"), the flag is three log lines
+on apply. The one worth reading is "left unchanged": that is where a
+cross-family profile leaves real knobs at whatever they were.
+
+**One synchronisation done:** `build.mink_draft_angle_deg` ->
+`build.draft_angle_deg` for Hammond Split, the last machine spelling that
+concept differently. Same class of outlier as `quality.mink_fn` ->
+`quality.minkowski_fn` (CLAUDE.md "Pick one convention"), and
+`generate.py` already passed it as `draft_angle_deg` internally - only
+the config key was odd. Verified byte-identical, and it is why
+hammond_split now takes 13 of 13 values from a cylinder profile instead
+of 12.
+
+**Synchronisations NOT done, deliberately** - each is a genuine semantic
+equivalence, but each has a hazard that makes it a separate, deliberate
+change rather than a drive-by:
+- `alignment.custom_h_chars`/`custom_h_offset` (Selectric) is the same
+  concept as `modified_left_chars`/`modified_left_offset_mm`, but the
+  spherical path applies it as `x_pos_offset - custom_h_offset`, i.e.
+  SIGN-INVERTED. Aliasing without reconciling that would silently move
+  glyphs the wrong way.
+- `font2.*` (Selectric) is the same concept as `char_mod.*` (Hammond
+  Split) - already established when both were wired to type_test's
+  `--mod-*` flags. But Composer sizes font2 by CAP HEIGHT
+  (`font2_composer_cap_height`), not mm, so a naive size alias would be a
+  unit error.
+- `alignment.x_pos_offset` overlaps `center_offset_mm`/`left_offset_mm`,
+  but the Composer's is flagged print-critical and byte-exact from v2.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

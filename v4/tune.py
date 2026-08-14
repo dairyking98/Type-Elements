@@ -382,6 +382,7 @@ from lib.system_fonts import list_system_fonts  # noqa: E402
 
 # Layout presets/help for every machine live in lib/layouts/ (one module
 # per machine), NOT here - tune.py hardcodes no layout data of its own.
+import lib.font_profiles as font_profiles
 from lib.layouts import (  # noqa: E402
     LAYOUT_PICKER_HELP,
     LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE,
@@ -1088,7 +1089,7 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("char", ["char_mod", "char"], str, "Modified character(s)", "Char_Mod - characters using the separate font/size below."),
     ("char_mod_font_path", ["char_mod", "char_mod_font_path"], str, "Modified char font path", ""),
     ("char_mod_size_mm", ["char_mod", "char_mod_size_mm"], float, "Modified char size (mm)", "Char_Mod_Size."),
-    ("mink_draft_angle_deg", ["build", "mink_draft_angle_deg"], float, "Draft angle (deg)",
+    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
     ("mink_height", ["build", "mink_height"], float, "Draft cone height (mm)",
      "Mink_Height - the draft cone's own height, independent of Glyph height (Element tab). "
@@ -1878,6 +1879,44 @@ class ReflowingRichLog(RichLog):
         self._reflow_width = new_width
 
 
+class ProfileNamePrompt(ModalScreen[str | None]):
+    """Asks for a name when saving a Font & Alignment profile. Dismisses
+    with the typed name, or None if cancelled. Pre-filled with the
+    currently-active profile name so re-saving over it is the default
+    action rather than something you have to retype exactly."""
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def __init__(self, initial=""):
+        super().__init__()
+        self._initial = initial or ""
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="fontpicker"):
+            yield Static("Save Font & Alignment profile", classes="picker-title")
+            yield Static(
+                "Profiles are machine-independent: applying one to another machine "
+                "sets the values that machine has and leaves the rest alone. Saving "
+                "over an existing name updates it.",
+                classes="picker-help")
+            yield Input(value=self._initial, placeholder="profile name",
+                         id="profilename-input")
+            yield Button("Cancel", id="profilename-cancel")
+
+    def on_mount(self) -> None:
+        self.query_one("#profilename-input", Input).focus()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        name = event.value.strip()
+        self.dismiss(name or None)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(None)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class SystemFontPicker(ModalScreen[str | None]):
     """The "Installed" button next to every font path field (see
     FONT_PATH_FIELD_KEYS): pick a font BY NAME out of everything
@@ -2581,6 +2620,8 @@ class TuneApp(App):
                 if intro:
                     text, css_class = intro
                     yield Static(text, classes=css_class)
+                if section == "Font & Alignment":
+                    yield from self._compose_font_profile_picker()
                 for key, path, typ, label, help_text in fields:
                     current = get_nested(self.cfg, path)
                     with Vertical(classes="field-row"):
@@ -2625,6 +2666,113 @@ class TuneApp(App):
                     yield from self._compose_band_fields()
                 if section == "Legend":
                     yield from self._compose_legend_extra()
+
+    def _font_field_paths(self):
+        return [list(f[1]) for f in self.SECTIONS["Font & Alignment"]]
+
+    def _config_dir(self):
+        return os.path.dirname(os.path.abspath(self.master_config_path))
+
+    def _compose_font_profile_picker(self):
+        """Named, machine-independent Font & Alignment profiles - save the
+        current typeface setup under a name and recall it later, including
+        on a DIFFERENT machine (see lib/font_profiles.py). Sits at the top
+        of the tab because it acts on everything below it."""
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        options = [(n, n) for n in names]
+        current = self._current_font_profile()
+        with Vertical(classes="field-row"):
+            with Horizontal():
+                yield Static("Profile", classes="field-label")
+                yield Select(options, value=current if current in names else Select.NULL,
+                             id="font-profile-select", allow_blank=True,
+                             prompt="(none)")
+            with Horizontal(classes="font-btn-row"):
+                yield Button("Save as profile", id="font-profile-save", classes="sysfont-btn")
+            yield Static(self._font_profile_status(current), id="font-profile-status",
+                          classes="field-help")
+
+    def _current_font_profile(self):
+        """Derived by comparing values, not stored in the config - same
+        convention as _current_layout_preset(), so hand-editing a field
+        correctly clears the selection instead of leaving a stale name."""
+        try:
+            return font_profiles.matching_profile(
+                self._config_dir(), self.cfg, self._font_field_paths())
+        except Exception:
+            return None
+
+    @staticmethod
+    def _font_profile_status(current):
+        if current:
+            return f"Active: {current}. Editing any field below clears this."
+        return ("No profile active. Save one to reuse this typeface setup, "
+                "including on other machines.")
+
+    def _apply_font_profile(self, name):
+        """Applies a saved profile to the loaded machine. Paths this
+        machine doesn't have are skipped; paths it has that the profile
+        doesn't mention keep their current values - see
+        font_profiles.apply_to. Both are reported, since a profile from
+        another machine family legitimately does both."""
+        match = [p for n, p in font_profiles.list_profiles(self._config_dir()) if n == name]
+        if not match:
+            self.log_line(f"[red]profile {name!r} not found[/red]")
+            return
+        try:
+            _, values = font_profiles.load_profile(match[0])
+        except Exception as e:
+            self.log_line(f"[red]could not read profile {name!r}: {e}[/red]")
+            return
+        applied, skipped, unset = font_profiles.apply_to(values, self._font_field_paths())
+        by_path = {".".join(f[1]): f[0] for f in self.SECTIONS["Font & Alignment"]}
+        for dotted, value in applied.items():
+            widget = self.inputs.get(by_path.get(dotted))
+            if widget is None:
+                continue
+            if isinstance(widget, Switch):
+                widget.value = bool(value)
+            else:
+                widget.value = str(value)
+        self.log_line(f"[green]applied profile {name!r}[/green] - {len(applied)} value(s) set")
+        if skipped:
+            self.log_line(f"[yellow]  not on this machine, ignored:[/yellow] {', '.join(skipped)}")
+        if unset:
+            # The only case worth a second look: this machine has knobs the
+            # profile says nothing about, so they keep whatever they were.
+            # Usually harmless - they are the fields that machine family
+            # has and the profile's did not - but it is where a
+            # cross-family apply can leave something needing a tweak.
+            self.log_line(f"[yellow]  left unchanged (profile doesn't set them):[/yellow] "
+                           f"{', '.join(unset)}")
+        self._refresh_font_profile_status()
+
+    def _refresh_font_profile_status(self):
+        try:
+            status = self.query_one("#font-profile-status", Static)
+        except NoMatches:
+            return
+        status.update(self._font_profile_status(self._current_font_profile()))
+
+    async def _save_font_profile(self):
+        current = self._current_font_profile() or ""
+        name = await self.push_screen_wait(ProfileNamePrompt(current))
+        if not name:
+            return
+        values = self._collect_values()
+        if values is None:
+            return
+        self._save_to_yaml(values)
+        self._load_current()
+        payload = font_profiles.collect_from_config(self.cfg, self._font_field_paths())
+        path = font_profiles.save_profile(self._config_dir(), name, payload,
+                                           saved_from=self.machine)
+        self.log_line(f"[green]saved profile {name!r}[/green] ({len(payload)} values) -> {path}")
+        select = self.query_one("#font-profile-select", Select)
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        select.set_options([(n, n) for n in names])
+        select.value = name if name in names else Select.NULL
+        self._refresh_font_profile_status()
 
     def _compose_band_fields(self):
         """Per-band offset/height widgets for the Banded wheel style -
@@ -4340,6 +4488,10 @@ class TuneApp(App):
         return proc.returncode
 
     def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == "font-profile-select":
+            if event.value is not Select.NULL:
+                self._apply_font_profile(str(event.value))
+            return
         if event.select.id == "coverage-preset-select":
             chars = self._charset_for_coverage_select_value(event.value)
             if chars is not None:
@@ -4474,6 +4626,8 @@ class TuneApp(App):
             self.run_worker(self._select_machine(button_id.removeprefix("pick-machine-")), exclusive=True)
         elif button_id == "btn-change-machine":
             self.run_worker(self._change_machine(), exclusive=True)
+        elif button_id == "font-profile-save":
+            self.run_worker(self._save_font_profile(), exclusive=True)
         elif button_id == "btn-cancel-build":
             self.action_cancel_build()
         elif button_id == "btn-render":

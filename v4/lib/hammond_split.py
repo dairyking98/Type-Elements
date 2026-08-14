@@ -280,7 +280,15 @@ def configure(config_path):
     g["DEFAULT_RESIN_SUPPORT"] = bool(b["resin_support"])
     g["DEFAULT_MINKOWSKI_ENABLED"] = bool(b.get("minkowski_enabled", False))
     g["Mink_On"] = g["DEFAULT_MINKOWSKI_ENABLED"]
-    g["DEFAULT_MINK_DRAFT_ANGLE"] = b.get("mink_draft_angle_deg", 60.0)
+    # "draft_angle_deg", matching every other machine - this used to be
+    # spelled "mink_draft_angle_deg" here only. Same concept (the Minkowski
+    # draft cone half-angle, tan(angle/2)*height below), and generate.py
+    # already passes it as draft_angle_deg internally; only the config key
+    # was an outlier. Same fix as quality.mink_fn -> quality.minkowski_fn
+    # (see CLAUDE.md "Pick one convention"). Old key still read as a
+    # fallback so a config predating the rename keeps working.
+    g["DEFAULT_MINK_DRAFT_ANGLE"] = b.get("draft_angle_deg",
+                                           b.get("mink_draft_angle_deg", 60.0))
     g["Mink_Draft_Angle"] = g["DEFAULT_MINK_DRAFT_ANGLE"]
     g["Mink_Height"] = b.get("mink_height", 2.0)
     g["Mink_Radius"] = np.tan(np.radians(g["Mink_Draft_Angle"] / 2.0)) * g["Mink_Height"]
