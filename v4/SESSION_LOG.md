@@ -6328,6 +6328,53 @@ clears the handle/hides the button; and pressing Preview during a Render
 kills the render's actual pid while the preview's own pid keeps running.
 No orphaned processes and no partial output file left behind.
 
+### Type Test audited knob by knob
+
+Asked to confirm every adjustment actually reaches, and actually moves,
+the Type Test preview - not just that the flags are accepted.
+
+Dumped the real command `action_render_type_test` builds for
+Blickensderfer/Selectric 12/Hammond Split/Mignon (monkeypatching
+`_stream_subprocess` to capture rather than run), then rendered A/B pairs
+and measured the mesh. All ten knobs move the geometry by exactly the
+requested amount, on the running font (Royal Vogue v3):
+
+| knob | measured |
+| --- | --- |
+| `caret_drop_mm` 2.4 | dy -2.4000 |
+| `underscore_lift_mm` 0.7 | dy +0.7000 |
+| `modified_left_offset_mm` -1.0 | dx -1.0000 |
+| `modified_right_offset_mm` +1.0 | dx +1.0000 |
+| `align_mode` centre -> left | dx +1.4132 (half X's advance) |
+| `center_offset_mm` 0.8 | dx +0.8000 |
+| `left_offset_mm` 0.8 | dx +0.8000 |
+| `font size` 3.7 -> 5.0 | glyph 1.1501 taller |
+| `cpi` 10 -> 5 | pitch 2.54 -> 5.08 |
+| `lpi` 6 -> 3 | line pitch 4.2333 -> 8.4667 |
+
+One real gap found and fixed: the Selectric family's **Font2**
+(`font2_chars`/`font2_path`/`font2_size_mm`, v2 Font2_Chars ibm.scad:205)
+was never passed to Type Test, so the preview rendered every character in
+the base font even where the real ball would use font2. type_test.py
+already had the mechanism - `--mod-chars`/`--mod-font-path`/
+`--mod-font-size-mm`, built for Hammond Split's Char_Mod - so only the
+passthrough was missing. Latent rather than live: `font2_chars` is `""`
+in all three Selectric configs, so nothing was actually being lost yet.
+Composer correctly sizes font2 by cap height
+(`font2_composer_cap_height/2.834`) like its base font, not a direct mm
+size. Verified with `font2_chars` seeded to "12": FreeSans vs FreeSerif
+digits render at volume 0.9501 vs 0.6703mm3.
+
+Deliberately still NOT passed, and correct as-is: Selectric's
+`x_pos_offset`/`y_pos_offset`. Both are uniform translations of every
+glyph, so in a flat multi-character sheet they would shift the whole
+preview identically and tell you nothing. Its `custom_h_chars`/
+`custom_v_chars` are per-character and WOULD matter, but are empty in all
+three configs; wiring `custom_v` in would need the y-offset mechanism
+generalized to arbitrary character sets (the same merge direction noted
+for caret/underscore above), so it is left alone rather than
+half-solved.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

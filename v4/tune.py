@@ -4074,6 +4074,24 @@ class TuneApp(App):
             cmd += ["--mod-chars=" + self.inputs["char"].value,
                     "--mod-font-path", self.inputs["char_mod_font_path"].value,
                     "--mod-font-size-mm", self.inputs["char_mod_size_mm"].value]
+        # The Selectric family's Font2 (v2 Font2_Chars/Font2_Font/
+        # Font2_Size, ibm.scad:205) is the same concept under a different
+        # name, and type_test.py's --mod-* flags already implement it - only
+        # the passthrough was missing, so a Type Test rendered every
+        # character in the base font even when the real ball would use
+        # font2 for some of them. Currently latent rather than a live bug:
+        # font2_chars is "" in all three Selectric configs, so nothing is
+        # lost until someone fills it in. Composer sizes font2 by cap
+        # height like its base font (font2_composer_cap_height/2.834 - see
+        # FONT_FIELDS_SELECTRIC_COMPOSER), not a direct mm size.
+        elif "font2_chars" in self.inputs and self.inputs["font2_chars"].value:
+            if "font2_size_mm" in self.inputs:
+                font2_size = self.inputs["font2_size_mm"].value
+            else:
+                font2_size = str(float(self.inputs["font2_composer_cap_height"].value) / 2.834)
+            cmd += ["--mod-chars=" + self.inputs["font2_chars"].value,
+                    "--mod-font-path", self.inputs["font2_path"].value,
+                    "--mod-font-size-mm", font2_size]
         # Selectric Composer's real proportional-spacing convention
         # (Composer_Pitch_List/cumulativeSum - see type_test.py's
         # --composer-config docstring) - self.config_path was already
