@@ -6163,3 +6163,128 @@ pass against the new layout.
 
 Part 81's punch list and part 83's Windows-checkout note are unchanged.
 Nothing new opened here.
+
+## 85. RobertG's OpenSCAD Blickensderfer generator compared against v4; four of its ideas ported, plus the early drive fitting and wheel cosmetics (2026-08-14)
+
+Started as a read of someone else's work - a zip of OpenSCAD files for
+generating new Blickensderfer type wheels (RobertG,
+badonoer.blogspot.com, CC BY-SA 4.0, March 2025: a 370-line engine, a
+37-line layouts file, 7 per-wheel configs). It is FDM-targeted where v4
+is not, and one machine deep where v4 is ten.
+
+### What the comparison actually turned up
+
+Independent convergence on the numbers nobody has documented. He measured
+a real Blickensderfer 7; v4 ported from v2. Element diameter 34 vs 34.0,
+28 columns both, shaft bore 3.34 vs 3.175+0.14=3.315 (within 0.025mm from
+two unrelated derivations). Baselines 4.00/10.11/15.75 from drum top vs
+v4's -4/-10.3/-16.1 from clip end: row 1 identical, drift growing to
+0.35mm by row 3 - and his drum is 0.40mm shorter than v4's, so the two
+sets may be describing the same physical positions from different datums.
+He explicitly disclaims these as "best-guess estimates only... based on
+only a single typewriter", which is exactly what v4's calibration sweep
+exists to settle.
+
+He also independently arrived at v4's hardest-won invariant: his
+`typeSlug()` differences the character slab against the platen cylinder
+INSIDE the `minkowski()`, on the base solid - the lesson README says v4
+learned twice.
+
+Where he is ahead: nozzle compensation (absent from v4 entirely), and a
+much richer per-glyph tweak vocabulary. Where v4 is ahead: manifold3d
+instead of OpenSCAD's `minkowski()` (his own post says "a render may take
+a few minutes"), 28 layout presets plus a catalog index vs his 6, and any
+watertightness/manifold verification at all - he has none.
+
+### Ported (four commits)
+
+**Caret drop / underscore lift** (`alignment.caret_drop_mm`/
+`underscore_lift_mm`, 0.0 fleet-wide). The Blickensderfer's caret sits on
+the baseline but no common digital font ships that glyph - U+005E is
+drawn at cap height because there it doubles as the spacing circumflex
+accent. Same shape of problem for U+005F, which many TTFs sink below the
+baseline to clear descenders. Both are pure translations, so one signed
+offset each. The running font is a textbook case: `^` at y=[1.95, 3.26],
+`_` at y=[-0.47, -0.25].
+
+Landed in the existing `alignment:` section, not a new one - these are
+per-character positional nudges exactly like `modified_left_chars`, just
+on Y, so they ride the already-threaded `ALIGN_KWARGS` channel and needed
+no signature changes anywhere. `glyph_poc.alignment_offset()` now returns
+`(dx, dy)` in one call so a caller cannot apply one axis and forget the
+other; `alignment_x_offset()` survives as a thin wrapper.
+
+Extended to the spherical family too, on request. **The redundancy
+question that raised, answered:** this does NOT make the Selectrics'
+`custom_v_chars`/`custom_v_offset` redundant and neither subsumes the
+other - `custom_v` is ONE arbitrary character set sharing ONE offset,
+caret/underscore is TWO groups with independent values. Worth knowing
+`custom_v_chars` is `""` in all three Selectric configs, so its
+faithfully-ported -0.2 has never applied to anything. The print-critical
+Composer values are `x_pos_offset`/`y_pos_offset`, untouched here.
+
+**Early drive-pin style.** `Drive_Pin_Style=1` was config-settable but
+raised `NotImplementedError`. The early fitting is a SLOT (hull of two
+cylinders spanning 3.5mm radially, 2.20mm wide, countersink d=3.5 at
+radius 11.05), and its long axis runs radially where the later pin's runs
+tangentially - real v2 asymmetry. v2 repeats the same style ternary in
+three places (the pin cut, HollowSpace's countersink boss, ResinSupport's
+drive-pin support); all three now resolve through one
+`_drive_pin_countersink()`, so the style cannot be half-wired. Dropdown
+went on **Element**, not Build - it selects which machine generation the
+element physically fits.
+
+**Wheel cosmetics** - round/notched/banded, on a new Cosmetics tab.
+Faceting count is derived from `layout.latitude_columns` and deliberately
+not configurable: characters sit at `(0.5 + col) * Latitude_Int` and a
+trimesh cylinder's first vertex is at angle 0, so an N-section cylinder's
+corners land exactly halfway between columns with no phase rotation.
+Band Z is derived from baseline midpoints plus a per-band offset so bands
+follow the rows if the baselines are retuned.
+
+### Two mechanisms worth reusing next time
+
+`SELECT_FIELD_OPTIONS` replaced the hardcoded `elif key == "mode"` branch
+in `_compose_section_tab`, so a new dropdown field is one dict entry
+rather than another branch. And the Cosmetics tab proved `_tab_specs()`
+earns its keep: registering the section only in `SECTIONS_BY_MACHINE`
+produced a tab with no widgets and a `KeyError` on save - exactly the
+failure that method exists to prevent.
+
+### Verified
+
+Full-fleet gate at every step: all 14 buildable configs byte-identical to
+the pre-session commit (2d63583), run from a clean worktree. Knobs
+confirmed live rather than inert in each case - caret/underscore move
+glyphs by exactly the requested mm on both cylinder and spherical
+families, the early slot measures X=[9.300, 12.800] Y=[-1.750, 1.750]
+matching v2's arithmetic, and banded's ring at z=10.000 is a clean
+cylinder at r=16.7431 against a target of 16.7431.
+
+### Resuming later
+
+1. **Band height 2.0mm does not fit.** Measured clear wall between ink
+   bands on blickensderfer's current font/layout is 1.406mm (rows 2-3)
+   and 1.860mm (rows 1-2), so a 2mm band clips ascenders/descenders
+   wherever it is centred. Offsets left at 0.0 rather than baking in
+   font-specific numbers. Tuned values for this font would be offsets
+   +1.7 / +1.2, heights ~1.2. Corroboration: RobertG's own bands are
+   1.5mm and 1.4mm.
+2. **`punctFatten` / `weightOffset` not built** - explained but deferred
+   pending a go-ahead. Both are 2D outline offsets before extrusion, so
+   in v4 they are `.buffer()` at `compose_glyph_polygon()`'s return, one
+   choke point every machine inherits. Three things to get right: shapely
+   buffers with ROUND joins by default and would silently round off every
+   serif (needs `join_style=2`/`3` plus a mitre limit); a negative buffer
+   can erase or split a hairline stroke, so it needs an empty/multi-part
+   guard; and it changes the face count feeding Minkowski.
+3. **`hashTwist`/`skewAngle` not ported and not recommended.** hashTwist
+   rotates the whole `#` glyph including its horizontal bars, where a
+   period `#` slants only the verticals. skewAngle is a shear, not a real
+   italic, and thins vertical strokes by cos(theta) - RobertG's own
+   Italic wheel sets it to 0 and uses a real italic font instead.
+4. **`config/vogue_slug.yaml` does not build**, before or after this
+   session. Its `font_path` is
+   `~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf`, which no longer
+   exists. Pre-existing; left alone rather than guessed at.
+5. Part 81's punch list and part 83's Windows-checkout note are unchanged.
