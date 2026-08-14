@@ -57,7 +57,7 @@ import numpy as np
 import trimesh
 from manifold3d import Manifold, Mesh as ManifoldMesh
 
-from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_x_offset, em_to_mm_scale, load_font_face
+from glyph_poc import get_glyph_contours_and_advance, classify_and_triangulate, alignment_offset, em_to_mm_scale, load_font_face
 import scad_primitives as sp
 import resin_support
 import build_log
@@ -151,21 +151,37 @@ def FullBody(flatness_tolerance_mm=None, minkowski_enabled=None, draft_angle_deg
 # ------------------------------------------------------- Character embedding
 
 def _text2d_contours(char, font_path, font_size_mm, flatness_tolerance_mm, halign,
-                      x_pos_offset, y_pos_offset, custom_h_offset, custom_v_offset):
+                      x_pos_offset, y_pos_offset, custom_h_offset, custom_v_offset,
+                      caret_drop_mm=0.0, underscore_lift_mm=0.0):
     """Text() (v2/ibm.scad:497-507) - 2D glyph outline in mm, with v2's
     exact halign -> mirror -> translate order (NOT build_glyph's own
     shift-then-mirror convention - see module docstring). Weight
     adjustment (Font_Weight_Offset/X_Weight_Adjustment/Y_Weight_Adjustment)
-    not implemented - see module docstring."""
+    not implemented - see module docstring.
+
+    caret_drop_mm/underscore_lift_mm are v4's own per-character baseline
+    overrides (glyph_poc.ALIGN_CARET_DROP_MM), not from v2/ibm.scad -
+    both default to 0.0, so v2-faithful output is unchanged. They are
+    DISTINCT from, and do not replace, this family's own custom_v_chars/
+    custom_v_offset: that is one arbitrary character set sharing one
+    offset, this is two independently-valued groups, and neither
+    subsumes the other (you cannot drop "^" and lift "_" by different
+    amounts with a single custom_v group). Applied here with the halign
+    shift rather than in the translate below purely for symmetry with
+    the cylinder family's shift-then-mirror order; mirror([1,0,0]) only
+    negates x, so a y term is mirror-invariant and the two placements
+    are numerically identical."""
     face = load_font_face(font_path)
     scale = em_to_mm_scale(font_size_mm, face.units_per_EM)
     contours_mm, advance_mm = get_glyph_contours_and_advance(
         char, flatness_tolerance_mm, scale, font_path=font_path)
     # OpenSCAD text()'s own halign, applied INSIDE text() before Text()'s
-    # mirror/translate wrapper - alignment_x_offset with no extra
+    # mirror/translate wrapper - alignment_offset with no extra
     # offset params reproduces exactly this (center: -advance/2, left: 0).
-    halign_shift = alignment_x_offset(char, advance_mm, mode=halign)
-    contours_mm = [c + np.array([halign_shift, 0.0]) for c in contours_mm]
+    halign_shift, y_shift = alignment_offset(
+        char, advance_mm, mode=halign,
+        caret_drop_mm=caret_drop_mm, underscore_lift_mm=underscore_lift_mm)
+    contours_mm = [c + np.array([halign_shift, y_shift]) for c in contours_mm]
     # mirror([1, 0, 0])
     contours_mm = [c * np.array([-1.0, 1.0]) for c in contours_mm]
     # translate([X_Pos_Offset-customhalign, Y_Pos_Offset+customvalign, 0])
@@ -189,7 +205,9 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
     minkowski_enabled = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
     contours_mm = _text2d_contours(char, font_path, font_size_mm, flatness_tolerance_mm,
                                     H_Alignment, X_Pos_Offset, Y_Pos_Offset,
-                                    custom_h_offset, custom_v_offset)
+                                    custom_h_offset, custom_v_offset,
+                                    caret_drop_mm=Align_Caret_Drop_Mm,
+                                    underscore_lift_mm=Align_Underscore_Lift_Mm)
     flat = classify_and_triangulate(contours_mm)
     if flat is None:
         return None  # matches v2 rendering an empty/invisible character (e.g. space)

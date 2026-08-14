@@ -1172,6 +1172,10 @@ FONT_FIELDS_SELECTRIC12 = [
     ("custom_h_offset", ["alignment", "custom_h_offset"], float, "Custom H-align offset (mm)", ""),
     ("custom_v_chars", ["alignment", "custom_v_chars"], str, "Custom V-align chars", "Get an extra vertical offset (below)."),
     ("custom_v_offset", ["alignment", "custom_v_offset"], float, "Custom V-align offset (mm)", ""),
+    ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
+     "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent. 0 = use the font's own position."),
+    ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
+     "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
     ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
 ]
@@ -1197,6 +1201,10 @@ FONT_FIELDS_SELECTRIC_COMPOSER = [
     ("custom_h_offset", ["alignment", "custom_h_offset"], float, "Custom H-align offset (mm)", ""),
     ("custom_v_chars", ["alignment", "custom_v_chars"], str, "Custom V-align chars", "Get an extra vertical offset (below)."),
     ("custom_v_offset", ["alignment", "custom_v_offset"], float, "Custom V-align offset (mm)", ""),
+    ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
+     "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent. 0 = use the font's own position."),
+    ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
+     "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
     ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
 ]

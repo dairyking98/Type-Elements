@@ -33,6 +33,15 @@ alignment:
   custom_h_offset: 0.2     # v2 CUSTOMHALIGNOFFSET (ibm.scad:209)
   custom_v_chars: ""       # v2 CUSTOMVALIGNCHARS (ibm.scad:211)
   custom_v_offset: -0.2    # v2 CUSTOMVALIGNOFFSET (ibm.scad:213)
+  # v4-only per-character baseline overrides, both default 0.0 (see
+  # glyph_poc.alignment_offset). caret_drop_mm shifts "^" DOWN,
+  # underscore_lift_mm shifts "_" UP. NOT from v2/ibm.scad, and distinct
+  # from custom_v_chars/custom_v_offset above: that is one arbitrary
+  # character set sharing one offset (and is inert here - custom_v_chars
+  # is empty), this is two independently-valued groups. Neither subsumes
+  # the other, so both are kept.
+  caret_drop_mm: 0.0
+  underscore_lift_mm: 0.0
 
 element:
   # Physically the SAME ball as Selectric I/II (see module comment above) -

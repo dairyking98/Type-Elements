@@ -52,6 +52,13 @@ def configure(config_path):
     g["CUSTOMHALIGNOFFSET"] = align["custom_h_offset"]
     g["CUSTOMVALIGNCHARS"] = align["custom_v_chars"]
     g["CUSTOMVALIGNOFFSET"] = align["custom_v_offset"]
+    # v4-only per-character baseline overrides, both default 0.0 (see
+    # glyph_poc.ALIGN_CARET_DROP_MM). Distinct from CUSTOMVALIGN* above,
+    # which is v2-faithful and a different shape - see
+    # spherical_machine._text2d_contours's docstring. .get() so a config
+    # predating these keys still loads.
+    g["Align_Caret_Drop_Mm"] = align.get("caret_drop_mm", 0.0)
+    g["Align_Underscore_Lift_Mm"] = align.get("underscore_lift_mm", 0.0)
 
     e = cfg["element"]
     g["Sphere_OD"] = e["sphere_od"]
