@@ -6891,35 +6891,56 @@ clip_to_cell), NOT in SECTIONS_COMMON: the slug family shares that table
 and implements neither, and a field whose config path does not exist
 raises rather than degrading. Caught by the 15-machine compose test.</p>
 
-<h3 id="resuming-later-9">Resuming later</h3>
+<h3 id="profile-deletion-and-a-note-on-the-storage-format">Profile deletion, and a note on the storage format</h3>
 
-<ol>
-  <li><strong>Band height 2.0mm does not fit.</strong> Measured clear wall between ink
-bands on blickensderfer’s current font/layout is 1.406mm (rows 2-3)
-and 1.860mm (rows 1-2), so a 2mm band clips ascenders/descenders
-wherever it is centred. Offsets left at 0.0 rather than baking in
-font-specific numbers. Tuned values for this font would be offsets
-+1.7 / +1.2, heights ~1.2. Corroboration: RobertG’s own bands are
-1.5mm and 1.4mm.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">punctFatten</code> / <code class="language-plaintext highlighter-rouge">weightOffset</code> not built</strong> - explained but deferred
-pending a go-ahead. Both are 2D outline offsets before extrusion, so
-in v4 they are <code class="language-plaintext highlighter-rouge">.buffer()</code> at <code class="language-plaintext highlighter-rouge">compose_glyph_polygon()</code>’s return, one
-choke point every machine inherits. Three things to get right: shapely
-buffers with ROUND joins by default and would silently round off every
-serif (needs <code class="language-plaintext highlighter-rouge">join_style=2</code>/<code class="language-plaintext highlighter-rouge">3</code> plus a mitre limit); a negative buffer
-can erase or split a hairline stroke, so it needs an empty/multi-part
-guard; and it changes the face count feeding Minkowski.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">hashTwist</code>/<code class="language-plaintext highlighter-rouge">skewAngle</code> not ported and not recommended.</strong> hashTwist
-rotates the whole <code class="language-plaintext highlighter-rouge">#</code> glyph including its horizontal bars, where a
-period <code class="language-plaintext highlighter-rouge">#</code> slants only the verticals. skewAngle is a shear, not a real
-italic, and thins vertical strokes by cos(theta) - RobertG’s own
-Italic wheel sets it to 0 and uses a real italic font instead.</li>
-  <li><strong><code class="language-plaintext highlighter-rouge">config/vogue_slug.yaml</code> does not build</strong>, before or after this
-session. Its <code class="language-plaintext highlighter-rouge">font_path</code> is
-<code class="language-plaintext highlighter-rouge">~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf</code>, which no longer
-exists. Pre-existing; left alone rather than guessed at.</li>
-  <li>Part 81’s punch list and part 83’s Windows-checkout note are unchanged.</li>
-</ol>
+<p>“How to delete? Thought it would be a yaml, not something proprietary.”
+It IS plain YAML and always was - `config/profiles/font_and_alignment/</p>
+<slug>.yaml`, one file per profile, keyed by dotted config path, with a
+header comment pointing at `lib/font_profiles.py`. Deleting the file is a
+complete deletion; nothing indexes or caches them (`list_profiles()` reads
+the directory each call). The gap was that the TUI offered no route,
+which is a fair thing to read as opacity.
+
+Added a Delete profile button beside Save, with a confirmation showing
+the exact path - deleting removes a real file the user wrote and nothing
+in the app can undo it, and naming the path means it can be recovered
+from git or a backup if the answer was wrong.
+
+`delete_profile()` matches on DISPLAY name rather than re-slugifying, so
+a profile whose file was renamed by hand still deletes the file the
+picker was actually showing.
+
+Profiles are NOT gitignored, deliberately: they are small, portable and
+worth sharing between checkouts, same as the configs they complement.
+
+### Resuming later
+
+1. **Band height 2.0mm does not fit.** Measured clear wall between ink
+   bands on blickensderfer's current font/layout is 1.406mm (rows 2-3)
+   and 1.860mm (rows 1-2), so a 2mm band clips ascenders/descenders
+   wherever it is centred. Offsets left at 0.0 rather than baking in
+   font-specific numbers. Tuned values for this font would be offsets
+   +1.7 / +1.2, heights ~1.2. Corroboration: RobertG's own bands are
+   1.5mm and 1.4mm.
+2. **`punctFatten` / `weightOffset` not built** - explained but deferred
+   pending a go-ahead. Both are 2D outline offsets before extrusion, so
+   in v4 they are `.buffer()` at `compose_glyph_polygon()`'s return, one
+   choke point every machine inherits. Three things to get right: shapely
+   buffers with ROUND joins by default and would silently round off every
+   serif (needs `join_style=2`/`3` plus a mitre limit); a negative buffer
+   can erase or split a hairline stroke, so it needs an empty/multi-part
+   guard; and it changes the face count feeding Minkowski.
+3. **`hashTwist`/`skewAngle` not ported and not recommended.** hashTwist
+   rotates the whole `#` glyph including its horizontal bars, where a
+   period `#` slants only the verticals. skewAngle is a shear, not a real
+   italic, and thins vertical strokes by cos(theta) - RobertG's own
+   Italic wheel sets it to 0 and uses a real italic font instead.
+4. **`config/vogue_slug.yaml` does not build**, before or after this
+   session. Its `font_path` is
+   `~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf`, which no longer
+   exists. Pre-existing; left alone rather than guessed at.
+5. Part 81's punch list and part 83's Windows-checkout note are unchanged.
+</slug>
 
   </div>
 
