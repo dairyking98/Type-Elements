@@ -80,10 +80,131 @@ def _require_configured():
         raise RuntimeError("call <machine>.configure(config_path) before using this module")
 
 
+# -------------------------------------------------------- Wheel cosmetics
+# Decorative treatments of the element's outer wall. Real features
+# observed on original Blickensderfer wheels (per the user's own
+# elements), not invented here, and not a port of anyone else's code.
+#
+#   "round"   - a plain circular body. The default, and what every
+#               machine built before these existed, so an absent
+#               cosmetics: section is byte-identical to a round one.
+#   "notched" - the body is faceted, one facet per character column, with
+#               a small cylindrical groove running the full height at
+#               every facet corner.
+#   "banded"  - the same faceting, plus a ring cut between each adjacent
+#               pair of character rows, recessed to (just past) the
+#               facet's minor diameter.
+#
+# Facet COUNT is deliberately not configurable: it is always the column
+# count, because the whole point of the alignment is that a facet corner
+# lands between two character columns rather than under one. Characters
+# sit at (0.5 + col) * Latitude_Int (see place_on_cylinder's
+# angle_half_step), and a trimesh cylinder puts its first vertex at angle
+# 0, so an N-section cylinder's corners land at n * Latitude_Int -
+# exactly halfway between columns, with no phase rotation needed
+# (verified: corners at exact multiples of 360/28 with the rim on
+# Element_Diameter/2). Letting the two counts diverge would silently
+# break that, the same way CLAUDE.md warns about layout.latitude_columns
+# drifting out of sync with placement_map.
+
+WHEEL_STYLE_ROUND = "round"
+WHEEL_STYLE_NOTCHED = "notched"
+WHEEL_STYLE_BANDED = "banded"
+WHEEL_STYLES = (WHEEL_STYLE_ROUND, WHEEL_STYLE_NOTCHED, WHEEL_STYLE_BANDED)
+
+
+def _wheel_style():
+    """The active style, defaulting to "round" for any machine whose
+    config has no cosmetics: section at all (Mignon/Bennett/Helios/
+    Hammond all reach Cylinder() through this module too)."""
+    style = globals().get("Wheel_Style", WHEEL_STYLE_ROUND)
+    if style not in WHEEL_STYLES:
+        raise ValueError(
+            f"cosmetics.wheel_style must be one of {WHEEL_STYLES}, got {style!r}")
+    return style
+
+
+def _facet_count():
+    """One facet per character column - see the section comment above for
+    why this is derived rather than configurable."""
+    return int(round(360.0 / LATITUDE_INT))
+
+
+def _facet_minor_diameter():
+    """The faceted body's inscribed-circle diameter. Facet CORNERS sit on
+    Element_Diameter (the circumscribed circle), so the flats fall inside
+    it by cos(180/N) - that difference is the whole visible depth of the
+    faceting."""
+    return Element_Diameter * np.cos(np.radians(180.0 / _facet_count()))
+
+
+def _band_z_centers():
+    """Absolute Z of each decorative band: the midpoint between one
+    baseline and the next, plus that band's own signed offset. Derived
+    from BASELINE_ROW rather than stored as absolute Z so the bands
+    follow the rows if the baselines are ever retuned via the
+    Calibration tab - which is the whole reason they sit "between
+    character rows" physically. N baselines give N-1 bands."""
+    offsets = globals().get("Band_Z_Offsets", []) or []
+    centers = []
+    for i in range(len(BASELINE_ROW) - 1):
+        mid = (BASELINE_ROW[i] + BASELINE_ROW[i + 1]) / 2.0
+        offset = offsets[i] if i < len(offsets) else 0.0
+        centers.append(BASELINE_Z_OFFSET + mid + offset)
+    return centers
+
+
+def WheelStyleCutters():
+    """Cutters realizing the active wheel style, subtracted along with
+    everything else in Subtractive(). Empty for "round", so that style
+    costs nothing and changes nothing."""
+    style = _wheel_style()
+    if style == WHEEL_STYLE_ROUND:
+        return []
+
+    n = _facet_count()
+    if style == WHEEL_STYLE_NOTCHED:
+        # A groove at each facet corner, on the corner radius so it bites
+        # equally into the two facets meeting there. Full height plus a
+        # margin at both ends so the cut resolves cleanly against the top
+        # chamfer and the bottom face instead of leaving a coplanar sliver.
+        cutters = []
+        for i in range(n):
+            groove = sp.cylinder_z(Notch_Diameter, Element_Height + 4 * z,
+                                    sections=Surface_Fn, base_z=-2 * z)
+            angle = i * 360.0 / n
+            cutters.append(sp.translate(
+                groove, [Element_Diameter / 2.0 * np.cos(np.radians(angle)),
+                          Element_Diameter / 2.0 * np.sin(np.radians(angle)), 0.0]))
+        return cutters
+
+    # WHEEL_STYLE_BANDED - an annular ring cut per inter-row gap. Built as
+    # (outer cylinder - inner cylinder) so it removes only the wall, never
+    # anything on the axis. The inner face sits band_depth INSIDE the
+    # facet's minor diameter, so the band reads as a recess below even the
+    # flats rather than merely erasing the facet corners.
+    heights = globals().get("Band_Heights", []) or []
+    inner_d = _facet_minor_diameter() - 2.0 * Band_Depth
+    cutters = []
+    for i, z_center in enumerate(_band_z_centers()):
+        height = heights[i] if i < len(heights) else 2.0
+        outer = sp.cylinder_z(Element_Diameter * 2.0, height,
+                               sections=Surface_Fn, base_z=z_center, center=True)
+        inner = sp.cylinder_z(inner_d, height + 4 * z,
+                               sections=Body_Fn, base_z=z_center, center=True)
+        cutters.append(outer.difference(inner, engine="manifold"))
+    return cutters
+
+
 # ---------------------------------------------------------------- Additive
 
 def Cylinder():
-    return sp.cylinder_z(Element_Diameter, Element_Height, sections=Body_Fn)
+    """The element's outer body. Faceted (one facet per character column,
+    corners on Element_Diameter) for the notched/banded wheel styles,
+    plain and Body_Fn-smooth for "round" - see the wheel-cosmetics
+    section above."""
+    sections = Body_Fn if _wheel_style() == WHEEL_STYLE_ROUND else _facet_count()
+    return sp.cylinder_z(Element_Diameter, Element_Height, sections=sections)
 
 
 def ClipCylinder(Offset):
@@ -652,6 +773,9 @@ def Subtractive(render_core_groove=None):
     ]
     if render_core_groove:
         parts.append(CoreGrooves(0))
+    # Empty for the default "round" style, so this is a no-op unless a
+    # config actually asks for faceting - see WheelStyleCutters().
+    parts.extend(WheelStyleCutters())
     print("Subtractive: unioning", len(parts), "parts", flush=True)
     return sp.union_all(parts)
 

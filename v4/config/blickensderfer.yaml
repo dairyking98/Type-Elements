@@ -206,6 +206,28 @@ resin:
   bottom_support_fractions: [0.2]
   bottom_support_inner_angle_offset: 0.5
 
+# Wheel cosmetics - decorative treatment of the outer wall. Real features
+# of original wheels, observed on the user's own elements.
+#   "round"   - plain circular body (the default, and what this config
+#               built before this section existed).
+#   "notched" - body faceted one facet per character column, corners on
+#               element_diameter, with a groove at every facet corner.
+#   "banded"  - the same faceting, plus a ring cut between each adjacent
+#               pair of character rows.
+# The facet COUNT is not settable here on purpose: it is always
+# layout.latitude_columns, because the alignment that makes this look
+# right is a facet corner landing BETWEEN two character columns. See
+# cylinder_machine's "Wheel cosmetics" section.
+cosmetics:
+  wheel_style: "round"        # round | notched | banded
+  notch_diameter: 0.7         # groove diameter at each facet corner ("notched")
+  band_depth: 0.15            # how far inside the facet minor diameter a band cuts
+  # One entry per gap between adjacent baselines (3 baselines -> 2 bands).
+  # Position is the MIDPOINT of the gap plus this signed offset, so bands
+  # track the rows if the baselines are ever retuned.
+  band_z_offsets: [0.0, 0.0]
+  band_heights: [2.0, 2.0]
+
 output:
   directory: "output"
   stl_name: "blickensderfer_running.stl"

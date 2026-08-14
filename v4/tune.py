@@ -839,6 +839,7 @@ ELEMENT_FIELDS_HELIOS = [
 SELECT_FIELD_OPTIONS = {
     "mode": [("center", "center"), ("left", "left")],
     "drive_pin_style": [("Later (rectangular pin)", "0"), ("Early (radial slot)", "1")],
+    "wheel_style": [("Round", "round"), ("Notched", "notched"), ("Banded", "banded")],
 }
 
 ELEMENT_FIELDS_BLICKENSDERFER = [
@@ -1452,13 +1453,31 @@ TICKS_FIELDS_GAUGE_SLUG = [
     ("hole_fn", ["gauge", "hole_fn"], int, "Tick hole facets", ""),
 ]
 
+# Wheel cosmetics (Blickensderfer/Postal) - decorative treatment of the
+# outer wall. band_z_offsets/band_heights are NOT here: they are inline
+# list ELEMENTS, so they get bespoke per-band widgets exactly like
+# layout.baseline_row/cutout_row do (see TuneApp._compose_band_fields and
+# self.BAND_KEYS), resolved as option (a) under CLAUDE.md's "list-valued
+# config key needs an explicit decision" rule.
+COSMETICS_FIELDS = [
+    ("wheel_style", ["cosmetics", "wheel_style"], str, "Wheel style",
+     "Round is the plain body. Notched and Banded both facet the wall, one facet per character "
+     "column, with a facet corner falling between columns."),
+    ("notch_diameter", ["cosmetics", "notch_diameter"], float, "Notch diameter (mm)",
+     "Groove cut at each facet corner. Notched style only."),
+    ("band_depth", ["cosmetics", "band_depth"], float, "Band depth (mm)",
+     "How far inside the facet's minor diameter a band cuts. Banded style only."),
+]
+
 SECTIONS_BY_MACHINE = {
     "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
-                       "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_BLICKENSDERFER},
+                       "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_BLICKENSDERFER,
+                       "Cosmetics": COSMETICS_FIELDS},
     "postal": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
-               "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_POSTAL},
+               "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_POSTAL,
+                       "Cosmetics": COSMETICS_FIELDS},
     # no "Gauge" key - Mignon has no Shaft Gauge Test (see
     # ELEMENT_FIELDS_MIGNON's neighboring comment) - compose()/
     # _compose_build_tab() check for its absence and skip the tab/dropdown
@@ -2248,6 +2267,16 @@ class TuneApp(App):
             n_rows = max([len(self.cfg["layout"]["baseline_row"])]
                          + [len(rows) for rows in self.LAYOUT_PRESETS.values()])
             self.BASELINE_CUTOUT_KEYS = [f"{arr}_{i}" for arr in ("baseline_row", "cutout_row") for i in range(n_rows)]
+        # cosmetics.band_z_offsets/band_heights - one band per GAP between
+        # adjacent baselines, so N baselines give N-1 bands. Same inline-
+        # list-element mechanism as BASELINE_CUTOUT_KEYS above; empty for
+        # any machine with no cosmetics: section.
+        if "Cosmetics" not in self.SECTIONS:
+            self.BAND_KEYS = []
+        else:
+            n_bands = max(len(self.cfg["layout"]["baseline_row"]) - 1, 0)
+            self.BAND_KEYS = [f"{arr}_{i}" for arr in ("band_z_offsets", "band_heights")
+                               for i in range(n_bands)]
         # Flat-indexed layout.rows (Selectric family: has rows, but no
         # placement_map) - each row's length is load-bearing, not just an
         # upper bound, since the character content is consumed by flat
@@ -2561,8 +2590,36 @@ class TuneApp(App):
                             yield Static(help_text, classes="field-help")
                 if section == "Element":
                     yield from self._compose_baseline_cutout_fields()
+                if section == "Cosmetics":
+                    yield from self._compose_band_fields()
                 if section == "Legend":
                     yield from self._compose_legend_extra()
+
+    def _compose_band_fields(self):
+        """Per-band offset/height widgets for the Banded wheel style -
+        bespoke for the same reason _compose_baseline_cutout_fields is
+        (inline list elements, not scalar keys). One band per gap between
+        adjacent baselines."""
+        if not self.BAND_KEYS:
+            return
+        yield Static(
+            "Banded style only. Each band sits at the midpoint between two "
+            "baselines, plus its offset below. Check the height fits the clear "
+            "wall between those rows - characters have ascenders and descenders.",
+            classes="picker-help")
+        n_bands = len(self.BAND_KEYS) // 2
+        for arr_key, label, default in (("band_z_offsets", "Band offset", 0.0),
+                                         ("band_heights", "Band height", 2.0)):
+            values = self.cfg.get("cosmetics", {}).get(arr_key, [])
+            for i in range(n_bands):
+                key = f"{arr_key}_{i}"
+                current = values[i] if i < len(values) else default
+                with Vertical(classes="field-row"):
+                    with Horizontal():
+                        yield Static(f"{label} {i} (mm)", classes="field-label")
+                        inp = Input(value=str(current), id=f"field-{key}")
+                        self.inputs[key] = inp
+                        yield inp
 
     def _compose_legend_extra(self):
         """The Legend tab's own background picker + action button +
@@ -3164,6 +3221,11 @@ class TuneApp(App):
         if "Label" in self.SECTIONS:
             specs.append(section("Label"))
         specs.append(section("Element"))
+        # Decorative outer-wall treatment - Blickensderfer/Postal only, the
+        # two machines whose bodies cylinder_machine.Cylinder() actually
+        # builds (see its "Wheel cosmetics" section).
+        if "Cosmetics" in self.SECTIONS:
+            specs.append(section("Cosmetics"))
         if "Rib" in self.SECTIONS:
             specs.append(section("Rib"))
         # only machines with an actual v1 index/legend card ported (see
@@ -3320,7 +3382,7 @@ class TuneApp(App):
         # bespoke like everything above, since they're list elements, not
         # standalone scalar YAML keys - see BASELINE_CUTOUT_KEYS/
         # patch_yaml_list_item.
-        for key in self.BASELINE_CUTOUT_KEYS:
+        for key in self.BASELINE_CUTOUT_KEYS + self.BAND_KEYS:
             raw = self.inputs[key].value.strip()
             try:
                 values[key] = float(raw)
@@ -3333,9 +3395,12 @@ class TuneApp(App):
         with open(self.config_path) as f:
             text = f.read()
         for key, value in values.items():
-            if key in self.BASELINE_CUTOUT_KEYS:
+            if key in self.BASELINE_CUTOUT_KEYS or key in self.BAND_KEYS:
                 continue
             text = patch_yaml_value(text, key, value)
+        for key in self.BAND_KEYS:
+            arr_key, index_str = key.rsplit("_", 1)
+            text = patch_yaml_list_item(text, arr_key, int(index_str), values[key])
         for key in self.BASELINE_CUTOUT_KEYS:
             arr_key, index_str = key.rsplit("_", 1)
             text = patch_yaml_list_item(text, arr_key, int(index_str), values[key])
@@ -3636,6 +3701,13 @@ class TuneApp(App):
                     # self.inputs (a plain dict, not query_one) - same row-
                     # count-mismatch reasoning as _update_row_widget above,
                     # but a dict lookup raises KeyError, not NoMatches.
+                    w = self.inputs.get(f"{arr_key}_{i}")
+                    if w is not None:
+                        w.value = str(arr[i])
+        if self.BAND_KEYS:
+            for arr_key in ("band_z_offsets", "band_heights"):
+                arr = self.cfg.get("cosmetics", {}).get(arr_key, [])
+                for i in range(len(arr)):
                     w = self.inputs.get(f"{arr_key}_{i}")
                     if w is not None:
                         w.value = str(arr[i])

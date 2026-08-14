@@ -136,6 +136,17 @@ def configure(config_path):
     # from Cyl_Fn (the inner shaft/core bore only) per user direction -
     # not merged into either even though it may be set to the same value.
     g["Body_Fn"] = q.get("body_fn", q["surface_fn"])
+
+    # Wheel cosmetics (decorative outer-wall treatment) - see
+    # cylinder_machine's own "Wheel cosmetics" section. .get() throughout
+    # so a config with no cosmetics: section still loads and behaves
+    # exactly as it did before these existed ("round", i.e. no change).
+    cos = cfg.get("cosmetics", {})
+    g["Wheel_Style"] = cos.get("wheel_style", cylinder_machine.WHEEL_STYLE_ROUND)
+    g["Notch_Diameter"] = cos.get("notch_diameter", 0.7)
+    g["Band_Depth"] = cos.get("band_depth", 0.15)
+    g["Band_Z_Offsets"] = cos.get("band_z_offsets", [])
+    g["Band_Heights"] = cos.get("band_heights", [])
     # Platen_Fn: circular segments for the real platen cutout cylinder in
     # glyph_poc.build_glyph (see its docstring) - not in older configs, so
     # defaults to glyph_poc's own default rather than requiring every

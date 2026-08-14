@@ -118,6 +118,17 @@ def configure(config_path):
     # ClipCylinder() slightly over-faceted (harmless - more circle
     # segments than the real file uses there, not fewer).
     g["Body_Fn"] = q.get("body_fn", q["cyl_fn"])
+
+    # Wheel cosmetics (decorative outer-wall treatment) - see
+    # cylinder_machine's own "Wheel cosmetics" section. .get() throughout
+    # so a config with no cosmetics: section still loads and behaves
+    # exactly as it did before these existed ("round", i.e. no change).
+    cos = cfg.get("cosmetics", {})
+    g["Wheel_Style"] = cos.get("wheel_style", cylinder_machine.WHEEL_STYLE_ROUND)
+    g["Notch_Diameter"] = cos.get("notch_diameter", 0.7)
+    g["Band_Depth"] = cos.get("band_depth", 0.15)
+    g["Band_Z_Offsets"] = cos.get("band_z_offsets", [])
+    g["Band_Heights"] = cos.get("band_heights", [])
     g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
 
     layout = cfg["layout"]
