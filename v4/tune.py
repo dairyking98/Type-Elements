@@ -2090,6 +2090,7 @@ class TuneApp(App):
     #build-progress { width: 1fr; }
     #build-progress Bar { width: 1fr; }
     #build-elapsed { width: auto; margin-left: 1; color: $text-muted; }
+    #btn-cancel-build { width: auto; height: 1; min-width: 12; margin-left: 1; }
     TabbedContent { height: 1fr; }
     TabPane { padding: 0 1; }
     .field-row { height: auto; margin-bottom: 1; }
@@ -2165,12 +2166,22 @@ class TuneApp(App):
         ("b", "render", "Render"),
         ("s", "save", "Save"),
         ("r", "reload", "Reload from file"),
+        # Only does anything while a job is actually running - see
+        # action_cancel_build/_stream_subprocess.
+        ("c", "cancel_build", "Cancel build"),
     ]
 
     def __init__(self, config_path=None):
         super().__init__()
         self.inputs = {}
         self._last_build_info = None
+        # The live generate.py/type_test.py/font_coverage.py subprocess, or
+        # None when nothing is running - see _stream_subprocess. Tracked so
+        # it can actually be KILLED rather than merely abandoned: Textual's
+        # run_worker(exclusive=True) cancels the awaiting coroutine, which
+        # left the child process running to completion in the background,
+        # burning CPU for output nobody would look at.
+        self._build_proc = None
         self._f3d_proc = None
         self._f3d_out_path = None  # see _ensure_f3d_after_build's own comment
         self._warned_no_wmctrl = False
@@ -3293,6 +3304,15 @@ class TuneApp(App):
                 # go stale the same way.
                 yield ProgressBar(total=100, id="build-progress", show_eta=False)
                 yield Static("", id="build-elapsed")
+                # Sits with the progress readout rather than in the main
+                # button row: it belongs to the job in flight, and the
+                # three primary buttons are equal-width 1fr, so a fourth
+                # would narrow all of them for something only meaningful
+                # part of the time. Hidden entirely unless a job is
+                # running (see _set_build_running).
+                cancel = Button("CANCEL [c]", id="btn-cancel-build", variant="error")
+                cancel.display = False
+                yield cancel
 
     def log_line(self, text):
         self.query_one("#log", ReflowingRichLog).write(text)
@@ -4197,7 +4217,45 @@ class TuneApp(App):
             return
         self.query_one("#build-progress", ProgressBar).update(progress=min(95.0, 95.0 * n / total))
 
+    def _set_build_running(self, proc):
+        """Show/hide the Cancel button with the job it belongs to."""
+        self._build_proc = proc
+        try:
+            self.query_one("#btn-cancel-build", Button).display = proc is not None
+        except NoMatches:
+            pass  # called before compose (or after teardown) - nothing to show
+
+    @staticmethod
+    def _kill_proc(proc):
+        """SIGTERM the child if it is still alive. Python installs no
+        SIGTERM handler, so the OS default action applies immediately -
+        which matters because these jobs spend most of their time inside
+        manifold3d's C++ boolean/Minkowski code, where a SIGINT-style
+        KeyboardInterrupt would not be raised until control returned to
+        the interpreter (i.e. possibly minutes later, which is exactly
+        the wait being cancelled)."""
+        if proc is None or proc.returncode is not None:
+            return
+        try:
+            proc.terminate()
+        except ProcessLookupError:
+            pass  # exited between the check and the signal
+
+    def action_cancel_build(self):
+        if self._build_proc is None:
+            return
+        self.log_line("[yellow]cancelling...[/yellow]")
+        self._kill_proc(self._build_proc)
+
     async def _stream_subprocess(self, cmd, success_message=None):
+        # Kill anything still running before starting. run_worker(
+        # exclusive=True) cancels the previous WORKER, but cancellation is
+        # asynchronous, so without this the old subprocess could outlive
+        # the start of the new one - the reported "press Render then
+        # Preview, preview loads but the render keeps going" case.
+        if self._build_proc is not None:
+            self.log_line("[yellow]superseded - stopping the running job[/yellow]")
+            self._kill_proc(self._build_proc)
         t0 = time.time()
         self.query_one("#build-progress", ProgressBar).update(progress=0)
         elapsed = self.query_one("#build-elapsed", Static)
@@ -4209,10 +4267,12 @@ class TuneApp(App):
         # imprecise) - always accurate since it doesn't extrapolate
         # anything, just counts real elapsed time.
         timer = self.set_interval(0.2, lambda: elapsed.update(f"{time.time() - t0:.1f}s"))
+        proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=REPO_ROOT,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+            self._set_build_running(proc)
             async for line in proc.stdout:
                 text = line.decode(errors="replace").rstrip()
                 self.log_line(text)
@@ -4220,12 +4280,25 @@ class TuneApp(App):
             await proc.wait()
         finally:
             timer.stop()
+            # Always kill OUR child, even on cancellation - this is the
+            # whole point (a cancelled worker used to abandon a live
+            # process). Only clear the shared handle if it is still ours:
+            # the replacement job may already have installed its own by
+            # the time this cancelled coroutine's finally block runs.
+            self._kill_proc(proc)
+            if self._build_proc is proc:
+                self._set_build_running(None)
         dt = time.time() - t0
         elapsed.update(f"{dt:.1f}s")
         if proc.returncode == 0:
             self.query_one("#build-progress", ProgressBar).update(progress=100)
             msg = success_message or "f3d (if running with --watch) should refresh"
             self.log_line(f"[green]done in {dt:.1f}s[/green] - {msg}")
+        elif proc.returncode is not None and proc.returncode < 0:
+            # Killed by a signal - our own terminate(), i.e. Cancel or a
+            # supersede. Not an error worth painting red.
+            self.query_one("#build-progress", ProgressBar).update(progress=0)
+            self.log_line(f"[yellow]cancelled after {dt:.1f}s[/yellow]")
         else:
             self.log_line(f"[red]exited {proc.returncode} after {dt:.1f}s[/red]")
         return proc.returncode
@@ -4365,6 +4438,8 @@ class TuneApp(App):
             self.run_worker(self._select_machine(button_id.removeprefix("pick-machine-")), exclusive=True)
         elif button_id == "btn-change-machine":
             self.run_worker(self._change_machine(), exclusive=True)
+        elif button_id == "btn-cancel-build":
+            self.action_cancel_build()
         elif button_id == "btn-render":
             self.action_render()
         elif button_id == "btn-preview":

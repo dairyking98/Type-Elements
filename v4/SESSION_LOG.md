@@ -6283,6 +6283,51 @@ also gets simpler, 106502 -> 104914 faces, both watertight. This is the
 one change here that genuinely needed a Minkowski-enabled gate run
 rather than the usual `--no-minkowski` one.
 
+### Builds can be cancelled, and starting one stops the last
+
+Reported: press Render, then Preview while it is still going - the
+preview loads, but the render keeps running in the background.
+
+Cause: `run_worker(exclusive=True)` cancels the previous WORKER
+coroutine, which was sitting in `async for line in proc.stdout`. The
+coroutine dies, the child process does not - it just runs to completion
+unattended, burning CPU on output nobody will ever see. Nothing in
+`_stream_subprocess` had ever held a reference to the process for long
+enough to kill it.
+
+Fix is three small pieces:
+- `self._build_proc` tracks the live child, and `_stream_subprocess`'s
+  `finally` now kills it on ANY exit path including cancellation. It only
+  clears the shared handle `if self._build_proc is proc`, because a
+  cancelled coroutine's `finally` can run AFTER its replacement has
+  already installed its own process - clearing unconditionally would have
+  hidden the Cancel button for a job that was still running.
+- `_stream_subprocess` also kills any surviving child on ENTRY, since
+  worker cancellation is asynchronous and ordering between the two is not
+  guaranteed. Belt and braces, and it makes the guarantee explicit rather
+  than timing-dependent.
+- A CANCEL button (and `c` binding), living in the progress row rather
+  than the main button row - it belongs to the job in flight, and the
+  three primary buttons are equal-width `1fr`, so a fourth would narrow
+  all of them permanently for something only meaningful part of the time.
+  Hidden unless a job is running.
+
+SIGTERM, not SIGINT, deliberately: Python installs no SIGTERM handler so
+the OS default action applies immediately, whereas a KeyboardInterrupt
+would not be raised until control returned to the interpreter - possibly
+minutes later, inside manifold3d's C++ Minkowski code, which is exactly
+the wait being cancelled. A signal death gives `returncode < 0`, reported
+as a yellow "cancelled", not a red error.
+
+Covers type_test.py/font_coverage.py/legend runs too, since they all go
+through the same `_stream_subprocess`.
+
+Verified headlessly at the OS process level, not just in the UI: the
+Cancel button takes a real build from `alive=True` to `alive=False` and
+clears the handle/hides the button; and pressing Preview during a Render
+kills the render's actual pid while the preview's own pid keeps running.
+No orphaned processes and no partial output file left behind.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
