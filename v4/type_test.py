@@ -26,7 +26,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib
 
 from glyph_poc import build_flat_text, ALIGN_MODE, ALIGN_CENTER_OFFSET_MM, ALIGN_LEFT_OFFSET_MM, \
     ALIGN_MODIFIED_LEFT_CHARS, ALIGN_MODIFIED_LEFT_OFFSET_MM, ALIGN_MODIFIED_RIGHT_CHARS, \
-    ALIGN_MODIFIED_RIGHT_OFFSET_MM  # noqa: E402
+    ALIGN_MODIFIED_RIGHT_OFFSET_MM, ALIGN_CARET_DROP_MM, \
+    ALIGN_UNDERSCORE_LIFT_MM  # noqa: E402
 import build_log  # noqa: E402 - needs the lib/ sys.path.insert above first
 import scad_primitives as sp  # noqa: E402
 
@@ -154,6 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("--modified-left-offset-mm", type=float, default=ALIGN_MODIFIED_LEFT_OFFSET_MM)
     parser.add_argument("--modified-right-chars", default=ALIGN_MODIFIED_RIGHT_CHARS)
     parser.add_argument("--modified-right-offset-mm", type=float, default=ALIGN_MODIFIED_RIGHT_OFFSET_MM)
+    parser.add_argument("--caret-drop-mm", type=float, default=ALIGN_CARET_DROP_MM)
+    parser.add_argument("--underscore-lift-mm", type=float, default=ALIGN_UNDERSCORE_LIFT_MM)
     parser.add_argument("--mod-chars", default="",
                          help="Characters using --mod-font-path/--mod-font-size-mm instead of the base font "
                               "(Hammond Split's Char_Mod convention - no-op for other machines).")
@@ -175,6 +178,8 @@ if __name__ == "__main__":
         modified_left_offset_mm=args.modified_left_offset_mm,
         modified_right_chars=args.modified_right_chars,
         modified_right_offset_mm=args.modified_right_offset_mm,
+        caret_drop_mm=args.caret_drop_mm,
+        underscore_lift_mm=args.underscore_lift_mm,
     )
     composer_pitch_list = composer_units_per_inch = None
     composer_default_units = 9

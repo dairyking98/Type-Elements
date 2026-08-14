@@ -418,6 +418,10 @@ SECTIONS_COMMON = {
         ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
         ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
         ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
+        ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
+         "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
+        ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
+         "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
         ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
          "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
     ],
@@ -1057,6 +1061,10 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
     ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
     ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
+    ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
+     "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
+    ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
+     "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
 ]
 
 # Logo (v2's real name) is a whole-string engraved label (two lines, read
@@ -3927,6 +3935,10 @@ class TuneApp(App):
             cmd += ["--modified-right-chars=" + self.inputs["modified_right_chars"].value]
         if "modified_right_offset_mm" in self.inputs:
             cmd += ["--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value]
+        if "caret_drop_mm" in self.inputs:
+            cmd += ["--caret-drop-mm", self.inputs["caret_drop_mm"].value]
+        if "underscore_lift_mm" in self.inputs:
+            cmd += ["--underscore-lift-mm", self.inputs["underscore_lift_mm"].value]
         # Hammond Split's Char_Mod (per-character font/size override,
         # FONT_FIELDS_HAMMOND_SPLIT's "char"/"char_mod_font_path"/
         # "char_mod_size_mm" fields) - no other machine's field list uses
