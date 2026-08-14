@@ -121,6 +121,73 @@ def save_profile(config_dir, name, values, saved_from=None):
     return path
 
 
+# ---------------------------------------------------------------- Equivalences
+# Config paths that are the SAME KNOB spelled differently by different
+# machine families, so a profile carrying one can still set the other.
+# Each group maps path -> direction factor; transferring between two paths
+# multiplies by (target_factor / source_factor). Factors apply to numeric
+# values only - a character-set string is copied as-is.
+#
+# Directions were measured, not assumed, by pushing a glyph through each
+# family's real transform stack and reading off d(mean x)/d(offset):
+#
+#   modified_left_offset_mm (cylinder) -> -1.0    | agree, factor +1
+#   custom_h_offset         (spherical) -> -1.0   |
+#
+#   center_offset_mm        (cylinder) -> -1.0    | OPPOSE, factor -1
+#   x_pos_offset            (spherical) -> +1.0   |
+#
+# The per-character pair agreeing is not luck: the cylinder family applies
+# its offset BEFORE mirror([1,0,0]) and the spherical family applies its
+# AFTER, with v2/ibm.scad:501 writing `X_Pos_Offset - customhalign` - the
+# two negations cancel. The GLOBAL pair opposes because X_Pos_Offset is
+# added after the mirror with a plus. (v2 is itself inconsistent here:
+# ibm.scad:1034's test-string path uses `+customhalign`, because that path
+# is not mirrored.)
+#
+# Deliberately NOT equated:
+#   font2.font2_composer_cap_height - the Composer sizes by CAP HEIGHT,
+#     not mm (Font_Size_Selected = cap_height/2.834), so equating it with
+#     a mm size would be a unit error, not a rename.
+#   alignment.custom_v_chars/custom_v_offset - a generic per-character
+#     VERTICAL group with no cylinder counterpart; caret_drop_mm/
+#     underscore_lift_mm are two fixed-character specialisations of the
+#     same idea, not the same knob.
+#   alignment.modified_right_* - the spherical family has only one
+#     per-character horizontal group, so there is nothing to pair it with.
+EQUIVALENT_PATHS = [
+    {"alignment.modified_left_chars": 1.0, "alignment.custom_h_chars": 1.0},
+    {"alignment.modified_left_offset_mm": 1.0, "alignment.custom_h_offset": 1.0},
+    {"alignment.center_offset_mm": 1.0, "alignment.x_pos_offset": -1.0},
+    {"char_mod.char": 1.0, "font2.font2_chars": 1.0},
+    {"char_mod.char_mod_font_path": 1.0, "font2.font2_path": 1.0},
+    {"char_mod.char_mod_size_mm": 1.0, "font2.font2_size_mm": 1.0},
+]
+
+
+def _equivalents(path):
+    """{other_path: factor_to_convert_INTO_it} for one path."""
+    for group in EQUIVALENT_PATHS:
+        if path in group:
+            src = group[path]
+            return {k: v / src for k, v in group.items() if k != path}
+    return {}
+
+
+def translate(path, value, target_paths):
+    """(target_path, converted_value) if `path` can reach one of
+    target_paths via an equivalence, else None. Numeric values are scaled
+    by the direction factor; strings are copied unchanged."""
+    for other, factor in _equivalents(path).items():
+        if other in target_paths:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return other, value
+            # `+ 0.0` normalises -0.0 (from negating a zero) back to 0.0 -
+            # numerically identical, but -0.0 in a config file reads as a bug.
+            return other, value * factor + 0.0
+    return None
+
+
 def get_nested(cfg, path):
     d = cfg
     for k in path:
@@ -146,22 +213,32 @@ def apply_to(profile_values, field_paths):
     paths, without touching any config - the caller decides what to do
     with the result.
 
-    Returns (applied, skipped, unset):
-      applied - {dotted_path: value} the machine has and the profile sets
-      skipped - dotted paths the profile carries that this machine has no
-                field for (a Selectric's x_pos_offset on a cylinder, say)
-      unset   - dotted paths the machine has that the profile is silent
-                about, and which therefore keep their current value
+    Returns (applied, aliased, skipped, unset):
+      applied - {path: value} the machine has and the profile sets directly
+      aliased - {path: (value, source_path)} reached through
+                EQUIVALENT_PATHS, i.e. the same knob under this family's
+                own name, direction-corrected
+      skipped - profile paths with no field and no equivalent here
+      unset   - paths the machine has that nothing in the profile reaches,
+                which therefore keep their current value
 
     `unset` is the one worth surfacing to a user: it is where a profile
     from a different machine family leaves real knobs at whatever they
     happened to be, which is usually harmless but is the only case that
     can quietly need a look."""
     have = {".".join(p) for p in field_paths}
-    applied = {k: v for k, v in profile_values.items() if k in have}
-    skipped = sorted(k for k in profile_values if k not in have)
-    unset = sorted(have - set(profile_values))
-    return applied, skipped, unset
+    applied, aliased, skipped = {}, {}, []
+    for k, v in profile_values.items():
+        if k in have:
+            applied[k] = v
+            continue
+        moved = translate(k, v, have)
+        if moved is not None:
+            aliased[moved[0]] = (moved[1], k)
+        else:
+            skipped.append(k)
+    covered = set(applied) | set(aliased)
+    return applied, aliased, sorted(skipped), sorted(have - covered)
 
 
 def matching_profile(config_dir, cfg, field_paths):

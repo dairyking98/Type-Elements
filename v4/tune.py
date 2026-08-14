@@ -189,8 +189,9 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.css.query import NoMatches
 from textual.events import Resize
 from textual.screen import ModalScreen
-from textual.widgets import (Button, Footer, Header, Input, OptionList, ProgressBar, Select, Static,
+from textual.widgets import (Button, Footer, Header, Input, OptionList, ProgressBar, Select, SelectionList, Static,
                               Switch, RichLog, TabbedContent, TabPane, TextArea)
+from textual.widgets.selection_list import Selection  # noqa: E402
 from textual.widgets.option_list import Option
 from textual_fspicker import FileOpen, FileSave, Filters, SelectDirectory
 
@@ -1879,6 +1880,80 @@ class ReflowingRichLog(RichLog):
         self._reflow_width = new_width
 
 
+class ProfileApplyPicker(ModalScreen[list | None]):
+    """Choose which of a profile's values to apply. Dismisses with the
+    list of chosen target paths, or None if cancelled.
+
+    Exists because applying a profile ACROSS machine families is rarely
+    all-or-nothing: you usually want the typeface but not, say, a
+    print-critical position offset the target machine sets for its own
+    reasons. Everything starts checked, so the common same-family case is
+    still one Enter.
+
+    Rows reached through an equivalence (the same knob under this
+    family's own name) are labelled with where they came from, since that
+    is the case worth a second look before accepting."""
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def __init__(self, profile_name, applied, aliased, skipped, unset):
+        super().__init__()
+        self._profile_name = profile_name
+        self._applied = applied
+        self._aliased = aliased
+        self._skipped = skipped
+        self._unset = unset
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="fontpicker"):
+            yield Static(f"Apply profile: {self._profile_name}", classes="picker-title")
+            yield Static(
+                "Everything is selected by default. Space toggles a row, Enter applies, "
+                "Esc cancels.", classes="picker-help")
+            selections = []
+            for path in sorted(self._applied):
+                selections.append(Selection(f"{path} = {self._applied[path]!r}", path, True))
+            for path in sorted(self._aliased):
+                value, source = self._aliased[path]
+                selections.append(
+                    Selection(f"{path} = {value!r}   (from {source})", path, True))
+            if selections:
+                yield SelectionList(*selections, id="profileapply-list")
+            else:
+                yield Static("Nothing in this profile applies to this machine.",
+                              classes="picker-help")
+            if self._skipped:
+                yield Static(f"Not on this machine, ignored: {', '.join(self._skipped)}",
+                              classes="picker-help")
+            if self._unset:
+                yield Static(
+                    f"This machine has {len(self._unset)} field(s) the profile does not "
+                    f"set, which keep their current values: {', '.join(self._unset)}. "
+                    f"Usually harmless - they are this family's own extras - but worth a "
+                    f"glance if the result looks off.", classes="picker-help")
+            with Horizontal(classes="font-btn-row"):
+                yield Button("Apply", id="profileapply-ok", classes="sysfont-btn")
+                yield Button("Cancel", id="profileapply-cancel", classes="sysfont-btn")
+
+    def on_mount(self) -> None:
+        try:
+            self.query_one("#profileapply-list", SelectionList).focus()
+        except NoMatches:
+            pass
+
+    def _chosen(self):
+        try:
+            return list(self.query_one("#profileapply-list", SelectionList).selected)
+        except NoMatches:
+            return []
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(self._chosen() if event.button.id == "profileapply-ok" else None)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class ProfileNamePrompt(ModalScreen[str | None]):
     """Asks for a name when saving a Font & Alignment profile. Dismisses
     with the typed name, or None if cancelled. Pre-filled with the
@@ -2709,12 +2784,16 @@ class TuneApp(App):
         return ("No profile active. Save one to reuse this typeface setup, "
                 "including on other machines.")
 
-    def _apply_font_profile(self, name):
-        """Applies a saved profile to the loaded machine. Paths this
-        machine doesn't have are skipped; paths it has that the profile
-        doesn't mention keep their current values - see
-        font_profiles.apply_to. Both are reported, since a profile from
-        another machine family legitimately does both."""
+    async def _apply_font_profile(self, name):
+        """Applies a saved profile to the loaded machine, after letting the
+        user choose which values to take (see ProfileApplyPicker).
+
+        Values reach this machine either directly (it has that config path)
+        or through an equivalence - the same knob under this family's own
+        name, direction-corrected. See font_profiles.EQUIVALENT_PATHS for
+        which pairs those are and how their directions were measured.
+        Anything with neither is skipped; anything this machine has that
+        the profile doesn't reach keeps its current value."""
         match = [p for n, p in font_profiles.list_profiles(self._config_dir()) if n == name]
         if not match:
             self.log_line(f"[red]profile {name!r} not found[/red]")
@@ -2724,28 +2803,54 @@ class TuneApp(App):
         except Exception as e:
             self.log_line(f"[red]could not read profile {name!r}: {e}[/red]")
             return
-        applied, skipped, unset = font_profiles.apply_to(values, self._font_field_paths())
+        applied, aliased, skipped, unset = font_profiles.apply_to(
+            values, self._font_field_paths())
+        chosen = await self.push_screen_wait(
+            ProfileApplyPicker(name, applied, aliased, skipped, unset))
+        if chosen is None:
+            self.log_line(f"[yellow]profile {name!r} not applied[/yellow]")
+            self._sync_font_profile_select()
+            return
+
         by_path = {".".join(f[1]): f[0] for f in self.SECTIONS["Font & Alignment"]}
-        for dotted, value in applied.items():
-            widget = self.inputs.get(by_path.get(dotted))
+        n_direct = n_alias = 0
+        for path in chosen:
+            if path in applied:
+                value, n_direct = applied[path], n_direct + 1
+            elif path in aliased:
+                value, n_alias = aliased[path][0], n_alias + 1
+            else:
+                continue
+            widget = self.inputs.get(by_path.get(path))
             if widget is None:
                 continue
             if isinstance(widget, Switch):
                 widget.value = bool(value)
             else:
                 widget.value = str(value)
-        self.log_line(f"[green]applied profile {name!r}[/green] - {len(applied)} value(s) set")
+        msg = f"[green]applied profile {name!r}[/green] - {n_direct} value(s) set"
+        if n_alias:
+            msg += f", {n_alias} via an equivalent name"
+        self.log_line(msg)
         if skipped:
-            self.log_line(f"[yellow]  not on this machine, ignored:[/yellow] {', '.join(skipped)}")
+            self.log_line(f"[yellow]  no field or equivalent here, ignored:[/yellow] "
+                           f"{', '.join(skipped)}")
         if unset:
-            # The only case worth a second look: this machine has knobs the
-            # profile says nothing about, so they keep whatever they were.
-            # Usually harmless - they are the fields that machine family
-            # has and the profile's did not - but it is where a
-            # cross-family apply can leave something needing a tweak.
-            self.log_line(f"[yellow]  left unchanged (profile doesn't set them):[/yellow] "
+            self.log_line(f"[yellow]  left unchanged (profile doesn't reach them):[/yellow] "
                            f"{', '.join(unset)}")
         self._refresh_font_profile_status()
+
+    def _sync_font_profile_select(self):
+        """Puts the dropdown back in step with what is actually loaded -
+        used after a cancelled apply, so the picker doesn't keep showing a
+        profile that was never applied."""
+        try:
+            select = self.query_one("#font-profile-select", Select)
+        except NoMatches:
+            return
+        current = self._current_font_profile()
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        select.value = current if current in names else Select.NULL
 
     def _refresh_font_profile_status(self):
         try:
@@ -4490,7 +4595,7 @@ class TuneApp(App):
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id == "font-profile-select":
             if event.value is not Select.NULL:
-                self._apply_font_profile(str(event.value))
+                self.run_worker(self._apply_font_profile(str(event.value)), exclusive=False)
             return
         if event.select.id == "coverage-preset-select":
             chars = self._charset_for_coverage_select_value(event.value)
