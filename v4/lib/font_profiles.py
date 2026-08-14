@@ -121,6 +121,36 @@ def save_profile(config_dir, name, values, saved_from=None):
     return path
 
 
+def rename_profile(config_dir, old_name, new_name):
+    """Renames a profile, returning (old_path, new_path).
+
+    Renames BOTH halves of its identity: the `name:` inside the file (what
+    the picker shows) and the filename slug derived from it. Editing only
+    the file's `name:` by hand works too - list_profiles() reads the
+    display name from inside, never from the filename - but leaves the two
+    out of step, which is confusing later when looking for the file.
+
+    Raises if no profile has old_name, or if new_name would collide with a
+    DIFFERENT existing profile's file. Renaming to a name that slugifies
+    to the same file (changing only case or punctuation) is allowed and
+    just rewrites in place."""
+    match = [p for n, p in list_profiles(config_dir) if n == old_name]
+    if not match:
+        raise ValueError(f"no profile named {old_name!r}")
+    old_path = match[0]
+    new_path = os.path.join(profiles_dir(config_dir), slugify(new_name) + ".yaml")
+    if os.path.abspath(new_path) != os.path.abspath(old_path) and os.path.exists(new_path):
+        raise ValueError(f"a different profile already uses the file "
+                          f"{os.path.basename(new_path)}")
+    _, values = load_profile(old_path)
+    with open(old_path, encoding="utf-8") as f:
+        saved_from = (yaml.safe_load(f) or {}).get("saved_from")
+    save_profile(config_dir, new_name, values, saved_from=saved_from)
+    if os.path.abspath(new_path) != os.path.abspath(old_path):
+        os.remove(old_path)
+    return old_path, new_path
+
+
 def delete_profile(config_dir, name):
     """Deletes the profile with this display name. Returns the path
     removed, or None if no such profile exists.

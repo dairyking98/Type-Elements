@@ -6637,6 +6637,26 @@ picker was actually showing.
 Profiles are NOT gitignored, deliberately: they are small, portable and
 worth sharing between checkouts, same as the configs they complement.
 
+### Profile rename
+
+A profile has two halves to its identity - the `name:` inside the file
+(what the picker shows) and the filename slug derived from it - and
+nothing kept them in step. Editing `name:` by hand did work, since
+`list_profiles()` reads the display name from inside the file and never
+from the filename, but left the two mismatched and the file hard to find
+later. The only other route was Save-under-a-new-name then delete the
+old, which is a duplicate-and-prune, not a rename.
+
+`rename_profile()` rewrites both halves, preserving `values` and
+`saved_from`. Renaming to a name that slugifies to the same file
+(changing only case or punctuation) rewrites in place rather than
+deleting itself, and a rename that would land on a DIFFERENT existing
+profile's file raises instead of silently overwriting it. Verified: file
+renamed and old removed, name/saved_from/16 values intact, case-only
+rename keeps one file, collision refused.
+
+The Font & Alignment profile row is now Save / Delete / Rename.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

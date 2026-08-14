@@ -2812,6 +2812,7 @@ class TuneApp(App):
             with Horizontal(classes="font-btn-row"):
                 yield Button("Save as profile", id="font-profile-save", classes="sysfont-btn")
                 yield Button("Delete profile", id="font-profile-delete", classes="sysfont-btn")
+                yield Button("Rename profile", id="font-profile-rename", classes="sysfont-btn")
             yield Static(self._font_profile_status(current), id="font-profile-status",
                           classes="field-help")
 
@@ -2899,6 +2900,37 @@ class TuneApp(App):
         current = self._current_font_profile()
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
         select.value = current if current in names else Select.NULL
+
+    async def _rename_font_profile(self):
+        """Renames the selected profile, file and display name together.
+        Editing the `name:` inside the YAML by hand also works - the
+        picker reads the display name from inside the file, never from the
+        filename - but leaves the two out of step."""
+        try:
+            select = self.query_one("#font-profile-select", Select)
+        except NoMatches:
+            return
+        name = select.value
+        if name is Select.NULL or not name:
+            self.log_line("[yellow]no profile selected to rename[/yellow]")
+            return
+        name = str(name)
+        new_name = await self.push_screen_wait(ProfileNamePrompt(name))
+        if not new_name or new_name == name:
+            self.log_line(f"[yellow]kept profile name {name!r}[/yellow]")
+            return
+        try:
+            old_path, new_path = font_profiles.rename_profile(
+                self._config_dir(), name, new_name)
+        except Exception as e:
+            self.log_line(f"[red]could not rename: {e}[/red]")
+            return
+        moved = "" if old_path == new_path else f" ({os.path.basename(new_path)})"
+        self.log_line(f"[green]renamed {name!r} -> {new_name!r}[/green]{moved}")
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        select.set_options([(n, n) for n in names])
+        select.value = new_name if new_name in names else Select.NULL
+        self._refresh_font_profile_status()
 
     async def _delete_font_profile(self):
         """Deletes whichever profile the dropdown is showing. Profiles are
@@ -4796,6 +4828,8 @@ class TuneApp(App):
             self.run_worker(self._select_machine(button_id.removeprefix("pick-machine-")), exclusive=True)
         elif button_id == "btn-change-machine":
             self.run_worker(self._change_machine(), exclusive=True)
+        elif button_id == "font-profile-rename":
+            self.run_worker(self._rename_font_profile(), exclusive=True)
         elif button_id == "font-profile-delete":
             self.run_worker(self._delete_font_profile(), exclusive=True)
         elif button_id == "font-profile-save":
