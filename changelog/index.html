@@ -6727,6 +6727,101 @@ never anything to act on. The function is kept for calling by hand when a
 specific glyph pair needs investigating; its docstring now says all of
 this.</p>
 
+<h3 id="font--alignment-profiles-machine-independent">Font &amp; Alignment profiles, machine-independent</h3>
+
+<p>Named profiles for the Font &amp; Alignment tab, saved to
+<code class="language-plaintext highlighter-rouge">config/profiles/font_and_alignment/&lt;slug&gt;.yaml</code> and applicable to ANY
+machine - dial a font in on Blickensderfer, then carry it to Hammond or a
+Selectric without retyping. <code class="language-plaintext highlighter-rouge">lib/font_profiles.py</code> holds the load/save/
+match logic, kept out of <code class="language-plaintext highlighter-rouge">tune.py</code> for the same reason <code class="language-plaintext highlighter-rouge">lib/layouts/</code> and
+<code class="language-plaintext highlighter-rouge">lib/system_fonts.py</code> are, and free of third-party imports beyond PyYAML.</p>
+
+<p>Profile <code class="language-plaintext highlighter-rouge">values</code> are keyed by DOTTED CONFIG PATH (<code class="language-plaintext highlighter-rouge">font.size_mm</code>), not by
+tune.py field key: field keys are per-machine table entries that can be
+renamed, the config path is the thing actually being set, and it keeps a
+profile file readable and hand-editable without knowing anything about
+the TUI.</p>
+
+<p>Cross-machine application is partial and lossless-by-omission - a path
+the target has is applied, one it lacks is skipped, one it has that the
+profile is silent about keeps its value. Nothing is coerced or invented.
+All three counts are reported in the log. Measured with a Blickensderfer
+profile:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>target</th>
+      <th>applied</th>
+      <th>ignored</th>
+      <th>left as-is</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>blickensderfer / mignon</td>
+      <td>13</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>hammond_split</td>
+      <td>13</td>
+      <td>0</td>
+      <td>4 (its char_mod trio + mink_height)</td>
+    </tr>
+    <tr>
+      <td>selectric12</td>
+      <td>6</td>
+      <td>7</td>
+      <td>9</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The universally-portable core is six values: <code class="language-plaintext highlighter-rouge">font.path</code>, <code class="language-plaintext highlighter-rouge">font.size_mm</code>,
+<code class="language-plaintext highlighter-rouge">alignment.mode</code>, <code class="language-plaintext highlighter-rouge">alignment.caret_drop_mm</code>,
+<code class="language-plaintext highlighter-rouge">alignment.underscore_lift_mm</code>, <code class="language-plaintext highlighter-rouge">build.draft_angle_deg</code>.</p>
+
+<p>“Current selection” is DERIVED by comparing values, never stored in the
+config - same convention as <code class="language-plaintext highlighter-rouge">_current_layout_preset()</code>, so hand-editing a
+field correctly clears the selection instead of leaving a stale name
+pointing at something no longer true. Only the paths a profile actually
+carries are compared, so a profile from another family still reads as
+active when everything it does specify matches.</p>
+
+<p>Rather than a persistent per-field warning UI (the user was unsure it was
+needed - “or maybe dont need that at all”), the flag is three log lines
+on apply. The one worth reading is “left unchanged”: that is where a
+cross-family profile leaves real knobs at whatever they were.</p>
+
+<p><strong>One synchronisation done:</strong> <code class="language-plaintext highlighter-rouge">build.mink_draft_angle_deg</code> -&gt;
+<code class="language-plaintext highlighter-rouge">build.draft_angle_deg</code> for Hammond Split, the last machine spelling that
+concept differently. Same class of outlier as <code class="language-plaintext highlighter-rouge">quality.mink_fn</code> -&gt;
+<code class="language-plaintext highlighter-rouge">quality.minkowski_fn</code> (CLAUDE.md “Pick one convention”), and
+<code class="language-plaintext highlighter-rouge">generate.py</code> already passed it as <code class="language-plaintext highlighter-rouge">draft_angle_deg</code> internally - only
+the config key was odd. Verified byte-identical, and it is why
+hammond_split now takes 13 of 13 values from a cylinder profile instead
+of 12.</p>
+
+<p><strong>Synchronisations NOT done, deliberately</strong> - each is a genuine semantic
+equivalence, but each has a hazard that makes it a separate, deliberate
+change rather than a drive-by:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">alignment.custom_h_chars</code>/<code class="language-plaintext highlighter-rouge">custom_h_offset</code> (Selectric) is the same
+concept as <code class="language-plaintext highlighter-rouge">modified_left_chars</code>/<code class="language-plaintext highlighter-rouge">modified_left_offset_mm</code>, but the
+spherical path applies it as <code class="language-plaintext highlighter-rouge">x_pos_offset - custom_h_offset</code>, i.e.
+SIGN-INVERTED. Aliasing without reconciling that would silently move
+glyphs the wrong way.</li>
+  <li><code class="language-plaintext highlighter-rouge">font2.*</code> (Selectric) is the same concept as <code class="language-plaintext highlighter-rouge">char_mod.*</code> (Hammond
+Split) - already established when both were wired to type_test’s
+<code class="language-plaintext highlighter-rouge">--mod-*</code> flags. But Composer sizes font2 by CAP HEIGHT
+(<code class="language-plaintext highlighter-rouge">font2_composer_cap_height</code>), not mm, so a naive size alias would be a
+unit error.</li>
+  <li><code class="language-plaintext highlighter-rouge">alignment.x_pos_offset</code> overlaps <code class="language-plaintext highlighter-rouge">center_offset_mm</code>/<code class="language-plaintext highlighter-rouge">left_offset_mm</code>,
+but the Composer’s is flagged print-critical and byte-exact from v2.</li>
+</ul>
+
 <h3 id="resuming-later-9">Resuming later</h3>
 
 <ol>
