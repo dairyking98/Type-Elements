@@ -1465,6 +1465,8 @@ COSMETICS_FIELDS = [
      "column, with a facet corner falling between columns."),
     ("notch_diameter", ["cosmetics", "notch_diameter"], float, "Notch diameter (mm)",
      "Groove cut at each facet corner. Notched style only."),
+    ("notch_extension", ["cosmetics", "notch_extension"], float, "Notch extension (mm)",
+     "How far the notch cutter is hulled outward past the facet corner, so it trims the characters' draft flare instead of stopping short of it. Notched style only."),
     ("band_depth", ["cosmetics", "band_depth"], float, "Band depth (mm)",
      "How far inside the facet's minor diameter a band cuts. Banded style only."),
 ]

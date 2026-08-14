@@ -6261,6 +6261,28 @@ families, the early slot measures X=[9.300, 12.800] Y=[-1.750, 1.750]
 matching v2's arithmetic, and banded's ring at z=10.000 is a clean
 cylinder at r=16.7431 against a target of 16.7431.
 
+### Notch cutters are hulled outward, not bare cylinders
+
+Follow-up on the notched style, on the user's call: each notch cutter is
+a hull of two same-diameter cylinders, the second `notch_extension`
+further out radially, rather than one cylinder on the facet corner.
+
+The reason is the Minkowski draft skirt, not the body wall - and it does
+not show up under `--no-minkowski` at all, where the change is volume-
+neutral (5444.759mm3 either way). A cylinder centred on the corner lies
+entirely within `Element_Diameter/2 + Notch_Diameter/2`, but characters
+protrude to `Char_Protrusion` beyond the body and their draft sweep
+flares outward from the base, spreading angularly toward the corners in
+exactly the radial band a bare cylinder never reaches.
+
+Measured with a real Minkowski build (blickensderfer, notched): the
+hulled cutter removes an extra 0.1221mm3 in 89 pieces, reaching to
+r=17.721 with 92.3% of it outside the r=17.000 body wall - i.e. almost
+entirely material standing proud of the body, which is the flare. Mesh
+also gets simpler, 106502 -> 104914 faces, both watertight. This is the
+one change here that genuinely needed a Minkowski-enabled gate run
+rather than the usual `--no-minkowski` one.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

@@ -168,14 +168,39 @@ def WheelStyleCutters():
         # equally into the two facets meeting there. Full height plus a
         # margin at both ends so the cut resolves cleanly against the top
         # chamfer and the bottom face instead of leaving a coplanar sliver.
+        #
+        # NOT a bare cylinder: it is hulled with a second cylinder the same
+        # diameter, sitting Notch_Extension further out radially, making
+        # each cutter a stadium that runs well clear of the body. The
+        # reason is the Minkowski draft skirt, not the body wall. A
+        # cylinder centred on the corner lies entirely inside
+        # Element_Diameter/2 + Notch_Diameter/2, but struck characters
+        # protrude to Char_Protrusion beyond the body and their draft
+        # sweep flares outward from the base - so the flare spreads
+        # angularly toward the facet corners in exactly the radial band a
+        # bare cylinder never reaches. Extending the cutter outward trims
+        # that flare where it crowds the groove, instead of leaving it
+        # overhanging a notch that stops short of it. Everything the
+        # extension adds beyond the character envelope is empty space, so
+        # it costs nothing on the body itself.
         cutters = []
+        half_h = (Element_Height + 4 * z)
         for i in range(n):
-            groove = sp.cylinder_z(Notch_Diameter, Element_Height + 4 * z,
-                                    sections=Surface_Fn, base_z=-2 * z)
-            angle = i * 360.0 / n
-            cutters.append(sp.translate(
-                groove, [Element_Diameter / 2.0 * np.cos(np.radians(angle)),
-                          Element_Diameter / 2.0 * np.sin(np.radians(angle)), 0.0]))
+            angle = np.radians(i * 360.0 / n)
+            ends = []
+            for radius in (Element_Diameter / 2.0,
+                            Element_Diameter / 2.0 + Notch_Extension):
+                c = sp.cylinder_z(Notch_Diameter, half_h,
+                                   sections=Surface_Fn, base_z=-2 * z)
+                ends.append(sp.translate(
+                    c, [radius * np.cos(angle), radius * np.sin(angle), 0.0]))
+            # hull() of two same-diameter cylinders - a convex hull of two
+            # convex solids is exactly the hull of their combined vertices,
+            # so no boolean is needed (same shortcut wing_slug's body hull
+            # and blickensderfer's early drive pin already use).
+            cutters.append(trimesh.Trimesh(
+                vertices=np.vstack([e.vertices for e in ends]),
+                process=True).convex_hull)
         return cutters
 
     # WHEEL_STYLE_BANDED - an annular ring cut per inter-row gap. Built as

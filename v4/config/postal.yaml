@@ -181,6 +181,12 @@ resin:
 cosmetics:
   wheel_style: "round"        # round | notched | banded
   notch_diameter: 0.7         # groove diameter at each facet corner ("notched")
+  # How far radially OUTWARD the notch cutter is hulled past the facet
+  # corner. Reaches into the band where the characters' Minkowski draft
+  # skirt flares, so the groove trims it instead of leaving it
+  # overhanging - a bare cylinder on the corner never gets out that far.
+  # Wants to clear element.min_final_character_diameter/2.
+  notch_extension: 1.0
   band_depth: 0.15            # how far inside the facet minor diameter a band cuts
   # One entry per gap between adjacent baselines (3 baselines -> 2 bands).
   # Position is the MIDPOINT of the gap plus this signed offset, so bands
