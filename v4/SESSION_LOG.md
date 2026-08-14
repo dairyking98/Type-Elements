@@ -6375,6 +6375,40 @@ generalized to arbitrary character sets (the same merge direction noted
 for caret/underscore above), so it is left alone rather than
 half-solved.
 
+### The tuned running copy saved as a variant config
+
+`config/blickensderfer_freemono_thin.yaml`, captured from the running
+copy as it stood: FreeMono Thin instead of Royal Vogue v3, the QWERTY
+preset instead of hand-edited DHIATENSOR, both modified-char x-nudges
+back to 0.0, `caret_drop_mm: 2.4`, `resin_support: false`, and the
+notched wheel style at `notch_diameter: 0.5`.
+
+This follows the existing `<machine>_<font>.yaml` convention (commit
+52f0dfc added a batch of these; 8fbd39a later dropped the ones that were
+pure font swaps). This one earns its place by being more than a font
+swap - layout, alignment, build target and cosmetics all differ.
+
+Two things make a variant work, both already in place and neither
+obvious: `machine:` stays `blickensderfer`, so
+`_running_config_path()` - which keys off the MACHINE, not the master's
+filename - resolves it to the same `blickensderfer.running.yaml` every
+Blickensderfer config shares, rather than spawning a per-variant scratch
+copy (that regression is called out in that function's own comment). And
+`output.stl_name` stays the base machine's for the same reason.
+
+Reached through tune.py's "Browse config", not the machine picker:
+`MACHINES` is a hardcoded table of base machines only, which is how the
+earlier variants worked too. Adding a picker button would mean a
+`MACHINES` entry plus a `MACHINE_CATEGORIES` slot - not done, since that
+table is deliberately one-entry-per-machine rather than
+per-configuration.
+
+Verified: builds watertight (FullElement, not ResinPrint - correct, since
+`resin_support: false`), the base master's gate line is unchanged, both
+configs resolve to the same running copy, and a headless TuneApp load
+(scratch copies only) shows every value arriving in the right widget with
+the Layout tab correctly resolving the rows back to the QWERTY preset.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

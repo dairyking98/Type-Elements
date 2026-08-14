@@ -1,0 +1,303 @@
+# Blickensderfer variant - FreeMono Thin, QWERTY, notched wheel.
+#
+# A saved starting configuration, captured from a tuned running copy. Load
+# it with tune.py's "Browse config" button; it deliberately keeps
+# `machine: blickensderfer`, so _running_config_path() resolves it to the
+# SAME blickensderfer.running.yaml every other Blickensderfer config uses
+# (variants share one running scratch copy - see that function's comment),
+# and `output.stl_name` stays the base machine's for the same reason.
+#
+# Differences from config/blickensderfer.yaml, which remains the
+# 1:1-from-v2 reference and is not affected by anything here:
+#   font.path                      FreeMono Thin, not Royal Vogue v3
+#   logo.text_spacing              7.0, not 6.0
+#   logo.radial_offset_mm          1.6, not 1.3
+#   layout.rows                    the QWERTY preset (modify_glyphs off),
+#                                  not hand-edited DHIATENSOR
+#   alignment.modified_*_offset_mm both 0.0 - this font needs no per-char
+#                                  nudge for "!,.;:)" or "("
+#   alignment.caret_drop_mm        2.4, dropping FreeMono's cap-height "^"
+#                                  onto the baseline (QWERTY row 3 has one)
+#   build.resin_support            false
+#   cosmetics.wheel_style          notched, notch_diameter 0.5
+#   cosmetics.band_*               tuned to fit the real inter-row gaps
+#                                  (unused while the style is notched)
+#
+# Everything else below is the base master's value.
+# Blickensderfer type element - all real parameters ported 1:1 from
+# v2/blickensderfer.scad (see that file for authoritative source/comments).
+# Derived values (Shaft_Diameter, Clip_OD, Drive_Pin_Countersink_ID,
+# Bottom_Slope/Bottom_Z_Offset, Core_Top_Z/Core_Bottom_Z/Core_Taper_Top_Z,
+# Baseline_Z_Offset, Logo_Radius) are computed in code from these, not
+# duplicated here.
+
+# generate.py/export_glyphs.py dispatch on this key to import
+# blickensderfer.py vs postal.py - see lib/cylinder_machine.py's docstring
+# for the shared-module mechanism this feeds into. Defaults to this value
+# when absent, so older configs need no changes.
+machine: blickensderfer
+
+font:
+  path: "/home/lchau/fonts/Custom & Modified/FreeMono - Thin Weight (Leonard Chau).ttf"
+  size_mm: 3.7
+
+logo:
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  text: "Leonard Chau 2026"
+  text_size_mm: 2.5
+  text_spacing: 7.0
+  position_offset_deg: 180.0
+  text_offset_deg: 180.0
+  # placement radius = Logo_Radius + this. Real v2 value is 1.5 - at that
+  # value, this exact layout's angular spacing coincidentally puts the
+  # logo text within ~0.4mm of a DHIATENSOR column (see SESSION_LOG.md) -
+  # not an issue at this text/spacing, but re-check if either changes.
+  radial_offset_mm: 1.6
+
+element:
+  element_diameter: 34.0
+  platen_diameter: 32.258
+  min_final_character_diameter: 35.0   # Char_Protrusion = (this - element_diameter)/2
+  element_height: 17.15
+  wall_min_thickness: 1.5
+  wall_chamfer: 0.5
+  roof_offset: 0.5
+  speed_hole_id: 5.568
+  speed_hole_qty: 8
+  speed_hole_radial: 11.25
+  core_id_in: 0.125                    # Core_ID_Mm = this * 25.4
+  core_groove_qty: 16
+  core_groove_d: 0.6
+  core_chamfer: 0.5
+  core_bottom_offset: 2.5
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 7.0
+  clip_height: 3.0
+  clip_wire_od: 0.554
+  clip_opening: 1.0
+  clip_bite: 0.7
+  drive_pin_widthmm: 3.737
+  drive_pin_length: 3.6
+  drive_pin_radial: 10.9
+  drive_pin_countersink_depth: 2.0
+  drive_pin_support_radial_offset: 0.5
+  drive_pin_support_height: 2.0
+  drive_pin_style: 0                   # 0=later (rectangular pin), 1=early (radial slot)
+  # Early-style trio (v2:234-236) - only read when drive_pin_style is 1.
+  drive_pin_width_oldmm: 2.05
+  drive_pin_length_old: 3.5
+  drive_pin_length_start_old: 9.3
+  core_id_offset: 0.14                 # print-tolerance addition to shaft minor diameter
+  drive_pin_width_offset: 0.15
+
+# quality/facet counts
+quality:
+  surface_fn: 120       # other structural surfaces: HollowSpace, SpeedHoles, chamfers, resin details
+  cyl_fn: 360            # inner shaft/core bore (Core()) only - kept separate from body_fn on purpose
+  body_fn: 360           # main visible/cosmetic element body (Cylinder/ClipCylinder) - separate from
+                          # both cyl_fn (inner shaft) and surface_fn (other detail surfaces), even
+                          # though it may be set to the same value as cyl_fn
+  groove_fn: 20           # CoreGrooves twist angular sampling (not a cylinder facet count)
+  platen_fn: 360          # real platen cutout cylinder (see glyph_poc.build_glyph) - try 720 for a
+                          # smoother scallop at the cost of a slower per-glyph boolean
+  minkowski_fn: 16        # draft cone kernel (see glyph_poc.build_glyph) - manifold3d's Minkowski
+                          # cost scales with the product of the two operands' face counts, so this
+                          # (and flatness_tolerance_mm) drive generation time much more than the other Fn
+                          # values above; see README's Performance section
+
+# per-row baseline/cutout (mm from clip end - Baseline_Z_Offset shifts to
+# absolute), latitude spacing, and the DHIATENSOR physical layout + its
+# keyboard->physical column remap (Element_Layout_Array_Map).
+layout:
+  baseline_row: [-4.0, -10.3, -16.1]
+  cutout_row: [-2.55, -8.66, -14.45]
+  latitude_columns: 28
+  placement_map: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                   27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14]
+  rows:
+    - "qwertasdfgzxcvbnm,hjkl.yuiop"
+    - "QWERTASDFGZXCVBNM?HJKL.YUIOP"
+    - "\"#$%_/-¢@;23456789:!^1.&'(0)"
+  # tune.py's Layout tab "Modify glyphs" checkbox - when true, the
+  # preset dropdown is just a starting template and the tab's own
+  # hand-edited copy of the 3 rows is what actually gets written to
+  # `rows` above (not whatever preset happens to be selected)
+  modify_glyphs: false
+
+# horizontal alignment - see glyph_poc.alignment_x_offset(). Not from
+# v2/blickensderfer.scad (Text_Align_Modified_Chars="" there, i.e. no
+# override active) - this is the from-scratch scheme built for v4.
+alignment:
+  mode: "center"             # "center" or "left"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: "!,.;:)"
+  modified_left_offset_mm: 0.0
+  modified_right_chars: "("
+  modified_right_offset_mm: 0.0
+  # Per-character baseline overrides, y-axis counterparts to the
+  # modified_left/right_chars nudges above (see glyph_poc.alignment_offset).
+  # caret_drop_mm shifts "^" DOWN - the Blickensderfer's caret sits on the
+  # baseline, but digital fonts draw U+005E up at cap height because there
+  # it doubles as the spacing circumflex accent. underscore_lift_mm shifts
+  # "_" UP - many TTFs sink U+005F well below the baseline to clear
+  # descenders in running text, which drops it out of the character cell on
+  # a struck element. Both 0.0 = use the font's own glyph position, i.e. the
+  # behavior every config had before these keys existed. Idea/problem
+  # statement from RobertG's OpenSCAD Blickensderfer generator
+  # (badonoer.blogspot.com, CC BY-SA 4.0) caretDrop/uScoreLift.
+  caret_drop_mm: 2.4
+  underscore_lift_mm: 0.0
+
+# mesh-pipeline build settings (v4-specific, not from v2/blickensderfer.scad)
+build:
+  flatness_tolerance_mm: 0.005
+  separation_mm: 2.0
+  render_core_groove: true
+  resin_support: false   # ResinPrint() equivalent - union(FullElement(), ResinSupport())
+  # tune.py's Build tab dropdown - "element"/"resin"/"gauge". Only tune.py
+  # reads this (it's how the 3-way dropdown remembers its state across
+  # restarts); generate.py's own default build target is still driven by
+  # resin_support above (which tune.py keeps in sync: true only when
+  # target is "resin"). "gauge" builds GaugeTestSet() instead - see the
+  # Gauge tab/config section.
+  target: "element"
+  # manifold3d's cost scales with the product of face counts, so
+  # quality.minkowski_fn and flatness_tolerance_mm together set generation
+  # time. flatness_tolerance_mm replaced the old fixed points_per_mm rate -
+  # adaptive contour flattening (straight strokes get zero subdivision,
+  # curves get exactly as many points as their own curvature needs at this
+  # tolerance) already cuts real build time 1.3x-4.5x on its own vs. the
+  # old scheme at equivalent visual quality, so this file's default
+  # (0.005mm) is a good starting point, not just a placeholder. Raise
+  # --flatness-tolerance-mm (fewer points, faster, coarser curves) or
+  # lower --cone-segments via the CLI for faster iteration. Or use
+  # tune.py's Quick Preview button, which always forces minkowski_enabled
+  # off (see below) for the fastest possible preview.
+  #
+  # false = skip the Minkowski draft sweep entirely (by far the most
+  # expensive step) and return each character as an undrafted block:
+  # correct platen curve and glyph footprint/placement, no taper. This is
+  # only a default for direct `python3 generate.py` CLI use - tune.py
+  # always overrides it explicitly (Render forces true, Quick Preview
+  # forces false via --minkowski/--no-minkowski), so it's not exposed as
+  # a tunable field there.
+  minkowski_enabled: true
+  # Real machine draft angle (half-angle of the Minkowski draft cone
+  # build_glyph sweeps each character with, see glyph_poc.build_glyph's
+  # docstring/DRAFT_HALF_ANGLE_RAD note) - real value 55deg. Was a fixed
+  # glyph_poc.py constant with no config override until now.
+  draft_angle_deg: 55.0
+
+# lib/resin_rod.scad + lib/resin_support.scad (cylinder-machine-family resin
+# print supports - Blickensderfer/Postal only, not Hammond/IBM). Values
+# below are Blickensderfer's original v2/blickensderfer.scad [Resin
+# Printing] values (Resin_Fn is from [Global Parameters]) - this is the
+# STANDARD the two machines' resin supports are unified against;
+# config/postal.yaml's values are set to match these exactly (not its own
+# original v2/postal.scad numbers) - the two machines' resin supports are
+# damn near identical by design (same shared lib/resin_support.scad-
+# derived code, see lib/cylinder_machine.py), so there's no reason for
+# their actual VALUES to diverge either, beyond `raft` (a real, deliberate
+# per-build choice - see its own comment below).
+resin:
+  resin_fn: 20
+  rod_od: 1.0
+  tip_od: 0.6
+  tip_l: 1.0
+  inset: 0.3
+  min_rod_height: 4.0
+  raft_od: 2.0
+  raft_thickness: 1.0
+  groove_od: 0.8
+  groove_thickness: 0.3
+  # false = each resin support rod grows its own small individual raft
+  # cone (Resin_Rod_Raft=true, Cut_Groove_Inner_X=0 - v2's original
+  # Blickensderfer behavior). true = one continuous raft plate shared by
+  # every rod, reaching all the way to the element's center axis
+  # (Resin_Rod_Raft=false, Cut_Groove_Inner_X pushed inward accordingly -
+  # v2's original Postal behavior) - a real, useful option for EITHER
+  # machine, not something Postal-exclusive, so it's a plain tunable here
+  # instead of a silent per-machine default. See
+  # cylinder_machine.resin_raft_config's docstring for the derivation.
+  raft: false
+  bottom_support_fractions: [0.2]
+  bottom_support_inner_angle_offset: 0.5
+
+# Wheel cosmetics - decorative treatment of the outer wall. Real features
+# of original wheels, observed on the user's own elements.
+#   "round"   - plain circular body (the default, and what this config
+#               built before this section existed).
+#   "notched" - body faceted one facet per character column, corners on
+#               element_diameter, with a groove at every facet corner.
+#   "banded"  - the same faceting, plus a ring cut between each adjacent
+#               pair of character rows.
+# The facet COUNT is not settable here on purpose: it is always
+# layout.latitude_columns, because the alignment that makes this look
+# right is a facet corner landing BETWEEN two character columns. See
+# cylinder_machine's "Wheel cosmetics" section.
+cosmetics:
+  wheel_style: "notched"        # round | notched | banded
+  notch_diameter: 0.5         # groove diameter at each facet corner ("notched")
+  # How far radially OUTWARD the notch cutter is hulled past the facet
+  # corner. Reaches into the band where the characters' Minkowski draft
+  # skirt flares, so the groove trims it instead of leaving it
+  # overhanging - a bare cylinder on the corner never gets out that far.
+  # Wants to clear element.min_final_character_diameter/2.
+  notch_extension: 1.0
+  band_depth: 0.15            # how far inside the facet minor diameter a band cuts
+  # One entry per gap between adjacent baselines (3 baselines -> 2 bands).
+  # Position is the MIDPOINT of the gap plus this signed offset, so bands
+  # track the rows if the baselines are ever retuned.
+  band_z_offsets: [1.2, 1.0]
+  band_heights: [1.2, 1.0]
+
+output:
+  directory: "output"
+  stl_name: "blickensderfer_running.stl"
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/blickensderfer.scad) - a flat, CPI/LPI-spaced scratch preview for
+# instant font/legibility checks. Saved here just like every other
+# tunable value, so it persists across TUI restarts.
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    to do: stop.
+    wait! uh... no,
+    (parentheses)
+    excitement!
+    ^_
+# lib/gauge (v2's [Shaft Gauge Test] section, blickensderfer.scad:265-267/
+# 517-589) - a 6-pocket "revolver" test print for calibrating
+# element.core_id_offset: each pocket bores the shaft passage at
+# offset_start + n*offset_int (n=0..5), engraved with its own offset value.
+# Print it, test-fit each numbered pocket on the real machine's shaft, and
+# set element.core_id_offset to whichever number fits best.
+gauge:
+  offset_start: 0.0
+  offset_int: 0.025
+
+# Calibration (v2's Cutout_Test/Baseline_Test/Test_Layout mechanism,
+# lib/testing.scad + lib/glyph_pipeline.scad's TextRing/TextRingDebug) -
+# every physical position strikes the SAME test_char, while vary_baseline/
+# vary_cutout (independent, like v2's own separate Cutout_Test/
+# Baseline_Test booleans - usually only one on at a time, but both CAN be
+# on together) get a per-column swept offset (start + interval*col, 28
+# columns) instead of its row's normal fixed value - whichever is off
+# stays normal. Print it, test-fit each position on the real machine, and
+# read off which column's value looks/fits best from generate.py
+# --calibrate's console output (or its .txt sidecar) - then dial that
+# value into the real element.layout.baseline_row/cutout_row (config's
+# layout: section).
+calibration:
+  test_char: "X"
+  vary_baseline: false
+  vary_cutout: true
+  # -0.7 to +0.65 across the 28 columns at the default interval below -
+  # tests both below AND above the reference value, not just above it.
+  start: -0.7
+  interval: 0.05
