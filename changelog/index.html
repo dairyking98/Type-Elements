@@ -6822,6 +6822,75 @@ unit error.</li>
 but the Composer’s is flagged print-critical and byte-exact from v2.</li>
 </ul>
 
+<h3 id="secondary-font-extended-to-the-cylinder-family-and-hammond">Secondary font extended to the cylinder family and Hammond</h3>
+
+<p>Asked whether the font2 feature should apply to cylinder and shuttle.
+Measured the case rather than guessing, against the 170 distinct
+characters across all 28 Blickensderfer layout presets:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>font</th>
+      <th>missing</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Royal Vogue v3</td>
+      <td>87 (fractions, currency, accents)</td>
+    </tr>
+    <tr>
+      <td>Erica Type</td>
+      <td>52 (including “@”)</td>
+    </tr>
+    <tr>
+      <td>Alma Mono / CMU Typewriter / Glass Antiqua</td>
+      <td>50 each</td>
+    </tr>
+    <tr>
+      <td>Iosevka / Noto Sans Mono / Kurinto</td>
+      <td>28-42 (Hebrew)</td>
+    </tr>
+    <tr>
+      <td>FreeMono, FreeMono Thin, AverageMono, FreeSans/Serif</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>So yes - the gap is real for most typewriter faces, and total for the
+Hebrew-English preset. Wired into <code class="language-plaintext highlighter-rouge">cylinder_machine.TextRing</code> (and
+<code class="language-plaintext highlighter-rouge">CalibrationTextRing</code>) via a <code class="language-plaintext highlighter-rouge">_font_for(char)</code> helper, the same shape
+<code class="language-plaintext highlighter-rouge">spherical_machine</code> already used.</p>
+
+<p>Proved on a real element: Royal Vogue as the main font with FreeSans as
+font 2 for “1/4 1/2 3/4 GBP” - characters Royal Vogue has NONE of - takes
+the build from verts=27344 volume=4400.315mm3 to verts=27962
+volume=4404.946mm3, i.e. four characters that were silently empty become
+real struck glyphs.</p>
+
+<p><strong>Hammond Split’s <code class="language-plaintext highlighter-rouge">char_mod:</code> renamed to <code class="language-plaintext highlighter-rouge">font2:</code></strong> so all three families
+now spell one concept one way (CLAUDE.md “Pick one convention”). Both
+were faithful ports of different v2 names (Char_Mod vs Font2_<em>); font2
+wins on majority (3 machines to 1) and the internal globals keep v2’s
+Char_Mod</em> names, which remain the right cross-reference for that
+machine’s own source. Byte-identical, and it paid for itself immediately:
+tune.py’s Type Test passthrough collapsed from two branches to one, and
+three entries dropped out of <code class="language-plaintext highlighter-rouge">EQUIVALENT_PATHS</code> because the paths now
+match directly.</p>
+
+<p>Note the leaf names stay prefixed (<code class="language-plaintext highlighter-rouge">font2_path</code>, not <code class="language-plaintext highlighter-rouge">font_path</code>) - the
+existing comment in config/hammond_split.yaml explains why, and it is
+load-bearing: <code class="language-plaintext highlighter-rouge">patch_yaml_value()</code> searches for a FIELDS key’s literal
+text anywhere in the file, not scoped by section, so a leaf shared with
+<code class="language-plaintext highlighter-rouge">font.path</code> would silently patch the wrong line.</p>
+
+<p>Fields live in <code class="language-plaintext highlighter-rouge">FONT_FIELDS_CYLINDER</code> (SECTIONS_COMMON + font2 +
+clip_to_cell), NOT in SECTIONS_COMMON: the slug family shares that table
+and implements neither, and a field whose config path does not exist
+raises rather than degrading. Caught by the 15-machine compose test.</p>
+
 <h3 id="resuming-later-9">Resuming later</h3>
 
 <ol>
