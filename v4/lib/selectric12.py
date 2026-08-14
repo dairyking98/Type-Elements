@@ -120,6 +120,9 @@ def configure(config_path):
 
     b = cfg["build"]
     g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
+    # Trim each placed character to its own angular slot - see
+    # cylinder_machine._clip_to_cell. Off by default.
+    g["Clip_To_Cell"] = b.get("clip_to_cell", False)
     g["Mink_Draft_Angle"] = b["draft_angle_deg"]
     g["DEFAULT_MINKOWSKI_ENABLED"] = b["minkowski_enabled"]
     g["Character_Block_Height_Mm"] = b["character_block_height_mm"]

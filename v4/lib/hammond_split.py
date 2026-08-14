@@ -272,6 +272,9 @@ def configure(config_path):
     b = cfg["build"]
     g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
     g["FLATNESS_TOLERANCE_MM"] = g["DEFAULT_FLATNESS_TOLERANCE_MM"]
+    # Trim each placed character to its own angular slot - see
+    # cylinder_machine._clip_to_cell. Off by default.
+    g["Clip_To_Cell"] = b.get("clip_to_cell", False)
     g["Render_Left"] = bool(b["render_left"])
     g["Render_Right"] = bool(b["render_right"])
     g["DEFAULT_RESIN_SUPPORT"] = bool(b["resin_support"])
@@ -525,6 +528,16 @@ def TextAssemble(side):
                 continue
             build_log.progress_done(time.perf_counter() - t0)
             letter = sp.scad_transform(letter, *_text_placement_ops(angle, height))
+            # Trim to this character's own angular slot so its Minkowski
+            # draft skirt can't bleed into the neighbour's. Char_Theta is
+            # the shuttle's angular division, i.e. exactly one slot wide,
+            # and _text_placement_ops' outermost op is rotate([0,0,angle])
+            # about Z, so the same axis wedge the cylinder family uses
+            # applies unchanged. Off by default - see
+            # cylinder_machine._clip_to_cell.
+            if globals().get("Clip_To_Cell", False):
+                letter = sp.clip_to_angular_cell(letter, angle, Char_Theta,
+                                                  r_out=Arc_OD)
             parts.append(letter)
     build_log.progress_summary(f"TextAssemble side={side}", len(parts), skipped,
                                 time.perf_counter() - t_start)
@@ -956,6 +969,16 @@ def CalibrationTextRing(side, test_char, vary_baseline, start, interval):
                                      f"building {test_char!r} (row {baseline})")
             letter = LetterText(test_char, FONT_PATH, Type_Size)
             letter = sp.scad_transform(letter, *_text_placement_ops(angle, height))
+            # Trim to this character's own angular slot so its Minkowski
+            # draft skirt can't bleed into the neighbour's. Char_Theta is
+            # the shuttle's angular division, i.e. exactly one slot wide,
+            # and _text_placement_ops' outermost op is rotate([0,0,angle])
+            # about Z, so the same axis wedge the cylinder family uses
+            # applies unchanged. Off by default - see
+            # cylinder_machine._clip_to_cell.
+            if globals().get("Clip_To_Cell", False):
+                letter = sp.clip_to_angular_cell(letter, angle, Char_Theta,
+                                                  r_out=Arc_OD)
             parts.append(letter)
             mapping_lines.append(
                 f"side={side} baseline_row={baseline} col={i} char={test_char!r} height_mm={height:.4f}")

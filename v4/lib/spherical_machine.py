@@ -352,6 +352,17 @@ def AssembleMinkowski(flatness_tolerance_mm=None, minkowski_enabled=None, draft_
                 continue
             build_log.progress_done(time.perf_counter() - t0)
             if mesh is not None:
+                # Same per-slot trim as the cylinder/shuttle families -
+                # Longitude_Step IS one character's longitude slot, and
+                # characters are placed by rotation about Z, so the shared
+                # axis wedge applies. Clipped BEFORE the whole ring's own
+                # rotate([0,0,-5*Longitude_Step]) below, hence the raw
+                # `longitude` here. Off by default; the ball spaces its
+                # characters far enough apart that this rarely bites, but
+                # the knob exists so behavior is uniform fleet-wide.
+                if globals().get("Clip_To_Cell", False):
+                    mesh = sp.clip_to_angular_cell(mesh, longitude, Longitude_Step,
+                                                    r_out=2.0 * Max_OD)
                 parts.append(mesh)
     build_log.progress_summary("AssembleMinkowski", len(parts), skipped,
                                 time.perf_counter() - t_start)

@@ -183,6 +183,13 @@ def configure(config_path):
     b = cfg["build"]
     g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
     g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
+    # Trim each placed character to its own angular slot so its draft
+    # skirt cannot bleed into the neighbour - see
+    # cylinder_machine._clip_to_cell. Off by default: at the real 55
+    # degree draft the overlap is entirely buried inside the wall, so
+    # enabling it changes geometry for no visible gain unless the draft
+    # angle or font is pushed harder.
+    g["Clip_To_Cell"] = b.get("clip_to_cell", False)
     g["DEFAULT_RENDER_CORE_GROOVE"] = b["render_core_groove"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
     # circular segments for build_glyph's Minkowski cone kernel - see

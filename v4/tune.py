@@ -1065,6 +1065,23 @@ RIB_FIELDS_HAMMOND = [
 # Like draft_angle_deg elsewhere, whether the draft actually RUNS is never
 # a config toggle (Quick Preview always skips it, Render always applies
 # it - see tune.py's _run_build) - only its angle/height are tunable here.
+# Per-slot draft clipping - offered only for the machines that actually
+# implement it: the cylinder family (cylinder_machine._clip_to_cell, via
+# TextRing) and the Hammond Split shuttle (its own from-scratch
+# TextAssemble loop). NOT offered to the slug family, which strikes one
+# character per element and so has no neighbouring slot to leak into, nor
+# to the Selectrics, whose ball spaces characters far enough apart that it
+# never bites. The config key and the geometry ARE wired for those too, so
+# behavior stays uniform fleet-wide - only the checkbox is withheld, per
+# explicit user direction to expose it for cylinder and shuttle.
+CLIP_TO_CELL_FIELD = (
+    "clip_to_cell", ["build", "clip_to_cell"], bool, "Clip draft to slot",
+    "Trims each character's Minkowski draft skirt at its own slot boundary so it "
+    "cannot bleed into the neighbouring character. Leave off for a plain element "
+    "where the merged skirts stay buried in the wall anyway.")
+
+FONT_FIELDS_WITH_CLIP = SECTIONS_COMMON["Font & Alignment"] + [CLIP_TO_CELL_FIELD]
+
 FONT_FIELDS_HAMMOND_SPLIT = [
     ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters (Type_Face)."),
     ("size_mm", ["font", "size_mm"], float, "Font size (mm)", "Type_Size - em-square size."),
@@ -1087,6 +1104,7 @@ FONT_FIELDS_HAMMOND_SPLIT = [
      "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 # Logo (v2's real name) is a whole-string engraved label (two lines, read
@@ -1472,11 +1490,11 @@ COSMETICS_FIELDS = [
 ]
 
 SECTIONS_BY_MACHINE = {
-    "blickensderfer": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+    "blickensderfer": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
                        "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_BLICKENSDERFER,
                        "Cosmetics": COSMETICS_FIELDS},
-    "postal": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+    "postal": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
                "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_POSTAL,
                        "Cosmetics": COSMETICS_FIELDS},
@@ -1484,7 +1502,7 @@ SECTIONS_BY_MACHINE = {
     # ELEMENT_FIELDS_MIGNON's neighboring comment) - compose()/
     # _compose_build_tab() check for its absence and skip the tab/dropdown
     # option accordingly, rather than every machine being forced to have one.
-    "mignon": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
+    "mignon": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
                "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
                "Element": ELEMENT_FIELDS_MIGNON, "Legend": LEGEND_FIELDS_MIGNON},
     # no "Gauge" key - Bennett has no Shaft Gauge Test either (v2/bennett.
@@ -1492,7 +1510,7 @@ SECTIONS_BY_MACHINE = {
     # Shaft Gauge Test) are omitted"). No "Logo" key - its one engraved-
     # text feature is LABEL_FIELDS_BENNETT's "Label" tab instead (see that
     # list's neighboring comment).
-    "bennett": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_BENNETT,
+    "bennett": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Label": LABEL_FIELDS_BENNETT,
                 "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
                 "Element": ELEMENT_FIELDS_BENNETT},
     # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
@@ -1501,12 +1519,12 @@ SECTIONS_BY_MACHINE = {
     # same header, no engraved-TEXT feature at all. "Logo" key IS present
     # (LOGO_FIELDS_HELIOS) - v1's separate SVG_Logo mark, a deliberate
     # v1-sourced addition v2 never had - see that list's own comment.
-    "helios": {**SECTIONS_COMMON, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
+    "helios": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
                "Resin": RESIN_FIELDS_HELIOS, "Element": ELEMENT_FIELDS_HELIOS},
     # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
     # module docstring) - its two whole-string engraved labels are the
     # "Label" tab instead, same convention as Bennett.
-    "hammond": {**SECTIONS_COMMON, "Label": LABEL_FIELDS_HAMMOND,
+    "hammond": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
                 "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND,
                 "Legend": LEGEND_FIELDS_HAMMOND},

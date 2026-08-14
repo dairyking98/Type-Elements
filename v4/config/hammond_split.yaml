@@ -228,6 +228,10 @@ quality:
 # the Mink_On=false path but NOT for Mink_On=true).
 build:
   flatness_tolerance_mm: 0.005
+  # Trim each placed character to its own angular slot so its Minkowski
+  # draft skirt cannot bleed into the neighbouring character. See
+  # cylinder_machine._clip_to_cell. Off = the historical behavior.
+  clip_to_cell: false
   render_left: true                # Render_Left
   render_right: true                # Render_Right
   resin_support: false

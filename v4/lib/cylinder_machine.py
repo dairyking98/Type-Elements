@@ -237,6 +237,37 @@ def ClipCylinder(Offset):
     return sp.translate(c, [0, 0, Element_Height - z])
 
 
+def _clip_to_cell(mesh, col, angle_half_step=None):
+    """Trims an already-placed character to its own angular slot, so its
+    Minkowski draft skirt cannot bleed into the neighbouring character's.
+
+    Why this is needed at all: the draft flare is widest at the glyph's
+    ROOT and the column pitch is SMALLEST there (the root sits at the
+    innermost radius), so the root is exactly where neighbours collide.
+    With separation_mm=2.0 and the real 55-degree draft the flare is
+    1.04mm per side against a 3.48mm root pitch, and adjacent characters
+    genuinely intersect - 'M' next to 'M' overlaps by 1.94mm3, measured.
+    At a deliberately fat draft angle it is far worse (90 degrees gives a
+    2.0mm-per-side flare, i.e. wider than the entire slot). TextRing's
+    _check_inter_character_collisions() has always REPORTED this; this is
+    the repair it never had.
+
+    The slot: a character sits at (angle_half_step + col) * Latitude_Int,
+    so its cell spans half a Latitude_Int either side. For the machines
+    that use angle_half_step=0.5 (Blickensderfer/Postal/Bennett) those
+    boundaries land exactly on the facet corners the notched/banded wheel
+    styles cut at, which is the same "between two columns" line - not a
+    coincidence, both follow from the half-column offset.
+
+    The wedge itself is scad_primitives.clip_to_angular_cell, shared with
+    the shuttle and spherical families - all three distribute characters
+    by rotation about Z, so all three clip with the same shape."""
+    angle_half_step = 0.5 if angle_half_step is None else angle_half_step
+    center = (angle_half_step + PLACEMENT_MAP[col]) * LATITUDE_INT
+    return sp.clip_to_angular_cell(mesh, center, LATITUDE_INT,
+                                    r_out=Element_Diameter)
+
+
 def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
                        placement_protrusion=None, angle_half_step=None):
     """LetterPlacement() equivalent - see conversation for the full
@@ -360,15 +391,15 @@ def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, 
                 build_log.progress_skipped(e)
                 continue
             build_log.progress_done(time.perf_counter() - t0)
-            parts.append(place_on_cylinder(mesh, row, col, separation_mm,
-                                            placement_protrusion=placement_protrusion,
-                                            angle_half_step=angle_half_step))
+            placed = place_on_cylinder(mesh, row, col, separation_mm,
+                                        placement_protrusion=placement_protrusion,
+                                        angle_half_step=angle_half_step)
+            # Off by default fleet-wide, so no existing config changes
+            # behavior - see _clip_to_cell.
+            if globals().get("Clip_To_Cell", False):
+                placed = _clip_to_cell(placed, col, angle_half_step)
+            parts.append(placed)
     build_log.progress_summary("TextRing", len(parts), skipped, time.perf_counter() - t_start)
-
-    collisions = _check_inter_character_collisions(parts)
-    if collisions:
-        print(f"TextRing: {len(collisions)} inter-character collisions detected "
-              f"(detection only, not repaired): {sorted(collisions)}", flush=True)
 
     # Real union, not trimesh.util.concatenate: characters routinely overlap
     # each other (the collisions just reported above) and every character's
@@ -384,12 +415,19 @@ def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, 
 
 
 def _check_inter_character_collisions(parts):
-    """Real mesh-vs-mesh collision check between DIFFERENT character
-    parts (trimesh.collision.CollisionManager IS designed for exactly
-    this - between distinct registered objects - unlike the earlier,
-    meaningless single-mesh use of in_collision_internal() from the
-    conversation history, which never flags anything because there's
-    nothing else registered to collide with)."""
+    """Mesh-vs-mesh collision check between DIFFERENT character parts.
+    DEBUGGING ONLY - deliberately not called by TextRing anymore.
+
+    It used to run on every build and print its findings, which was noise
+    rather than signal for two reasons. It reports CONTACT, not overlap,
+    so once clip_to_cell is on and neighbours abut exactly along their
+    shared cell boundary it flags all of them anyway - measured 165
+    "collisions" on a build whose adjacent characters have a pairwise
+    boolean intersection of exactly 0.0mm3. And even with clipping off,
+    the overlap it was flagging is buried inside the body wall, which
+    Additive() unions in regardless, so there was never anything to act
+    on. Call it by hand from a REPL if a specific glyph pair needs
+    investigating."""
     cm = trimesh.collision.CollisionManager()
     for i, part in enumerate(parts):
         cm.add_object(str(i), part)
@@ -491,9 +529,12 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
                 platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                 platen_fn=platen_fn,
                 minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
-            parts.append(place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=baseline_mm,
-                                            placement_protrusion=placement_protrusion,
-                                            angle_half_step=angle_half_step))
+            placed = place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=baseline_mm,
+                                       placement_protrusion=placement_protrusion,
+                                       angle_half_step=angle_half_step)
+            if globals().get("Clip_To_Cell", False):
+                placed = _clip_to_cell(placed, col, angle_half_step)
+            parts.append(placed)
 
             # angle_deg computed from the REAL physical placement (matching
             # place_on_cylinder's own angle formula) rather than v2's raw

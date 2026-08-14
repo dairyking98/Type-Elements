@@ -176,6 +176,10 @@ alignment:
 build:
   flatness_tolerance_mm: 0.005
   separation_mm: 2.0
+  # Trim each placed character to its own angular slot so its Minkowski
+  # draft skirt cannot bleed into the neighbouring character. See
+  # cylinder_machine._clip_to_cell. Off = the historical behavior.
+  clip_to_cell: false
   render_core_groove: true
   resin_support: true          # Generate_Support
   target: "element"

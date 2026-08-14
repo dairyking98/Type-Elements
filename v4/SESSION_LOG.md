@@ -6449,6 +6449,58 @@ Both now show what the promoted defaults actually build: the notched
 faceting with its corner grooves, mirrored FreeMono Thin glyphs, and the
 QWERTY layout.
 
+### Draft skirts clipped to their own slot; the collision check retired
+
+Reported as drafts "leaking over to adjacent slots", provoked by setting
+the draft angle to 90 degrees.
+
+Diagnosed first. The flare is widest at the glyph's ROOT and the column
+pitch is SMALLEST there (the root sits at the innermost radius), so the
+root is exactly where neighbours meet. At the real 55-degree draft that
+is 1.04mm per side against a 3.48mm root pitch - 'M' beside 'M' overlaps
+by 1.94mm3, measured. At 90 degrees the flare is 2.0mm per side, wider
+than the whole slot, and the same pair overlaps by 10.96mm3.
+
+Also found while measuring, worth recording: `separation_mm` (2.0)
+happens to equal `Char_Protrusion + Wall_Min_Thickness` (0.5 + 1.5)
+exactly, so every character's widest cross-section is precisely COPLANAR
+with the hollow interior wall. Two independently-set config values
+colliding; every glyph's minimum radius measured exactly 15.500. Worth
+knowing, since coplanar faces are a degenerate boolean configuration
+regardless of the clipping question.
+
+Fix is `build.clip_to_cell`: intersect each PLACED character with its own
+angular slot. Verified at 90 degrees - M|M, m|m and A|V all go from
+10.96/8.76/4.70mm3 of overlap to exactly 0.0000mm3.
+
+The wedge lives in `scad_primitives.clip_to_angular_cell` rather than any
+one machine, because all three families distribute characters by rotation
+about Z and so clip with the same shape. It is ONE triangle (axis plus a
+point at each boundary angle) extruded in Z, not an arc sector: only the
+two flat sides ever cut, and as planes through the axis they are exact at
+any radius. Wired into the cylinder family (both TextRing and
+CalibrationTextRing), Hammond Split (both its own loops), and the
+spherical family (clipped before the ring's own global rotation, hence
+the raw longitude).
+
+Off by default fleet-wide, so all 14 configs stay byte-identical. The
+checkbox is exposed for cylinder and shuttle only, per explicit user
+direction - the slug family strikes one character per element and has no
+neighbouring slot at all, and the Selectrics' effect is marginal
+(measured: 0.001mm3). The config key and geometry are wired for those
+anyway so behavior stays uniform; only the checkbox is withheld.
+
+**`_check_inter_character_collisions` no longer runs on every build.** It
+was printing ~179 tuples per build, and it reports CONTACT rather than
+overlap - so once clipping is on and neighbours abut exactly along their
+shared boundary it flags them anyway (measured: 165 "collisions" on a
+build whose adjacent characters have a pairwise boolean intersection of
+exactly 0.0mm3). Even with clipping off, what it flagged was buried
+inside the wall, which Additive() unions in regardless, so there was
+never anything to act on. The function is kept for calling by hand when a
+specific glyph pair needs investigating; its docstring now says all of
+this.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

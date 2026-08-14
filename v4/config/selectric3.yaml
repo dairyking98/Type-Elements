@@ -136,6 +136,10 @@ label:
 
 build:
   flatness_tolerance_mm: 0.005
+  # Trim each placed character to its own angular slot so its Minkowski
+  # draft skirt cannot bleed into the neighbouring character. See
+  # cylinder_machine._clip_to_cell. Off = the historical behavior.
+  clip_to_cell: false
   draft_angle_deg: 55.0
   minkowski_enabled: true
   character_block_height_mm: 6.0

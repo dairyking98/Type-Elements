@@ -206,6 +206,43 @@ def torus(center_radius, tube_diameter, sections=128, tube_sections=32):
     return revolve_polygon(profile, sections=sections)
 
 
+def angular_wedge(center_deg, width_deg, z_lo, z_hi, r_out):
+    """A solid pie-slice about the Z axis: the region within +/-
+    width_deg/2 of center_deg, spanning z_lo..z_hi.
+
+    Used to trim a placed character to its own angular slot so a
+    Minkowski draft skirt cannot bleed into the neighbouring character's
+    (see cylinder_machine._clip_to_cell). Generic on purpose - the
+    cylinder, shuttle and spherical families all distribute characters by
+    rotation about Z, so all three clip with this same shape.
+
+    Built as ONE triangle (the axis plus a point at each boundary angle)
+    extruded in Z, not an arc sector: only the two flat sides ever cut,
+    and as planes through the axis they are exact at any radius. The
+    chord closing the triangle bows inward by r_out*(1-cos(width/2)),
+    so r_out only has to be comfortably beyond the geometry being
+    trimmed - it is not a precision surface.
+    """
+    a0 = np.radians(center_deg - width_deg / 2.0)
+    a1 = np.radians(center_deg + width_deg / 2.0)
+    verts = np.array([[0.0, 0.0],
+                       [r_out * np.cos(a0), r_out * np.sin(a0)],
+                       [r_out * np.cos(a1), r_out * np.sin(a1)]])
+    wedge = trimesh.creation.extrude_triangulation(
+        vertices=verts, faces=np.array([[0, 1, 2]]), height=z_hi - z_lo)
+    wedge.apply_translation([0.0, 0.0, z_lo])
+    return wedge
+
+
+def clip_to_angular_cell(mesh, center_deg, width_deg, r_out, margin=1.0):
+    """Intersects `mesh` with its own angular cell (see angular_wedge).
+    The wedge spans the mesh's own Z extent plus `margin` at each end, so
+    it only ever cuts in the angular direction."""
+    lo, hi = mesh.bounds[0][2] - margin, mesh.bounds[1][2] + margin
+    return mesh.intersection(
+        angular_wedge(center_deg, width_deg, lo, hi, r_out), engine="manifold")
+
+
 def box_centered(extents, center):
     """cube(size, center=true) equivalent placed at an arbitrary center."""
     b = trimesh.creation.box(extents=extents)
