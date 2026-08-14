@@ -382,6 +382,37 @@ ALIGN_MODIFIED_LEFT_OFFSET_MM = 0.0
 ALIGN_MODIFIED_RIGHT_CHARS = "("
 ALIGN_MODIFIED_RIGHT_OFFSET_MM = 0.0
 
+# --- Vertical alignment (per-character baseline overrides) ---
+# The y-axis counterpart to the modified-character groups above, and
+# deliberately in the same `alignment:` config section / same
+# ALIGN_KWARGS dict rather than a new section of its own: these are
+# per-character positional nudges, exactly like modified_left_chars/
+# modified_right_chars, just on the other axis.
+#
+# Both default to 0.0 fleet-wide, i.e. no machine changes behavior until
+# someone dials one in - the digital font's own glyph position is used
+# as-is, which is what every config did before these existed.
+#
+# caret_drop_mm: the Blickensderfer's caret sits low, on the baseline,
+# but no common digital font ships that glyph - U+005E (ASCII caret) is
+# drawn up at cap height, because in digital type it doubles as the
+# spacing form of the circumflex ACCENT. Dropping it back down onto the
+# baseline is a translation, not a redraw, so a single signed offset
+# covers it. Positive drops the glyph DOWN (it is a "drop"); typical
+# real values land around 0.6-0.65 x the font size. Idea and the
+# characterization of the problem come from RobertG's OpenSCAD
+# Blickensderfer wheel generator (badonoer.blogspot.com, CC BY-SA 4.0)
+# `caretDrop`; the implementation here is our own.
+#
+# underscore_lift_mm: many TTFs place U+005F well below the baseline so
+# it clears descenders in running text. On a struck type element that
+# puts it off the bottom of the character cell, so it needs raising.
+# Positive lifts UP. Same provenance as caret_drop_mm (`uScoreLift`).
+ALIGN_CARET_DROP_MM = 0.0
+ALIGN_UNDERSCORE_LIFT_MM = 0.0
+ALIGN_CARET_CHARS = "^"
+ALIGN_UNDERSCORE_CHARS = "_"
+
 
 def alignment_x_offset(char, advance_mm,
                         mode=ALIGN_MODE,
@@ -410,19 +441,67 @@ def alignment_x_offset(char, advance_mm,
     no v2 convention to match here (this whole scheme is v4-only, see
     the module docstring above), so there was no reason to keep it). A
     char matching both resolves to left (checked first), matching v2's
-    Modified/Modified2 precedence convention."""
+    Modified/Modified2 precedence convention.
+
+    Thin wrapper over alignment_offset() below, kept because callers that
+    only ever need the x component (spherical_machine's halign shim) read
+    better without an unused tuple element."""
+    return alignment_offset(
+        char, advance_mm, mode=mode,
+        center_offset_mm=center_offset_mm, left_offset_mm=left_offset_mm,
+        modified_left_chars=modified_left_chars,
+        modified_left_offset_mm=modified_left_offset_mm,
+        modified_right_chars=modified_right_chars,
+        modified_right_offset_mm=modified_right_offset_mm)[0]
+
+
+def alignment_offset(char, advance_mm,
+                     mode=ALIGN_MODE,
+                     center_offset_mm=ALIGN_CENTER_OFFSET_MM,
+                     left_offset_mm=ALIGN_LEFT_OFFSET_MM,
+                     modified_left_chars=ALIGN_MODIFIED_LEFT_CHARS,
+                     modified_left_offset_mm=ALIGN_MODIFIED_LEFT_OFFSET_MM,
+                     modified_right_chars=ALIGN_MODIFIED_RIGHT_CHARS,
+                     modified_right_offset_mm=ALIGN_MODIFIED_RIGHT_OFFSET_MM,
+                     caret_drop_mm=ALIGN_CARET_DROP_MM,
+                     underscore_lift_mm=ALIGN_UNDERSCORE_LIFT_MM,
+                     caret_chars=ALIGN_CARET_CHARS,
+                     underscore_chars=ALIGN_UNDERSCORE_CHARS):
+    """Returns the total (x, y) shift in mm to add to a glyph's raw
+    FreeType contour coordinates (pen origin at the left-side bearing on
+    the baseline, x=0/y=0).
+
+    x follows alignment_x_offset()'s docstring above. y is 0.0 for every
+    character except the two per-character baseline overrides described
+    at ALIGN_CARET_DROP_MM: characters in caret_chars shift DOWN by
+    caret_drop_mm, characters in underscore_chars shift UP by
+    underscore_lift_mm. Both default to 0.0, so this returns y=0 for
+    every character unless a config dials one in.
+
+    This is the single place both axes are resolved, so a caller can't
+    apply one and silently forget the other - the reason build_glyph()/
+    build_flat_text()/the slug family all call this rather than adding
+    their own y term. Sign convention matches the x offsets: the value
+    is a plain signed mm shift in the NAME'S direction (drop = down,
+    lift = up), so a negative caret_drop_mm raises the caret."""
     if mode == "center":
-        base = -advance_mm / 2.0 + center_offset_mm
+        dx = -advance_mm / 2.0 + center_offset_mm
     elif mode == "left":
-        base = left_offset_mm
+        dx = left_offset_mm
     else:
         raise ValueError(f"unknown alignment mode {mode!r}")
 
     if char in modified_left_chars:
-        base += modified_left_offset_mm
+        dx += modified_left_offset_mm
     elif char in modified_right_chars:
-        base += modified_right_offset_mm
-    return base
+        dx += modified_right_offset_mm
+
+    dy = 0.0
+    if caret_chars and char in caret_chars:
+        dy -= caret_drop_mm
+    elif underscore_chars and char in underscore_chars:
+        dy += underscore_lift_mm
+    return dx, dy
 
 
 # Anything smaller than this (mm^2) is floating-point noise from boolean-op
@@ -722,8 +801,8 @@ def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_
     scale = em_to_mm_scale(fs, face.units_per_EM)
     contours_mm, advance_mm = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=fp)
     if align_kwargs is not None:
-        x_shift = alignment_x_offset(char, advance_mm, **align_kwargs)
-        contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
+        x_shift, y_shift = alignment_offset(char, advance_mm, **align_kwargs)
+        contours_mm = [c + np.array([x_shift, y_shift]) for c in contours_mm]
     flat = classify_and_triangulate(contours_mm)
     front = make_front(flat, 0.0, 0.0, depth)
     back, front_outline = make_back(front, 0.0)
@@ -755,8 +834,8 @@ def build_flat_text_drafted(char, flatness_tolerance_mm, depth, font_size_mm=Non
     scale = em_to_mm_scale(fs, face.units_per_EM)
     contours_mm, advance_mm = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=fp)
     if align_kwargs is not None:
-        x_shift = alignment_x_offset(char, advance_mm, **align_kwargs)
-        contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
+        x_shift, y_shift = alignment_offset(char, advance_mm, **align_kwargs)
+        contours_mm = [c + np.array([x_shift, y_shift]) for c in contours_mm]
     flat = classify_and_triangulate(contours_mm)
 
     expansion_width_mm = depth * np.tan(np.radians(draft_angle_deg / 2.0))
@@ -879,8 +958,8 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
     scale = em_to_mm_scale(fs, face.units_per_EM)
 
     contours_mm, advance_mm = get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=fp)
-    x_shift = alignment_x_offset(char, advance_mm, **(align_kwargs or {}))
-    contours_mm = [c + np.array([x_shift, 0.0]) for c in contours_mm]
+    x_shift, y_shift = alignment_offset(char, advance_mm, **(align_kwargs or {}))
+    contours_mm = [c + np.array([x_shift, y_shift]) for c in contours_mm]
     # A struck type element carries a MIRROR-IMAGE of the desired printed
     # glyph (same reason a rubber stamp or hot-metal slug is cut reversed -
     # striking is a reflection through the contact plane, same as v2's

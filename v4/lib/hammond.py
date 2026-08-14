@@ -297,6 +297,11 @@ def configure(config_path):
         "modified_left_offset_mm": align["modified_left_offset_mm"],
         "modified_right_chars": align["modified_right_chars"],
         "modified_right_offset_mm": align["modified_right_offset_mm"],
+        # per-character baseline overrides (both default 0.0) - see
+        # glyph_poc.ALIGN_CARET_DROP_MM. .get() so a config predating
+        # these keys still loads.
+        "caret_drop_mm": align.get("caret_drop_mm", 0.0),
+        "underscore_lift_mm": align.get("underscore_lift_mm", 0.0),
     }
 
     b = cfg["build"]

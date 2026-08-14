@@ -96,7 +96,7 @@ from manifold3d import Manifold
 from shapely.geometry import Polygon as ShapelyPolygon, Point as ShapelyPoint
 
 from glyph_poc import (get_glyph_contours_and_advance, classify_and_triangulate,
-                        alignment_x_offset, em_to_mm_scale, load_font_face)
+                        alignment_offset, em_to_mm_scale, load_font_face)
 import scad_primitives as sp
 import svg_import
 import build_log
@@ -221,7 +221,9 @@ def _align_kwargs():
                 modified_left_chars=Align_Modified_Left_Chars,
                 modified_left_offset_mm=Align_Modified_Left_Offset_Mm,
                 modified_right_chars=Align_Modified_Right_Chars,
-                modified_right_offset_mm=Align_Modified_Right_Offset_Mm)
+                modified_right_offset_mm=Align_Modified_Right_Offset_Mm,
+                caret_drop_mm=Align_Caret_Drop_Mm,
+                underscore_lift_mm=Align_Underscore_Lift_Mm)
 
 
 def DraftText(flatness_tolerance_mm=None, minkowski_enabled=None, draft_angle_deg=None,
@@ -243,9 +245,9 @@ def DraftText(flatness_tolerance_mm=None, minkowski_enabled=None, draft_angle_de
     contours = []
     for ch, y in ((Lower_Char, Baseline), (Upper_Char, Baseline + Baselines_Shift_Motion)):
         c_contours, advance_mm = get_glyph_contours_and_advance(ch, flatness_tolerance_mm, scale, font_path=FONT_PATH)
-        x_shift = alignment_x_offset(ch, advance_mm, **align_kwargs)
+        x_shift, y_shift = alignment_offset(ch, advance_mm, **align_kwargs)
         for c in c_contours:
-            contours.append(c + np.array([x_shift, y]))
+            contours.append(c + np.array([x_shift, y + y_shift]))
     contours = [c * np.array([-1.0, 1.0]) for c in contours]  # mirror([1,0,0]) - struck character
 
     flat = classify_and_triangulate(contours)
