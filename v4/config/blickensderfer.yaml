@@ -58,7 +58,17 @@ element:
   drive_pin_countersink_depth: 2.0
   drive_pin_support_radial_offset: 0.5
   drive_pin_support_height: 2.0
-  drive_pin_style: 0                   # 0=later, 1=old (not ported)
+  # Which drive fitting the element is cut for. 0 = later (a rectangular
+  # pin); 1 = early (a radial SLOT - v2 spells these "later"/"early",
+  # blickensderfer.scad:233). Both are ported. Switching this changes the
+  # drive-pin cut, the countersink support boss inside HollowSpace(), and
+  # the resin drive-pin support together - see blickensderfer.py's
+  # _drive_pin_countersink().
+  drive_pin_style: 0
+  # Early-style trio (v2:234-236) - only read when drive_pin_style is 1.
+  drive_pin_width_oldmm: 2.05          # slot width, before drive_pin_width_offset
+  drive_pin_length_old: 3.5            # slot length, and its countersink diameter
+  drive_pin_length_start_old: 9.3      # slot's INNER end; radial centre = this + length/2
   core_id_offset: 0.14                 # print-tolerance addition to shaft minor diameter
   drive_pin_width_offset: 0.15
 

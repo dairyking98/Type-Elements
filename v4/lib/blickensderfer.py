@@ -101,12 +101,24 @@ def configure(config_path):
     g["Drive_Pin_Support_Radial_Offset"] = e["drive_pin_support_radial_offset"]
     g["Drive_Pin_Support_Height"] = e["drive_pin_support_height"]
     g["Drive_Pin_Style"] = e["drive_pin_style"]
+    # Early ("old") drive-pin trio, v2 blickensderfer.scad:234-236. Only
+    # read when drive_pin_style == 1; .get() with v2's own literals so a
+    # config predating these keys still loads.
+    g["Drive_Pin_Width_Oldmm"] = e.get("drive_pin_width_oldmm", 2.05)
+    g["Drive_Pin_Length_Old"] = e.get("drive_pin_length_old", 3.5)
+    g["Drive_Pin_Length_Start_Old"] = e.get("drive_pin_length_start_old", 9.3)
     g["Core_ID_Offset"] = e["core_id_offset"]
     g["Drive_Pin_Width_Offset"] = e["drive_pin_width_offset"]
 
     g["Shaft_Diameter"] = g["Core_ID_Mm"] + g["Core_ID_Offset"]
     g["Drive_Pin_Width"] = g["Drive_Pin_Widthmm"] + g["Drive_Pin_Width_Offset"]
     g["Drive_Pin_Countersink_ID"] = np.sqrt(g["Drive_Pin_Width"] ** 2 + g["Drive_Pin_Length"] ** 2)
+    # v2:261 - the early pin takes the SAME print-tolerance addition as
+    # the later one, not its own separate offset.
+    g["Drive_Pin_Width_Old"] = g["Drive_Pin_Width_Oldmm"] + g["Drive_Pin_Width_Offset"]
+    # v2:238 - the early pin is dimensioned from its INNER end plus half
+    # its own length, not by a directly-measured centre radius.
+    g["Drive_Pin_Radial_Old"] = g["Drive_Pin_Length_Start_Old"] + g["Drive_Pin_Length_Old"] / 2.0
     g["Clip_OD"] = g["Shaft_Diameter"] + 2 * g["Wall_Min_Thickness"]
     g["Logo_Radius"] = g["Element_Diameter"] / 2 - 2.0
 
@@ -240,10 +252,29 @@ def _require_configured():
         raise RuntimeError("call blickensderfer.configure(config_path) before using this module")
 
 
+def _drive_pin_countersink():
+    """(countersink_id, radius) for the active Drive_Pin_Style - v2's own
+    `Drive_Pin_Style==0?X:Y` ternary pair, which it repeats verbatim in
+    THREE places (HollowSpace() at blickensderfer.scad:404-405,
+    ResinSupport() at :507-508, and implicitly in DrivePin() at :431-451).
+    Resolved once here so a fourth call site can't drift, and so the
+    early style can't be half-wired (ported in DrivePin but forgotten in
+    the support boss, which is exactly the shape of bug the old
+    `if Drive_Pin_Style != 0: raise NotImplementedError` was guarding
+    against).
+
+    Style 1 uses Drive_Pin_Length_Old as the countersink DIAMETER, not
+    the derived width/length diagonal style 0 uses - that is v2's real
+    behavior, not a simplification: the early pin's footprint is a slot
+    whose length already IS the circumscribing circle's diameter."""
+    if Drive_Pin_Style == 0:
+        return Drive_Pin_Countersink_ID, Drive_Pin_Radial
+    return Drive_Pin_Length_Old, Drive_Pin_Radial_Old
+
+
 def HollowSpace():
     body = sp.revolve_polygon(cylinder_machine._hollow_space_profile(), sections=Surface_Fn)
-    countersink_id = Drive_Pin_Countersink_ID if Drive_Pin_Style == 0 else None
-    radius = Drive_Pin_Radial if Drive_Pin_Style == 0 else None
+    countersink_id, radius = _drive_pin_countersink()
     cutter = sp.cylinder_z(countersink_id + 2 * Drive_Pin_Support_Radial_Offset,
                             Drive_Pin_Countersink_Depth + Drive_Pin_Support_Height,
                             sections=Surface_Fn)
@@ -252,16 +283,45 @@ def HollowSpace():
 
 
 def DrivePin():
-    if Drive_Pin_Style != 0:
-        raise NotImplementedError("Drive_Pin_Style=1 (old) not ported")
-    pin = trimesh.creation.box(extents=[Drive_Pin_Width, Drive_Pin_Length, 5])
-    pin = sp.scad_transform(
-        pin,
-        ("translate", [Drive_Pin_Radial, 0, -z + 2.5]),
-        ("rotate", [0, 0, 90]),
-    )
-    sink = sp.cylinder_z(Drive_Pin_Countersink_ID, z + Drive_Pin_Countersink_Depth, sections=Surface_Fn)
-    sink = sp.translate(sink, [Drive_Pin_Radial, 0, -z])
+    """v2 DrivePin() (blickensderfer.scad:430-452) - both real styles.
+
+    Style 0 ("later", the default): a rectangular pin, cube([Drive_Pin_
+    Width, Drive_Pin_Length, 5]) rotated 90 degrees about Z, so its
+    footprint is Drive_Pin_Length radially by Drive_Pin_Width
+    tangentially.
+
+    Style 1 ("early"): a SLOT, not a rectangle - hull() of two
+    Drive_Pin_Width_Old cylinders spaced so the stadium spans
+    Drive_Pin_Length_Old along the radial axis. Note it is NOT rotated
+    90 degrees the way style 0 is, i.e. its long axis runs radially
+    where style 0's runs tangentially; that asymmetry is real v2
+    geometry. v2 spells the pair as `Drive_Pin_Length_Start_Old` (9.3,
+    the slot's inner end) plus half its length, which this module
+    resolves into Drive_Pin_Radial_Old at configure() time exactly as
+    v2's own line 238 does."""
+    _require_configured()
+    countersink_id, radius = _drive_pin_countersink()
+    if Drive_Pin_Style == 0:
+        pin = trimesh.creation.box(extents=[Drive_Pin_Width, Drive_Pin_Length, 5])
+        pin = sp.scad_transform(
+            pin,
+            ("translate", [radius, 0, -z + 2.5]),
+            ("rotate", [0, 0, 90]),
+        )
+    else:
+        # hull() of the two end cylinders. A convex hull of two convex
+        # solids is exactly the convex hull of their combined vertices,
+        # so this needs no boolean - same shortcut wing_slug.py's own
+        # body hull already relies on.
+        half = Drive_Pin_Length_Old / 2.0 - Drive_Pin_Width_Old / 2.0
+        ends = [sp.translate(sp.cylinder_z(Drive_Pin_Width_Old, 5, sections=Surface_Fn),
+                              [dx, 0.0, 0.0])
+                for dx in (half, -half)]
+        pin = trimesh.Trimesh(
+            vertices=np.vstack([e.vertices for e in ends]), process=True).convex_hull
+        pin = sp.translate(pin, [radius, 0, -z])
+    sink = sp.cylinder_z(countersink_id, z + Drive_Pin_Countersink_Depth, sections=Surface_Fn)
+    sink = sp.translate(sink, [radius, 0, -z])
     return sp.union_all([pin, sink])
 
 
@@ -270,8 +330,7 @@ def ResinSupport():
     (Drive_Pin_Countersink_ID/2), unlike Postal's plain-pin version - see
     postal.py's ResinSupport()."""
     _require_configured()
-    countersink_id = Drive_Pin_Countersink_ID
-    radius = Drive_Pin_Radial
+    countersink_id, radius = _drive_pin_countersink()
     parts = [
         cylinder_machine.CutGroove(),
         cylinder_machine.SpeedHoleSupports(),

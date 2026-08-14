@@ -828,6 +828,19 @@ ELEMENT_FIELDS_HELIOS = [
     ("core_groove_d", ["element", "core_groove_d"], float, "Core groove depth (mm)", "Estimated, not from v2 - see the note above."),
 ]
 
+# Scalar fields that render as a dropdown instead of a free-text Input,
+# keyed by field name: {field key: [(display label, stored value), ...]}.
+# Stored values are always STRINGS (Select's own value type); the field's
+# declared type in its FIELDS entry is what converts back on save, so an
+# int-typed field lists "0"/"1" here and round-trips as int. A dict rather
+# than an if/elif chain in _compose_section_tab for the same reason
+# LAYOUT_PICKER_HELP is one - a new dropdown field should mean one entry
+# here, not another branch (see CLAUDE.md's "Pick one convention").
+SELECT_FIELD_OPTIONS = {
+    "mode": [("center", "center"), ("left", "left")],
+    "drive_pin_style": [("Later (rectangular pin)", "0"), ("Early (radial slot)", "1")],
+}
+
 ELEMENT_FIELDS_BLICKENSDERFER = [
     ("element_diameter", ["element", "element_diameter"], float, "Element diameter (mm)", ""),
     ("platen_diameter", ["element", "platen_diameter"], float, "Platen diameter (mm)", "Real platen cylinder diameter."),
@@ -862,7 +875,14 @@ ELEMENT_FIELDS_BLICKENSDERFER = [
      "Drive pin support radial offset (mm)", ""),
     ("drive_pin_support_height", ["element", "drive_pin_support_height"], float,
      "Drive pin support height (mm)", ""),
-    ("drive_pin_style", ["element", "drive_pin_style"], int, "Drive pin style", "0=current, 1=old (not ported - will error)."),
+    ("drive_pin_style", ["element", "drive_pin_style"], int, "Drive pin style",
+     "Which drive fitting the element is cut for. Later is a rectangular pin; Early is a radial slot. Changes the pin cut, the countersink support boss and the resin drive-pin support together."),
+    ("drive_pin_width_oldmm", ["element", "drive_pin_width_oldmm"], float, "Early slot width (mm)",
+     "Only used when Drive pin style is Early. Before the width offset below is added."),
+    ("drive_pin_length_old", ["element", "drive_pin_length_old"], float, "Early slot length (mm)",
+     "Only used when Drive pin style is Early. Doubles as the countersink diameter."),
+    ("drive_pin_length_start_old", ["element", "drive_pin_length_start_old"], float, "Early slot inner radius (mm)",
+     "Only used when Drive pin style is Early. The slot's inner end; its radial centre is this plus half the length."),
     ("core_id_offset", ["element", "core_id_offset"], float, "Core ID offset (mm)", "Print-tolerance addition."),
     ("drive_pin_width_offset", ["element", "drive_pin_width_offset"], float, "Drive pin width offset (mm)", ""),
 ]
@@ -875,7 +895,8 @@ ELEMENT_FIELDS_BLICKENSDERFER = [
 ELEMENT_FIELDS_POSTAL = [
     f for f in ELEMENT_FIELDS_BLICKENSDERFER
     if f[0] not in ("drive_pin_countersink_depth", "drive_pin_support_radial_offset",
-                     "drive_pin_support_height", "drive_pin_style", "drive_pin_width_offset")
+                     "drive_pin_support_height", "drive_pin_style", "drive_pin_width_offset",
+                     "drive_pin_width_oldmm", "drive_pin_length_old", "drive_pin_length_start_old")
 ]
 
 LABEL_FIELDS_HAMMOND = [
@@ -2509,10 +2530,11 @@ class TuneApp(App):
                                 sw = Switch(value=bool(current), id=f"field-{key}")
                                 self.inputs[key] = sw
                                 yield sw
-                            elif key == "mode":
-                                val = str(current) if str(current) in ("center", "left") else "center"
-                                sel = Select([("center", "center"), ("left", "left")],
-                                             value=val, id=f"field-{key}", allow_blank=False)
+                            elif key in SELECT_FIELD_OPTIONS:
+                                options = SELECT_FIELD_OPTIONS[key]
+                                allowed = [v for _, v in options]
+                                val = str(current) if str(current) in allowed else allowed[0]
+                                sel = Select(options, value=val, id=f"field-{key}", allow_blank=False)
                                 self.inputs[key] = sel
                                 yield sel
                             else:
