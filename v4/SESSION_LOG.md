@@ -6375,39 +6375,51 @@ generalized to arbitrary character sets (the same merge direction noted
 for caret/underscore above), so it is left alone rather than
 half-solved.
 
-### The tuned running copy saved as a variant config
+### The tuned running copy promoted to be the master's defaults
 
-`config/blickensderfer_freemono_thin.yaml`, captured from the running
-copy as it stood: FreeMono Thin instead of Royal Vogue v3, the QWERTY
-preset instead of hand-edited DHIATENSOR, both modified-char x-nudges
-back to 0.0, `caret_drop_mm: 2.4`, `resin_support: false`, and the
-notched wheel style at `notch_diameter: 0.5`.
+First attempt read "used as a new preset" as a variant config
+(`blickensderfer_freemono_thin.yaml`, following the existing
+`<machine>_<font>.yaml` convention). Wrong reading - the ask was for
+these to become `config/blickensderfer.yaml`'s own DEFAULTS. Variant
+removed, values promoted into the master instead.
 
-This follows the existing `<machine>_<font>.yaml` convention (commit
-52f0dfc added a batch of these; 8fbd39a later dropped the ones that were
-pure font swaps). This one earns its place by being more than a font
-swap - layout, alignment, build target and cosmetics all differ.
+Applied as targeted value edits rather than copying the running file
+over the master, because the two had drifted in COMMENTS (the master
+carries the block comment explaining drive_pin_style plus inline notes on
+the early-slot trio; the running copy has tune.py's flatter versions).
+Copying wholesale would have silently thrown the better documentation
+away.
 
-Two things make a variant work, both already in place and neither
-obvious: `machine:` stays `blickensderfer`, so
-`_running_config_path()` - which keys off the MACHINE, not the master's
-filename - resolves it to the same `blickensderfer.running.yaml` every
-Blickensderfer config shares, rather than spawning a per-variant scratch
-copy (that regression is called out in that function's own comment). And
-`output.stl_name` stays the base machine's for the same reason.
+Promoted: FreeMono Thin, logo text_spacing 7.0 / radial_offset_mm 1.6,
+the QWERTY preset with `modify_glyphs: false`, both modified-char
+x-nudges to 0.0, `caret_drop_mm: 2.4`, `resin_support: false`,
+`wheel_style: notched` at `notch_diameter: 0.5`, and band offsets/heights
+[1.2, 1.0] / [1.2, 1.0] - the last of which quietly closes the open
+2.0mm-band item, since those fit the 1.406/1.860mm real gaps.
 
-Reached through tune.py's "Browse config", not the machine picker:
-`MACHINES` is a hardcoded table of base machines only, which is how the
-earlier variants worked too. Adding a picker button would mean a
-`MACHINES` entry plus a `MACHINE_CATEGORIES` slot - not done, since that
-table is deliberately one-entry-per-machine rather than
-per-configuration.
+Nothing in `element:`, `quality:` or `resin:` changed - every delta was a
+preference-level setting, so the 1:1-from-v2 geometry this file documents
+itself as carrying is untouched.
 
-Verified: builds watertight (FullElement, not ResinPrint - correct, since
-`resin_support: false`), the base master's gate line is unchanged, both
-configs resolve to the same running copy, and a headless TuneApp load
-(scratch copies only) shows every value arriving in the right widget with
-the Layout tab correctly resolving the rows back to the QWERTY preset.
+Two comments had to be corrected rather than left to rot, since both
+asserted defaults that are no longer true: the caret/underscore block
+said "Both 0.0 = ... the behavior every config had before these keys
+existed", and the cosmetics block called "round" *the* default. Both now
+scope that claim to the other machines.
+
+**New gate baseline for this config**, since the change is deliberate:
+`FullElement: verts=29489 faces=59058 volume=4354.352mm3` (FullElement,
+not ResinPrint, because `resin_support` is now false). The old
+`ResinPrint: verts=38310 faces=76792 volume=5646.195mm3` line quoted
+throughout this session's earlier parts no longer applies to
+blickensderfer. All 13 other configs verified byte-identical in the same
+run.
+
+Verified beyond the build: a headless TuneApp load (scratch copy) shows
+every promoted value in its widget with the Layout tab resolving to
+QWERTY and the resin-support switch off, and `action_reset_defaults()`
+restores them after the widgets are scribbled over - which is what makes
+"defaults" mean anything.
 
 ### Resuming later
 
