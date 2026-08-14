@@ -1,0 +1,22 @@
+# Font & Alignment profile - see lib/font_profiles.py.
+# 'values' keys are dotted config paths; a machine without a
+# given path simply skips it when this profile is applied.
+name: FreeMono Thin
+values:
+  alignment.caret_drop_mm: 2.4
+  alignment.center_offset_mm: 0.0
+  alignment.left_offset_mm: 0.0
+  alignment.mode: center
+  alignment.modified_left_chars: '!,.;:)'
+  alignment.modified_left_offset_mm: 0.0
+  alignment.modified_right_chars: (
+  alignment.modified_right_offset_mm: 0.0
+  alignment.underscore_lift_mm: 0.0
+  build.clip_to_cell: false
+  build.draft_angle_deg: 55.0
+  font.path: /home/lchau/fonts/Custom & Modified/FreeMono - Thin Weight (Leonard Chau).ttf
+  font.size_mm: 3.7
+  font2.font2_chars: ''
+  font2.font2_path: ''
+  font2.font2_size_mm: 0.0
+saved_from: blickensderfer

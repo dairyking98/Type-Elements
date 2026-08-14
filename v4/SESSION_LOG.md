@@ -6615,6 +6615,28 @@ clip_to_cell), NOT in SECTIONS_COMMON: the slug family shares that table
 and implements neither, and a field whose config path does not exist
 raises rather than degrading. Caught by the 15-machine compose test.
 
+### Profile deletion, and a note on the storage format
+
+"How to delete? Thought it would be a yaml, not something proprietary."
+It IS plain YAML and always was - `config/profiles/font_and_alignment/
+<slug>.yaml`, one file per profile, keyed by dotted config path, with a
+header comment pointing at `lib/font_profiles.py`. Deleting the file is a
+complete deletion; nothing indexes or caches them (`list_profiles()` reads
+the directory each call). The gap was that the TUI offered no route,
+which is a fair thing to read as opacity.
+
+Added a Delete profile button beside Save, with a confirmation showing
+the exact path - deleting removes a real file the user wrote and nothing
+in the app can undo it, and naming the path means it can be recovered
+from git or a backup if the answer was wrong.
+
+`delete_profile()` matches on DISPLAY name rather than re-slugifying, so
+a profile whose file was renamed by hand still deletes the file the
+picker was actually showing.
+
+Profiles are NOT gitignored, deliberately: they are small, portable and
+worth sharing between checkouts, same as the configs they complement.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

@@ -121,6 +121,20 @@ def save_profile(config_dir, name, values, saved_from=None):
     return path
 
 
+def delete_profile(config_dir, name):
+    """Deletes the profile with this display name. Returns the path
+    removed, or None if no such profile exists.
+
+    Matches on the DISPLAY name rather than re-slugifying it, so a profile
+    whose file was renamed by hand, or whose name no longer slugifies to
+    its filename, still deletes the file the picker was actually showing."""
+    for n, path in list_profiles(config_dir):
+        if n == name:
+            os.remove(path)
+            return path
+    return None
+
+
 # ---------------------------------------------------------------- Equivalences
 # Config paths that are the SAME KNOB spelled differently by different
 # machine families, so a profile carrying one can still set the other.

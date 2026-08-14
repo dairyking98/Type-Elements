@@ -1895,6 +1895,38 @@ class ReflowingRichLog(RichLog):
         self._reflow_width = new_width
 
 
+class ConfirmDelete(ModalScreen[bool]):
+    """Yes/no before deleting a saved profile. Deleting removes a real
+    file the user wrote, which nothing else in this app can undo, so it
+    asks - and it shows the exact path, both so the answer is informed
+    and so the file can be recovered from a backup or git if the answer
+    was wrong."""
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def __init__(self, name, path):
+        super().__init__()
+        self._name = name
+        self._path = path
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="fontpicker"):
+            yield Static(f"Delete profile: {self._name}", classes="picker-title")
+            yield Static(f"Removes {self._path}. Nothing else changes - the "
+                          f"values stay in whatever configs already use them.",
+                          classes="picker-help")
+            with Horizontal(classes="font-btn-row"):
+                yield Button("Delete", id="confirmdelete-ok", variant="error",
+                              classes="sysfont-btn")
+                yield Button("Cancel", id="confirmdelete-cancel", classes="sysfont-btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id == "confirmdelete-ok")
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
+
+
 class ProfileApplyPicker(ModalScreen[list | None]):
     """Choose which of a profile's values to apply. Dismisses with the
     list of chosen target paths, or None if cancelled.
@@ -2779,6 +2811,7 @@ class TuneApp(App):
                              prompt="(none)")
             with Horizontal(classes="font-btn-row"):
                 yield Button("Save as profile", id="font-profile-save", classes="sysfont-btn")
+                yield Button("Delete profile", id="font-profile-delete", classes="sysfont-btn")
             yield Static(self._font_profile_status(current), id="font-profile-status",
                           classes="field-help")
 
@@ -2866,6 +2899,34 @@ class TuneApp(App):
         current = self._current_font_profile()
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
         select.value = current if current in names else Select.NULL
+
+    async def _delete_font_profile(self):
+        """Deletes whichever profile the dropdown is showing. Profiles are
+        plain YAML files under config/profiles/font_and_alignment/, so
+        deleting one by hand does the same thing - this is the convenient
+        route, not the only one."""
+        try:
+            select = self.query_one("#font-profile-select", Select)
+        except NoMatches:
+            return
+        name = select.value
+        if name is Select.NULL or not name:
+            self.log_line("[yellow]no profile selected to delete[/yellow]")
+            return
+        name = str(name)
+        match = [p for n, p in font_profiles.list_profiles(self._config_dir()) if n == name]
+        if not match:
+            self.log_line(f"[red]profile {name!r} not found[/red]")
+            return
+        if not await self.push_screen_wait(ConfirmDelete(name, match[0])):
+            self.log_line(f"[yellow]kept profile {name!r}[/yellow]")
+            return
+        removed = font_profiles.delete_profile(self._config_dir(), name)
+        self.log_line(f"[green]deleted profile {name!r}[/green] - {removed}")
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        select.set_options([(n, n) for n in names])
+        select.value = Select.NULL
+        self._refresh_font_profile_status()
 
     def _refresh_font_profile_status(self):
         try:
@@ -4735,6 +4796,8 @@ class TuneApp(App):
             self.run_worker(self._select_machine(button_id.removeprefix("pick-machine-")), exclusive=True)
         elif button_id == "btn-change-machine":
             self.run_worker(self._change_machine(), exclusive=True)
+        elif button_id == "font-profile-delete":
+            self.run_worker(self._delete_font_profile(), exclusive=True)
         elif button_id == "font-profile-save":
             self.run_worker(self._save_font_profile(), exclusive=True)
         elif button_id == "btn-cancel-build":
