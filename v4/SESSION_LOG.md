@@ -6421,6 +6421,34 @@ QWERTY and the resin-support switch off, and `action_reset_defaults()`
 restores them after the widgets are scribbled over - which is what makes
 "defaults" mean anything.
 
+### Example renders refreshed to the new defaults
+
+`example_renders/blickensderfer.stl` and its cross-section companion
+rebuilt from the promoted config, and both thumbnails regenerated through
+`generate_thumbnails.py` (the headless-Chrome/Three.js harness, so they
+match the live viewer rather than a second renderer).
+
+Checked before publishing that the running copy really was the committed
+config rather than assuming it: a full-quality build from
+`config/blickensderfer.yaml` gives faces=164004 volume=4470.243mm3,
+identical to `output/blickensderfer_running.stl`. The only difference is
+verts (81962 vs 81921), which is STL reload merging coincident vertices,
+not a different mesh. Worth noting both files also report
+`watertight=False` when loaded back through trimesh - that is STL being a
+triangle soup on round-trip, true of every example render here and not a
+defect; `generate.py`'s own in-memory summary says watertight=True.
+
+The cross-section was regenerated too rather than left behind: it is
+produced by `generate.py --cross-section-angle-deg 0` (tune.py's Build
+tab exposes the same thing as a switch + angle), so it is reproducible
+rather than a hand-made one-off, and leaving it on the old round-body
+Royal Vogue geometry next to a freshly notched main render would have
+been a visible inconsistency on the site.
+
+Both now show what the promoted defaults actually build: the notched
+faceting with its corner grooves, mirrored FreeMono Thin glyphs, and the
+QWERTY layout.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
