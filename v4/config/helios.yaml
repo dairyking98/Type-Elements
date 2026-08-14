@@ -40,6 +40,20 @@ font:
   path: "/home/lchau/fonts/Library/Sans Text/Kurinto Type.ttf"
   size_mm: 2.7
 
+# Secondary font - characters listed in font2_chars are struck in this
+# font/size instead of the main one. Same feature the Selectric family and
+# Hammond Split have, under the same key names. Empty font2_chars =
+# inactive (the default), so this changes nothing until it is filled in.
+# The real use is glyph coverage: measured across the 170 distinct
+# characters in all 28 Blickensderfer layout presets, Royal Vogue v3 is
+# missing 87 (fractions, currency), Erica Type 52 (including "@"), Alma
+# Mono and CMU Typewriter 50 each, and no non-Hebrew font covers the
+# Hebrew-English preset at all.
+font2:
+  font2_path: ""            # blank = use the main font
+  font2_size_mm: 0.0        # 0 = use the main font size
+  font2_chars: ""
+
 element:
   platen_diameter: 30
   element_diameter: 27.15

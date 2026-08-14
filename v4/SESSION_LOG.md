@@ -6569,6 +6569,52 @@ change rather than a drive-by:
 - `alignment.x_pos_offset` overlaps `center_offset_mm`/`left_offset_mm`,
   but the Composer's is flagged print-critical and byte-exact from v2.
 
+### Secondary font extended to the cylinder family and Hammond
+
+Asked whether the font2 feature should apply to cylinder and shuttle.
+Measured the case rather than guessing, against the 170 distinct
+characters across all 28 Blickensderfer layout presets:
+
+| font | missing |
+| --- | --- |
+| Royal Vogue v3 | 87 (fractions, currency, accents) |
+| Erica Type | 52 (including "@") |
+| Alma Mono / CMU Typewriter / Glass Antiqua | 50 each |
+| Iosevka / Noto Sans Mono / Kurinto | 28-42 (Hebrew) |
+| FreeMono, FreeMono Thin, AverageMono, FreeSans/Serif | 0 |
+
+So yes - the gap is real for most typewriter faces, and total for the
+Hebrew-English preset. Wired into `cylinder_machine.TextRing` (and
+`CalibrationTextRing`) via a `_font_for(char)` helper, the same shape
+`spherical_machine` already used.
+
+Proved on a real element: Royal Vogue as the main font with FreeSans as
+font 2 for "1/4 1/2 3/4 GBP" - characters Royal Vogue has NONE of - takes
+the build from verts=27344 volume=4400.315mm3 to verts=27962
+volume=4404.946mm3, i.e. four characters that were silently empty become
+real struck glyphs.
+
+**Hammond Split's `char_mod:` renamed to `font2:`** so all three families
+now spell one concept one way (CLAUDE.md "Pick one convention"). Both
+were faithful ports of different v2 names (Char_Mod vs Font2_*); font2
+wins on majority (3 machines to 1) and the internal globals keep v2's
+Char_Mod* names, which remain the right cross-reference for that
+machine's own source. Byte-identical, and it paid for itself immediately:
+tune.py's Type Test passthrough collapsed from two branches to one, and
+three entries dropped out of `EQUIVALENT_PATHS` because the paths now
+match directly.
+
+Note the leaf names stay prefixed (`font2_path`, not `font_path`) - the
+existing comment in config/hammond_split.yaml explains why, and it is
+load-bearing: `patch_yaml_value()` searches for a FIELDS key's literal
+text anywhere in the file, not scoped by section, so a leaf shared with
+`font.path` would silently patch the wrong line.
+
+Fields live in `FONT_FIELDS_CYLINDER` (SECTIONS_COMMON + font2 +
+clip_to_cell), NOT in SECTIONS_COMMON: the slug family shares that table
+and implements neither, and a field whose config path does not exist
+raises rather than degrading. Caught by the 15-machine compose test.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

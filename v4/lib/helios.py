@@ -124,6 +124,15 @@ def configure(config_path):
     g["FONT_PATH"] = font["path"]
     g["FONT_SIZE_MM"] = font["size_mm"]
 
+    # Secondary font - characters listed here are struck in font 2 instead
+    # of the main font. Same feature the Selectric family and Hammond Split
+    # already had; empty font2_chars = inactive, so nothing changes until a
+    # config asks for it.
+    f2 = cfg.get("font2") or {}
+    g["FONT2_PATH"] = f2.get("font2_path") or g["FONT_PATH"]
+    g["Font2_Size"] = f2.get("font2_size_mm") or g["FONT_SIZE_MM"]
+    g["Font2_Chars"] = f2.get("font2_chars", "")
+
     e = cfg["element"]
     # v2/heliosklimax.scad:59 - z=.01, same magnitude as Blickensderfer/
     # Postal (not Mignon/Bennett's 0.001) - no divergence to explain.

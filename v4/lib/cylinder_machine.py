@@ -237,6 +237,27 @@ def ClipCylinder(Offset):
     return sp.translate(c, [0, 0, Element_Height - z])
 
 
+def _font_for(char):
+    """(font_path, size_mm) for one character - font 2 when the character
+    is in Font2_Chars, otherwise the main font. Same secondary-font
+    concept the Selectric family and Hammond Split already had; added here
+    because the real need is in this family's own layouts. Many typewriter
+    faces simply lack the characters these presets use: measured against
+    the 170 distinct characters across all 28 Blickensderfer presets,
+    Royal Vogue v3 is missing 87 of them (including the fractions and
+    currency), Erica Type 52 (including "@"), Alma Mono and CMU Typewriter
+    50 each, and every non-Hebrew font misses the Hebrew-English preset's
+    alphabet entirely.
+
+    Font2_Chars empty (the default everywhere) means this always returns
+    the main font, so nothing changes until a config asks for it."""
+    chars = globals().get("Font2_Chars") or ""
+    if char and char in chars:
+        return (globals().get("FONT2_PATH") or FONT_PATH,
+                globals().get("Font2_Size") or FONT_SIZE_MM)
+    return FONT_PATH, FONT_SIZE_MM
+
+
 def _clip_to_cell(mesh, col, angle_half_step=None):
     """Trims an already-placed character to its own angular slot, so its
     Minkowski draft skirt cannot bleed into the neighbouring character's.
@@ -379,9 +400,10 @@ def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, 
             build_log.progress_start("TextRing", n, total, f"building {ch!r} (row {row}, col {col})")
             t0 = time.perf_counter()
             try:
+                fp2, fs2 = _font_for(ch)
                 mesh = build_glyph(
                     ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
-                    align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
+                    align_kwargs=align_kwargs, font_path=fp2, font_size_mm=fs2,
                     radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
                     platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                     platen_fn=platen_fn,
@@ -522,9 +544,10 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
             offset = start + interval * col
             baseline_mm = reference_baseline_row[row] + (offset if vary_baseline else 0.0)
             cutout_mm = reference_cutout_row[row] + (offset if vary_cutout else 0.0)
+            cal_fp, cal_fs = _font_for(test_char)
             mesh = build_glyph(
                 test_char, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
-                align_kwargs=align_kwargs, font_path=FONT_PATH, font_size_mm=FONT_SIZE_MM,
+                align_kwargs=align_kwargs, font_path=cal_fp, font_size_mm=cal_fs,
                 radius_y_offset_mm=cutout_mm - baseline_mm,
                 platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                 platen_fn=platen_fn,

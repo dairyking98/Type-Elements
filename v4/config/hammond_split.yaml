@@ -49,15 +49,15 @@ font:
 # shared glyph pipeline (this file builds its own from scratch - see
 # lib/hammond_split.py's LetterText()), so this is read directly by
 # TextAssemble()'s own per-character font/size choice.
-char_mod:
-  char: "⅌"                        # Char_Mod
+font2:
+  font2_chars: "⅌"                        # Char_Mod
   # Renamed from the bare "font_path"/"size_mm" every other section uses -
   # tune.py's patch_yaml_value() searches for a FIELDS key's literal text
   # anywhere in the file (not scoped by section), so a leaf name shared
   # with font.path/label.font_path or font.size_mm would silently patch
   # whichever occurrence comes first in the file instead of this one.
-  char_mod_font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Noto Sans Mono.ttf"
-  char_mod_size_mm: 2.7            # Char_Mod_Size
+  font2_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Noto Sans Mono.ttf"
+  font2_size_mm: 2.7            # Char_Mod_Size
 
 label:
   # Logo (v2:169-180) - engraved surface label, read directly (never

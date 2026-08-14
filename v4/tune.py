@@ -1082,14 +1082,29 @@ CLIP_TO_CELL_FIELD = (
     "cannot bleed into the neighbouring character. Leave off for a plain element "
     "where the merged skirts stay buried in the wall anyway.")
 
-FONT_FIELDS_WITH_CLIP = SECTIONS_COMMON["Font & Alignment"] + [CLIP_TO_CELL_FIELD]
+# SECTIONS_COMMON's Font & Alignment plus the two features only the
+# cylinder family and Hammond implement: a secondary font (font2:) and
+# per-slot draft clipping. Deliberately NOT in SECTIONS_COMMON - the
+# slug family shares that table and has neither, and a field whose
+# config path does not exist raises rather than degrading.
+FONT_FIELDS_CYLINDER = (
+    SECTIONS_COMMON["Font & Alignment"]
+    + [
+        ("font2_path", ["font2", "font2_path"], str, "Font 2 path",
+         "Secondary font for the characters listed below - blank uses the main font."),
+            ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)",
+         "0 uses the main font size."),
+            ("font2_chars", ["font2", "font2_chars"], str, "Font 2 chars",
+         "Characters struck in font 2 instead of the main font. Useful where a typewriter face lacks fractions, currency or a whole script."),
+    ]
+    + [CLIP_TO_CELL_FIELD])
 
 FONT_FIELDS_HAMMOND_SPLIT = [
     ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters (Type_Face)."),
     ("size_mm", ["font", "size_mm"], float, "Font size (mm)", "Type_Size - em-square size."),
-    ("char", ["char_mod", "char"], str, "Modified character(s)", "Char_Mod - characters using the separate font/size below."),
-    ("char_mod_font_path", ["char_mod", "char_mod_font_path"], str, "Modified char font path", ""),
-    ("char_mod_size_mm", ["char_mod", "char_mod_size_mm"], float, "Modified char size (mm)", "Char_Mod_Size."),
+    ("font2_chars", ["font2", "font2_chars"], str, "Font 2 chars", "v2 Char_Mod - characters that use font 2 instead of the main font."),
+    ("font2_path", ["font2", "font2_path"], str, "Font 2 path", "v2 Char_Mod_Font."),
+    ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)", "v2 Char_Mod_Size."),
     ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
     ("mink_height", ["build", "mink_height"], float, "Draft cone height (mm)",
@@ -1492,11 +1507,11 @@ COSMETICS_FIELDS = [
 ]
 
 SECTIONS_BY_MACHINE = {
-    "blickensderfer": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+    "blickensderfer": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                        "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
                        "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_BLICKENSDERFER,
                        "Cosmetics": COSMETICS_FIELDS},
-    "postal": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_BLICKPOSTAL,
+    "postal": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_BLICKPOSTAL,
                "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
                "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_POSTAL,
                        "Cosmetics": COSMETICS_FIELDS},
@@ -1504,7 +1519,7 @@ SECTIONS_BY_MACHINE = {
     # ELEMENT_FIELDS_MIGNON's neighboring comment) - compose()/
     # _compose_build_tab() check for its absence and skip the tab/dropdown
     # option accordingly, rather than every machine being forced to have one.
-    "mignon": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
+    "mignon": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
                "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
                "Element": ELEMENT_FIELDS_MIGNON, "Legend": LEGEND_FIELDS_MIGNON},
     # no "Gauge" key - Bennett has no Shaft Gauge Test either (v2/bennett.
@@ -1512,7 +1527,7 @@ SECTIONS_BY_MACHINE = {
     # Shaft Gauge Test) are omitted"). No "Logo" key - its one engraved-
     # text feature is LABEL_FIELDS_BENNETT's "Label" tab instead (see that
     # list's neighboring comment).
-    "bennett": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Label": LABEL_FIELDS_BENNETT,
+    "bennett": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Label": LABEL_FIELDS_BENNETT,
                 "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
                 "Element": ELEMENT_FIELDS_BENNETT},
     # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
@@ -1521,12 +1536,12 @@ SECTIONS_BY_MACHINE = {
     # same header, no engraved-TEXT feature at all. "Logo" key IS present
     # (LOGO_FIELDS_HELIOS) - v1's separate SVG_Logo mark, a deliberate
     # v1-sourced addition v2 never had - see that list's own comment.
-    "helios": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
+    "helios": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
                "Resin": RESIN_FIELDS_HELIOS, "Element": ELEMENT_FIELDS_HELIOS},
     # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
     # module docstring) - its two whole-string engraved labels are the
     # "Label" tab instead, same convention as Bennett.
-    "hammond": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_WITH_CLIP, "Label": LABEL_FIELDS_HAMMOND,
+    "hammond": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
                 "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND,
                 "Legend": LEGEND_FIELDS_HAMMOND},
@@ -4334,28 +4349,17 @@ class TuneApp(App):
             cmd += ["--caret-drop-mm", self.inputs["caret_drop_mm"].value]
         if "underscore_lift_mm" in self.inputs:
             cmd += ["--underscore-lift-mm", self.inputs["underscore_lift_mm"].value]
-        # Hammond Split's Char_Mod (per-character font/size override,
-        # FONT_FIELDS_HAMMOND_SPLIT's "char"/"char_mod_font_path"/
-        # "char_mod_size_mm" fields) - no other machine's field list uses
-        # the "char" key, so this is a no-op everywhere else. Without this,
-        # Type Test always rendered every character in the base font/size,
-        # never honoring Char_Mod the way the real element's TextAssemble()
-        # does per character.
-        if "char" in self.inputs and self.inputs["char"].value:
-            cmd += ["--mod-chars=" + self.inputs["char"].value,
-                    "--mod-font-path", self.inputs["char_mod_font_path"].value,
-                    "--mod-font-size-mm", self.inputs["char_mod_size_mm"].value]
-        # The Selectric family's Font2 (v2 Font2_Chars/Font2_Font/
-        # Font2_Size, ibm.scad:205) is the same concept under a different
-        # name, and type_test.py's --mod-* flags already implement it - only
-        # the passthrough was missing, so a Type Test rendered every
-        # character in the base font even when the real ball would use
-        # font2 for some of them. Currently latent rather than a live bug:
-        # font2_chars is "" in all three Selectric configs, so nothing is
-        # lost until someone fills it in. Composer sizes font2 by cap
-        # height like its base font (font2_composer_cap_height/2.834 - see
-        # FONT_FIELDS_SELECTRIC_COMPOSER), not a direct mm size.
-        elif "font2_chars" in self.inputs and self.inputs["font2_chars"].value:
+        # Secondary font ("font 2") - characters that use a different font
+        # and size from the main one. type_test.py implements it as
+        # --mod-chars/--mod-font-path/--mod-font-size-mm; without this
+        # passthrough a Type Test would render every character in the base
+        # font even where the real element switches. ONE branch for every
+        # machine that has the feature, which is what unifying Hammond
+        # Split's char_mod:* onto the Selectric family's font2:* spelling
+        # bought - it used to need two. The Composer is the one machine
+        # sizing font 2 by CAP HEIGHT rather than mm (see
+        # FONT_FIELDS_SELECTRIC_COMPOSER), hence the conversion.
+        if "font2_chars" in self.inputs and self.inputs["font2_chars"].value:
             if "font2_size_mm" in self.inputs:
                 font2_size = self.inputs["font2_size_mm"].value
             else:

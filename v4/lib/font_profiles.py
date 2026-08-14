@@ -146,6 +146,10 @@ def save_profile(config_dir, name, values, saved_from=None):
 # is not mirrored.)
 #
 # Deliberately NOT equated:
+# Hammond Split's char_mod:* was RENAMED to font2:* rather than aliased -
+# one concept, one config spelling - so no equivalence is needed for it.
+#
+# Deliberately NOT equated:
 #   font2.font2_composer_cap_height - the Composer sizes by CAP HEIGHT,
 #     not mm (Font_Size_Selected = cap_height/2.834), so equating it with
 #     a mm size would be a unit error, not a rename.
@@ -159,9 +163,6 @@ EQUIVALENT_PATHS = [
     {"alignment.modified_left_chars": 1.0, "alignment.custom_h_chars": 1.0},
     {"alignment.modified_left_offset_mm": 1.0, "alignment.custom_h_offset": 1.0},
     {"alignment.center_offset_mm": 1.0, "alignment.x_pos_offset": -1.0},
-    {"char_mod.char": 1.0, "font2.font2_chars": 1.0},
-    {"char_mod.char_mod_font_path": 1.0, "font2.font2_path": 1.0},
-    {"char_mod.char_mod_size_mm": 1.0, "font2.font2_size_mm": 1.0},
 ]
 
 

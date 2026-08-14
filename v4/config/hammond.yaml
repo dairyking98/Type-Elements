@@ -66,6 +66,20 @@ label:
 # arc-shaped print body (Anvil_OD/Shuttle_Arc_Radius is the fake-cylinder
 # Element_Diameter the glyph pipeline wraps text onto; Anvil_ID is the
 # printer's real anvil bore the shuttle clips around).
+# Secondary font - characters listed in font2_chars are struck in this
+# font/size instead of the main one. Same feature the Selectric family and
+# Hammond Split have, under the same key names. Empty font2_chars =
+# inactive (the default), so this changes nothing until it is filled in.
+# The real use is glyph coverage: measured across the 170 distinct
+# characters in all 28 Blickensderfer layout presets, Royal Vogue v3 is
+# missing 87 (fractions, currency), Erica Type 52 (including "@"), Alma
+# Mono and CMU Typewriter 50 each, and no non-Hebrew font covers the
+# Hebrew-English preset at all.
+font2:
+  font2_path: ""            # blank = use the main font
+  font2_size_mm: 0.0        # 0 = use the main font size
+  font2_chars: ""
+
 element:
   shrinkage_multiplier: 1.00       # Shuttle_Arc_Radius_Shrinkage_Multiplier
   anvil_od: 73.15                  # Element_Diameter = anvil_od*shrinkage_multiplier

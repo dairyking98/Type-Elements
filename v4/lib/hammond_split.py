@@ -173,10 +173,16 @@ def configure(config_path):
     g["Type_Size"] = font["size_mm"]
     g["FONT_SIZE_MM"] = font["size_mm"]  # for type_test.py/tune.py parity with every other machine
 
-    cm = cfg["char_mod"]
-    g["Char_Mod"] = cm["char"]
-    g["CHAR_MOD_FONT_PATH"] = cm["char_mod_font_path"]
-    g["Char_Mod_Size"] = cm["char_mod_size_mm"]
+    # Section spelled "font2" to match the Selectric family, which has the
+    # same feature under v2's own Font2_* names - one concept, one config
+    # spelling (CLAUDE.md "Pick one convention"). The INTERNAL globals keep
+    # v2/hammond_split.scad's Char_Mod* names, which are still the right
+    # cross-reference for this machine's own source. Old key accepted as a
+    # fallback so a config predating the rename keeps loading.
+    cm = cfg.get("font2") or cfg["char_mod"]
+    g["Char_Mod"] = cm.get("font2_chars", cm.get("char", ""))
+    g["CHAR_MOD_FONT_PATH"] = cm.get("font2_path", cm.get("char_mod_font_path"))
+    g["Char_Mod_Size"] = cm.get("font2_size_mm", cm.get("char_mod_size_mm"))
 
     label = cfg["label"]
     g["LOGO_FONT_PATH"] = label["font_path"]
