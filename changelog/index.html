@@ -7395,6 +7395,58 @@ config predating the key; its own tune.py field is replaced by the
 diameter, so there is one place to set this per machine rather than two
 spellings.
 
+### Dead variables removed, and the protrusion convention audited against v1/v2
+
+**Removed** (all now unreachable, every config already migrated):
+`mink_height` fallbacks in 6 modules, `separation_mm` fallback,
+hammond_split's `char_mod` fallback, `element.glyph_height` (set but read
+by nothing after the depth split - and still an editable tune.py field,
+so it was a trap: changing it did nothing), and
+`element.shuttle_text_protrusion` (superseded by the derived value).
+Config keys dropped with a comment naming the v2 variable they came from,
+per CLAUDE.md's "say so, don't silently diverge". All 14 configs
+byte-identical after.
+
+**Audit: does every machine use the same system?** Three groups, and the
+answer is yes for two of them.
+
+*Cylinder family - v2 states the value directly, and v4 matches exactly:*
+
+| machine | v2 | v4 |
+| --- | --- | --- |
+| blickensderfer | `Min_Final_Character_Diameter=35` (blickensderfer.scad:174) | 35.0 |
+| postal | `=34.1` (postal.scad:146) | 34.1 |
+| mignon | `=19.4` (mignon.scad:191) | 19.4 |
+| bennett | `=32.9` (bennett.scad:180) | 32.9 |
+| helios | `=28.19` (heliosklimax.scad:199) | 28.19 |
+
+All five verbatim, and v2's own `Char_Protrusion=(Min_Final_Character_
+Diameter-Element_Diameter)/2` is the formula v4 uses.
+
+*Hammond family - v2 has NO such variable; v4's value is a faithful
+re-expression, confirmed by byte-identical output:*
+- Hammond: v2 `Shuttle_Text_Protrusion=.9`, `Shuttle_Thickness=1.36`,
+  `Shuttle_Arc_Radius~36.52` (hammond.scad:202-208). v4's 77.67 =
+  2*36.575 + 2*1.36 + 2*0.9, and the derived protrusion is 0.9 - v2's
+  number exactly.
+- Hammond Split: v2 has only `Arc_OD=75`, `Glyph_Height=.8` and the
+  literal `translate([Arc_OD/2-1, ...])` (hammond_split.scad:344). Its
+  implied protrusion is (Arc_OD/2 - 1 + Glyph_Height + 1) - Arc_OD/2 =
+  0.8. v4's 76.6 gives exactly that.
+
+*Spherical family - same relationship, under v2's own names, left alone:*
+`Type_Altitude=(Max_OD-Sphere_OD)/2` (ibm.scad:412) is structurally
+identical to `Char_Protrusion=(Min_Final_Character_Diameter-Element_
+Diameter)/2`. `Max_OD=34.9` / `Sphere_OD=33.4` (ibm.scad:309,313) carry
+through to v4 unchanged, giving 0.75mm. Renaming to the cylinder spelling
+would gain consistency but lose the v2 cross-reference on a family whose
+config is deliberately annotated line-by-line against ibm.scad - not done
+without a reason beyond tidiness.
+
+*Slug family - no equivalent, and correctly so:* one character on a flat
+block, no surface to stand proud of. Its depth concept is
+`engraving_depth_mm` (v1 Engraving_Depth), a different quantity.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
