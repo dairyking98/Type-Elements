@@ -7600,6 +7600,36 @@ how the user noticed. Re-saving a profile drops them.
 
 TUI-only: all 14 configs byte-identical, 15/15 compose and collect.
 
+### Shuttle bodies banded too
+
+The user noticed the two Hammond machines' arcs were not getting the wall
+banding the cylinder family got, and preferred the banded look. Applied to
+both:
+
+- **Hammond**: `ShuttleCylinder()` is a plain `cylinder_z`, so it takes
+  `z_segments` directly, same as the cylinder family's body.
+- **Hammond Split**: `Arc()` revolves a 4-POINT rectangle, so its radial
+  faces were one full-height quad per angular section. Now the vertical
+  edges carry intermediate points - geometrically the same rectangle,
+  more points along it.
+
+**Numerically this does almost nothing**, which is worth recording so the
+change is not later mistaken for a fix:
+
+| | unbanded | banded |
+| --- | --- | --- |
+| hammond | 49566 slivers | 49543 (-0.05%), +2502 verts |
+| hammond_split | 1049 slivers | 998 (-5%), +287 verts |
+
+Volumes identical both ways (4876.526 / 8082.303 on the real Minkowski
+render). So unlike Bennett and Postal - where banding cut slivers ~8x -
+the shuttles' slivers come from somewhere else, and this is a
+tessellation/appearance change rather than a defect fix. Kept because the
+user prefers the result visually, not because a metric improved.
+
+New baselines: hammond 473076 947800 4876.156, hammond_split 35517 71098
+8081.034. The other 12 unchanged.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
