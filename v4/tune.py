@@ -1339,7 +1339,10 @@ RESIN_FIELDS_SELECTRIC = [
 # physical ball) - one shared table.
 ELEMENT_FIELDS_SELECTRIC = [
     ("sphere_od", ["element", "sphere_od"], float, "Sphere OD (mm)", "v2 Sphere_OD."),
-    ("max_od", ["element", "max_od"], float, "Max character OD (mm)", "v2 Max_OD - character-concave to character-concave diameter."),
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final character diameter (mm)",
+     "Diameter across two opposing character tips (v2 Max_OD) - the same key the cylinder and "
+     "shuttle machines use. Protrusion above the ball is half the difference from sphere_od."),
     ("top_flat_to_center", ["element", "top_flat_to_center"], float, "Top flat to center (mm)", "v2 Top_Flat_To_Center."),
     ("top_flat_thickness", ["element", "top_flat_thickness"], float, "Top flat thickness (mm)", ""),
     ("top_chamfer", ["element", "top_chamfer"], float, "Top shaft chamfer (mm)", "v2 Top_Chamfer."),

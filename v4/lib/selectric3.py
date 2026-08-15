@@ -63,8 +63,15 @@ def configure(config_path):
     e = cfg["element"]
     g["Sphere_OD"] = e["sphere_od"]
     g["Sphere_R"] = e["sphere_od"] / 2.0
-    g["Max_OD"] = e["max_od"]
-    g["Type_Altitude"] = (e["max_od"] - e["sphere_od"]) / 2.0
+    # Fleet-wide name for the diameter across two opposing character tips
+    # (v2 Max_OD, ibm.scad:313). Same relationship the cylinder family
+    # states as min_final_character_diameter/element_diameter: v2's own
+    # Type_Altitude=(Max_OD-Sphere_OD)/2 (ibm.scad:412) is structurally
+    # identical to its Char_Protrusion=(Min_Final_Character_Diameter-
+    # Element_Diameter)/2. Type_Altitude keeps v2's name as the derived
+    # protrusion.
+    g["Min_Final_Character_Diameter"] = e["min_final_character_diameter"]
+    g["Type_Altitude"] = (g["Min_Final_Character_Diameter"] - e["sphere_od"]) / 2.0
     g["Top_Flat_To_Center"] = e["top_flat_to_center"]
     g["Top_Flat_Thickness"] = e["top_flat_thickness"]
     g["Top_Flat_R"] = (g["Sphere_R"] ** 2 - e["top_flat_to_center"] ** 2) ** 0.5

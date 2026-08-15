@@ -57,7 +57,7 @@ alignment:
 element:
   # Physically the SAME ball as Selectric I/II/III - see file header comment.
   sphere_od: 33.4
-  max_od: 34.9
+  min_final_character_diameter: 34.9
   top_flat_to_center: 11.0
   top_flat_thickness: 3.5
   top_chamfer: 0.7

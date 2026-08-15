@@ -48,7 +48,7 @@ element:
   # every value in this section is identical to config/selectric12.yaml's,
   # each its own independent copy per the multi-config convention.
   sphere_od: 33.4
-  max_od: 34.9
+  min_final_character_diameter: 34.9
   top_flat_to_center: 11.0
   top_flat_thickness: 3.5
   top_chamfer: 0.7

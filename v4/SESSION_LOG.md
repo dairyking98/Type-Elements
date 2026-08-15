@@ -7171,6 +7171,34 @@ without a reason beyond tidiness.
 block, no surface to stand proud of. Its depth concept is
 `engraving_depth_mm` (v1 Engraving_Depth), a different quantity.
 
+### min_final_character_diameter is now genuinely fleet-wide
+
+The spherical family's `element.max_od` renamed to
+`element.min_final_character_diameter`, so every machine with a striking
+surface names that dimension the same way. Safe to do because `Max_OD`
+had exactly one real job in both v2 and v4 - `Type_Altitude=(Max_OD-
+Sphere_OD)/2` (ibm.scad:412), which is structurally identical to the
+cylinder family's `Char_Protrusion=(Min_Final_Character_Diameter-
+Element_Diameter)/2`. Its only other appearance was as a generous radius
+bound in `spherical_machine`'s cell-clip wedge.
+
+`Type_Altitude` keeps v2's name as the derived protrusion, and both the
+config and the lib carry the `Max_OD` / ibm.scad:313 cross-reference, so
+the v2 correspondence this family's config is annotated for is not lost -
+which was the only reason for leaving it alone earlier.
+
+Final state - 9 of 15 machines have a striking surface, and all 9 now use
+the same key:
+
+    blickensderfer 35.0   postal 34.1   mignon 19.4   bennett 32.9
+    helios 28.19   hammond 77.67   hammond_split 76.6
+    selectric12 / selectric3 / selectric_composer 34.9
+
+The 5 slug machines have none, correctly: one character on a flat block,
+no surface to stand proud of.
+
+Byte-identical on all 14 buildable configs; 15/15 compose and collect.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

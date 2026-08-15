@@ -50,7 +50,7 @@ alignment:
 
 element:
   sphere_od: 33.4                 # v2 Sphere_OD (ibm.scad:309)
-  max_od: 34.9                    # v2 Max_OD (ibm.scad:313)
+  min_final_character_diameter: 34.9                    # v2 Max_OD (ibm.scad:313)
   top_flat_to_center: 11.0        # v2 Top_Flat_To_Center (ibm.scad:315)
   top_flat_thickness: 3.5         # v2 Top_Flat_Thickness (ibm.scad:277)
   top_chamfer: 0.7                # v2 Top_Chamfer (ibm.scad:318)

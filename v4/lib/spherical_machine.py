@@ -362,7 +362,7 @@ def AssembleMinkowski(flatness_tolerance_mm=None, minkowski_enabled=None, draft_
                 # the knob exists so behavior is uniform fleet-wide.
                 if globals().get("Clip_To_Cell", False):
                     mesh = sp.clip_to_angular_cell(mesh, longitude, Longitude_Step,
-                                                    r_out=2.0 * Max_OD)
+                                                    r_out=2.0 * Min_Final_Character_Diameter)
                 parts.append(mesh)
     build_log.progress_summary("AssembleMinkowski", len(parts), skipped,
                                 time.perf_counter() - t_start)
