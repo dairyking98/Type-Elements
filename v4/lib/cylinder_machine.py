@@ -229,7 +229,25 @@ def Cylinder():
     plain and Body_Fn-smooth for "round" - see the wheel-cosmetics
     section above."""
     sections = Body_Fn if _wheel_style() == WHEEL_STYLE_ROUND else _facet_count()
-    return sp.cylinder_z(Element_Diameter, Element_Height, sections=sections)
+    # Wall pre-split into bands, so the boolean that unions 84 character
+    # roots into it never has a full-height face to shatter into slivers.
+    # trimesh's cylinder is two triangles per section spanning the ENTIRE
+    # height, and manifold retessellates those into long near-zero-area
+    # needles around every character root - which render as phantom spikes
+    # (a zero-area triangle has no meaningful normal) and cannot simply be
+    # deleted, since they are load-bearing for watertightness.
+    #
+    # ROUND STYLE ONLY, and that gate is measured, not assumed. On a
+    # notched/banded body the cosmetic cutters are themselves full-height
+    # (28 of them at the facet corners) and dominate the retessellation, so
+    # banding the body backfires - blickensderfer's real Minkowski render
+    # goes 3451 slivers unbanded to 10682 banded. Round bodies win clearly:
+    # postal 1296 -> 218 (longest 15.351mm -> 7.007mm) at identical volume.
+    z_segments = 1
+    if _wheel_style() == WHEEL_STYLE_ROUND:
+        z_segments = sp.square_z_segments(Element_Diameter, Element_Height, Surface_Fn)
+    return sp.cylinder_z(Element_Diameter, Element_Height, sections=sections,
+                          z_segments=z_segments)
 
 
 def ClipCylinder(Offset):

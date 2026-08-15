@@ -6828,51 +6828,54 @@ volume=4468.936mm3. Preview-path baselines move (that is the fix):
 
 The other 8 configs are unchanged.
 
-### Sliver investigation: mechanism found, fix tried and REVERTED
+### Sliver fix: body wall pre-banded, gated on round style
 
 Following "still getting artifacts in render with minkowski, maybe
-something to do with boolean union?" - the hunch was right about where,
-and the mechanism is now pinned down, but the obvious fix does not work
-and is NOT in the tree.
+something to do with boolean union?" - the hunch was right, and the fix
+landed. My first pass concluded the opposite because I measured the wrong
+machine (Bennett's PREVIEW and blickensderfer's RENDER), and the user
+corrected it: the issue is Bennett.
 
-**Mechanism.** The slivers come from unioning the characters into the
-body, isolated by measurement:
+**Mechanism**, isolated by measurement:
 
     Cylinder() alone                  0 slivers  (longest edge 18.019mm -
                                       each wall face spans the FULL height)
-    TextRing (84 chars unioned)      213 slivers, longest 4.077mm
-    union(TextRing, Cylinder)       1093 slivers, longest 15.837mm
-    ResinSupport alone                0 slivers; union adds 2
+    TextRing (84 chars unioned)     213 slivers, longest 4.077mm
+    union(TextRing, Cylinder)      1093 slivers, longest 15.837mm
+    ResinSupport alone                0; the union with it adds 2
 
-trimesh's cylinder puts two triangles per angular section spanning the
+trimesh's cylinder is two triangles per angular section spanning the
 entire height, so punching 84 character roots through them makes manifold
-retessellate full-height faces into long near-zero-area slivers. They are
-load-bearing (nondegenerate_faces() at any tolerance breaks
-watertightness) and render as phantom spikes because a zero-area triangle
-has no meaningful normal.
+retessellate full-height faces into long near-zero-area needles. They
+render as phantom spikes (a zero-area triangle has no meaningful normal)
+and cannot be deleted - `nondegenerate_faces()` at any tolerance breaks
+watertightness.
 
-**The fix that looked right.** Pre-splitting the wall into bands roughly
-as tall as they are wide, so the boolean never has a full-height face to
-shatter. In isolation it is total: union(TextRing, banded Cylinder) goes
-1093 -> 0 slivers at identical volume for ~4% more faces. On Bennett's
-preview path, 1933 -> 224.
+**Fix:** pre-split the wall into bands roughly as tall as they are wide,
+so the boolean never has a full-height face to shatter. Band count is
+derived from Surface_Fn via `scad_primitives.square_z_segments()`, so it
+scales with the machine's own resolution and adds no tunable.
 
-**Why it was reverted.** It only helps the un-drafted path. On the real
-Minkowski render, blickensderfer goes from 3451 slivers WITHOUT banding
-to 8734 WITH it - measurably worse - and the longest stays at exactly
-17.150mm (the element height) either way. Making the bands finer made it
-worse still (10686). So the drafted character roots, which flare far
-wider than the un-drafted ones, dominate the retessellation on the render
-path and the body's own banding is not the lever there. Reverted whole;
-`--no-minkowski` and Minkowski baselines are unchanged from the previous
-commit.
+Real Minkowski renders, identical volume in every case:
 
-**What is now known, for whoever picks this up:** it is the union, not
-the resin support (which contributes 2 of 1093), not the cut groove, and
-not the glyph geometry (BAD/GOOD characters are bit-identical). The
-remaining suspect is the drafted root's own geometry meeting the wall -
-worth attacking at the character side (root shape/depth) rather than the
-cylinder side, since banding the cylinder is now measured not to help.
+| machine | unbanded | banded |
+| --- | --- | --- |
+| bennett | 1746 slivers, longest 16.806mm | **222, longest 9.800mm** |
+| postal | 1296, longest 15.351mm | **218, longest 7.007mm** |
+| blickensderfer (notched) | 3451 | 10682 - WORSE |
+
+Bennett also gets a SIMPLER mesh out of it (261492 -> 241690 faces).
+
+**Gated on round style, and that gate is measured.** On a notched or
+banded body the cosmetic cutters are themselves full-height - 28 of them
+at the facet corners - and dominate the retessellation, so banding the
+body backfires. Blickensderfer is notched and is left unbanded; making
+its bands finer made it worse still (10686). Helios and Mignon build
+their own bodies and are untouched pending their own measurement.
+
+New `--no-minkowski` baselines: bennett 56148 112388 3554.919 and postal
+41147 82174 5397.200. The other 12 are unchanged, blickensderfer
+included.
 
 ### Resuming later
 

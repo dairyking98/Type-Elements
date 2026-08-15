@@ -359,7 +359,9 @@ def _require_configured():
 # ------------------------------------------------------------------- Body
 
 def Cylinder():
-    return sp.cylinder_z(Element_Diameter, Element_Height, sections=Surface_Fn)
+    return sp.cylinder_z(Element_Diameter, Element_Height, sections=Surface_Fn,
+                          z_segments=sp.square_z_segments(Element_Diameter,
+                                                           Element_Height, Surface_Fn))
 
 
 def PositionerPins():

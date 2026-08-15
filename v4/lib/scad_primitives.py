@@ -158,13 +158,33 @@ def linear_extrude_twist(profile_2d, height, twist_degrees, z_steps=64, base_z=0
     return mesh
 
 
-def cylinder_z(diameter, height, sections=128, base_z=0.0, center=False):
+def cylinder_z(diameter, height, sections=128, base_z=0.0, center=False,
+                z_segments=1):
     """cylinder(d=, h=) equivalent, extruded along +Z from base_z (or
-    centered on base_z if center=True, matching OpenSCAD's center=true)."""
+    centered on base_z if center=True, matching OpenSCAD's center=true).
+
+    z_segments splits the SIDE WALL into that many bands of triangles.
+    Geometrically identical either way - it only changes how the wall is
+    triangulated, which matters for a cylinder other solids get unioned
+    INTO (trimesh's default is two triangles per section spanning the
+    entire height)."""
     z0 = base_z - height / 2.0 if center else base_z
-    c = trimesh.creation.cylinder(radius=diameter / 2.0, height=height, sections=sections)
-    c.apply_translation([0, 0, z0 + height / 2.0])
+    if z_segments <= 1:
+        c = trimesh.creation.cylinder(radius=diameter / 2.0, height=height, sections=sections)
+        c.apply_translation([0, 0, z0 + height / 2.0])
+        return c
+    zs = np.linspace(0.0, height, int(z_segments) + 1)
+    profile = [(0.0, 0.0)] + [(diameter / 2.0, z) for z in zs] + [(0.0, height)]
+    c = revolve_polygon(np.array(profile, dtype=float), sections=sections)
+    c.apply_translation([0, 0, z0])
     return c
+
+
+def square_z_segments(diameter, height, sections):
+    """Wall bands that make cylinder_z's side facets roughly square -
+    derived from the caller's own facet count, so no new tunable."""
+    facet_w = np.pi * diameter / max(sections, 1)
+    return max(1, int(round(height / facet_w))) if facet_w > 0 else 1
 
 
 def frustum_z(d1, d2, height, sections=128, base_z=0.0):
