@@ -238,6 +238,17 @@ def configure(config_path):
     g["Folder_Glue_Groove_R"] = e["folder_glue_groove_r"]
     g["Folder_Glue_Groove_Depth"] = e["folder_glue_groove_depth"]
     g["Glyph_Height"] = e["glyph_height"]
+    # Character protrusion above the arc's outer surface, expressed the way
+    # every other machine expresses it: as the diameter a caliper reads
+    # across two opposing character tips. v2 had no such value - it hid the
+    # protrusion inside TextPlacement's literal "Arc_OD/2 - 1.0", which
+    # tied it to the glyph extrusion depth (change one and the other moved).
+    # Deriving it here makes the two independent. "min_" is the fleet-wide
+    # spelling; there is no minimum-vs-maximum here because this machine
+    # strikes a flat anvil and has no platen scallop to vary the diameter.
+    g["Min_Final_Character_Diameter"] = e.get("min_final_character_diameter",
+                                               e["arc_od"] + 2 * 0.8)
+    g["Char_Protrusion"] = (g["Min_Final_Character_Diameter"] - e["arc_od"]) / 2.0
     # v4 convention: the glyph's own extrusion depth is
     # build.pre_minkowski_char_height_mm, the same key every other machine
     # uses, instead of this machine's implicit "Glyph_Height + 1". Falls
@@ -456,7 +467,13 @@ def LeftAdditive():
 
 def _text_placement_ops(angle, height):
     """TextPlacement(angle,height) (v2:342-347)."""
-    return [("rotate", [0, 0, angle]), ("translate", [Arc_OD / 2.0 - 1.0, 0, height]), ("rotate", [90, 0, 90])]
+    # Radial placement puts the letter's TIP at Arc_OD/2 + Char_Protrusion:
+    # the block extrudes outward by Pre_Minkowski_Char_Height_Mm from here,
+    # so its base sits that much below the tip. v2 wrote this as the literal
+    # "Arc_OD/2 - 1.0", which only equalled the intended protrusion while
+    # the glyph height happened to be 1.8.
+    r_place = Arc_OD / 2.0 + Char_Protrusion - Pre_Minkowski_Char_Height_Mm
+    return [("rotate", [0, 0, angle]), ("translate", [r_place, 0, height]), ("rotate", [90, 0, 90])]
 
 
 def _letter_text_drafted(char, font_path, font_size_mm, depth):

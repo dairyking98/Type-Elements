@@ -165,6 +165,12 @@ element:
   tube_chamfer: 0.5
   arc_od: 75.0
   arc_thickness: 1.6
+  # Diameter across two opposing character tips - the fleet-wide way of
+  # expressing protrusion. The arc's outer surface is arc_od = 75.0, so this
+  # is 0.8mm of relief. v2 had no such value: it hid the protrusion in
+  # TextPlacement's literal 'Arc_OD/2 - 1.0', which tied it to the glyph
+  # extrusion depth. No minimum-vs-maximum here - flat anvil, no scallop.
+  min_final_character_diameter: 76.6
   arc_height: 13.26
   arc_height_offset: -2.62
   folder_degree_offset: 8.3

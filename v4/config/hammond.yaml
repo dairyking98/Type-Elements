@@ -86,6 +86,12 @@ element:
   anvil_id_raw: 66.0
   shuttle_thickness: 1.36          # also Letter_Placement_Protrusion (v2:380)
   shuttle_text_protrusion: 0.9
+  # Diameter across two opposing character tips - the fleet-wide way of
+  # expressing protrusion (same key the cylinder machines use). The shuttle
+  # surface is element_diameter + 2*shuttle_thickness = 75.87, so this is
+  # 0.9mm of relief. No minimum-vs-maximum here: a flat anvil, no platen
+  # scallop to vary it.
+  min_final_character_diameter: 77.67
   normal_shuttle_height: 13.6
   math_shuttle_height: 18.24
   shuttle_height_offset: 3

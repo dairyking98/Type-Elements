@@ -187,7 +187,8 @@ def configure(config_path):
     g["Anvil_OD"] = e["anvil_od"]
     g["Shuttle_Arc_Radius"] = (e["anvil_od"] / 2.0) * e["shrinkage_multiplier"]
     g["Shuttle_Thickness"] = e["shuttle_thickness"]
-    g["Shuttle_Text_Protrusion"] = e["shuttle_text_protrusion"]
+    # Shuttle_Text_Protrusion is DERIVED further down from
+    # min_final_character_diameter - see there.
     g["Shuttle_Height_Offset"] = e["shuttle_height_offset"]
     # Is_Math (v2:128) is a derived tag lookup on the SELECTED layout
     # preset in v2 - simplified here to "does the active layout have 4
@@ -271,6 +272,19 @@ def configure(config_path):
 
     # ---- glyph placement wiring (shared cylinder_machine.py reuse) ----
     g["Element_Diameter"] = 2.0 * g["Shuttle_Arc_Radius"]
+    # Same fleet-wide expression of protrusion as every other machine: the
+    # diameter across two opposing character tips. The shuttle's own outer
+    # surface is Element_Diameter + 2*Shuttle_Thickness, so the protrusion
+    # above it is half the difference. Shuttle_Text_Protrusion stays as the
+    # fallback for a config predating the key. No minimum-vs-maximum here -
+    # a flat anvil, no platen scallop to vary the diameter.
+    # Element_Diameter is itself derived (2 * Shuttle_Arc_Radius, just
+    # above), so read the resolved globals rather than config keys - this
+    # machine has no element_diameter key.
+    _surface_d = g["Element_Diameter"] + 2 * g["Shuttle_Thickness"]
+    g["Min_Final_Character_Diameter"] = e.get(
+        "min_final_character_diameter", _surface_d + 2 * e["shuttle_text_protrusion"])
+    g["Shuttle_Text_Protrusion"] = (g["Min_Final_Character_Diameter"] - _surface_d) / 2.0
     g["Char_Protrusion"] = 0.0  # unused - no curved platen, see PLATEN_RADIUS_MM
     g["Platen_Diameter"] = 0.0  # unused, same reason
     # Skip_Platen_Cutout (v2:384) == platen_radius_mm=0 (see module docstring).

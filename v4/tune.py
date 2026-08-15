@@ -1012,7 +1012,11 @@ ELEMENT_FIELDS_HAMMOND = [
     ("anvil_od", ["element", "anvil_od"], float, "Anvil OD (mm)", "Element_Diameter = this * shrinkage_multiplier."),
     ("anvil_id_raw", ["element", "anvil_id_raw"], float, "Anvil ID raw (mm)", ""),
     ("shuttle_thickness", ["element", "shuttle_thickness"], float, "Shuttle thickness (mm)", "Also the glyph placement protrusion."),
-    ("shuttle_text_protrusion", ["element", "shuttle_text_protrusion"], float, "Text protrusion (mm)", ""),
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final character diameter (mm)",
+     "Diameter across two opposing character tips - the same value the cylinder machines use. "
+     "Protrusion above the shuttle surface is half the difference from it. No minimum-vs-maximum "
+     "here: a flat anvil, so no platen scallop varies it."),
     ("normal_shuttle_height", ["element", "normal_shuttle_height"], float, "Normal shuttle height (mm)", ""),
     ("math_shuttle_height", ["element", "math_shuttle_height"], float, "Math shuttle height (mm)", "Used when is_math=true."),
     ("shuttle_height_offset", ["element", "shuttle_height_offset"], float, "Shuttle height offset (mm)", ""),
@@ -1185,6 +1189,10 @@ RESIN_FIELDS_HAMMOND_SPLIT = [
 ]
 
 ELEMENT_FIELDS_HAMMOND_SPLIT = [
+    ("min_final_character_diameter", ["element", "min_final_character_diameter"], float,
+     "Min final character diameter (mm)",
+     "Diameter across two opposing character tips, measured from arc_od. Sets how far the "
+     "characters stand proud of the arc, independently of the glyph height."),
     ("arc_od", ["element", "arc_od"], float, "Arc OD (mm)", "Arc_OD."),
     ("arc_thickness", ["element", "arc_thickness"], float, "Arc thickness (mm)", ""),
     ("arc_height", ["element", "arc_height"], float, "Arc height (mm)", ""),
