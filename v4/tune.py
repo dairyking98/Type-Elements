@@ -424,8 +424,6 @@ SECTIONS_COMMON = {
          "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
         ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
          "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
-        ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
-         "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
     ],
     "Calibration": [
         ("test_char", ["calibration", "test_char"], str, "Test character",
@@ -461,6 +459,26 @@ LOGO_FIELDS_BLICKPOSTAL = [
     ("radial_offset_mm", ["logo", "radial_offset_mm"], float, "Logo radius offset (mm)", "Placement radius = Logo_Radius + this."),
 ]
 
+# Per-slot draft clipping - offered only for the machines that actually
+# implement it: the cylinder family (cylinder_machine._clip_to_cell, via
+# TextRing) and the Hammond Split shuttle (its own from-scratch
+# TextAssemble loop). NOT offered to the slug family, which strikes one
+# character per element and so has no neighbouring slot to leak into, nor
+# to the Selectrics, whose ball spaces characters far enough apart that it
+# never bites. The config key and the geometry ARE wired for those too, so
+# behavior stays uniform fleet-wide - only the checkbox is withheld, per
+# explicit user direction to expose it for cylinder and shuttle.
+CLIP_TO_CELL_FIELD = (
+    "clip_to_cell", ["build", "clip_to_cell"], bool, "Clip draft to slot",
+    "Trims each character's Minkowski draft skirt at its own slot boundary so it "
+    "cannot bleed into the neighbouring character. Leave off for a plain element "
+    "where the merged skirts stay buried in the wall anyway.")
+
+# SECTIONS_COMMON's Font & Alignment plus the two features only the
+# cylinder family and Hammond implement: a secondary font (font2:) and
+# per-slot draft clipping. Deliberately NOT in SECTIONS_COMMON - the
+# slug family shares that table and has neither, and a field whose
+# config path does not exist raises rather than degrading.
 QUALITY_FIELDS_BLICKPOSTAL = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Pre-Minkowski glyph height (mm)",
@@ -474,6 +492,7 @@ QUALITY_FIELDS_BLICKPOSTAL = [
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 RESIN_FIELDS_BLICKPOSTAL = [
@@ -613,6 +632,7 @@ QUALITY_FIELDS_MIGNON = [
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 RESIN_FIELDS_MIGNON = [
@@ -695,6 +715,7 @@ QUALITY_FIELDS_BENNETT = [
     ("alignment_hole_fn", ["quality", "alignment_hole_fn"], int, "Alignment hole fn", "AlignmentHoles facet count."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 RESIN_FIELDS_BENNETT = [
@@ -771,6 +792,7 @@ QUALITY_FIELDS_HELIOS = [
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 # v2's own header comment: "the original file declares Resin_Support/
@@ -983,6 +1005,7 @@ QUALITY_FIELDS_HAMMOND = [
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shuttle arc body (ShuttleCylinder/Rib/PinSupport)."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 RESIN_FIELDS_HAMMOND = [
@@ -1086,26 +1109,6 @@ RIB_FIELDS_HAMMOND = [
 # Like draft_angle_deg elsewhere, whether the draft actually RUNS is never
 # a config toggle (Quick Preview always skips it, Render always applies
 # it - see tune.py's _run_build) - only its angle/height are tunable here.
-# Per-slot draft clipping - offered only for the machines that actually
-# implement it: the cylinder family (cylinder_machine._clip_to_cell, via
-# TextRing) and the Hammond Split shuttle (its own from-scratch
-# TextAssemble loop). NOT offered to the slug family, which strikes one
-# character per element and so has no neighbouring slot to leak into, nor
-# to the Selectrics, whose ball spaces characters far enough apart that it
-# never bites. The config key and the geometry ARE wired for those too, so
-# behavior stays uniform fleet-wide - only the checkbox is withheld, per
-# explicit user direction to expose it for cylinder and shuttle.
-CLIP_TO_CELL_FIELD = (
-    "clip_to_cell", ["build", "clip_to_cell"], bool, "Clip draft to slot",
-    "Trims each character's Minkowski draft skirt at its own slot boundary so it "
-    "cannot bleed into the neighbouring character. Leave off for a plain element "
-    "where the merged skirts stay buried in the wall anyway.")
-
-# SECTIONS_COMMON's Font & Alignment plus the two features only the
-# cylinder family and Hammond implement: a secondary font (font2:) and
-# per-slot draft clipping. Deliberately NOT in SECTIONS_COMMON - the
-# slug family shares that table and has neither, and a field whose
-# config path does not exist raises rather than degrading.
 FONT_FIELDS_CYLINDER = (
     SECTIONS_COMMON["Font & Alignment"]
     + [
@@ -1116,7 +1119,7 @@ FONT_FIELDS_CYLINDER = (
             ("font2_chars", ["font2", "font2_chars"], str, "Font 2 chars",
          "Characters struck in font 2 instead of the main font. Useful where a typewriter face lacks fractions, currency or a whole script."),
     ]
-    + [CLIP_TO_CELL_FIELD])
+    )
 
 FONT_FIELDS_HAMMOND_SPLIT = [
     ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters (Type_Face)."),
@@ -1124,8 +1127,6 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("font2_chars", ["font2", "font2_chars"], str, "Font 2 chars", "v2 Char_Mod - characters that use font 2 instead of the main font."),
     ("font2_path", ["font2", "font2_path"], str, "Font 2 path", "v2 Char_Mod_Font."),
     ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)", "v2 Char_Mod_Size."),
-    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
-     "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
     ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left".'),
     ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),
     ("left_offset_mm", ["alignment", "left_offset_mm"], float, "Left offset (mm)", ""),
@@ -1137,7 +1138,6 @@ FONT_FIELDS_HAMMOND_SPLIT = [
      "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
-    CLIP_TO_CELL_FIELD,
 ]
 
 # Logo (v2's real name) is a whole-string engraved label (two lines, read
@@ -1159,6 +1159,7 @@ QUALITY_FIELDS_HAMMOND_SPLIT = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Arc/Center/Rib/Tube/etc. body facet count."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
+    CLIP_TO_CELL_FIELD,
 ]
 
 RESIN_FIELDS_HAMMOND_SPLIT = [
@@ -1252,8 +1253,6 @@ FONT_FIELDS_SELECTRIC12 = [
      "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent. 0 = use the font's own position."),
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
-    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
-     "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
 ]
 
 # Composer-only: sizes type by CAP HEIGHT (font.composer_cap_height/2.834
@@ -1281,8 +1280,6 @@ FONT_FIELDS_SELECTRIC_COMPOSER = [
      "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent. 0 = use the font's own position."),
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
-    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
-     "Half-angle of the Minkowski draft cone each character is swept with. Real value 55."),
 ]
 
 LABEL_FIELDS_SELECTRIC = [
@@ -1543,6 +1540,9 @@ QUALITY_CORE_FIELDS = [
      "Minkowski cone height (mm)",
      "Height of the draft cone. It has to reach far enough into the body that a wide character's roots "
      "mesh into the surface instead of cutting off abruptly - taller is the safer direction."),
+    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
+     "Half-angle of the Minkowski draft cone each character is swept with. Only takes effect on "
+     "Render - Quick Preview always skips the draft sweep."),
 ]
 
 

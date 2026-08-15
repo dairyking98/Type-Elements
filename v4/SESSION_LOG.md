@@ -7291,6 +7291,39 @@ machines with only `flatness_tolerance_mm`. Caught immediately by
 asserting every tab's first three keys rather than eyeballing one
 machine.
 
+### Font profiles no longer capture build values
+
+Reported: a saved Font & Alignment profile carried
+`build.minkowski_cone_height_mm` and `build.pre_minkowski_char_height_mm`,
+"its not part of font". Correct - and the leak was wider than those two.
+
+A profile captures whatever is on the Font & Alignment tab, and that tab
+was carrying build keys as well as font/alignment ones:
+
+- `build.draft_angle_deg` on **all 15** machines
+- `build.clip_to_cell` on the 7 cylinder/shuttle machines
+- (the two depths, on Hammond Split, until the previous commit moved them)
+
+So every profile ever saved has been storing geometry settings alongside
+the typeface, and applying one to another machine silently carried them
+across. That is exactly the wrong thing for a profile whose whole point is
+"the same typeface setup, on a different machine".
+
+Both moved to Quality, where the rest of the build values already live:
+`draft_angle_deg` joins `QUALITY_CORE_FIELDS` (universal, so it belongs in
+the shared head alongside flatness/pre/cone), `clip_to_cell` appends to
+the 6 Quality lists of the machines that implement it. Font & Alignment is
+now exclusively `font.*` / `font2.*` / `alignment.*` / `char_mod.*` -
+verified by asserting no other path prefix appears on that tab for any
+machine, and by checking a real profile capture: 14 values, zero
+non-font keys.
+
+Profiles saved before this still carry the old keys; they are reported as
+"no field or equivalent here, ignored" on apply and set nothing, which is
+how the user noticed. Re-saving a profile drops them.
+
+TUI-only: all 14 configs byte-identical, 15/15 compose and collect.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
