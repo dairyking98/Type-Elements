@@ -705,7 +705,12 @@ def ResinSupport():
                          - Resin_Support_Cut_Groove_Thickness)
     ring_inner = sp.cylinder_z(ring_inner_d, Resin_Support_Height + 2 * z, sections=Surface_Fn, base_z=-z)
     groove_r = Resin_Support_Cut_Groove_Diameter / 2
-    theta_c = np.linspace(0, 2 * np.pi, 64, endpoint=False)
+    # Tube cross-section resolution: resin.resin_fn, the knob that already
+    # sets every other resin-support facet count on this machine (rods,
+    # raft). Was hardcoded at 64, which spent 15360 faces describing a
+    # 0.75mm groove - see CLAUDE.md on not inventing a special-cased facet
+    # count when the machine already has the right knob.
+    theta_c = np.linspace(0, 2 * np.pi, Resin_Fn, endpoint=False)
     groove_profile = np.column_stack([
         Element_Diameter / 2 - z + groove_r * np.cos(theta_c),
         Resin_Support_Height - Resin_Support_Cut_Groove_Diameter / 2 + groove_r * np.sin(theta_c),

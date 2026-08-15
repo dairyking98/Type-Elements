@@ -954,7 +954,9 @@ def CutGroove():
     base = sp.revolve_polygon(profile, sections=Surface_Fn)
 
     hole_r = Resin_Groove_OD / 2
-    theta = np.linspace(0, 2 * np.pi, 32, endpoint=False)
+    # Tube cross-section resolution: resin.resin_fn, the same knob that
+    # sets the rods/raft. Was hardcoded at 32.
+    theta = np.linspace(0, 2 * np.pi, Resin_Fn, endpoint=False)
 
     def circle_profile(cx, cz):
         return np.column_stack([cx + hole_r * np.cos(theta), cz + hole_r * np.sin(theta)])
