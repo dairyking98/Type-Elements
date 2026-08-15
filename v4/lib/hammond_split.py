@@ -238,6 +238,12 @@ def configure(config_path):
     g["Folder_Glue_Groove_R"] = e["folder_glue_groove_r"]
     g["Folder_Glue_Groove_Depth"] = e["folder_glue_groove_depth"]
     g["Glyph_Height"] = e["glyph_height"]
+    # v4 convention: the glyph's own extrusion depth is
+    # build.pre_minkowski_char_height_mm, the same key every other machine
+    # uses, instead of this machine's implicit "Glyph_Height + 1". Falls
+    # back to that expression so a config predating the key is unchanged.
+    g["Pre_Minkowski_Char_Height_Mm"] = cfg["build"].get(
+        "pre_minkowski_char_height_mm", e["glyph_height"] + 1.0)
     g["Finger_Thickness"] = e["finger_thickness"]
     g["Spoke_Thickness"] = e["spoke_thickness"]
     g["Spoke_Height"] = e["spoke_height"]
@@ -498,7 +504,7 @@ def LetterText(char, font_path, font_size_mm):
     plain `linear_extrude(Glyph_Height+1) Text(...)` exactly (mirror +
     halign=center + valign=baseline, build_glyph()'s own struck-character
     convention)."""
-    depth = Glyph_Height + 1.0
+    depth = Pre_Minkowski_Char_Height_Mm
     if not Mink_On:
         return glyph_poc.build_glyph(char, FLATNESS_TOLERANCE_MM, align_kwargs=ALIGN_KWARGS,
                                       font_path=font_path, font_size_mm=font_size_mm,
@@ -563,7 +569,9 @@ def TextRing(side):
     band via a real boolean intersection (this machine's substitute for a
     curved-platen mapping - see module docstring)."""
     assembled = TextAssemble(side)
-    arc = _mirror_side(Arc(Glyph_Height + 1.0), side)
+    # Same depth the letters are extruded to, so the trim band and the
+    # glyphs stay in step when that value changes.
+    arc = _mirror_side(Arc(Pre_Minkowski_Char_Height_Mm), side)
     return assembled.intersection(arc, engine="manifold")
 
 
@@ -997,7 +1005,9 @@ def CalibrationTextRing(side, test_char, vary_baseline, start, interval):
             mapping_lines.append(
                 f"side={side} baseline_row={baseline} col={i} char={test_char!r} height_mm={height:.4f}")
     assembled = sp.union_all(parts)
-    arc = _mirror_side(Arc(Glyph_Height + 1.0), side)
+    # Same depth the letters are extruded to, so the trim band and the
+    # glyphs stay in step when that value changes.
+    arc = _mirror_side(Arc(Pre_Minkowski_Char_Height_Mm), side)
     return assembled.intersection(arc, engine="manifold"), mapping_lines
 
 

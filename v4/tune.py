@@ -1122,9 +1122,15 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)", "v2 Char_Mod_Size."),
     ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft cone height (mm)",
-     "Minkowski_Cone_Height - the draft cone's own height, independent of Glyph height (Element tab). "
-     "Only takes effect on Render."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float,
+     "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block, and the arc band it is trimmed to. Replaces this "
+     "machine's old implicit Glyph height + 1."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float,
+     "Minkowski cone height (mm)",
+     "The draft cone's own height. Unlike the cylinder family this does NOT add depth below the "
+     "block - v2 trims everything past it, so it shapes a flare within the glyph height. Only "
+     "takes effect on Render."),
     ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left".'),
     ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),
     ("left_offset_mm", ["alignment", "left_offset_mm"], float, "Left offset (mm)", ""),

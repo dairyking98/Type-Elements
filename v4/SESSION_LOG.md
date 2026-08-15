@@ -7029,6 +7029,42 @@ hammond 470569 942786 4876.156. Bennett unchanged (already at these
 values). Real Minkowski renders all build watertight: blickensderfer
 4470.035mm3, bennett 3667.480mm3, postal 5541.722mm3.
 
+### hammond_split moved onto the v4 depth convention
+
+It was the last machine with its own spelling: the glyph's extrusion
+depth was the implicit expression `Glyph_Height + 1.0`, written out at
+three call sites, with no config key at all. Now
+`build.pre_minkowski_char_height_mm` like everywhere else, driving both
+the letter extrusion AND the `Arc()` band the letters are trimmed to -
+those two were previously the same expression by coincidence of being
+typed twice, and are now the same value by construction. Set to 1.0/1.5
+with the rest of the fleet.
+
+**Its cone still behaves differently, and that is v2, not an oversight.**
+`_letter_text_drafted` minkowski-sums with a cone spanning
+z=[-cone_height, 0] and then subtracts everything below z=0, so the cone
+shapes a flare WITHIN the glyph height rather than adding depth beneath
+it the way the cylinder family's does. Both the config comment and the
+tune.py field help now say so explicitly, since the shared key name
+otherwise implies shared behaviour.
+
+New baseline: hammond_split 35267 70598 7976.807 (was 35240 70544
+8081.034 - the glyph band goes from 1.8mm to 1.0mm, so the characters sit
+shallower). Real Minkowski render builds watertight at 7976.832mm3.
+
+### Correction: roots through the inner wall are a non-issue
+
+Flagged twice in earlier entries as a concern. It is not one, and the
+user was right to push back: `FullElement = Additive.difference(
+Subtractive)` and `HollowSpace()` is one of Subtractive's parts, so the
+hollowing happens AFTER the characters are unioned into the cylinder -
+anything a root pushes past the inner wall is simply cut away by it.
+
+Better still, the old 2.0mm total put blickensderfer's root at exactly
+15.500 = the inner wall, which is the degenerate coincident-surface case.
+At 2.5mm it sits 0.5mm clear inside the hollow, so the cut is
+unambiguous. The new default is cleaner than the old one, not worse.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
