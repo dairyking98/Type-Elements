@@ -190,8 +190,13 @@ def WheelStyleCutters():
             ends = []
             for radius in (Element_Diameter / 2.0,
                             Element_Diameter / 2.0 + Notch_Extension):
+                # cosmetics.notch_fn, not Surface_Fn: describing a
+                # sub-millimetre groove at the body's own facet count spent
+                # 484 faces per cutter x 28 = 13552 faces on a decorative
+                # score line.
                 c = sp.cylinder_z(Notch_Diameter, half_h,
-                                   sections=Surface_Fn, base_z=-2 * z)
+                                   sections=globals().get("Notch_Fn", 16),
+                                   base_z=-2 * z)
                 ends.append(sp.translate(
                     c, [radius * np.cos(angle), radius * np.sin(angle), 0.0]))
             # hull() of two same-diameter cylinders - a convex hull of two
@@ -237,17 +242,16 @@ def Cylinder():
     # (a zero-area triangle has no meaningful normal) and cannot simply be
     # deleted, since they are load-bearing for watertightness.
     #
-    # ROUND STYLE ONLY, and that gate is measured, not assumed. On a
-    # notched/banded body the cosmetic cutters are themselves full-height
-    # (28 of them at the facet corners) and dominate the retessellation, so
-    # banding the body backfires - blickensderfer's real Minkowski render
-    # goes 3451 slivers unbanded to 10682 banded. Round bodies win clearly:
-    # postal 1296 -> 218 (longest 15.351mm -> 7.007mm) at identical volume.
-    z_segments = 1
-    if _wheel_style() == WHEEL_STYLE_ROUND:
-        z_segments = sp.square_z_segments(Element_Diameter, Element_Height, Surface_Fn)
+    # Applied to every wheel style. It was briefly gated to round only,
+    # on the basis that a notched body's own full-height cosmetic cutters
+    # dominate and banding raised the SLIVER count there (3451 -> 10682) -
+    # but sliver count turned out to be a poor proxy for the artifacts
+    # actually being seen, and banding the notched body causes no problem
+    # in practice, so the gate is gone rather than kept on a metric that
+    # did not predict anything.
     return sp.cylinder_z(Element_Diameter, Element_Height, sections=sections,
-                          z_segments=z_segments)
+                          z_segments=sp.square_z_segments(Element_Diameter,
+                                                           Element_Height, Surface_Fn))
 
 
 def ClipCylinder(Offset):

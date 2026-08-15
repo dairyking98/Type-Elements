@@ -6962,6 +6962,39 @@ coincident-surface and shading artifacts live). Blickensderfer is
 currently NOT banded - the gate is `wheel_style == round` and it is
 notched - so its behaviour is unchanged from before that commit.
 
+### Banding gate removed; notch fidelity became adjustable
+
+**Gate removed.** Wall banding now applies to every wheel style, not just
+round. It was gated on the basis that banding raised blickensderfer's
+SLIVER count (3451 -> 10682) - but that metric turned out not to predict
+the artifacts actually being seen, and the user reports no errors on
+blickensderfer anywhere with banding active. Keeping a gate justified only
+by a discredited proxy was the wrong call. Blickensderfer now gets 19 wall
+bands instead of 1.
+
+**Notch fidelity.** Same problem as the cut groove: the notch cutter was
+built at Surface_Fn, spending 484 faces per cutter x 28 = **13552 faces**
+on a 0.5mm decorative score line. Now `cosmetics.notch_fn` (default 16),
+which drops that to 28 x 68 = **1904**. It lives in `cosmetics:` beside
+notch_diameter/notch_extension rather than reusing an unrelated knob -
+resin_fn would have been the wrong section for a body cosmetic, and
+Surface_Fn is what was already too fine.
+
+A real dial (blickensderfer whole-element):
+
+| notch_fn | faces | volume |
+| --- | --- | --- |
+| 8 | 118778 | 4469.551 |
+| 12 | 119032 | 4467.171 |
+| 16 (shipped) | 119208 | 4466.315 |
+| 32 | 120218 | 4465.478 |
+
+Volume drifts slightly with it for the same reason the groove's does - a
+coarser cutter polygon removes marginally less material.
+
+New baseline, blickensderfer: 21780 43364 4318.768 (both changes land on
+it). The other 13 are unchanged.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

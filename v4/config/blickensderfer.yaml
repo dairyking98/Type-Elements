@@ -248,6 +248,11 @@ resin:
 cosmetics:
   wheel_style: "notched"      # round | notched | banded
   notch_diameter: 0.5         # groove diameter at each facet corner ("notched")
+  # Facet count for the notch groove cutter. A sub-millimetre score line
+  # does not need the body's own facet count - at Surface_Fn it cost 484
+  # faces per notch x 28. Lower it freely; raise it if the grooves look
+  # visibly polygonal.
+  notch_fn: 16
   # How far radially OUTWARD the notch cutter is hulled past the facet
   # corner. Reaches into the band where the characters' Minkowski draft
   # skirt flares, so the groove trims it instead of leaving it

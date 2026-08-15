@@ -135,6 +135,7 @@ def configure(config_path):
     cos = cfg.get("cosmetics", {})
     g["Wheel_Style"] = cos.get("wheel_style", cylinder_machine.WHEEL_STYLE_ROUND)
     g["Notch_Diameter"] = cos.get("notch_diameter", 0.7)
+    g["Notch_Fn"] = cos.get("notch_fn", 16)
     g["Notch_Extension"] = cos.get("notch_extension", 1.0)
     g["Band_Depth"] = cos.get("band_depth", 0.15)
     g["Band_Z_Offsets"] = cos.get("band_z_offsets", [])
