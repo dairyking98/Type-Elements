@@ -7271,6 +7271,40 @@ coarser cutter polygon removes marginally less material.
 New baseline, blickensderfer: 21780 43364 4318.768 (both changes land on
 it). The other 13 are unchanged.
 
+### 1.0 / 1.5 made the fleet-wide default
+
+All six cylinder-family machines now ship
+`pre_minkowski_char_height_mm: 1.0` and `minkowski_cone_height_mm: 1.5`,
+the combination the user verified renders artifact-free on Bennett. They
+were 0.1 / 1.9 (Bennett already 1.0 / 1.5). Total character depth goes
+2.0mm -&gt; 2.5mm.
+
+`hammond_split` is deliberately NOT changed: its
+`minkowski_cone_height_mm` is 2.0 because that is v2's real
+`Mink_Height=2` (hammond_split.scad:70), and it has no
+`pre_minkowski_char_height_mm` at all - its extrusion is `Glyph_Height`.
+Changing a genuine ported v2 value to match a v4 tuning choice would be a
+silent divergence, so it stays until there is a reason.
+
+**Worth knowing before printing:** the deeper total puts the character
+root through the inner wall on all three machines where the wall is
+measurable -
+
+    blickensderfer  root 15.000 vs inner wall 15.500   through
+    postal          root 14.550 vs inner wall 14.900   through
+    bennett         root 13.950 vs inner wall 14.950   through
+
+That is the sliver source identified earlier, and 2.5mm makes it slightly
+worse than 2.0mm did. It has no effect on the printed outer surface - the
+roots are buried in, and now through, the wall - but if the interior
+matters, a total under protrusion + wall thickness keeps them contained.
+
+New baselines: blickensderfer 29264 58608 4355.448, postal 43638 87432
+5449.705, mignon 20958 41988 4646.497, helios 71812 143648 4215.391,
+hammond 470569 942786 4876.156. Bennett unchanged (already at these
+values). Real Minkowski renders all build watertight: blickensderfer
+4470.035mm3, bennett 3667.480mm3, postal 5541.722mm3.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
