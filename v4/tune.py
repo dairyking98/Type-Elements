@@ -463,10 +463,10 @@ LOGO_FIELDS_BLICKPOSTAL = [
 
 QUALITY_FIELDS_BLICKPOSTAL = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
-     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below; the tip does not move when either changes."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
-     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft. Lower it for a shallower flare without moving the root or the tip."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block itself, before the Minkowski sum. Its top is the strike face. Small = the block floats just above the cylinder surface."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Minkowski cone height (mm)",
+     "Height of the draft cone, added BELOW the glyph block - this is what sinks the character into the cylinder. Total depth is glyph height + cone height."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
     ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Inner shaft/core bore only."),
@@ -605,10 +605,10 @@ LEGEND_FIELDS_MIGNON = [
 
 QUALITY_FIELDS_MIGNON = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
-     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
-     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block itself, before the Minkowski sum. Its top is the strike face. Small = the block floats just above the cylinder surface."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Minkowski cone height (mm)",
+     "Height of the draft cone, added BELOW the glyph block - this is what sinks the character into the cylinder. Total depth is glyph height + cone height."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "CenterShaft only."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
@@ -684,10 +684,10 @@ LABEL_FIELDS_BENNETT = [
 
 QUALITY_FIELDS_BENNETT = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
-     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
-     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block itself, before the Minkowski sum. Its top is the strike face. Small = the block floats just above the cylinder surface."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Minkowski cone height (mm)",
+     "Height of the draft cone, added BELOW the glyph block - this is what sinks the character into the cylinder. Total depth is glyph height + cone height."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft/pin fn", "PositionerPins/CenterShaft."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowBody, SpeedHoles, countersinks...)."),
@@ -757,10 +757,10 @@ ELEMENT_FIELDS_BENNETT = [
 # LOGO_FIELDS_HELIOS and config/helios.yaml's logo: section.
 QUALITY_FIELDS_HELIOS = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
-     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
-     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block itself, before the Minkowski sum. Its top is the strike face. Small = the block floats just above the cylinder surface."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Minkowski cone height (mm)",
+     "Height of the draft cone, added BELOW the glyph block - this is what sinks the character into the cylinder. Total depth is glyph height + cone height."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves",
      "16 twisted friction grooves (v4-only, see the core_shaft note on the Element tab) - slow, off for quick iteration."),
     # cyl_fn is now genuinely used (Core()'s shaft-bore facet count, via
@@ -976,10 +976,10 @@ LEGEND_FIELDS_HAMMOND = [
 
 QUALITY_FIELDS_HAMMOND = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
-     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
-     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block itself, before the Minkowski sum. Its top is the strike face. Small = the block floats just above the cylinder surface."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Minkowski cone height (mm)",
+     "Height of the draft cone, added BELOW the glyph block - this is what sinks the character into the cylinder. Total depth is glyph height + cone height."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shuttle arc body (ShuttleCylinder/Rib/PinSupport)."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),

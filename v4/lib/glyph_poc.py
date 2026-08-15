@@ -1037,11 +1037,20 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
     if expansion_width_mm is None:
         expansion_width_mm = taper_depth * np.tan(np.radians(draft_angle_deg / 2.0))
 
-    # Preview path shows the whole un-drafted extent, so it matches where
-    # the drafted character will actually reach.
-    preview_h = pre_minkowski_char_height_mm if minkowski_cone_height_mm is None else block_h_pre + cone_h
-    block_h = block_h_pre if minkowski_enabled else preview_h
-    block_z0 = pre_minkowski_char_height_mm - block_h_pre if minkowski_enabled else pre_minkowski_char_height_mm - preview_h
+    # The preview path is the PRE-MINKOWSKI solid, so it is exactly the
+    # glyph block - the cone height must not leak into it. Same block
+    # either way; the only difference is whether the cone gets summed on
+    # below it. (An earlier version inflated the preview by the cone
+    # height to "match the final extent", which made a small glyph height
+    # still look sunk into the cylinder in preview - the opposite of what
+    # the value says.) The legacy coupled path keeps its old preview
+    # block, which was the full depth by construction.
+    if minkowski_cone_height_mm is None:
+        block_h = block_h_pre if minkowski_enabled else pre_minkowski_char_height_mm
+        block_z0 = pre_minkowski_char_height_mm - block_h_pre if minkowski_enabled else 0.0
+    else:
+        block_h = block_h_pre
+        block_z0 = pre_minkowski_char_height_mm - block_h_pre
 
     # Platen scallop applied as a REAL boolean cylinder subtraction, BEFORE
     # the Minkowski sum - not a per-vertex parabola-warp approximation (the

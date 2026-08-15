@@ -6786,6 +6786,48 @@ difference, the extra 0.01mm of buried root.
 3.5x fewer slivers at identical volume (3147.322) - the combination that
 was impossible while one number did both jobs.
 
+### Preview stopped inheriting the cone height; names made literal
+
+Two follow-ups, both my errors.
+
+**The preview was wrong.** The no-Minkowski path was building its block at
+glyph height PLUS cone height, on the reasoning that the preview should
+"match the final extent". That is backwards: the preview IS the
+pre-Minkowski solid, so the cone must not appear in it at all. The
+symptom was a small glyph height still looking sunk into the cylinder in
+preview - the opposite of what the number says. Preview and render now
+build the SAME block; the only difference is whether the cone is summed
+onto it.
+
+Measured, glyph height 0.1 / cone 2.0 on Bennett (surface r=15.950):
+
+    preview  r=[16.350, 16.549]   floats clear of the surface
+    render   r=[14.350, 16.549]   sunk 1.60mm
+
+**The labels were wrong**, which is what made the whole exchange
+circular - they read "Straight depth" / "Draft depth" while the user was
+consistently saying "pre-Minkowski glyph height" and "Minkowski cone
+height". Now labelled exactly that. Whatever value goes in is that
+dimension, literally: total depth = glyph height + cone height, strike
+face fixed.
+
+**Defaults changed** from glyph 0.0 / cone 2.0 to glyph 0.1 / cone 1.9.
+0.0 was faithful to the original (which really did extrude a 0.01mm
+sliver and let the cone carry everything), but it is a useless number to
+hand a user - the cone alone sets the whole depth, which is the coupling
+this work existed to remove, and with the preview fix above it made Quick
+Preview show almost nothing. 0.1/1.9 keeps total depth at the historical
+2.0.
+
+Render path is unaffected by all of this: blickensderfer stays at
+volume=4468.936mm3. Preview-path baselines move (that is the fix):
+
+    bennett 54063 108218 3554.919   blickensderfer 24557 48918 4317.672
+    hammond 469050 939472 4738.146  helios 65751 131238 4146.287
+    mignon 18290 36336 4621.277     postal 34401 68682 5397.200
+
+The other 8 configs are unchanged.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
