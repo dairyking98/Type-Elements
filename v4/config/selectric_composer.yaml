@@ -131,7 +131,13 @@ build:
   clip_to_cell: false
   draft_angle_deg: 55.0
   minkowski_enabled: true
-  character_block_height_mm: 6.0
+  # Height of the extruded glyph block before the Minkowski sum - the same
+  # key the cylinder family uses. On this machine it is a construction
+  # margin rather than a depth-determining value: the body boolean trims
+  # the block, so output is identical at any sufficient height (verified
+  # byte-identical from 6.0 down to 1.0). What must reach into the body is
+  # the CONE, not this.
+  pre_minkowski_char_height_mm: 1.0
   minkowski_cone_height_mm: 2.0
   resin_support: false
   target: "element"

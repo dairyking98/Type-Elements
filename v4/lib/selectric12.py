@@ -132,7 +132,7 @@ def configure(config_path):
     g["Clip_To_Cell"] = b.get("clip_to_cell", False)
     g["Mink_Draft_Angle"] = b["draft_angle_deg"]
     g["DEFAULT_MINKOWSKI_ENABLED"] = b["minkowski_enabled"]
-    g["Character_Block_Height_Mm"] = b["character_block_height_mm"]
+    g["Character_Block_Height_Mm"] = b["pre_minkowski_char_height_mm"]
     g["Mink_Cone_Height_Mm"] = b["minkowski_cone_height_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
 

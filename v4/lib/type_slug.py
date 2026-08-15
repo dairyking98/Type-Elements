@@ -103,7 +103,7 @@ def configure(config_path):
     # other machine; the engine still wants v1's multiplier form, so derive
     # it back. Engraving_Depth * Multiplier == the configured height.
     g["Minkowski_Multiplier"] = b["minkowski_cone_height_mm"] / b["engraving_depth_mm"]
-    g["Character_Block_Height_Mm"] = b["character_block_height_mm"]
+    g["Character_Block_Height_Mm"] = b["pre_minkowski_char_height_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
 
     q = cfg["quality"]

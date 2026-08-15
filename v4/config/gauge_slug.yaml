@@ -112,8 +112,14 @@ build:
   # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
   # engraving_depth; stored directly here so it reads the same as every
   # other machine (v1 equivalent: engraving_depth * multiplier).
-  minkowski_cone_height_mm: 0.8
-  character_block_height_mm: 2.0   # unused
+  minkowski_cone_height_mm: 2.0
+  # Height of the extruded glyph block before the Minkowski sum - the same
+  # key the cylinder family uses. On this machine it is a construction
+  # margin rather than a depth-determining value: the body boolean trims
+  # the block, so output is identical at any sufficient height (verified
+  # byte-identical from 6.0 down to 1.0). What must reach into the body is
+  # the CONE, not this.
+  pre_minkowski_char_height_mm: 1.0
   resin_support: false             # GaugeTypeSlugSlug.scad has no resin-support geometry at all
   target: "element"
 

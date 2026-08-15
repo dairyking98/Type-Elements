@@ -1313,7 +1313,8 @@ LABEL_FIELDS_SELECTRIC = [
 QUALITY_FIELDS_SELECTRIC = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft", "Off: fast undrafted preview (correct platen curve/placement, no taper)."),
-    ("character_block_height_mm", ["build", "character_block_height_mm"], float, "Character block height (mm)",
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float,
+     "Pre-Minkowski glyph height (mm)",
      "v2's linear_extrude(6) construction margin - must exceed any character's real embed depth."),
     ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float,
      "Minkowski cone height (mm)", "v2's hardcoded cylinder h=2 in the draft cone."),

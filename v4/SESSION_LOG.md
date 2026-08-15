@@ -7218,29 +7218,46 @@ because protrusion is no longer tied to glyph height. The same change
 earlier would have zeroed the protrusion; the min_final_character_diameter
 work is what made it a non-event.
 
-### `pre_minkowski_char_height_mm` deliberately NOT added everywhere
+### All 15 machines now carry both depths, at 1.0 / 2.0
 
-Asked for all machines to have both values at 1.0/1.5. The cone height is
-now uniform, but the pre-Minkowski height genuinely has no counterpart on
-the spherical and slug families, and forcing 1.0 there would break real
-geometry:
+Cone height set to 2.0 fleet-wide (was 1.5 on the cylinder family, 2.0 on
+hammond_split/Selectrics, 0.8-1.05 on the slugs). Every machine builds
+watertight at it, including the slug family whose cone more than doubled.
 
-- **Spherical**: `character_block_height_mm` is **6.0**, and its own
-  config comment says why - v2's `linear_extrude(6)` is a CONSTRUCTION
-  MARGIN that "must be taller than any character's real embed depth"
-  (ibm.scad:521-524). The character's actual depth comes from the ball
-  boolean, not from this. Setting 1.0 would truncate characters.
-- **Slug family**: `character_block_height_mm` is 2.0, again v1's
-  hardcoded `linear_extrude(2)` construction margin. Their real strike
-  depth is `engraving_depth_mm` (0.5-0.7, v1 Engraving_Depth) - a
-  different quantity that is already correct.
+**Correction to the previous entry**, which claimed the spherical and slug
+families could not have a pre-Minkowski height because their
+`character_block_height_mm` is a construction margin. The margin part is
+true; the conclusion was not. The user's point is the correct one: what
+has to reach into the body is the CONE, not the block - so the block
+height is free, and the key applies perfectly well.
 
-So 8 machines have no pre-Minkowski glyph height because they do not
-build characters that way, not because it was overlooked. The 7 that do
-are all at 1.0.
+Measured directly. selectric12 at cone 2.0, block height swept:
 
-All 14 buildable configs verified; only hammond_split's tessellation
-moved, at identical volume. 15/15 compose and collect.
+    6.0 -> verts=58718 vol=8053.677
+    3.0 -> verts=58350 vol=8053.677
+    1.5 -> verts=58262 vol=8053.677
+    1.0 -> verts=58099 vol=8053.677
+
+Identical volume throughout, and a *simpler* mesh as it comes down - so
+v2's `linear_extrude(6)` was over-generous by ~6x and cost faces for
+nothing. type_slug behaves the same (236.540 at every height).
+
+So `character_block_height_mm` was renamed to
+`pre_minkowski_char_height_mm` on all 8 machines that had it, and set to
+1.0. Volumes unchanged everywhere; the three Selectrics get measurably
+smaller meshes (selectric12 41353 -> 40997 verts, composer 26623 ->
+26111).
+
+Every one of the 15 machines now reads the same two keys at the same
+values. What differs between families is only what the pre-Minkowski
+height DOES: on the cylinder family and Hammond Split it sets the
+character's depth (total = pre + cone); on the spherical and slug
+families the body boolean trims the block, so it is a margin and any
+sufficient value gives identical output. Both configs say so.
+
+The user's safety note is recorded with it: a taller cone is the safer
+direction, because a wide character's roots approaching the sphere
+surface would otherwise cut off abruptly instead of meshing into it.
 
 ### Resuming later
 
