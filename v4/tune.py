@@ -1206,7 +1206,6 @@ ELEMENT_FIELDS_HAMMOND_SPLIT = [
     ("folder_glue_hole_id_mm", ["element", "folder_glue_hole_id_mm"], float, "Glue hole ID (mm)", ""),
     ("folder_glue_groove_r", ["element", "folder_glue_groove_r"], float, "Glue groove radius (mm)", ""),
     ("folder_glue_groove_depth", ["element", "folder_glue_groove_depth"], float, "Glue groove depth (mm)", ""),
-    ("glyph_height", ["element", "glyph_height"], float, "Glyph height (mm)", "Struck character engraving depth."),
     ("finger_thickness", ["element", "finger_thickness"], float, "Finger thickness (mm)", "Alignment finger tip width."),
     ("spoke_thickness", ["element", "spoke_thickness"], float, "Spoke thickness (mm)", ""),
     ("spoke_height", ["element", "spoke_height"], float, "Spoke height (mm)", ""),

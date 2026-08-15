@@ -179,10 +179,10 @@ def configure(config_path):
     # v2/hammond_split.scad's Char_Mod* names, which are still the right
     # cross-reference for this machine's own source. Old key accepted as a
     # fallback so a config predating the rename keeps loading.
-    cm = cfg.get("font2") or cfg["char_mod"]
-    g["Char_Mod"] = cm.get("font2_chars", cm.get("char", ""))
-    g["CHAR_MOD_FONT_PATH"] = cm.get("font2_path", cm.get("char_mod_font_path"))
-    g["Char_Mod_Size"] = cm.get("font2_size_mm", cm.get("char_mod_size_mm"))
+    cm = cfg["font2"]
+    g["Char_Mod"] = cm["font2_chars"]
+    g["CHAR_MOD_FONT_PATH"] = cm["font2_path"]
+    g["Char_Mod_Size"] = cm["font2_size_mm"]
 
     label = cfg["label"]
     g["LOGO_FONT_PATH"] = label["font_path"]
@@ -237,7 +237,6 @@ def configure(config_path):
     g["Folder_Glue_Hole_ID_Mm"] = e["folder_glue_hole_id_mm"]
     g["Folder_Glue_Groove_R"] = e["folder_glue_groove_r"]
     g["Folder_Glue_Groove_Depth"] = e["folder_glue_groove_depth"]
-    g["Glyph_Height"] = e["glyph_height"]
     # Character protrusion above the arc's outer surface, expressed the way
     # every other machine expresses it: as the diameter a caliper reads
     # across two opposing character tips. v2 had no such value - it hid the
@@ -246,15 +245,13 @@ def configure(config_path):
     # Deriving it here makes the two independent. "min_" is the fleet-wide
     # spelling; there is no minimum-vs-maximum here because this machine
     # strikes a flat anvil and has no platen scallop to vary the diameter.
-    g["Min_Final_Character_Diameter"] = e.get("min_final_character_diameter",
-                                               e["arc_od"] + 2 * 0.8)
+    g["Min_Final_Character_Diameter"] = e["min_final_character_diameter"]
     g["Char_Protrusion"] = (g["Min_Final_Character_Diameter"] - e["arc_od"]) / 2.0
     # v4 convention: the glyph's own extrusion depth is
     # build.pre_minkowski_char_height_mm, the same key every other machine
     # uses, instead of this machine's implicit "Glyph_Height + 1". Falls
     # back to that expression so a config predating the key is unchanged.
-    g["Pre_Minkowski_Char_Height_Mm"] = cfg["build"].get(
-        "pre_minkowski_char_height_mm", e["glyph_height"] + 1.0)
+    g["Pre_Minkowski_Char_Height_Mm"] = cfg["build"]["pre_minkowski_char_height_mm"]
     g["Finger_Thickness"] = e["finger_thickness"]
     g["Spoke_Thickness"] = e["spoke_thickness"]
     g["Spoke_Height"] = e["spoke_height"]
@@ -313,7 +310,7 @@ def configure(config_path):
     g["DEFAULT_MINK_DRAFT_ANGLE"] = b.get("draft_angle_deg",
                                            b.get("mink_draft_angle_deg", 60.0))
     g["Mink_Draft_Angle"] = g["DEFAULT_MINK_DRAFT_ANGLE"]
-    g["Minkowski_Cone_Height"] = b.get("minkowski_cone_height_mm", b.get("mink_height", 2.0))
+    g["Minkowski_Cone_Height"] = b["minkowski_cone_height_mm"]
     g["Mink_Radius"] = np.tan(np.radians(g["Mink_Draft_Angle"] / 2.0)) * g["Minkowski_Cone_Height"]
 
     tt = cfg.get("type_test", {})

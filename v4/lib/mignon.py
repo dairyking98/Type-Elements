@@ -225,7 +225,7 @@ def configure(config_path):
     # Draft cone height - how much of the total depth the taper sweeps.
     # None (the default) = the whole depth, i.e. the old behavior where
     # pre_minkowski_char_height_mm did both jobs. See glyph_poc.build_glyph.
-    g["Minkowski_Cone_Height_Mm"] = b.get("minkowski_cone_height_mm", b.get("mink_height"))
+    g["Minkowski_Cone_Height_Mm"] = b["minkowski_cone_height_mm"]
     # Trim each placed character to its own angular slot so its draft
     # skirt cannot bleed into the neighbour - see
     # cylinder_machine._clip_to_cell. Off by default: at the real 55

@@ -182,7 +182,10 @@ element:
   folder_glue_hole_id_mm: 1.15
   folder_glue_groove_r: 0.8
   folder_glue_groove_depth: 0.2
-  glyph_height: 0.8
+  # v2's Glyph_Height (0.8) is not carried as its own key: its only role was
+  # the glyph extrusion depth, expressed here as build.pre_minkowski_char_
+  # height_mm (v2's Glyph_Height + 1 = 1.8). Dropped rather than left as a
+  # second, dead spelling of the same dimension.
   finger_thickness: 1.8
   spoke_thickness: 2.2
   spoke_height: 8.3

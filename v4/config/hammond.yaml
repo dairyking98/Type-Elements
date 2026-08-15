@@ -85,7 +85,10 @@ element:
   anvil_od: 73.15                  # Element_Diameter = anvil_od*shrinkage_multiplier
   anvil_id_raw: 66.0
   shuttle_thickness: 1.36          # also Letter_Placement_Protrusion (v2:380)
-  shuttle_text_protrusion: 0.9
+  # v2's Shuttle_Text_Protrusion (0.9) is not carried as its own key:
+  # protrusion is expressed fleet-wide as element.min_final_character_
+  # diameter below, from which it is derived. Dropped rather than left as a
+  # second spelling that could silently disagree.
   # Diameter across two opposing character tips - the fleet-wide way of
   # expressing protrusion (same key the cylinder machines use). The shuttle
   # surface is element_diameter + 2*shuttle_thickness = 75.87, so this is
