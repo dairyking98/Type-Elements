@@ -6683,6 +6683,35 @@ modal was pushed), then verified three ways: silent on load, silent when
 re-picking the already-active profile, and still prompting for a
 genuinely different one. All 15 machines load with no spurious modal.
 
+### Profile selection now tracks the form live
+
+Asked for the picker to read (none) when the values don't match a
+profile, at startup or at any time. Two real gaps behind that:
+
+1. `_current_font_profile()` compared against `self.cfg` - what is on
+   DISK - so after editing a field the picker happily kept naming a
+   profile whose values were no longer in the form. It now reads the
+   WIDGETS (`_live_font_values()`), coercing each value with its field's
+   declared type so "3.7" typed into an Input compares equal to a 3.7 in
+   a profile. A field mid-edit that doesn't parse is omitted, so the
+   match fails - which is the right answer while someone is typing.
+2. Nothing re-evaluated on edit. The status line even claimed "editing
+   any field below clears this" while nothing implemented it. Now every
+   Font & Alignment Input, Switch and Select edit calls
+   `_refresh_font_profile_status()`, which updates the dropdown as well
+   as the status line.
+
+The match runs per keystroke, so profiles are cached in memory
+(`_cached_profiles()`) and invalidated explicitly on save/rename/delete
+rather than re-reading and YAML-parsing every file each time.
+
+Verified in both directions, which matters - a selection that clears but
+never comes back would be its own bug: matching on load, (none) after
+editing the font size, back to the profile when the value is typed back,
+(none) again after toggling the clip Switch and after changing the align
+mode Select. No spurious apply dialog at any point, all 15 machines load
+clean.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

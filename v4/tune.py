@@ -2369,6 +2369,7 @@ class TuneApp(App):
         # the dropdown with whichever profile currently matches) opened
         # the apply dialog the instant a machine was loaded.
         self._suppress_profile_apply = False
+        self._profile_cache = None
         self._f3d_proc = None
         self._f3d_out_path = None  # see _ensure_f3d_after_build's own comment
         self._warned_no_wmctrl = False
@@ -2836,15 +2837,64 @@ class TuneApp(App):
         finally:
             self._suppress_profile_apply = False
 
+    def _invalidate_profile_cache(self):
+        self._profile_cache = None
+
+    def _cached_profiles(self):
+        """[(name, {path: value}), ...], read once and reused. The live
+        match below runs on every keystroke in a Font & Alignment field,
+        and re-reading + YAML-parsing every profile file that often would
+        be real work for no benefit - the files only change when this app
+        saves/renames/deletes one, which invalidates explicitly."""
+        if getattr(self, "_profile_cache", None) is None:
+            out = []
+            for name, path in font_profiles.list_profiles(self._config_dir()):
+                try:
+                    out.append((name, font_profiles.load_profile(path)[1]))
+                except Exception:
+                    continue
+            self._profile_cache = out
+        return self._profile_cache
+
+    def _live_font_values(self):
+        """{dotted_path: value} from the WIDGETS, not from self.cfg.
+
+        That distinction is the whole point of a live match: self.cfg is
+        what is on DISK, so comparing against it kept reporting a profile
+        as active after its values had been edited in the form and not yet
+        saved. Values are coerced with each field's declared type so a
+        "3.7" typed into an Input compares equal to a 3.7 in a profile; a
+        field mid-edit that does not parse is omitted, which makes the
+        match fail, which is the right answer."""
+        out = {}
+        for key, path, typ, _label, _help in self.SECTIONS["Font & Alignment"]:
+            widget = self.inputs.get(key)
+            if widget is None:
+                continue
+            raw = widget.value
+            if typ is bool:
+                out[".".join(path)] = bool(raw)
+                continue
+            try:
+                out[".".join(path)] = typ(str(raw).strip())
+            except (TypeError, ValueError):
+                continue
+        return out
+
     def _current_font_profile(self):
-        """Derived by comparing values, not stored in the config - same
-        convention as _current_layout_preset(), so hand-editing a field
-        correctly clears the selection instead of leaving a stale name."""
-        try:
-            return font_profiles.matching_profile(
-                self._config_dir(), self.cfg, self._font_field_paths())
-        except Exception:
+        """Name of the profile matching what is CURRENTLY IN THE FORM, or
+        None. Derived rather than stored, same convention as
+        _current_layout_preset() - so editing any field drops the picker to
+        (none) the moment it stops matching, and typing the values back
+        restores it."""
+        current = self._live_font_values()
+        if not current:
             return None
+        for name, values in self._cached_profiles():
+            shared = {k: v for k, v in values.items() if k in current}
+            if shared and all(current[k] == v for k, v in shared.items()):
+                return name
+        return None
 
     @staticmethod
     def _font_profile_status(current):
@@ -2946,6 +2996,7 @@ class TuneApp(App):
             self.log_line(f"[red]could not rename: {e}[/red]")
             return
         moved = "" if old_path == new_path else f" ({os.path.basename(new_path)})"
+        self._invalidate_profile_cache()
         self.log_line(f"[green]renamed {name!r} -> {new_name!r}[/green]{moved}")
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
         self._set_profile_select(select, [(n, n) for n in names],
@@ -2974,17 +3025,32 @@ class TuneApp(App):
             self.log_line(f"[yellow]kept profile {name!r}[/yellow]")
             return
         removed = font_profiles.delete_profile(self._config_dir(), name)
+        self._invalidate_profile_cache()
         self.log_line(f"[green]deleted profile {name!r}[/green] - {removed}")
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
         self._set_profile_select(select, [(n, n) for n in names], Select.NULL)
         self._refresh_font_profile_status()
 
     def _refresh_font_profile_status(self):
+        """Re-derives the active profile from the live widget values and
+        puts BOTH the dropdown and the status line in step with it. Called
+        on every Font & Alignment edit, so the picker falls to (none) as
+        soon as a value stops matching and comes back if it is typed
+        back."""
         try:
             status = self.query_one("#font-profile-status", Static)
         except NoMatches:
             return
-        status.update(self._font_profile_status(self._current_font_profile()))
+        current = self._current_font_profile()
+        status.update(self._font_profile_status(current))
+        try:
+            select = self.query_one("#font-profile-select", Select)
+        except NoMatches:
+            return
+        names = [n for n, _v in self._cached_profiles()]
+        wanted = current if current in names else Select.NULL
+        if select.value != wanted:
+            self._set_profile_select(select, None, wanted)
 
     async def _save_font_profile(self):
         current = self._current_font_profile() or ""
@@ -2999,6 +3065,7 @@ class TuneApp(App):
         payload = font_profiles.collect_from_config(self.cfg, self._font_field_paths())
         path = font_profiles.save_profile(self._config_dir(), name, payload,
                                            saved_from=self.machine)
+        self._invalidate_profile_cache()
         self.log_line(f"[green]saved profile {name!r}[/green] ({len(payload)} values) -> {path}")
         select = self.query_one("#font-profile-select", Select)
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
@@ -4720,6 +4787,11 @@ class TuneApp(App):
                 return
             self.run_worker(self._apply_font_profile(str(event.value)), exclusive=False)
             return
+        select_id = event.select.id or ""
+        if select_id.startswith("field-"):
+            key = select_id.removeprefix("field-")
+            if key in {f[0] for f in self.SECTIONS.get("Font & Alignment", [])}:
+                self._refresh_font_profile_status()
         if event.select.id == "coverage-preset-select":
             chars = self._charset_for_coverage_select_value(event.value)
             if chars is not None:
@@ -4782,6 +4854,10 @@ class TuneApp(App):
         if not input_id.startswith("field-"):
             return
         key = input_id.removeprefix("field-")
+        # Any Font & Alignment edit can make the active profile stop (or
+        # start) matching - see _refresh_font_profile_status.
+        if key in {f[0] for f in self.SECTIONS.get("Font & Alignment", [])}:
+            self._refresh_font_profile_status()
         if key not in FONT_PATH_FIELD_KEYS:
             return
         try:
@@ -4805,6 +4881,11 @@ class TuneApp(App):
             self.query_one("#tabs", TabbedContent).active = tab_id
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
+        switch_id = event.switch.id or ""
+        if switch_id.startswith("field-"):
+            key = switch_id.removeprefix("field-")
+            if key in {f[0] for f in self.SECTIONS.get("Font & Alignment", [])}:
+                self._refresh_font_profile_status()
         if event.switch.id == "layout-use-extra-rows":
             # explicit "does this hand-edited layout use the extra
             # row(s)" declaration - see its own Switch's comment in
