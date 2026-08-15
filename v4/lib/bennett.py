@@ -690,7 +690,16 @@ def ResinSupport():
     _resin_rod() for the rod primitive itself (Resin_Rod_Raft=True, so
     each rod ALSO grows its own small raft - see configure()'s comment)."""
     _require_configured()
-    ring_outer = sp.translate(sp.cylinder_z(Element_Diameter, Resin_Support_Height - 0.5, sections=Surface_Fn),
+    # Inset by one epsilon so the ring's outer surface is NOT exactly
+    # cocylindrical with the element's own wall. v2 writes both at
+    # Element_Diameter, which makes the union's two operands share a
+    # surface exactly - a degenerate boolean input, and coincident
+    # surfaces are what a viewer renders as z-fighting. Physically this
+    # keeps the snap-off ring a hair inside the element instead of a hair
+    # proud, which is the safe direction for a support that has to break
+    # away cleanly.
+    ring_outer = sp.translate(sp.cylinder_z(Element_Diameter - 2 * z, Resin_Support_Height - 0.5,
+                                             sections=Surface_Fn),
                                [0, 0, 0.5])
     ring_inner_d = 2 * (Element_Diameter / 2 - Resin_Support_Cut_Groove_Diameter / 2
                          - Resin_Support_Cut_Groove_Thickness)
@@ -698,7 +707,7 @@ def ResinSupport():
     groove_r = Resin_Support_Cut_Groove_Diameter / 2
     theta_c = np.linspace(0, 2 * np.pi, 64, endpoint=False)
     groove_profile = np.column_stack([
-        Element_Diameter / 2 + groove_r * np.cos(theta_c),
+        Element_Diameter / 2 - z + groove_r * np.cos(theta_c),
         Resin_Support_Height - Resin_Support_Cut_Groove_Diameter / 2 + groove_r * np.sin(theta_c),
     ])
     groove = sp.revolve_polygon(groove_profile, sections=Surface_Fn)
