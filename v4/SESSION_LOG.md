@@ -7048,9 +7048,19 @@ it the way the cylinder family's does. Both the config comment and the
 tune.py field help now say so explicitly, since the shared key name
 otherwise implies shared behaviour.
 
-New baseline: hammond_split 35267 70598 7976.807 (was 35240 70544
-8081.034 - the glyph band goes from 1.8mm to 1.0mm, so the characters sit
-shallower). Real Minkowski render builds watertight at 7976.832mm3.
+**Corrected same session:** the schema move was byte-identical, but it
+was shipped with the values ALSO changed to 1.0/1.5, which is a real
+geometry change and regressed the gate (35240 70544 8081.034 -> 35267
+70598 7976.807). This machine's pre-existing effective glyph band was
+`Glyph_Height + 1.0` = 0.8 + 1.0 = **1.8mm**, not 1.0 - so setting 1.0
+shrank it by 0.8mm and the characters sat shallower. Restored to
+1.8 / 2.0 (its own prior values, cone = v2's Mink_Height), and the gate
+is back to 35240 70544 8081.034 exactly. Real Minkowski render
+8082.303mm3.
+
+The lesson worth keeping: a rename/reschema commit and a value change are
+two different commits. Bundling them here made a pure no-op look like a
+regression and hid which half caused it.
 
 ### Correction: roots through the inner wall are a non-issue
 
