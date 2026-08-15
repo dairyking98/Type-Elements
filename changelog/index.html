@@ -7351,6 +7351,50 @@ Better still, the old 2.0mm total put blickensderfer's root at exactly
 At 2.5mm it sits 0.5mm clear inside the hollow, so the cut is
 unambiguous. The new default is cleaner than the old one, not worse.
 
+### min_final_character_diameter is now fleet-wide
+
+The two Hammond machines expressed character protrusion two different
+ways, and neither matched the cylinder family's:
+
+- **Hammond** had `element.shuttle_text_protrusion` (0.9mm) - a real
+  named value, just not the fleet's spelling.
+- **Hammond Split** had NO protrusion value at all. It fell out of a bare
+  literal in `_text_placement_ops`: `translate([Arc_OD/2 - 1.0, ...])`.
+  That 1.0 tied protrusion to the glyph extrusion depth, so changing one
+  moved the other - which is exactly what made the earlier 1.8 -&gt; 1.0
+  glyph-height change so damaging. It did not scale the protrusion, it
+  took it from 0.8mm to ZERO: the characters would have sat flush with
+  the arc surface, not merely shallower.
+
+Both now derive protrusion from `element.min_final_character_diameter`,
+the same key the cylinder machines use - the diameter a caliper reads
+across two opposing character tips:
+
+| machine | surface diameter | protrusion | min_final |
+| --- | --- | --- | --- |
+| hammond | element_diameter + 2*shuttle_thickness = 75.87 | 0.9 | **77.67** |
+| hammond_split | arc_od = 75.00 | 0.8 | **76.60** |
+
+Per the user's own point, "min" carries no minimum-vs-maximum meaning on
+these machines - they strike a flat anvil, so there is no platen scallop
+to vary the diameter across the character. The name is kept anyway
+because one fleet-wide spelling beats a second nearly-identical key, and
+both configs say so in a comment.
+
+Verified byte-identical on all 14 configs, and the decoupling
+demonstrated directly - protrusion now tracks min_final alone:
+
+    glyph h  min_final -&gt; protrusion
+        1.8       76.6 -&gt;      0.800
+        1.0       76.6 -&gt;      0.800
+        1.8       77.0 -&gt;      1.000
+        1.0       77.0 -&gt;      1.000
+
+Hammond's `shuttle_text_protrusion` survives only as the fallback for a
+config predating the key; its own tune.py field is replaced by the
+diameter, so there is one place to set this per machine rather than two
+spellings.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
