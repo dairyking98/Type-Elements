@@ -132,7 +132,7 @@ build:
   draft_angle_deg: 55.0
   minkowski_enabled: true
   character_block_height_mm: 6.0
-  mink_cone_height_mm: 2.0
+  minkowski_cone_height_mm: 2.0
   resin_support: false
   target: "element"
 

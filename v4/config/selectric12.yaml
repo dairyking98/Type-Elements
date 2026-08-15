@@ -155,7 +155,7 @@ build:
   character_block_height_mm: 6.0
   # v2's hardcoded cylinder(...,h=2) inside the minkowski draft cone
   # (ibm.scad:575,581) - same reasoning as character_block_height_mm above.
-  mink_cone_height_mm: 2.0
+  minkowski_cone_height_mm: 2.0
   resin_support: true
   target: "element"
 

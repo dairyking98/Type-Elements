@@ -122,7 +122,10 @@ build:
   minkowski_enabled: true          # v1 !Debug_No_Minkowski ("CMU Typewriter Text" preset: false)
   draft_angle_deg: 60.0            # v1 Draft_Angle (:12)
   engraving_depth_mm: 0.5          # v1 Engraving_Depth (:14)
-  minkowski_multiplier: 1.6        # v1 Minkowski_Multiplier (:48)
+  # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
+  # engraving_depth; stored directly here so it reads the same as every
+  # other machine (v1 equivalent: engraving_depth * multiplier).
+  minkowski_cone_height_mm: 0.8
   character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) (e.g. :163,165) - construction margin, config-driven per CLAUDE.md
   resin_support: true              # v1 Resin_Support (:81) - now a build-time toggle (ResinPrint vs FullElement), see lib/wing_slug.py's module docstring
   target: "element"

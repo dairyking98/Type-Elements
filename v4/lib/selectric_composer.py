@@ -143,7 +143,7 @@ def configure(config_path):
     g["Mink_Draft_Angle"] = b["draft_angle_deg"]
     g["DEFAULT_MINKOWSKI_ENABLED"] = b["minkowski_enabled"]
     g["Character_Block_Height_Mm"] = b["character_block_height_mm"]
-    g["Mink_Cone_Height_Mm"] = b["mink_cone_height_mm"]
+    g["Mink_Cone_Height_Mm"] = b["minkowski_cone_height_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
 
     q = cfg["quality"]

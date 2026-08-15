@@ -100,7 +100,10 @@ def configure(config_path):
     g["DEFAULT_MINKOWSKI_ENABLED"] = b["minkowski_enabled"]
     g["Draft_Angle"] = b["draft_angle_deg"]
     g["Engraving_Depth"] = b["engraving_depth_mm"]
-    g["Minkowski_Multiplier"] = b["minkowski_multiplier"]
+    # Cone height is stored absolutely (minkowski_cone_height_mm) like every
+    # other machine; the engine still wants v1's multiplier form, so derive
+    # it back. Engraving_Depth * Multiplier == the configured height.
+    g["Minkowski_Multiplier"] = b["minkowski_cone_height_mm"] / b["engraving_depth_mm"]
     g["Character_Block_Height_Mm"] = b["character_block_height_mm"]
     g["DEFAULT_RESIN_SUPPORT"] = b["resin_support"]
 

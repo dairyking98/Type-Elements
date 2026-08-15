@@ -14,9 +14,11 @@ values:
   alignment.underscore_lift_mm: 0.0
   build.clip_to_cell: false
   build.draft_angle_deg: 55.0
+  build.minkowski_cone_height_mm: 2.0
+  build.pre_minkowski_char_height_mm: 1.8
   font.path: /home/lchau/fonts/Custom & Modified/FreeMono - Thin Weight (Leonard Chau).ttf
-  font.size_mm: 3.7
+  font.size_mm: 3.0
   font2.font2_chars: ''
   font2.font2_path: ''
   font2.font2_size_mm: 0.0
-saved_from: blickensderfer
+saved_from: hammond_split

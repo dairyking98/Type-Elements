@@ -109,7 +109,10 @@ build:
   minkowski_enabled: true          # unused (character.enabled/logo.enabled both false, so no Minkowski sweep ever runs)
   draft_angle_deg: 60.0            # unused - v1 Draft_Angle (:34)
   engraving_depth_mm: 0.5          # unused - v1 Engraving_Depth (:36)
-  minkowski_multiplier: 1.6        # unused - v1 Minkowski_Multiplier (:68)
+  # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
+  # engraving_depth; stored directly here so it reads the same as every
+  # other machine (v1 equivalent: engraving_depth * multiplier).
+  minkowski_cone_height_mm: 0.8
   character_block_height_mm: 2.0   # unused
   resin_support: false             # GaugeTypeSlugSlug.scad has no resin-support geometry at all
   target: "element"

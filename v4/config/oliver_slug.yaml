@@ -80,7 +80,10 @@ build:
   minkowski_enabled: true
   draft_angle_deg: 60.0            # v1 Draft_Angle (:16)
   engraving_depth_mm: 0.7          # v1 Engraving_Depth (:18)
-  minkowski_multiplier: 1.5        # v1's hardcoded cone height factor (OliverSlug.scad:63-64 - "Engraving_Depth*1.5", not a customizable variable in v1, still config-driven here per CLAUDE.md)
+  # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
+  # engraving_depth; stored directly here so it reads the same as every
+  # other machine (v1 equivalent: engraving_depth * multiplier).
+  minkowski_cone_height_mm: 1.05
   character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) (:40,42,45) - construction margin, config-driven per CLAUDE.md
   resin_support: false             # OliverSlug.scad has no resin-support geometry at all
   target: "element"

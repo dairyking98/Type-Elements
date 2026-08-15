@@ -7199,6 +7199,49 @@ no surface to stand proud of.
 
 Byte-identical on all 14 buildable configs; 15/15 compose and collect.
 
+### Minkowski cone height unified to one spelling on all 15 machines
+
+Three spellings existed for the same knob. Now one -
+`build.minkowski_cone_height_mm`:
+
+- 7 machines already had it (cylinder family + Hammond Split).
+- **Selectrics** had `mink_cone_height_mm` - a pure spelling outlier, same
+  concept, same v2 origin (ibm.scad:575,581). Renamed, byte-identical.
+- **Slug family** stored `minkowski_multiplier`, a MULTIPLIER of
+  engraving_depth rather than a height. Now stored absolutely, with the
+  engine deriving v1's multiplier form back so geometry is unchanged:
+  type/vogue/gauge 0.5 x 1.6 = 0.8, oliver/lumi 0.7 x 1.5 = 1.05.
+
+**hammond_split moved to 1.0/1.5**, now that it is safe to. Volume is
+IDENTICAL (8081.034) - only tessellation shifts (35240 -> 35228 verts) -
+because protrusion is no longer tied to glyph height. The same change
+earlier would have zeroed the protrusion; the min_final_character_diameter
+work is what made it a non-event.
+
+### `pre_minkowski_char_height_mm` deliberately NOT added everywhere
+
+Asked for all machines to have both values at 1.0/1.5. The cone height is
+now uniform, but the pre-Minkowski height genuinely has no counterpart on
+the spherical and slug families, and forcing 1.0 there would break real
+geometry:
+
+- **Spherical**: `character_block_height_mm` is **6.0**, and its own
+  config comment says why - v2's `linear_extrude(6)` is a CONSTRUCTION
+  MARGIN that "must be taller than any character's real embed depth"
+  (ibm.scad:521-524). The character's actual depth comes from the ball
+  boolean, not from this. Setting 1.0 would truncate characters.
+- **Slug family**: `character_block_height_mm` is 2.0, again v1's
+  hardcoded `linear_extrude(2)` construction margin. Their real strike
+  depth is `engraving_depth_mm` (0.5-0.7, v1 Engraving_Depth) - a
+  different quantity that is already correct.
+
+So 8 machines have no pre-Minkowski glyph height because they do not
+build characters that way, not because it was overlooked. The 7 that do
+are all at 1.0.
+
+All 14 buildable configs verified; only hammond_split's tessellation
+moved, at identical volume. 15/15 compose and collect.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

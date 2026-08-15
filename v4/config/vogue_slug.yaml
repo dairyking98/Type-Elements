@@ -126,7 +126,10 @@ build:
   minkowski_enabled: true          # v1 !Debug_No_Minkowski ("True_Vogue" preset: false)
   draft_angle_deg: 60.0            # v1 Draft_Angle
   engraving_depth_mm: 0.5          # v1 Engraving_Depth
-  minkowski_multiplier: 1.6        # v1 Minkowski_Multiplier
+  # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
+  # engraving_depth; stored directly here so it reads the same as every
+  # other machine (v1 equivalent: engraving_depth * multiplier).
+  minkowski_cone_height_mm: 0.8
   character_block_height_mm: 2.0   # v1's hardcoded linear_extrude(2) - construction margin, config-driven per CLAUDE.md
   resin_support: false             # VogueSlug.scad has no resin-support geometry at all
   target: "element"
