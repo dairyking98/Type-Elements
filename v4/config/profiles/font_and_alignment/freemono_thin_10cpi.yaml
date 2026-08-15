@@ -3,7 +3,7 @@
 # given path simply skips it when this profile is applied.
 name: FreeMono Thin 10CPI
 values:
-  alignment.caret_drop_mm: 2.4
+  alignment.caret_drop_mm: 1.5
   alignment.center_offset_mm: 0.0
   alignment.left_offset_mm: 0.0
   alignment.mode: center
@@ -12,13 +12,9 @@ values:
   alignment.modified_right_chars: (
   alignment.modified_right_offset_mm: 0.0
   alignment.underscore_lift_mm: 0.0
-  build.clip_to_cell: false
-  build.draft_angle_deg: 55.0
-  build.minkowski_cone_height_mm: 2.0
-  build.pre_minkowski_char_height_mm: 1.8
   font.path: /home/lchau/fonts/Custom & Modified/FreeMono - Thin Weight (Leonard Chau).ttf
   font.size_mm: 3.0
   font2.font2_chars: ''
   font2.font2_path: ''
   font2.font2_size_mm: 0.0
-saved_from: hammond_split
+saved_from: hammond

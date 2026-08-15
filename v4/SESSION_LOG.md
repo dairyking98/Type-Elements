@@ -7380,4 +7380,25 @@ New baselines: hammond 473076 947800 4876.156, hammond_split 35517 71098
    session. Its `font_path` is
    `~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf`, which no longer
    exists. Pre-existing; left alone rather than guessed at.
-5. Part 81's punch list and part 83's Windows-checkout note are unchanged.
+5. **TODO, requested explicitly: walk every machine and produce fresh
+   default profiles and example renders.** Both are stale after this
+   session, for concrete reasons:
+   - **Example renders.** `example_renders/` still holds the Aug 1 builds
+     for most machines - only `blickensderfer.stl` and
+     `blickensderfer_xsection.stl` were refreshed. Since those were made,
+     the fleet gained: 1.0/2.0 character depths, wall banding on the
+     cylinder family and both shuttles, notched/banded wheel styles,
+     `notch_fn`/`resin_fn` fidelity knobs, and the hulled notch cutters.
+     Regenerate with `generate.py`, then `generate_thumbnails.py --only
+     <name>` (see part 85's own note - the cross-section is reproducible
+     via `--cross-section-angle-deg 0`, not hand-made).
+   - **Font & Alignment profiles.** Any profile saved before the last
+     commit stores `build.draft_angle_deg` / `build.clip_to_cell` (and,
+     if saved from Hammond Split, the two depths). They are ignored on
+     apply but clutter the file. Re-saving each under the same name drops
+     them.
+   - Worth doing per machine rather than in bulk: it is also the natural
+     moment to eyeball each render against the new defaults, which is the
+     only check that has reliably caught the artifacts this session (the
+     numeric proxies did not).
+6. Part 81's punch list and part 83's Windows-checkout note are unchanged.
