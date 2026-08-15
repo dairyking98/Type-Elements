@@ -392,7 +392,15 @@ def Arc(extra):
     w = Arc_Thickness + extra
     z0 = Arc_Height_Offset
     h = Arc_Height
-    profile = [(r0, z0), (r0 + w, z0), (r0 + w, z0 + h), (r0, z0 + h)]
+    # Vertical edges pre-split into bands rather than one full-height quad
+    # per angular section: the characters are unioned into this arc, and a
+    # full-height face is what the boolean shatters into long near-zero-area
+    # slivers (see scad_primitives.cylinder_z's z_segments note - same
+    # reasoning, applied to a revolved profile instead of a cylinder).
+    # Geometrically identical: the same rectangle, more points along it.
+    n = sp.square_z_segments(2 * (r0 + w), h, Cyl_Fn)
+    zs = [z0 + h * k / n for k in range(n + 1)]
+    profile = [(r0 + w, z) for z in zs] + [(r0, z) for z in reversed(zs)]
     return sp.revolve_polygon_partial(profile, 0.0, Arc_End, sections=Cyl_Fn)
 
 

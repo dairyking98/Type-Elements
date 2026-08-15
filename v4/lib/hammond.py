@@ -421,8 +421,14 @@ def configure(config_path):
 # --------------------------------------------------------------- Body shell
 
 def ShuttleCylinder():
-    return sp.cylinder_z(2 * (Shuttle_Arc_Radius + Shuttle_Thickness), Shuttle_Height + 2 * z,
-                          sections=Cyl_Fn, base_z=-z)
+    # Wall pre-split into bands so the boolean that unions the characters
+    # into it never has a full-height face to shatter into slivers - see
+    # scad_primitives.cylinder_z's z_segments note. Same treatment the
+    # cylinder family's body gets.
+    _d = 2 * (Shuttle_Arc_Radius + Shuttle_Thickness)
+    _h = Shuttle_Height + 2 * z
+    return sp.cylinder_z(_d, _h, sections=Cyl_Fn, base_z=-z,
+                          z_segments=sp.square_z_segments(_d, _h, Surface_Fn))
 
 
 def AnvilShape():
