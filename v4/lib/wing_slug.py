@@ -494,9 +494,9 @@ def _assemble_core(flatness_tolerance_mm, minkowski_enabled, draft_angle_deg, co
     return core
 
 
-def Additive(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def Additive(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
              cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
-    """separation_mm/render_core_groove are accepted-but-ignored - this
+    """pre_minkowski_char_height_mm/render_core_groove are accepted-but-ignored - this
     machine has neither concept (see module docstring's DraftText note
     and CLAUDE.md's Selectric precedent for this exact pattern).
     cone_segments/platen_fn are threaded explicitly down to _draft_cone/
@@ -527,10 +527,10 @@ def Subtractive():
     return sp.union_all(cutters)
 
 
-def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                 cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
-    additive = Additive(flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm,
+    additive = Additive(flatness_tolerance_mm=flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm,
                          render_core_groove=render_core_groove, cone_segments=cone_segments,
                          platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                          draft_angle_deg=draft_angle_deg)
@@ -540,10 +540,10 @@ def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groo
     return result, []
 
 
-def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
-    full, char_parts = FullElement(flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm,
+    full, char_parts = FullElement(flatness_tolerance_mm=flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm,
                                     render_core_groove=render_core_groove, cone_segments=cone_segments,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)

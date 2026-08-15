@@ -37,7 +37,7 @@ platen_radius_mm=0 (no curved platen - same "Skip_Platen_Cutout" trick
 lib/hammond.py's own configure() already established) and minkowski_
 enabled=False - reused directly (see LetterText()). Mink_On=true needs its
 own bespoke helper (_letter_text_drafted()) instead: v2's real minkowski
-cone has an INDEPENDENT fixed height (Mink_Height=2mm) decoupled from the
+cone has an INDEPENDENT fixed height (Minkowski_Cone_Height=2mm) decoupled from the
 extrusion depth (Glyph_Height=0.8mm) - neither build_glyph() nor build_
 flat_text_drafted() support that (both tie the cone's height to the
 extrusion depth itself), so this machine gets its own small Minkowski
@@ -45,7 +45,7 @@ helper built from scad_primitives.to_manifold/from_manifold directly,
 faithfully reproducing v2's real translate/rotate/trim sequence (see that
 function's docstring for the derivation, including why the realized taper
 ends up much subtler than a normal "wide root, narrow tip" draft once
-Glyph_Height+1 < Mink_Height with the real default numbers).
+Glyph_Height+1 < Minkowski_Cone_Height with the real default numbers).
 
 Resin support (v2:202-265, 551-745) is a THIRD independent resin-support
 scheme (neither cylinder_machine's placement layer, nor Hammond's own
@@ -296,8 +296,8 @@ def configure(config_path):
     g["DEFAULT_MINK_DRAFT_ANGLE"] = b.get("draft_angle_deg",
                                            b.get("mink_draft_angle_deg", 60.0))
     g["Mink_Draft_Angle"] = g["DEFAULT_MINK_DRAFT_ANGLE"]
-    g["Mink_Height"] = b.get("mink_height", 2.0)
-    g["Mink_Radius"] = np.tan(np.radians(g["Mink_Draft_Angle"] / 2.0)) * g["Mink_Height"]
+    g["Minkowski_Cone_Height"] = b.get("minkowski_cone_height_mm", b.get("mink_height", 2.0))
+    g["Mink_Radius"] = np.tan(np.radians(g["Mink_Draft_Angle"] / 2.0)) * g["Minkowski_Cone_Height"]
 
     tt = cfg.get("type_test", {})
     g["Test_CPI"] = tt.get("cpi", 10.0)
@@ -457,14 +457,14 @@ def _letter_text_drafted(char, font_path, font_size_mm, depth):
     """LetterText() (v2:349-364) for Mink_On==true - see this module's
     docstring for why this can't reuse build_glyph()/build_flat_text_
     drafted() (both tie the draft cone's height to the extrusion depth;
-    this machine's real cone height (Mink_Height) is independent of it).
+    this machine's real cone height (Minkowski_Cone_Height) is independent of it).
 
     Builds the same flat (mirrored/centered/baseline) block LetterText()
     uses for Mink_On==false (via build_glyph(minkowski_enabled=False)),
     then reproduces v2's real minkowski()+difference(cube) sequence
-    directly: minkowski-sum with a cone spanning z=[-Mink_Height,0] (wide
+    directly: minkowski-sum with a cone spanning z=[-Minkowski_Cone_Height,0] (wide
     at the bottom, apex at 0), then subtract everything below z=0. Net
-    effect on the real default numbers (Glyph_Height+1=1.8 < Mink_Height=2):
+    effect on the real default numbers (Glyph_Height+1=1.8 < Minkowski_Cone_Height=2):
     since the cone's height is independent of the block's own depth, the
     growth visible within the kept [0,depth] range is bounded by how much
     of the cone's radius profile can still reach that range - here that
@@ -475,9 +475,9 @@ def _letter_text_drafted(char, font_path, font_size_mm, depth):
     of some intended fuller taper."""
     flat = glyph_poc.build_glyph(char, FLATNESS_TOLERANCE_MM, align_kwargs=ALIGN_KWARGS,
                                   font_path=font_path, font_size_mm=font_size_mm,
-                                  separation_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
+                                  pre_minkowski_char_height_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
                                   minkowski_enabled=False)
-    cone = sp.frustum_z(2 * Mink_Radius, 0.0, Mink_Height, sections=Mink_Fn, base_z=-Mink_Height)
+    cone = sp.frustum_z(2 * Mink_Radius, 0.0, Minkowski_Cone_Height, sections=Mink_Fn, base_z=-Minkowski_Cone_Height)
     summed = sp.to_manifold(flat).minkowski_sum(sp.to_manifold(cone))
     summed = sp.from_manifold(summed)
     # difference(translate([0,0,-10]) cube(20,center=true)) - removes z in
@@ -502,7 +502,7 @@ def LetterText(char, font_path, font_size_mm):
     if not Mink_On:
         return glyph_poc.build_glyph(char, FLATNESS_TOLERANCE_MM, align_kwargs=ALIGN_KWARGS,
                                       font_path=font_path, font_size_mm=font_size_mm,
-                                      separation_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
+                                      pre_minkowski_char_height_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
                                       minkowski_enabled=False)
     return _letter_text_drafted(char, font_path, font_size_mm, depth)
 
@@ -1014,7 +1014,7 @@ def CalibrationAssembleSide(side, test_char, vary_baseline, start, interval):
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                         cone_segments=None, platen_fn=None,
                         minkowski_enabled=None, draft_angle_deg=None):
     """v4-only - v2/hammond_split.scad has no calibration render mode at
@@ -1089,7 +1089,7 @@ def _build(flatness_tolerance_mm, cone_segments, minkowski_enabled, draft_angle_
 
     old = (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
     FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, mink_on, fn, draft
-    Mink_Radius = np.tan(np.radians(draft / 2.0)) * Mink_Height
+    Mink_Radius = np.tan(np.radians(draft / 2.0)) * Minkowski_Cone_Height
     try:
         parts = []
         if Render_Left:
@@ -1111,11 +1111,11 @@ def _build(flatness_tolerance_mm, cone_segments, minkowski_enabled, draft_angle_
         (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old
 
 
-def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, platen_fn=None,
                  minkowski_enabled=None, draft_angle_deg=None):
     """Both halves, print-oriented and laid out apart (AssembleResin()'s
-    real layout), WITHOUT resin supports - separation_mm/render_core_
+    real layout), WITHOUT resin supports - pre_minkowski_char_height_mm/render_core_
     groove/align_kwargs/platen_fn accepted-but-ignored (no equivalent
     concept here), matching this repo's convention for machine-specific
     kwargs generate.py's uniform build_fn(...) call passes to every
@@ -1125,7 +1125,7 @@ def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groo
                   with_resin=False)
 
 
-def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                 cone_segments=None, platen_fn=None,
                 minkowski_enabled=None, draft_angle_deg=None):
     """FullElement() plus each half's own ResinSupports() - the real
@@ -1135,7 +1135,7 @@ def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groov
                   with_resin=True)
 
 
-def NormalElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def NormalElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                    cone_segments=None, platen_fn=None,
                    minkowski_enabled=None, draft_angle_deg=None):
     """v2:544-549/v2:60 "Normal" (Render_Mode==0) - v1/HammondSplitShuttle.
@@ -1147,7 +1147,7 @@ def NormalElement(flatness_tolerance_mm=None, separation_mm=None, render_core_gr
     ResPrintOrient()) and unconditionally resin-free, matching the real
     source exactly - Render_Left/Render_Right (same module globals/Build-
     tab switches FullElement/ResinPrint already use) pick NormalL/NormalR/
-    combined. separation_mm/render_core_groove/align_kwargs/platen_fn
+    combined. pre_minkowski_char_height_mm/render_core_groove/align_kwargs/platen_fn
     accepted-but-ignored, same convention as FullElement/ResinPrint."""
     _require_configured()
     global FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
@@ -1158,7 +1158,7 @@ def NormalElement(flatness_tolerance_mm=None, separation_mm=None, render_core_gr
 
     old = (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
     FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, mink_on, fn, draft
-    Mink_Radius = np.tan(np.radians(draft / 2.0)) * Mink_Height
+    Mink_Radius = np.tan(np.radians(draft / 2.0)) * Minkowski_Cone_Height
     try:
         full = Assemble()  # reads Render_Left/Render_Right - Assemble() itself raises if both are off
         full, _, _, _ = sp.check_and_repair(full, label="hammond_split normal")

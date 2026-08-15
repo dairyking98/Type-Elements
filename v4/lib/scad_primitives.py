@@ -276,7 +276,7 @@ def to_manifold(mesh):
     private _to_manifold/_from_manifold (build_glyph()/build_flat_text_
     drafted()'s own Minkowski-sum plumbing) once hammond_split.py needed the
     identical conversion for its own from-scratch draft-cone Minkowski sum
-    (Mink_Height/Mink_Radius are independent of the extrusion depth there,
+    (Minkowski_Cone_Height/Mink_Radius are independent of the extrusion depth there,
     unlike either shared glyph_poc helper - see lib/hammond_split.py's
     _letter_text_drafted()) - a third call site, past this repo's "extract
     shared derivations" threshold. glyph_poc._to_manifold/_from_manifold

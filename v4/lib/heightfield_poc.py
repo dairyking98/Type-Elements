@@ -50,7 +50,7 @@ from manifold3d import Manifold
 import scad_primitives as sp
 from glyph_poc import (
     FONT_PATH, FONT_SIZE_MM, PLATEN_RADIUS_MM, CUTOUT_ROW, BASELINE_ROW, TEST_ROW,
-    DEFAULT_SEPARATION_MM, MINK_DRAFT_ANGLE, DEFAULT_CONE_SEGMENTS, DEFAULT_SIMPLIFY_TOLERANCE_MM,
+    DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM, MINK_DRAFT_ANGLE, DEFAULT_CONE_SEGMENTS, DEFAULT_SIMPLIFY_TOLERANCE_MM,
     DEFAULT_PLATEN_FN, DEFAULT_MINKOWSKI_ENABLED,
     load_font_face, em_to_mm_scale, alignment_x_offset, classify_and_triangulate,
     get_glyph_contours_and_advance, build_glyph,
@@ -187,7 +187,7 @@ def get_glyph_contours_adaptive_mm(char, tol_mm, scale, font_path=None):
 # sweep, unchanged from production ---
 
 def build_glyph_adaptive_contour(char, tol_mm, expansion_width_mm=None,
-                                  separation_mm=DEFAULT_SEPARATION_MM, row=TEST_ROW,
+                                  pre_minkowski_char_height_mm=DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM, row=TEST_ROW,
                                   align_kwargs=None, font_path=None, font_size_mm=None,
                                   radius_y_offset_mm=None, platen_radius_mm=None,
                                   cone_segments=DEFAULT_CONE_SEGMENTS,
@@ -196,7 +196,7 @@ def build_glyph_adaptive_contour(char, tol_mm, expansion_width_mm=None,
                                   minkowski_enabled=DEFAULT_MINKOWSKI_ENABLED,
                                   draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG):
     if expansion_width_mm is None:
-        expansion_width_mm = separation_mm * np.tan(np.radians(draft_angle_deg / 2.0))
+        expansion_width_mm = pre_minkowski_char_height_mm * np.tan(np.radians(draft_angle_deg / 2.0))
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = load_font_face(fp)
@@ -219,10 +219,10 @@ def build_glyph_adaptive_contour(char, tol_mm, expansion_width_mm=None,
 
     flat = classify_and_triangulate(contours_mm)
 
-    tip_h = min(0.01, separation_mm * 0.01)
-    cone_h = separation_mm - tip_h
-    block_h = tip_h if minkowski_enabled else separation_mm
-    block_z0 = separation_mm - tip_h if minkowski_enabled else 0.0
+    tip_h = min(0.01, pre_minkowski_char_height_mm * 0.01)
+    cone_h = pre_minkowski_char_height_mm - tip_h
+    block_h = tip_h if minkowski_enabled else pre_minkowski_char_height_mm
+    block_z0 = pre_minkowski_char_height_mm - tip_h if minkowski_enabled else 0.0
 
     if platen_radius_mm > 0:
         platen_radius_real_mm = 1.0 / (2.0 * platen_radius_mm)
@@ -246,7 +246,7 @@ def build_glyph_adaptive_contour(char, tol_mm, expansion_width_mm=None,
                                         circular_segments=platen_fn, center=True)
         platen_cyl = platen_cyl.rotate([0, 90, 0])
         platen_cyl = platen_cyl.translate([cyl_center_x, radius_y_offset_mm,
-                                            separation_mm + platen_radius_real_mm])
+                                            pre_minkowski_char_height_mm + platen_radius_real_mm])
         scalloped = sp.to_manifold(prism) - platen_cyl
     else:
         scalloped = sp.to_manifold(prism)
@@ -271,18 +271,18 @@ def report(mesh, label):
           f"is_volume={mesh.is_volume} volume={mesh.volume:.6f}mm3")
 
 
-def run_char(char, tol_mm, separation_mm, draft_angle_deg, cone_segments, simplify_tolerance_mm,
+def run_char(char, tol_mm, pre_minkowski_char_height_mm, draft_angle_deg, cone_segments, simplify_tolerance_mm,
              points_per_mm_baseline, out_dir, font_path=None, font_size_mm=None):
-    print(f"=== char={char!r} tol_mm={tol_mm} separation_mm={separation_mm} ===")
+    print(f"=== char={char!r} tol_mm={tol_mm} pre_minkowski_char_height_mm={pre_minkowski_char_height_mm} ===")
 
-    mesh_baseline = build_glyph(char, points_per_mm_baseline, separation_mm=separation_mm,
+    mesh_baseline = build_glyph(char, points_per_mm_baseline, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm,
                                  cone_segments=cone_segments,
                                  simplify_tolerance_mm=simplify_tolerance_mm,
                                  draft_angle_deg=draft_angle_deg,
                                  font_path=font_path, font_size_mm=font_size_mm)
     report(mesh_baseline, "current_pipeline")
 
-    mesh_adaptive = build_glyph_adaptive_contour(char, tol_mm, separation_mm=separation_mm,
+    mesh_adaptive = build_glyph_adaptive_contour(char, tol_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm,
                                                   cone_segments=cone_segments,
                                                   simplify_tolerance_mm=simplify_tolerance_mm,
                                                   draft_angle_deg=draft_angle_deg,
@@ -318,7 +318,7 @@ if __name__ == "__main__":
     parser.add_argument("--tol-mm", type=float, default=DEFAULT_SIMPLIFY_TOLERANCE_MM,
                          help="adaptive contour flatness tolerance (default matches "
                               "glyph_poc.DEFAULT_SIMPLIFY_TOLERANCE_MM).")
-    parser.add_argument("--separation-mm", type=float, default=DEFAULT_SEPARATION_MM)
+    parser.add_argument("--pre-minkowski-char-height-mm", type=float, default=DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM)
     parser.add_argument("--draft-angle", type=float, default=DEFAULT_DRAFT_ANGLE_DEG)
     parser.add_argument("--cone-segments", type=int, default=DEFAULT_CONE_SEGMENTS)
     parser.add_argument("--simplify-tolerance-mm", type=float, default=DEFAULT_SIMPLIFY_TOLERANCE_MM)
@@ -331,6 +331,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     for ch in args.chars:
-        run_char(ch, args.tol_mm, args.separation_mm, args.draft_angle, args.cone_segments,
+        run_char(ch, args.tol_mm, args.pre_minkowski_char_height_mm, args.draft_angle, args.cone_segments,
                   args.simplify_tolerance_mm, args.points_per_mm_baseline, args.out_dir,
                   font_path=args.font_path, font_size_mm=args.font_size_mm)

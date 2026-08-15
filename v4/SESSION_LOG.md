@@ -6712,6 +6712,80 @@ editing the font size, back to the profile when the value is typed back,
 mode Select. No spurious apply dialog at any point, all 15 machines load
 clean.
 
+### Draft depth split from character depth, and both renamed
+
+Chasing a "spike on the X" that appeared only with resin support turned
+into two findings, neither of them about resin support.
+
+**The spike is not a glyph defect.** BAD vs GOOD (the user's own saved
+STLs, with sidecar configs differing in exactly one line,
+`resin_support`) have BIT-IDENTICAL character geometry: 9748 vertices
+each, max nearest-neighbour distance 0.0000mm, zero support-only vertices
+proud of the wall, and element-intersect-support of 0.00000mm3 in the
+character region. What differs is that `ResinPrint()` FLIPS Bennett 180
+degrees, so the two renders are not the same view - and the mesh carries
+~1700 near-zero-area slivers at the wall radius whose normals are
+ill-defined, so they shade differently depending on which side faces the
+camera.
+
+Those slivers come from `Additive`, not the support: `Cylinder()` alone
+has 0, `Additive` (84 characters unioned into it) has 1067 all at the
+wall, `ResinSupport` alone has 0, and the union adds 2. They cannot be
+stripped - `nondegenerate_faces()` at any tolerance breaks watertightness.
+
+**The real coupling.** `cone_h = separation_mm - tip_h` meant the taper
+ran the ENTIRE character depth, so one number set both how deep the
+character is buried and how much it flares. That is why lowering it to
+shrink the flare eventually lifted the roots clear of the wall and left
+the characters floating free of the body, and why spike positions
+reshuffled unpredictably between 1.4 and 1.5 - these are boolean
+retessellation artifacts, not stable geometry.
+
+Now separate, and ADDITIVE (per explicit user choice over the clamped
+alternative): total depth = straight + taper, with the taper added BELOW
+the straight part. The tip stays at `z_local = pre_minkowski_char_height_mm`,
+which is what `place_on_cylinder` anchors on, so the strike face does not
+move when either value changes. Hammond Split already worked this way
+(its own Mink_Height, from v2's `Mink_Radius = tan(angle/2)*Mink_Height`).
+
+**Renamed, because the old names were actively misleading** -
+`separation_mm` reads as character SPACING, which is the opposite of what
+it meant:
+
+| was | now | meaning |
+| --- | --- | --- |
+| `build.separation_mm` | `build.pre_minkowski_char_height_mm` | distance from the platen low point to the bottom of the glyph extrusion |
+| `build.mink_height` (+ Hammond Split's own) | `build.minkowski_cone_height_mm` | the draft cone's height |
+
+~200 occurrences across 22 files, plus the `--separation-mm` CLI flag ->
+`--pre-minkowski-char-height-mm`. Both old keys are still read as
+fallbacks. TUI labels are "Straight depth (mm)" and "Draft depth (mm)" on
+the Quality tab (the old single field was labelled "Draft depth", which
+is why it was never obvious it also controlled burial depth).
+
+**New baselines** - volumes are IDENTICAL on all six cylinder machines,
+only tessellation shifts (the tip sliver is now accounted on the other
+side of the cone):
+
+    bennett 64314 128980 3604.045   blickensderfer 29501 59082 4354.352
+    hammond 470599 942846 4876.156  helios 71812 143648 4215.391
+    mignon 20963 41998 4646.497     postal 38725 77606 5449.207
+
+The other 8 configs are unchanged. Minkowski-enabled blickensderfer moves
+to verts=80570 faces=161220 volume=4468.936mm3 (was 4469.587) - a 0.015%
+difference, the extra 0.01mm of buried root.
+
+**What it buys**, measured on Bennett with the root kept inside the wall:
+
+| straight | draft | root | slivers |
+| --- | --- | --- | --- |
+| 0.0 | 2.0 | 14.450 (through) | 1922 |
+| 0.5 | 0.9 | 15.050 (in wall) | **555** |
+| 0.7 | 0.7 | 15.050 (in wall) | 659 |
+
+3.5x fewer slivers at identical volume (3147.322) - the combination that
+was impossible while one number did both jobs.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink

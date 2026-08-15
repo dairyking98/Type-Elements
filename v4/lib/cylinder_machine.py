@@ -265,7 +265,7 @@ def _clip_to_cell(mesh, col, angle_half_step=None):
     Why this is needed at all: the draft flare is widest at the glyph's
     ROOT and the column pitch is SMALLEST there (the root sits at the
     innermost radius), so the root is exactly where neighbours collide.
-    With separation_mm=2.0 and the real 55-degree draft the flare is
+    With pre_minkowski_char_height_mm=2.0 and the real 55-degree draft the flare is
     1.04mm per side against a 3.48mm root pitch, and adjacent characters
     genuinely intersect - 'M' next to 'M' overlaps by 1.94mm3, measured.
     At a deliberately fat draft angle it is far worse (90 degrees gives a
@@ -289,7 +289,7 @@ def _clip_to_cell(mesh, col, angle_half_step=None):
                                     r_out=Element_Diameter)
 
 
-def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
+def place_on_cylinder(mesh, row, col, pre_minkowski_char_height_mm, baseline_mm=None,
                        placement_protrusion=None, angle_half_step=None):
     """LetterPlacement() equivalent - see conversation for the full
     derivation from rotate([90,0,90])+translate((R+protrusion),0,0)+
@@ -297,10 +297,10 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
 
     Radial anchor: the platen-bite point (the print face's deepest/
     narrowest point, at y=radius_y_offset where the scallop is zero, i.e.
-    mesh z_local=separation_mm exactly) sits at
+    mesh z_local=pre_minkowski_char_height_mm exactly) sits at
     Element_Diameter/2+Char_Protrusion - a FIXED real-machine value, not
-    separation_mm. The root (z_local=0) sits INWARD from that anchor by
-    separation_mm - the base pushes toward the axis as it widens (like a
+    pre_minkowski_char_height_mm. The root (z_local=0) sits INWARD from that anchor by
+    pre_minkowski_char_height_mm - the base pushes toward the axis as it widens (like a
     nail driven in with a wide head sitting proud), not flush-and-sideways.
 
     baseline_mm: overrides BASELINE_ROW[row] - CalibrationTextRing's own
@@ -346,7 +346,7 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
     angle_half_step = 0.5 if angle_half_step is None else angle_half_step
     v = mesh.vertices
     x_local, y_local, z_local = v[:, 0], v[:, 1], v[:, 2]
-    radial = (Element_Diameter / 2.0 + placement_protrusion - separation_mm) + z_local
+    radial = (Element_Diameter / 2.0 + placement_protrusion - pre_minkowski_char_height_mm) + z_local
     axial = BASELINE_Z_OFFSET + baseline_mm + y_local
     lateral = x_local
     placement_col = PLACEMENT_MAP[col]
@@ -365,7 +365,7 @@ def place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=None,
     return trimesh.Trimesh(vertices=new_v, faces=mesh.faces, process=False)
 
 
-def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def TextRing(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None, cone_segments=None,
              platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
     """Per-character self-intersection ('the draft offset folds through
@@ -378,7 +378,7 @@ def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, 
     to a single glyph's own geometry) are still checked below."""
     _require_configured()
     flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
-    separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
+    pre_minkowski_char_height_mm = DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM if pre_minkowski_char_height_mm is None else pre_minkowski_char_height_mm
     align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
     cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
     platen_fn = Platen_Fn if platen_fn is None else platen_fn
@@ -402,18 +402,19 @@ def TextRing(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, 
             try:
                 fp2, fs2 = _font_for(ch)
                 mesh = build_glyph(
-                    ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
+                    ch, flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm, row=row,
                     align_kwargs=align_kwargs, font_path=fp2, font_size_mm=fs2,
                     radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
                     platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                     platen_fn=platen_fn,
-                    minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+                    minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+                    minkowski_cone_height_mm=globals().get("Minkowski_Cone_Height_Mm"))
             except Exception as e:
                 skipped.append((row, col, ch, str(e)))
                 build_log.progress_skipped(e)
                 continue
             build_log.progress_done(time.perf_counter() - t0)
-            placed = place_on_cylinder(mesh, row, col, separation_mm,
+            placed = place_on_cylinder(mesh, row, col, pre_minkowski_char_height_mm,
                                         placement_protrusion=placement_protrusion,
                                         angle_half_step=angle_half_step)
             # Off by default fleet-wide, so no existing config changes
@@ -457,10 +458,10 @@ def _check_inter_character_collisions(parts):
     return names
 
 
-def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def Additive(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None, cone_segments=None,
              platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
-    text_ring, char_parts = TextRing(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
+    text_ring, char_parts = TextRing(flatness_tolerance_mm, pre_minkowski_char_height_mm, align_kwargs=align_kwargs,
                                       cone_segments=cone_segments,
                                       platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                       draft_angle_deg=draft_angle_deg,
@@ -490,7 +491,7 @@ def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, 
 
 def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None,
                          cone_segments=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None,
                          placement_protrusion=None, angle_half_step=None):
@@ -515,7 +516,7 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
     reference_baseline_row = BASELINE_ROW if reference_baseline_row is None else reference_baseline_row
     reference_cutout_row = CUTOUT_ROW if reference_cutout_row is None else reference_cutout_row
     flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
-    separation_mm = DEFAULT_SEPARATION_MM if separation_mm is None else separation_mm
+    pre_minkowski_char_height_mm = DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM if pre_minkowski_char_height_mm is None else pre_minkowski_char_height_mm
     align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
     cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
     platen_fn = Platen_Fn if platen_fn is None else platen_fn
@@ -546,13 +547,14 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
             cutout_mm = reference_cutout_row[row] + (offset if vary_cutout else 0.0)
             cal_fp, cal_fs = _font_for(test_char)
             mesh = build_glyph(
-                test_char, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
+                test_char, flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm, row=row,
                 align_kwargs=align_kwargs, font_path=cal_fp, font_size_mm=cal_fs,
                 radius_y_offset_mm=cutout_mm - baseline_mm,
                 platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
                 platen_fn=platen_fn,
-                minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
-            placed = place_on_cylinder(mesh, row, col, separation_mm, baseline_mm=baseline_mm,
+                minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+                minkowski_cone_height_mm=globals().get("Minkowski_Cone_Height_Mm"))
+            placed = place_on_cylinder(mesh, row, col, pre_minkowski_char_height_mm, baseline_mm=baseline_mm,
                                        placement_protrusion=placement_protrusion,
                                        angle_half_step=angle_half_step)
             if globals().get("Clip_To_Cell", False):
@@ -581,12 +583,12 @@ def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None,
                          cone_segments=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     text_ring, mapping_lines = CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, pre_minkowski_char_height_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -595,7 +597,7 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                         align_kwargs=None, cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     """FullElement()'s calibration counterpart - same real body/hollow-out
     (Subtractive() is unchanged, identical to a normal build), just with
@@ -603,7 +605,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
     _require_configured()
     additive, mapping_lines = CalibrationAdditive(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, pre_minkowski_char_height_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -869,11 +871,11 @@ def Subtractive(render_core_groove=None):
     return sp.union_all(parts)
 
 
-def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                  cone_segments=None, platen_fn=None, minkowski_enabled=None,
                  draft_angle_deg=None):
     _require_configured()
-    additive, char_parts = Additive(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
+    additive, char_parts = Additive(flatness_tolerance_mm, pre_minkowski_char_height_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments,
                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                      draft_angle_deg=draft_angle_deg)
@@ -998,10 +1000,10 @@ def BottomSupports():
     return sp.union_all(parts)
 
 
-def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
-    full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
+    full, char_parts = FullElement(flatness_tolerance_mm, pre_minkowski_char_height_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments,
                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)

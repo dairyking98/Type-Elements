@@ -150,7 +150,7 @@ list replaces it (see _compose_tuner_ui):
     physical layout, not something to change casually; edit it directly
     in the YAML if you really mean to.
   Quality          - quality.* facet counts + build.flatness_tolerance_mm/
-    separation_mm/render_core_groove (moved here from Build - these are
+    pre_minkowski_char_height_mm/render_core_groove (moved here from Build - these are
     all mesh generation quality/speed knobs, not "what to build"). The
     Minkowski draft sweep itself is NOT exposed
     here - Render always forces it on and Quick Preview always forces
@@ -463,7 +463,10 @@ LOGO_FIELDS_BLICKPOSTAL = [
 
 QUALITY_FIELDS_BLICKPOSTAL = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth. Real value 0.5mm."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
+     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below; the tip does not move when either changes."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
+     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft. Lower it for a shallower flare without moving the root or the tip."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
     ("body_fn", ["quality", "body_fn"], int, "Body fn", "Main cosmetic cylinder body (Cylinder/ClipCylinder)."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "Inner shaft/core bore only."),
@@ -602,7 +605,10 @@ LEGEND_FIELDS_MIGNON = [
 
 QUALITY_FIELDS_MIGNON = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
+     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
+     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft fn", "CenterShaft only."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "HollowBody/ElementChamfer/MinkCleanup."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
@@ -678,7 +684,10 @@ LABEL_FIELDS_BENNETT = [
 
 QUALITY_FIELDS_BENNETT = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
+     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
+     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves", "16 twisted friction grooves - slow, off for quick iteration."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Shaft/pin fn", "PositionerPins/CenterShaft."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Other structural detail (HollowBody, SpeedHoles, countersinks...)."),
@@ -748,7 +757,10 @@ ELEMENT_FIELDS_BENNETT = [
 # LOGO_FIELDS_HELIOS and config/helios.yaml's logo: section.
 QUALITY_FIELDS_HELIOS = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
+     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
+     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
     ("render_core_groove", ["build", "render_core_groove"], bool, "Core grooves",
      "16 twisted friction grooves (v4-only, see the core_shaft note on the Element tab) - slow, off for quick iteration."),
     # cyl_fn is now genuinely used (Core()'s shaft-bore facet count, via
@@ -964,7 +976,10 @@ LEGEND_FIELDS_HAMMOND = [
 
 QUALITY_FIELDS_HAMMOND = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
-    ("separation_mm", ["build", "separation_mm"], float, "Draft depth (mm)", "Root-to-tip taper depth."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float, "Straight depth (mm)",
+     "The untapered part of the character, measured from the tip. Total depth is this plus Draft depth below."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft depth (mm)",
+     "The tapered part, added BELOW the straight part. Total character depth is Straight + Draft."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shuttle arc body (ShuttleCylinder/Rib/PinSupport)."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
@@ -1060,7 +1075,7 @@ RIB_FIELDS_HAMMOND = [
 # hammond_split.py's module docstring). "draft_angle_deg" is replaced by
 # TWO fields here (mink_draft_angle_deg + mink_height, not SECTIONS_
 # COMMON's single shared draft_angle_deg key) - this machine's real draft
-# cone height (Mink_Height) is independent of the character's own
+# cone height (Minkowski_Cone_Height) is independent of the character's own
 # extrusion depth (Glyph_Height, Element tab), unlike every other
 # machine's coupled draft-cone convention (see lib/hammond_split.py's
 # _letter_text_drafted() docstring) - so it needs its own second knob.
@@ -1107,8 +1122,8 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)", "v2 Char_Mod_Size."),
     ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
-    ("mink_height", ["build", "mink_height"], float, "Draft cone height (mm)",
-     "Mink_Height - the draft cone's own height, independent of Glyph height (Element tab). "
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float, "Draft cone height (mm)",
+     "Minkowski_Cone_Height - the draft cone's own height, independent of Glyph height (Element tab). "
      "Only takes effect on Render."),
     ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left".'),
     ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),

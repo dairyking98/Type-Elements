@@ -254,7 +254,7 @@ build:
   # function directly - see lib/hammond_split.py's _letter_text_drafted().
   minkowski_enabled: false          # Mink_On default (v2:66)
   draft_angle_deg: 60.0             # Mink_Draft_Angle
-  mink_height: 2.0                  # Mink_Height
+  minkowski_cone_height_mm: 2.0                  # Mink_Height
 
 # Resin Supports - v2:202-216 (rod shape - reuses resin_support.resin_rod/
 # rod_tip, same primitives Hammond's own ResinSupport() reuses) plus

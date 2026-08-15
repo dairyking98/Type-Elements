@@ -150,7 +150,14 @@ alignment:
 
 build:
   flatness_tolerance_mm: 0.005
-  separation_mm: 2.0
+  pre_minkowski_char_height_mm: 0.0
+  # MINKOWSKI CONE HEIGHT - the tapered part of the character, added BELOW
+  # the straight part. Total character depth is pre_minkowski_char_height_mm +
+  # this, and the tip does not move when either changes. Lower it for a
+  # shallower flare without pulling the root out of the wall - which is
+  # what shrinking the character alone used to do, until the roots lifted
+  # clear and the characters floated free of the body.
+  minkowski_cone_height_mm: 2.0
   # Trim each placed character to its own angular slot so its Minkowski
   # draft skirt cannot bleed into the neighbouring character. See
   # cylinder_machine._clip_to_cell. Off = the historical behavior.

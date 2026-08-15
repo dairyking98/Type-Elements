@@ -143,7 +143,8 @@ def load_font_face(font_path):
 # Confirmed acceptable: STLs at these depths open and look correct, and
 # self-intersection on tight glyphs (already present for 'e' even at the real
 # 0.5mm) is fine for this use case - not treating it as a defect to avoid.
-DEFAULT_SEPARATION_MM = 2.0
+DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM = 2.0
+
 
 # Circular segments for the Minkowski cone kernel (see build_glyph). Purely a
 # speed/roundness knob on the cone itself - manifold3d's own docs warn cost
@@ -693,11 +694,11 @@ def classify_and_triangulate(contours_mm):
     return mesh_compound
 
 
-def make_front(mesh, radius_y_offset_mm, platen_radius_mm, separation_mm):
+def make_front(mesh, radius_y_offset_mm, platen_radius_mm, pre_minkowski_char_height_mm):
     """Mirrors MeshFront.py: parabolic platen-scallop Z-warp, no boolean."""
     v = mesh.vertices.copy()
     y = v[:, 1]
-    v[:, 2] = (y - radius_y_offset_mm) ** 2 * platen_radius_mm + separation_mm
+    v[:, 2] = (y - radius_y_offset_mm) ** 2 * platen_radius_mm + pre_minkowski_char_height_mm
     return trimesh.Trimesh(vertices=v, faces=mesh.faces)
 
 
@@ -822,7 +823,7 @@ def build_flat_text_drafted(char, flatness_tolerance_mm, depth, font_size_mm=Non
     draft cone using the SAME construction build_glyph() uses (tip sliver
     + cone, apex at z=depth, wide base at z=0 - see build_glyph's own
     comment for the derivation), minus its platen-scallop carve, which
-    has no equivalent on a flat engraved label. depth plays separation_mm's
+    has no equivalent on a flat engraved label. depth plays pre_minkowski_char_height_mm's
     role: expansion_width_mm = depth * tan(draft_angle_deg/2) - since
     depth here is typically small (Logo/Label text, not a struck
     character's 0.5-2mm), the resulting taper is a subtle edge round-over,
@@ -866,13 +867,14 @@ def _from_manifold(manifold):
 
 
 def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
-                 separation_mm=DEFAULT_SEPARATION_MM, row=TEST_ROW,
+                 pre_minkowski_char_height_mm=DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM, row=TEST_ROW,
                  align_kwargs=None, font_path=None, font_size_mm=None,
                  radius_y_offset_mm=None, platen_radius_mm=None,
                  cone_segments=DEFAULT_CONE_SEGMENTS,
                  platen_fn=DEFAULT_PLATEN_FN,
                  minkowski_enabled=DEFAULT_MINKOWSKI_ENABLED,
-                 draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG):
+                 draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
+                 minkowski_cone_height_mm=None):
     """Builds one struck-character solid via a REAL Minkowski sum
     (manifold3d's Manifold.minkowski_sum), replacing the per-vertex
     outline-offset approximation this function used before (fixed-distance
@@ -893,7 +895,7 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
     to detect or repair, and no per-glyph special-casing needed at all.
 
     Mechanism: build the flat (un-drafted) glyph as a simple prism (extrude
-    the 2D outline up by more than separation_mm - see platen note below),
+    the 2D outline up by more than pre_minkowski_char_height_mm - see platen note below),
     carve the platen scallop into its top with a REAL boolean cylinder
     subtraction (matching the real machine / v2's PlatenCutout(), not a
     per-vertex parabola approximation - see "Real platen cutout" below),
@@ -950,8 +952,6 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
     caller driving a specific machine's config (e.g. lib/blickensderfer.py)
     should pass its own config-derived values explicitly instead of
     relying on these being coincidentally the same numbers."""
-    if expansion_width_mm is None:
-        expansion_width_mm = separation_mm * np.tan(np.radians(draft_angle_deg / 2.0))
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = load_font_face(fp)
@@ -980,39 +980,68 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
 
     flat = classify_and_triangulate(contours_mm)
 
-    # Minkowski sum ADDS extents in each dimension - a full-separation_mm
-    # prism summed with a full-separation_mm cone doubles the Z depth
-    # (confirmed: bbox came out [0, 2*separation_mm], not [0,
-    # separation_mm]). Fix: the prism is a thin sliver sitting at the TIP
+    # Minkowski sum ADDS extents in each dimension - a full-pre_minkowski_char_height_mm
+    # prism summed with a full-pre_minkowski_char_height_mm cone doubles the Z depth
+    # (confirmed: bbox came out [0, 2*pre_minkowski_char_height_mm], not [0,
+    # pre_minkowski_char_height_mm]). Fix: the prism is a thin sliver sitting at the TIP
     # end (just enough thickness to be a valid non-degenerate solid - a
     # truly flat/zero-volume shape isn't valid minkowski_sum input), and
-    # the CONE carries (almost) the entire separation_mm depth. Critically,
+    # the CONE carries (almost) the entire pre_minkowski_char_height_mm depth. Critically,
     # the cone's own origin must be at its APEX (the radius=0 point), not
     # its base: manifold3d's cylinder() places the local origin at the
     # radius_low end, so building it wide-at-bottom/apex-at-top
     # (radius_low=expansion_width_mm, radius_high=0, matching how the
     # non-translated version was built) then translating by -cone_height
     # puts the apex at z=0 and the wide base BELOW it (negative z) -
-    # summed with the tip sliver (sitting at [separation_mm-tip_h,
-    # separation_mm]), the apex contributes zero offset at the tip and the
+    # summed with the tip sliver (sitting at [pre_minkowski_char_height_mm-tip_h,
+    # pre_minkowski_char_height_mm]), the apex contributes zero offset at the tip and the
     # base contributes the full expansion at z=0, giving exactly the
-    # intended [0, separation_mm] range. (First attempt at this got the
+    # intended [0, pre_minkowski_char_height_mm] range. (First attempt at this got the
     # radius_low/radius_high swapped AND translated, which cancelled out
     # and put the dilation back at the tip instead of the root - verified
-    # by checking cross-section width at z=0 vs z=separation_mm directly,
+    # by checking cross-section width at z=0 vs z=pre_minkowski_char_height_mm directly,
     # not just watertightness/volume, which don't catch a reversed draft.)
-    tip_h = min(0.01, separation_mm * 0.01)
-    cone_h = separation_mm - tip_h
-    # Preview path (minkowski_enabled=False) doesn't need the thin sliver at
-    # all - that's only a construction detail for feeding the Minkowski sum
-    # (see above), and returning it AS the preview shape makes for a
-    # razor-thin, hard-to-see sliver (~tip_h+block_margin, well under
-    # 0.3mm) instead of something actually comparable in size to a real
-    # drafted character. Use the full separation_mm as the extrusion depth
-    # instead - same bottom-at-z=0 registration as the drafted root, still
-    # skips the expensive Minkowski sweep entirely.
-    block_h = tip_h if minkowski_enabled else separation_mm
-    block_z0 = separation_mm - tip_h if minkowski_enabled else 0.0
+    # Two independent depths, measured from the TIP inward:
+    #
+    #   pre_minkowski_char_height_mm  the STRAIGHT, constant-cross-section part
+    #   minkowski_cone_height_mm the TAPER, added BELOW the straight part
+    #
+    # so total depth = pre_minkowski_char_height_mm + minkowski_cone_height_mm, and the tip always
+    # lands at z_local = pre_minkowski_char_height_mm - which is what place_on_cylinder
+    # anchors on (radial = R + protrusion - pre_minkowski_char_height_mm + z_local), so
+    # the strike face does not move when either value changes.
+    #
+    # They used to be one number: the taper ran the entire depth, so the
+    # only way to shrink the flare was to make the character shallower,
+    # which eventually lifted the root clear of the wall and left the
+    # characters floating free of the body. Splitting them means a
+    # shallow flare and a deeply-anchored root are no longer in conflict.
+    # Hammond Split already worked this way (its own Minkowski_Cone_Height, from
+    # v2's Mink_Radius = tan(angle/2) * Minkowski_Cone_Height).
+    #
+    # minkowski_cone_height_mm=None keeps the old coupled behavior for any caller
+    # that has not been updated.
+    tip_h = min(0.01, max(pre_minkowski_char_height_mm, 0.01) * 0.01)
+    if minkowski_cone_height_mm is None:
+        block_h_pre = tip_h
+        cone_h = pre_minkowski_char_height_mm - tip_h
+        taper_depth = pre_minkowski_char_height_mm
+    else:
+        # The prism must stay non-degenerate even at straight-depth 0
+        # (a zero-height solid is not valid minkowski_sum input).
+        block_h_pre = max(pre_minkowski_char_height_mm, tip_h)
+        cone_h = minkowski_cone_height_mm
+        taper_depth = minkowski_cone_height_mm
+    # Derived here rather than at the top of the function because it
+    # depends on which depth scheme is in play (see just above).
+    if expansion_width_mm is None:
+        expansion_width_mm = taper_depth * np.tan(np.radians(draft_angle_deg / 2.0))
+
+    # Preview path shows the whole un-drafted extent, so it matches where
+    # the drafted character will actually reach.
+    preview_h = pre_minkowski_char_height_mm if minkowski_cone_height_mm is None else block_h_pre + cone_h
+    block_h = block_h_pre if minkowski_enabled else preview_h
+    block_z0 = pre_minkowski_char_height_mm - block_h_pre if minkowski_enabled else pre_minkowski_char_height_mm - preview_h
 
     # Platen scallop applied as a REAL boolean cylinder subtraction, BEFORE
     # the Minkowski sum - not a per-vertex parabola-warp approximation (the
@@ -1071,7 +1100,7 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
                                         circular_segments=platen_fn, center=True)
         platen_cyl = platen_cyl.rotate([0, 90, 0])
         platen_cyl = platen_cyl.translate([cyl_center_x, radius_y_offset_mm,
-                                            separation_mm + platen_radius_real_mm])
+                                            pre_minkowski_char_height_mm + platen_radius_real_mm])
         scalloped = _to_manifold(prism) - platen_cyl
     else:
         scalloped = _to_manifold(prism)
@@ -1116,15 +1145,15 @@ if __name__ == "__main__":
     parser.add_argument("--draft-angle", type=float, default=MINK_DRAFT_ANGLE,
                          help="overrides Mink_Draft_Angle (deg), real value 55. "
                               "Kept fixed when sweeping depth instead (see "
-                              "--separation-mm) - angle controls STEEPNESS, "
+                              "--pre-minkowski-char-height-mm) - angle controls STEEPNESS, "
                               "not length.")
-    parser.add_argument("--separation-mm", type=float, default=DEFAULT_SEPARATION_MM,
+    parser.add_argument("--pre-minkowski-char-height-mm", type=float, default=DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM,
                          help="taper LENGTH (front-to-back depth). Real machine "
                               "value is Char_Protrusion=0.5mm; default here is "
                               "longer (2.0mm) for clipping margin on steeply "
-                              "curved elements - see DEFAULT_SEPARATION_MM "
+                              "curved elements - see DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM "
                               "comment. At a fixed draft angle, expansion_mm = "
-                              "separation_mm * tan(angle/2), so this also grows "
+                              "pre_minkowski_char_height_mm * tan(angle/2), so this also grows "
                               "the outward push, same as a steeper angle would.")
     parser.add_argument("--cone-segments", type=int, default=DEFAULT_CONE_SEGMENTS,
                          help="circular segments for the Minkowski cone kernel - "
@@ -1140,23 +1169,23 @@ if __name__ == "__main__":
                               "correct platen curve/placement, no taper).")
     args = parser.parse_args()
 
-    expansion_mm = args.separation_mm * np.tan(np.radians(args.draft_angle / 2.0))
+    expansion_mm = args.pre_minkowski_char_height_mm * np.tan(np.radians(args.draft_angle / 2.0))
 
     print(f"SCALE derivation basis: FONT_SIZE_MM={FONT_SIZE_MM}")
-    print(f"separation_mm={args.separation_mm:.6f} (real Char_Protrusion={FRONT_BACK_SEPARATION_MM})")
+    print(f"pre_minkowski_char_height_mm={args.pre_minkowski_char_height_mm:.6f} (real Char_Protrusion={FRONT_BACK_SEPARATION_MM})")
     print(f"PLATEN_RADIUS_MM={PLATEN_RADIUS_MM:.6f}")
     print(f"RADIUS_Y_OFFSET_MM={RADIUS_Y_OFFSET_MM:.6f}")
     print(f"draft_angle={args.draft_angle} (fixed, real value) -> BASE_EXPANSION_WIDTH_MM={expansion_mm:.6f}")
     print()
 
     for ch in args.chars:
-        mesh = build_glyph(ch, args.flatness_tolerance_mm, expansion_mm, args.separation_mm,
+        mesh = build_glyph(ch, args.flatness_tolerance_mm, expansion_mm, args.pre_minkowski_char_height_mm,
                             cone_segments=args.cone_segments,
                             platen_fn=args.platen_fn,
                             minkowski_enabled=args.minkowski_enabled)
         report(mesh, f"char='{ch}' flatness_tolerance_mm={args.flatness_tolerance_mm} "
-                     f"separation_mm={args.separation_mm} draft_angle={args.draft_angle} "
+                     f"pre_minkowski_char_height_mm={args.pre_minkowski_char_height_mm} draft_angle={args.draft_angle} "
                      f"cone_segments={args.cone_segments} "
                      f"platen_fn={args.platen_fn} minkowski_enabled={args.minkowski_enabled}")
         safe = ch if ch.isalnum() else f"u{ord(ch):04x}"
-        mesh.export(f"out_{safe}_ftol{args.flatness_tolerance_mm:.4f}_sep{args.separation_mm:.2f}.stl")
+        mesh.export(f"out_{safe}_ftol{args.flatness_tolerance_mm:.4f}_sep{args.pre_minkowski_char_height_mm:.2f}.stl")

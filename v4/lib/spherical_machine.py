@@ -251,7 +251,7 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
     # local dilation of the already-positioned `scalloped` solid. Uses
     # v2's own MINK_TEXT_R(draft_angle)=2*tan(.5*draft_angle) formula - a
     # FIXED-height (Mink_Cone_Height_Mm) cone, unlike build_glyph's
-    # separation_mm-scaled cone - a real, intentional difference in the
+    # pre_minkowski_char_height_mm-scaled cone - a real, intentional difference in the
     # v2 source (see spherical_machine's module docstring), not something
     # to reconcile with the cylinder family's formula.
     mink_r = 2.0 * np.tan(np.radians(draft_angle / 2.0))
@@ -620,10 +620,10 @@ def ResinRodAssemble():
 
 # ------------------------------------------------------------------ Element
 
-def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                 cone_segments=None, platen_fn=None,
                 minkowski_enabled=None, draft_angle_deg=None):
-    """separation_mm/render_core_groove/cone_segments/platen_fn are
+    """pre_minkowski_char_height_mm/render_core_groove/cone_segments/platen_fn are
     accepted-but-ignored - generate.py's build_fn(...) call is uniform
     across every machine (see CLAUDE.md's "Porting a new machine"
     convention); Selectric has no core-groove concept, no separate
@@ -639,7 +639,7 @@ def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groo
     return result, []
 
 
-def Additive(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def Additive(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
              cone_segments=None, platen_fn=None,
              minkowski_enabled=None, draft_angle_deg=None):
     """No separate additive/subtractive split in the real geometry (unlike
@@ -652,7 +652,7 @@ def Additive(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=
                     draft_angle_deg=draft_angle_deg), []
 
 
-def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                cone_segments=None, platen_fn=None,
                minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()

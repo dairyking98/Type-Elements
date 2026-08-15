@@ -251,9 +251,9 @@ def Loop():
 
 # ------------------------------------------------------------------ Element
 
-def Additive(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def Additive(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
              cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
-    """separation_mm/render_core_groove are accepted-but-ignored - this
+    """pre_minkowski_char_height_mm/render_core_groove are accepted-but-ignored - this
     machine has neither concept, same pattern lib/wing_slug.py's own
     Additive() and the Selectric family establish."""
     _require_configured()
@@ -264,13 +264,13 @@ def Additive(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=
     ])
 
 
-def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                 cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     """v1's `union(){ difference(){additive; cuts;}; loop; }` (see module
     docstring - Loop, when enabled, sits OUTSIDE the cut difference, not
     inside it)."""
     _require_configured()
-    additive = Additive(flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm,
+    additive = Additive(flatness_tolerance_mm=flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm,
                          render_core_groove=render_core_groove, cone_segments=cone_segments,
                          platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                          draft_angle_deg=draft_angle_deg)
@@ -290,12 +290,12 @@ def ResinSupport():
     return None
 
 
-def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     """Real no-op passthrough to FullElement() - see module docstring
     and lib/helios.py's own ResinPrint() for the established precedent."""
     _require_configured()
-    return FullElement(flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm,
+    return FullElement(flatness_tolerance_mm=flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm,
                         render_core_groove=render_core_groove, cone_segments=cone_segments,
                         platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                         draft_angle_deg=draft_angle_deg)

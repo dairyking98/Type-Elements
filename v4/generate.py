@@ -3,7 +3,7 @@
 v4 generation entry point. Usage:
 
     python3 generate.py config/blickensderfer.yaml
-    python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.01 --separation-mm 1.5
+    python3 generate.py config/blickensderfer.yaml --flatness-tolerance-mm 0.01 --pre-minkowski-char-height-mm 1.5
 
 All real-machine parameters live in the config file, not in code - see
 config/blickensderfer.yaml for the full parameter set and comments.
@@ -68,8 +68,8 @@ def main():
     parser.add_argument("config", help="path to a YAML config, e.g. config/blickensderfer.yaml")
     parser.add_argument("--flatness-tolerance-mm", type=float, default=None,
                          help="override build.flatness_tolerance_mm from the config")
-    parser.add_argument("--separation-mm", type=float, default=None,
-                         help="override build.separation_mm from the config")
+    parser.add_argument("--pre-minkowski-char-height-mm", type=float, default=None,
+                         help="override build.pre_minkowski_char_height_mm from the config")
     parser.add_argument("--cone-segments", type=int, default=None,
                          help="override build.cone_segments from the config - circular "
                               "segments for the draft's Minkowski cone kernel, trades "
@@ -227,7 +227,7 @@ def main():
             reference_baseline_row=reference_baseline_row,
             reference_cutout_row=reference_cutout_row,
             flatness_tolerance_mm=args.flatness_tolerance_mm,
-            separation_mm=args.separation_mm,
+            pre_minkowski_char_height_mm=args.pre_minkowski_char_height_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
             platen_fn=args.platen_fn,
@@ -268,7 +268,7 @@ def main():
             sys.exit(1)
         full, char_parts = bd.NormalElement(
             flatness_tolerance_mm=args.flatness_tolerance_mm,
-            separation_mm=args.separation_mm,
+            pre_minkowski_char_height_mm=args.pre_minkowski_char_height_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
             platen_fn=args.platen_fn,
@@ -294,7 +294,7 @@ def main():
         build_fn = bd.ResinPrint if resin_support else bd.FullElement
         full, char_parts = build_fn(
             flatness_tolerance_mm=args.flatness_tolerance_mm,
-            separation_mm=args.separation_mm,
+            pre_minkowski_char_height_mm=args.pre_minkowski_char_height_mm,
             render_core_groove=render_core_groove,
             cone_segments=args.cone_segments,
             platen_fn=args.platen_fn,

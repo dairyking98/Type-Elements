@@ -42,7 +42,7 @@ def main():
     parser.add_argument("config")
     parser.add_argument("--out-dir", default="output/glyphs")
     parser.add_argument("--flatness-tolerance-mm", type=float, default=None)
-    parser.add_argument("--separation-mm", type=float, default=None)
+    parser.add_argument("--pre-minkowski-char-height-mm", type=float, default=None)
     parser.add_argument("--cone-segments", type=int, default=None)
     parser.add_argument("--platen-fn", type=int, default=None)
     parser.add_argument("--no-minkowski", dest="minkowski_enabled", action="store_false", default=None)
@@ -55,7 +55,7 @@ def main():
     bd = _load_machine(args.config)
     bd.configure(args.config)
     flatness_tolerance_mm = args.flatness_tolerance_mm or bd.DEFAULT_FLATNESS_TOLERANCE_MM
-    separation_mm = args.separation_mm or bd.DEFAULT_SEPARATION_MM
+    pre_minkowski_char_height_mm = args.pre_minkowski_char_height_mm or bd.DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM
     cone_segments = args.cone_segments or bd.DEFAULT_CONE_SEGMENTS
     platen_fn = args.platen_fn or bd.Platen_Fn
     minkowski_enabled = (args.minkowski_enabled if args.minkowski_enabled is not None
@@ -86,7 +86,7 @@ def main():
         fname = f"{safe_name(ch)}.stl" if args.char is not None else f"row{row}_col{col:02d}_{safe_name(ch)}.stl"
         try:
             mesh = build_glyph(
-                ch, flatness_tolerance_mm, separation_mm=separation_mm, row=row,
+                ch, flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm, row=row,
                 align_kwargs=bd.ALIGN_KWARGS, font_path=bd.FONT_PATH, font_size_mm=bd.FONT_SIZE_MM,
                 radius_y_offset_mm=bd.CUTOUT_ROW[row] - bd.BASELINE_ROW[row],
                 platen_radius_mm=bd.PLATEN_RADIUS_MM, cone_segments=cone_segments,

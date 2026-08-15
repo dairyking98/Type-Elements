@@ -315,7 +315,11 @@ def configure(config_path):
 
     b = cfg["build"]
     g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
-    g["DEFAULT_SEPARATION_MM"] = b["separation_mm"]
+    g["DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM"] = b["pre_minkowski_char_height_mm"]
+    # Draft cone height - how much of the total depth the taper sweeps.
+    # None (the default) = the whole depth, i.e. the old behavior where
+    # pre_minkowski_char_height_mm did both jobs. See glyph_poc.build_glyph.
+    g["Minkowski_Cone_Height_Mm"] = b.get("minkowski_cone_height_mm", b.get("mink_height"))
     # Trim each placed character to its own angular slot so its draft
     # skirt cannot bleed into the neighbour - see
     # cylinder_machine._clip_to_cell. Off by default: at the real 55
@@ -878,11 +882,11 @@ def Label():
 
 # ---------------------------------------------------------------- Element
 
-def Additive(flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None, cone_segments=None,
+def Additive(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None, cone_segments=None,
              platen_fn=None, minkowski_enabled=None,
              draft_angle_deg=None, force_groove=None):
     text_ring, char_parts = cylinder_machine.TextRing(
-        flatness_tolerance_mm=flatness_tolerance_mm, separation_mm=separation_mm, align_kwargs=align_kwargs,
+        flatness_tolerance_mm=flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm, align_kwargs=align_kwargs,
         cone_segments=cone_segments, platen_fn=platen_fn, minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
         placement_protrusion=Shuttle_Thickness + Shuttle_Text_Protrusion)
     shell = sp.union_all([text_ring, ShuttleCylinder()])
@@ -923,11 +927,11 @@ def Subtractive(render_core_groove=None, force_groove=None):
     return sp.union_all([ShuttleTaper(force_groove=force_groove), Label()])
 
 
-def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                 cone_segments=None, platen_fn=None, minkowski_enabled=None,
                 draft_angle_deg=None, force_groove=None):
     _require_configured()
-    additive, char_parts = Additive(flatness_tolerance_mm, separation_mm, align_kwargs=align_kwargs,
+    additive, char_parts = Additive(flatness_tolerance_mm, pre_minkowski_char_height_mm, align_kwargs=align_kwargs,
                                      cone_segments=cone_segments, platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                      draft_angle_deg=draft_angle_deg, force_groove=force_groove)
     build_log.mesh_report(additive, "Additive")
@@ -942,12 +946,12 @@ def FullElement(flatness_tolerance_mm=None, separation_mm=None, render_core_groo
 
 def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                          reference_baseline_row=None, reference_cutout_row=None,
-                         flatness_tolerance_mm=None, separation_mm=None, align_kwargs=None,
+                         flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None,
                          cone_segments=None, platen_fn=None,
                          minkowski_enabled=None, draft_angle_deg=None):
     text_ring, mapping_lines = cylinder_machine.CalibrationTextRing(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, pre_minkowski_char_height_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
@@ -965,12 +969,12 @@ def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, st
 
 def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
                         reference_baseline_row=None, reference_cutout_row=None,
-                        flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None,
+                        flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
                         align_kwargs=None, cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
     _require_configured()
     additive, mapping_lines = CalibrationAdditive(
         test_char, vary_baseline, vary_cutout, start, interval,
-        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, separation_mm,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, pre_minkowski_char_height_mm,
         align_kwargs=align_kwargs, cone_segments=cone_segments,
         platen_fn=platen_fn,
         minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
@@ -1471,7 +1475,7 @@ def ResinSupport():
     return sp.union_all(parts)
 
 
-def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groove=None, align_kwargs=None,
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
                cone_segments=None, platen_fn=None, minkowski_enabled=None,
                draft_angle_deg=None):
     """v2:1060-1073's real ResinPrint() dispatcher:
@@ -1546,14 +1550,14 @@ def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groov
     also independently duplicated inside HorizResinSupport2 itself in v2 -
     applying it once to the union has the same net effect)."""
     if not Resin_Support:
-        full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
+        full, char_parts = FullElement(flatness_tolerance_mm, pre_minkowski_char_height_mm, render_core_groove, align_kwargs,
                                         cone_segments=cone_segments, platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                         draft_angle_deg=draft_angle_deg)
         combined, _, _, _ = sp.check_and_repair(full, label="ResinPrint")
         return combined, char_parts
 
     if Resin_Support_Orientation == "horizontal":
-        full_body, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
+        full_body, char_parts = FullElement(flatness_tolerance_mm, pre_minkowski_char_height_mm, render_core_groove, align_kwargs,
                                              cone_segments=cone_segments, platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                              draft_angle_deg=draft_angle_deg)
         body = sp.scad_transform(full_body, ("rotate", [180, 0, 0]), ("translate", [0, 0, -Shuttle_Height]))
@@ -1575,7 +1579,7 @@ def ResinPrint(flatness_tolerance_mm=None, separation_mm=None, render_core_groov
         combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
         return combined, char_parts
 
-    full, char_parts = FullElement(flatness_tolerance_mm, separation_mm, render_core_groove, align_kwargs,
+    full, char_parts = FullElement(flatness_tolerance_mm, pre_minkowski_char_height_mm, render_core_groove, align_kwargs,
                                     cone_segments=cone_segments, platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
                                     draft_angle_deg=draft_angle_deg)
     oriented = sp.scad_transform(full, ("rotate", [0, -90, 0]), ("translate", [-Z_Offset, 0, -X_Max]))
