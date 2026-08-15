@@ -1126,15 +1126,6 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("font2_size_mm", ["font2", "font2_size_mm"], float, "Font 2 size (mm)", "v2 Char_Mod_Size."),
     ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
      "Mink_Draft_Angle - only takes effect on Render (Quick Preview always skips the draft sweep)."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float,
-     "Pre-Minkowski glyph height (mm)",
-     "Height of the extruded glyph block, and the arc band it is trimmed to. Replaces this "
-     "machine's old implicit Glyph height + 1."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float,
-     "Minkowski cone height (mm)",
-     "The draft cone's own height. Unlike the cylinder family this does NOT add depth below the "
-     "block - v2 trims everything past it, so it shapes a flare within the glyph height. Only "
-     "takes effect on Render."),
     ("mode", ["alignment", "mode"], str, "Align mode", '"center" or "left".'),
     ("center_offset_mm", ["alignment", "center_offset_mm"], float, "Center offset (mm)", ""),
     ("left_offset_mm", ["alignment", "left_offset_mm"], float, "Left offset (mm)", ""),
@@ -1313,11 +1304,6 @@ LABEL_FIELDS_SELECTRIC = [
 QUALITY_FIELDS_SELECTRIC = [
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft", "Off: fast undrafted preview (correct platen curve/placement, no taper)."),
-    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float,
-     "Pre-Minkowski glyph height (mm)",
-     "v2's linear_extrude(6) construction margin - must exceed any character's real embed depth."),
-    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float,
-     "Minkowski cone height (mm)", "v2's hardcoded cylinder h=2 in the draft cone."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Sphere/skirt/roof/boss facet count."),
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Shaft bore and the real platen cutout cylinder (v2 shares one Cyl_Fn for both)."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
@@ -1539,13 +1525,42 @@ COSMETICS_FIELDS = [
      "How far inside the facet's minor diameter a band cuts. Banded style only."),
 ]
 
+# The three build values every machine has, in the same order at the head of
+# every Quality tab. They were scattered before: the cylinder family and the
+# Selectrics carried them on Quality, Hammond Split had the two depths on
+# Font & Alignment instead, and the five slug machines exposed none of them
+# at all despite all three being in their configs. One list, spliced in by
+# _quality_with_core(), so a machine cannot silently miss them again.
+QUALITY_CORE_FIELDS = [
+    ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)",
+     "Max deviation when flattening curves to line segments. Lower = rounder curves, more faces, slower."),
+    ("pre_minkowski_char_height_mm", ["build", "pre_minkowski_char_height_mm"], float,
+     "Pre-Minkowski glyph height (mm)",
+     "Height of the extruded glyph block before the Minkowski sum. On the cylinder family and Hammond "
+     "Split this sets the character's depth (total = this + cone); on the spherical and slug families "
+     "the body boolean trims the block, so any sufficient value gives the same result."),
+    ("minkowski_cone_height_mm", ["build", "minkowski_cone_height_mm"], float,
+     "Minkowski cone height (mm)",
+     "Height of the draft cone. It has to reach far enough into the body that a wide character's roots "
+     "mesh into the surface instead of cutting off abruptly - taller is the safer direction."),
+]
+
+
+def _quality_with_core(fields):
+    """Quality tab = the shared core, then this machine's own fields with
+    any duplicate of a core key dropped (order within the core is fixed, so
+    every machine's tab opens the same way)."""
+    core_keys = {f[0] for f in QUALITY_CORE_FIELDS}
+    return QUALITY_CORE_FIELDS + [f for f in fields if f[0] not in core_keys]
+
+
 SECTIONS_BY_MACHINE = {
     "blickensderfer": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_BLICKPOSTAL,
-                       "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
+                       "Quality": _quality_with_core(QUALITY_FIELDS_BLICKPOSTAL), "Resin": RESIN_FIELDS_BLICKPOSTAL,
                        "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_BLICKENSDERFER,
                        "Cosmetics": COSMETICS_FIELDS},
     "postal": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_BLICKPOSTAL,
-               "Quality": QUALITY_FIELDS_BLICKPOSTAL, "Resin": RESIN_FIELDS_BLICKPOSTAL,
+               "Quality": _quality_with_core(QUALITY_FIELDS_BLICKPOSTAL), "Resin": RESIN_FIELDS_BLICKPOSTAL,
                "Gauge": GAUGE_FIELDS, "Element": ELEMENT_FIELDS_POSTAL,
                        "Cosmetics": COSMETICS_FIELDS},
     # no "Gauge" key - Mignon has no Shaft Gauge Test (see
@@ -1553,7 +1568,7 @@ SECTIONS_BY_MACHINE = {
     # _compose_build_tab() check for its absence and skip the tab/dropdown
     # option accordingly, rather than every machine being forced to have one.
     "mignon": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_MIGNON, "Label": LABEL_FIELDS_MIGNON,
-               "Quality": QUALITY_FIELDS_MIGNON, "Resin": RESIN_FIELDS_MIGNON,
+               "Quality": _quality_with_core(QUALITY_FIELDS_MIGNON), "Resin": RESIN_FIELDS_MIGNON,
                "Element": ELEMENT_FIELDS_MIGNON, "Legend": LEGEND_FIELDS_MIGNON},
     # no "Gauge" key - Bennett has no Shaft Gauge Test either (v2/bennett.
     # scad:24: "Sections with no Bennett equivalent (Print Tolerances,
@@ -1561,7 +1576,7 @@ SECTIONS_BY_MACHINE = {
     # text feature is LABEL_FIELDS_BENNETT's "Label" tab instead (see that
     # list's neighboring comment).
     "bennett": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Label": LABEL_FIELDS_BENNETT,
-                "Quality": QUALITY_FIELDS_BENNETT, "Resin": RESIN_FIELDS_BENNETT,
+                "Quality": _quality_with_core(QUALITY_FIELDS_BENNETT), "Resin": RESIN_FIELDS_BENNETT,
                 "Element": ELEMENT_FIELDS_BENNETT},
     # no "Gauge" key - Helios has no Shaft Gauge Test (v2/heliosklimax.
     # scad's own header: "Sections with no Helios equivalent (Logo, Print
@@ -1569,13 +1584,13 @@ SECTIONS_BY_MACHINE = {
     # same header, no engraved-TEXT feature at all. "Logo" key IS present
     # (LOGO_FIELDS_HELIOS) - v1's separate SVG_Logo mark, a deliberate
     # v1-sourced addition v2 never had - see that list's own comment.
-    "helios": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_HELIOS, "Quality": QUALITY_FIELDS_HELIOS,
+    "helios": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Logo": LOGO_FIELDS_HELIOS, "Quality": _quality_with_core(QUALITY_FIELDS_HELIOS),
                "Resin": RESIN_FIELDS_HELIOS, "Element": ELEMENT_FIELDS_HELIOS},
     # no "Gauge"/"Logo" key - Hammond has neither (see lib/hammond.py's
     # module docstring) - its two whole-string engraved labels are the
     # "Label" tab instead, same convention as Bennett.
     "hammond": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Label": LABEL_FIELDS_HAMMOND,
-                "Quality": QUALITY_FIELDS_HAMMOND, "Resin": RESIN_FIELDS_HAMMOND,
+                "Quality": _quality_with_core(QUALITY_FIELDS_HAMMOND), "Resin": RESIN_FIELDS_HAMMOND,
                 "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND,
                 "Legend": LEGEND_FIELDS_HAMMOND},
     # no "Gauge"/"Logo" key - same reasons as Hammond above. "Font &
@@ -1585,7 +1600,7 @@ SECTIONS_BY_MACHINE = {
     # reuses LEGEND_FIELDS_HAMMOND/lib/hammond_legend.py as-is - see that
     # module's docstring for why the same card shape applies to both.
     "hammond_split": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_HAMMOND_SPLIT,
-                       "Label": LABEL_FIELDS_HAMMOND_SPLIT, "Quality": QUALITY_FIELDS_HAMMOND_SPLIT,
+                       "Label": LABEL_FIELDS_HAMMOND_SPLIT, "Quality": _quality_with_core(QUALITY_FIELDS_HAMMOND_SPLIT),
                        "Resin": RESIN_FIELDS_HAMMOND_SPLIT, "Element": ELEMENT_FIELDS_HAMMOND_SPLIT,
                        "Legend": LEGEND_FIELDS_HAMMOND},
     # No SECTIONS_COMMON reuse at all - Selectric's alignment/calibration
@@ -1593,13 +1608,13 @@ SECTIONS_BY_MACHINE = {
     # SELECTRIC12's own comment above). No "Gauge"/"Logo"/"Calibration"
     # key - see this dict's own leading comment.
     "selectric12": {"Font & Alignment": FONT_FIELDS_SELECTRIC12, "Label": LABEL_FIELDS_SELECTRIC,
-                    "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
+                    "Quality": _quality_with_core(QUALITY_FIELDS_SELECTRIC), "Resin": RESIN_FIELDS_SELECTRIC,
                     "Element": ELEMENT_FIELDS_SELECTRIC},
     "selectric3": {"Font & Alignment": FONT_FIELDS_SELECTRIC12, "Label": LABEL_FIELDS_SELECTRIC,
-                   "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
+                   "Quality": _quality_with_core(QUALITY_FIELDS_SELECTRIC), "Resin": RESIN_FIELDS_SELECTRIC,
                    "Element": ELEMENT_FIELDS_SELECTRIC},
     "selectric_composer": {"Font & Alignment": FONT_FIELDS_SELECTRIC_COMPOSER, "Label": LABEL_FIELDS_SELECTRIC,
-                           "Quality": QUALITY_FIELDS_SELECTRIC, "Resin": RESIN_FIELDS_SELECTRIC,
+                           "Quality": _quality_with_core(QUALITY_FIELDS_SELECTRIC), "Resin": RESIN_FIELDS_SELECTRIC,
                            "Element": ELEMENT_FIELDS_SELECTRIC},
     # Type Slug family (see the FIELDS block comment above this dict) -
     # "Font & Alignment" reuses ONLY that one SECTIONS_COMMON list (not
@@ -1607,11 +1622,11 @@ SECTIONS_BY_MACHINE = {
     # not implemented for this family). No "Gauge"/"Calibration" key.
     "type_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
                   "Character": CHARACTER_FIELDS_WING_SLUG, "Logo": LOGO_FIELDS_SLUG,
-                  "Label": LABEL_FIELDS_SLUG, "Quality": QUALITY_FIELDS_WING_SLUG,
+                  "Label": LABEL_FIELDS_SLUG, "Quality": _quality_with_core(QUALITY_FIELDS_WING_SLUG),
                   "Resin": RESIN_FIELDS_WING_SLUG, "Element": ELEMENT_FIELDS_WING_SLUG},
     "vogue_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
                    "Character": CHARACTER_FIELDS_WING_SLUG, "Logo": LOGO_FIELDS_SLUG,
-                   "Label": LABEL_FIELDS_SLUG, "Quality": QUALITY_FIELDS_WING_SLUG,
+                   "Label": LABEL_FIELDS_SLUG, "Quality": _quality_with_core(QUALITY_FIELDS_WING_SLUG),
                    "Resin": RESIN_FIELDS_WING_SLUG, "Element": ELEMENT_FIELDS_WING_SLUG},
     # "Ticks" (not "Gauge") - see TICKS_FIELDS_GAUGE_SLUG's own comment
     # for why this deliberately doesn't reuse the existing "Gauge"
@@ -1619,16 +1634,16 @@ SECTIONS_BY_MACHINE = {
     "gauge_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
                    "Character": CHARACTER_FIELDS_WING_SLUG, "Logo": LOGO_FIELDS_SLUG,
                    "Label": LABEL_FIELDS_SLUG, "Ticks": TICKS_FIELDS_GAUGE_SLUG,
-                   "Quality": QUALITY_FIELDS_WING_SLUG, "Resin": RESIN_FIELDS_WING_SLUG,
+                   "Quality": _quality_with_core(QUALITY_FIELDS_WING_SLUG), "Resin": RESIN_FIELDS_WING_SLUG,
                    "Element": ELEMENT_FIELDS_WING_SLUG},
     # No "Label"/"Logo" key - OliverSlug.scad/LumiSlug.scad have no
     # engraved-copyright/SVG-logo concept at all (see lib/box_slug.py's
     # module docstring).
     "oliver_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
-                    "Character": CHARACTER_FIELDS_BOX_SLUG, "Quality": QUALITY_FIELDS_BOX_SLUG,
+                    "Character": CHARACTER_FIELDS_BOX_SLUG, "Quality": _quality_with_core(QUALITY_FIELDS_BOX_SLUG),
                     "Resin": RESIN_FIELDS_BOX_SLUG, "Element": ELEMENT_FIELDS_BOX_SLUG},
     "lumi_slug": {"Font & Alignment": SECTIONS_COMMON["Font & Alignment"],
-                  "Character": CHARACTER_FIELDS_BOX_SLUG, "Quality": QUALITY_FIELDS_BOX_SLUG,
+                  "Character": CHARACTER_FIELDS_BOX_SLUG, "Quality": _quality_with_core(QUALITY_FIELDS_BOX_SLUG),
                   "Resin": RESIN_FIELDS_BOX_SLUG, "Element": ELEMENT_FIELDS_BOX_SLUG},
 }
 

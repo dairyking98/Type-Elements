@@ -7259,6 +7259,38 @@ The user's safety note is recorded with it: a taller cone is the safer
 direction, because a wide character's roots approaching the sphere
 surface would otherwise cut off abruptly instead of meshing into it.
 
+### Quality tabs synchronised
+
+With the parameters unified, the TABS were still inconsistent - the user
+spotted that Hammond Split did not expose them. Surveying all 15 found
+three different arrangements:
+
+- cylinder family + Selectrics: both depths on Quality
+- **Hammond Split**: both on Font & Alignment instead
+- **all 5 slug machines**: neither exposed anywhere, despite both keys
+  being in their configs and driving real geometry - and their Quality
+  tabs did not even carry `flatness_tolerance_mm`
+
+Now one `QUALITY_CORE_FIELDS` list (flatness tolerance, pre-Minkowski
+glyph height, Minkowski cone height) spliced at the head of every
+machine's Quality tab by `_quality_with_core()`, which drops any duplicate
+the machine's own list already had. Every Quality tab opens with the same
+three fields in the same order, and a machine cannot silently miss them
+again - which is exactly how the slug family lost all three.
+
+Hammond Split's two depths were removed from Font & Alignment in the same
+pass, so they appear once, on the tab everyone else has them on.
+
+TUI-only: all 14 configs byte-identical, 15/15 compose and collect and
+carry both depth values through `_collect_values()`.
+
+One self-inflicted detour worth noting: the regex that removed Hammond
+Split's Font & Alignment copies was written broadly enough that it also
+stripped the two fields out of `QUALITY_CORE_FIELDS` itself, leaving nine
+machines with only `flatness_tolerance_mm`. Caught immediately by
+asserting every tab's first three keys rather than eyeballing one
+machine.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
