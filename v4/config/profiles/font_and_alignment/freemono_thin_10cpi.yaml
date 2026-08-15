@@ -1,7 +1,7 @@
 # Font & Alignment profile - see lib/font_profiles.py.
 # 'values' keys are dotted config paths; a machine without a
 # given path simply skips it when this profile is applied.
-name: FreeMono Thin
+name: FreeMono Thin 10CPI
 values:
   alignment.caret_drop_mm: 2.4
   alignment.center_offset_mm: 0.0

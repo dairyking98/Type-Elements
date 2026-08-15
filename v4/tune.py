@@ -2361,6 +2361,14 @@ class TuneApp(App):
         # left the child process running to completion in the background,
         # burning CPU for output nobody would look at.
         self._build_proc = None
+        # Set while the Font & Alignment profile dropdown is being given a
+        # value in code rather than by the user. Textual fires
+        # Select.Changed for a programmatic assignment exactly as it does
+        # for a click, and the handler's job is to APPLY the chosen
+        # profile - so without this, merely composing the tab (which seeds
+        # the dropdown with whichever profile currently matches) opened
+        # the apply dialog the instant a machine was loaded.
+        self._suppress_profile_apply = False
         self._f3d_proc = None
         self._f3d_out_path = None  # see _ensure_f3d_after_build's own comment
         self._warned_no_wmctrl = False
@@ -2816,6 +2824,18 @@ class TuneApp(App):
             yield Static(self._font_profile_status(current), id="font-profile-status",
                           classes="field-help")
 
+    def _set_profile_select(self, select, options, value):
+        """Assigns the profile dropdown's options/value without the
+        assignment being mistaken for a user picking a profile - see
+        self._suppress_profile_apply."""
+        self._suppress_profile_apply = True
+        try:
+            if options is not None:
+                select.set_options(options)
+            select.value = value
+        finally:
+            self._suppress_profile_apply = False
+
     def _current_font_profile(self):
         """Derived by comparing values, not stored in the config - same
         convention as _current_layout_preset(), so hand-editing a field
@@ -2899,7 +2919,7 @@ class TuneApp(App):
             return
         current = self._current_font_profile()
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
-        select.value = current if current in names else Select.NULL
+        self._set_profile_select(select, None, current if current in names else Select.NULL)
 
     async def _rename_font_profile(self):
         """Renames the selected profile, file and display name together.
@@ -2928,8 +2948,8 @@ class TuneApp(App):
         moved = "" if old_path == new_path else f" ({os.path.basename(new_path)})"
         self.log_line(f"[green]renamed {name!r} -> {new_name!r}[/green]{moved}")
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
-        select.set_options([(n, n) for n in names])
-        select.value = new_name if new_name in names else Select.NULL
+        self._set_profile_select(select, [(n, n) for n in names],
+                                  new_name if new_name in names else Select.NULL)
         self._refresh_font_profile_status()
 
     async def _delete_font_profile(self):
@@ -2956,8 +2976,7 @@ class TuneApp(App):
         removed = font_profiles.delete_profile(self._config_dir(), name)
         self.log_line(f"[green]deleted profile {name!r}[/green] - {removed}")
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
-        select.set_options([(n, n) for n in names])
-        select.value = Select.NULL
+        self._set_profile_select(select, [(n, n) for n in names], Select.NULL)
         self._refresh_font_profile_status()
 
     def _refresh_font_profile_status(self):
@@ -2983,8 +3002,8 @@ class TuneApp(App):
         self.log_line(f"[green]saved profile {name!r}[/green] ({len(payload)} values) -> {path}")
         select = self.query_one("#font-profile-select", Select)
         names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
-        select.set_options([(n, n) for n in names])
-        select.value = name if name in names else Select.NULL
+        self._set_profile_select(select, [(n, n) for n in names],
+                                  name if name in names else Select.NULL)
         self._refresh_font_profile_status()
 
     def _compose_band_fields(self):
@@ -4691,8 +4710,15 @@ class TuneApp(App):
 
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id == "font-profile-select":
-            if event.value is not Select.NULL:
-                self.run_worker(self._apply_font_profile(str(event.value)), exclusive=False)
+            if self._suppress_profile_apply or event.value is Select.NULL:
+                return
+            # Selecting the profile that is ALREADY fully active would set
+            # every value to what it already is. Skipping it means composing
+            # the tab, and re-syncing the dropdown after a save/rename/
+            # cancel, never prompt - only a real change of selection does.
+            if str(event.value) == (self._current_font_profile() or ""):
+                return
+            self.run_worker(self._apply_font_profile(str(event.value)), exclusive=False)
             return
         if event.select.id == "coverage-preset-select":
             chars = self._charset_for_coverage_select_value(event.value)
