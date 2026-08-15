@@ -7197,6 +7197,47 @@ That is the sliver source identified earlier and is independent of the
 artifact the user was seeing - total depth under 1.5mm would keep them in
 the wall, at the cost of less anchoring.
 
+### Cut-groove fidelity became adjustable (it was hardcoded)
+
+Asked whether the cut groove's detail is adjustable - it was not. The
+tube cross-section was a hardcoded literal in both implementations, and
+absurdly fine for the feature: Bennett spent **15360 faces** describing a
+0.75mm groove (64 tube segments revolved at Surface_Fn=120), and the
+shared CutGroove used a hardcoded 32 for 9840 faces.
+
+Both now use `resin.resin_fn`, the knob that already sets every other
+resin-support facet count on these machines (rods, raft) - reusing the
+machine's existing knob rather than inventing a special-cased number, per
+CLAUDE.md's geometry-invariants rule. At the shipped resin_fn=20 that is
+15360 -&gt; 4800 faces for Bennett's groove and 9840 -&gt; 6960 for the shared
+one, and it is now a real dial:
+
+| resin_fn | bennett faces | volume |
+| --- | --- | --- |
+| 8 | 198098 | 3653.974 |
+| 12 | 198722 | 3657.111 |
+| 20 (shipped) | 200178 | 3664.542 |
+| 32 | 202674 | 3667.129 |
+
+Volume moves with it because a coarser polygon inscribes less area, so the
+groove cuts marginally shallower - that is the expected trade of a
+fidelity knob, not a defect.
+
+The revolve resolution (around the element) stays on Surface_Fn: it is the
+groove's visible circumference and would face up badly at resin_fn.
+
+New baselines: bennett 57425 115202 3604.009, postal 39707 79294
+5397.698. The other 12 are unchanged.
+
+### Note on the wall-banding metric
+
+The user's read is right and worth recording: sliver count was MY proxy,
+not the artifact, and the banding may have helped for reasons that metric
+never measured (it re-meshes the whole outer wall, which is also where
+coincident-surface and shading artifacts live). Blickensderfer is
+currently NOT banded - the gate is `wheel_style == round` and it is
+notched - so its behaviour is unchanged from before that commit.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
