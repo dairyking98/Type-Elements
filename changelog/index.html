@@ -7153,6 +7153,50 @@ New `--no-minkowski` baselines: bennett 56148 112388 3554.919 and postal
 41147 82174 5397.200. The other 12 are unchanged, blickensderfer
 included.
 
+### RESOLVED: a real pre-Minkowski glyph height is what fixes the artifacts
+
+The user found it: **pre-Minkowski glyph height 1.0mm + Minkowski cone
+height 1.5mm renders with no artifacts, preview to render.** Bennett's
+default is now those values.
+
+That setting only became expressible because the two depths were split
+(see above) - before, one number set both, and the shipped configuration
+had an effectively ZERO glyph extrusion (0.01mm originally, 0.1mm after
+the split) with the cone carrying the whole depth. A character built that
+way is essentially a pure cone sweep with no straight prism, and that is
+the input that tessellates badly. Giving it a real 1mm prism to sum with
+produces clean walls.
+
+Worth being blunt about the two things I changed that were NOT the fix:
+
+- **Body-wall banding** (previous commit) genuinely reduces sliver counts
+  - Bennett 1746 -&gt; 222, postal 1296 -&gt; 218 - and is kept, but it was not
+  what the user was seeing.
+- **My first "reverted, doesn't work" conclusion** was drawn from
+  blickensderfer's render while the reported machine was Bennett. Wrong
+  machine, wrong conclusion.
+
+**Coincident surfaces in the resin support, cleaned up.** The user asked
+whether there is z-fighting between the resin support and groove - there
+is, and it is real: Bennett's `ring_outer` was built at exactly
+`Element_Diameter` and the groove torus centred on `Element_Diameter/2`,
+so both share a surface EXACTLY with the element's own wall. Coincident
+surfaces are a degenerate boolean input and are precisely what a viewer
+renders as z-fighting. Insetting both by one epsilon (the ring a hair
+inside the element, which is also the safe direction for a support that
+must snap away cleanly) takes coincident face pairs from 310 to 260, and
+those at the wall radius from 95 to 44. Kept as a cleanup even though it
+was not the artifact the user was chasing.
+
+New baseline, bennett: 60065 120482 3603.688 (glyph 1.0 / cone 1.5 is a
+2.5mm total character depth, up from 2.0). The other 13 are unchanged.
+
+Still open on Bennett: at 1.0/1.5 the root sits at r=13.950 against an
+inner wall of 14.950, so characters still punch through into the hollow.
+That is the sliver source identified earlier and is independent of the
+artifact the user was seeing - total depth under 1.5mm would keep them in
+the wall, at the cost of less anchoring.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
