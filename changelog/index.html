@@ -6933,6 +6933,32 @@ rename keeps one file, collision refused.
 
 The Font &amp; Alignment profile row is now Save / Delete / Rename.
 
+### Fix: loading a machine opened the profile apply dialog
+
+Reported immediately after the profile work: "opening a machine instantly
+opens font preset checklist apply".
+
+Textual fires `Select.Changed` for a PROGRAMMATIC assignment exactly as it
+does for a click, and this dropdown's handler applies the chosen profile.
+Composing the Font &amp; Alignment tab seeds the dropdown with whichever
+profile currently matches the config - which is a programmatic
+assignment - so simply loading a machine that had a matching profile
+opened the apply dialog before the user had done anything.
+
+Two guards, because they cover different cases:
+- `self._suppress_profile_apply`, set around every place the dropdown is
+  given a value in code (`_set_profile_select`), covering the re-syncs
+  after save/rename/delete/cancel.
+- A no-op check: selecting the profile that is ALREADY fully active would
+  set every value to what it already is, so it returns early. This is
+  what covers COMPOSE, where the widget is constructed with a value
+  rather than assigned one, and there is no assignment to wrap.
+
+Reproduced headlessly first (seed a matching profile, load, assert no
+modal was pushed), then verified three ways: silent on load, silent when
+re-picking the already-active profile, and still prompting for a
+genuinely different one. All 15 machines load with no spurious modal.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
