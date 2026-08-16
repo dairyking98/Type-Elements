@@ -7389,6 +7389,41 @@ family have no equivalent - a ball and a flat block respectively.
 
 New baseline: mignon 23689 47450 4646.497. The other 13 unchanged.
 
+### Banding was far finer than it needed to be
+
+The user's read was right. `square_z_segments()` derived the band count
+from the caller's FACET COUNT, which ties it to a smoothness choice rather
+than to anything the banding is protecting against. On the two machines
+with `surface_fn: 360` that ran away: Mignon got **286 bands of 0.163mm**,
+Helios 79.
+
+Swept the band count on the machines banding actually helps. The worst
+sliver plateaus early, and the FACE COUNT turns back up past the plateau:
+
+    bennett    3 bands (6.0mm) -> worst 9.800mm, 247914 faces
+               9 bands (2.0mm) -> worst 9.800mm, 236630 faces  <- best
+              22 bands (0.8mm) -> worst 9.800mm, 237584 faces  <- was shipping this
+              44 bands (0.4mm) -> worst 9.800mm, 239824 faces
+    mignon    12 bands (3.9mm) -> worst 5.415mm,  71950 faces  <- knee
+             286 bands (0.2mm) -> worst 5.415mm,  77226 faces  <- was shipping this
+
+So it now targets a **2mm band height** directly, which sits at or just
+past both knees while staying near the face minimum. `sections` is still
+accepted and ignored so no call site changed.
+
+Face counts down everywhere at identical volumes: postal -7582, mignon
+-5068, hammond -3652, bennett -1620, blickensderfer -668. Render quality
+unchanged - bennett still 9.800mm worst, mignon 5.415mm, postal 7.007mm.
+
+**Also worth recording: blickensderfer gains nothing from banding at all.**
+Its worst sliver is 17.150mm (the full element height) at every band count
+from 1 to 40, because its full-height notch cutters dominate, not the
+wall. Banding it is pure cost. It was un-gated earlier on the grounds that
+sliver COUNT was a bad proxy - which was right - but the worst-case metric
+now says the gate had the correct answer for the wrong reason. Left on for
+now since the user reports preferring the result visually; the measurement
+is here if that changes.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
