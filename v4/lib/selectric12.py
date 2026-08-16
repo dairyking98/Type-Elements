@@ -139,7 +139,7 @@ def configure(config_path):
     q = cfg["quality"]
     g["Surface_Fn"] = q["surface_fn"]
     g["Cyl_Fn"] = q["cyl_fn"]
-    g["Mink_Fn"] = q["minkowski_fn"]
+    g["Minkowski_Fn"] = q["minkowski_fn"]
 
     r = cfg["resin"]
     g["Resin_Fn"] = r["resin_fn"]

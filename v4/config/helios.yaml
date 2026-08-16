@@ -105,6 +105,15 @@ quality:
   groove_fn: 40           # CoreGrooves() twist angular sampling - v4-only, see core_shaft note above
   minkowski_fn: 12       # Mink_Fn - v2's own comment: "not a calibrated dimension"
   platen_fn: 360          # v4-only, no dedicated v2 Platen_Fn - real platen cutout cylinder segments
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  # Helios is a small body at surface_fn=360, so the auto rule asks for 79
+  # bands of 0.237mm. Measured: 9 bands of 2.078mm gives the same sliver
+  # reduction (1723 -> 548, worst 18.068 -> 11.005mm) for far fewer faces.
+  min_band_height_mm: 2.0
 
 # per-row baseline/platen-cutout heights (mm, negative-from-clip-end - v2's
 # Baseline_Z_Offset=Element_Height, same convention as Blickensderfer/

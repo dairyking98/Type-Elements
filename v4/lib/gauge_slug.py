@@ -136,7 +136,7 @@ def configure(config_path):
     g["Gauge_Hole_D_Mm"] = gauge["hole_d_mm"]
     g["Gauge_Fine_Z_Mm"] = gauge["fine_z_mm"]
     g["Gauge_Major_Z_Mm"] = gauge["major_z_mm"]
-    g["Gauge_Hole_Fn"] = gauge["hole_fn"]
+    g["Gauge_Hole_Fn"] = q["gauge_hole_fn"]
 
     g["OUTPUT_DIR"] = cfg["output"]["directory"]
     g["OUTPUT_STL_NAME"] = cfg["output"]["stl_name"]

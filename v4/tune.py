@@ -492,6 +492,10 @@ QUALITY_FIELDS_BLICKPOSTAL = [
     ("groove_fn", ["quality", "groove_fn"], int, "Groove fn", "CoreGrooves twist angular sampling."),
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
+    ("notch_fn", ["quality", "notch_fn"], int, "Notch fn",
+     "Facet count for the notch groove cutter (notched wheel style only). A sub-millimetre score line does not need the body's own facet count - lower it freely."),
+    ("min_band_height_mm", ["quality", "min_band_height_mm"], float, "Min band height (mm)",
+     "Wall banding. The body is pre-split into horizontal bands so the boolean that unions the characters in has no full-height face to shatter into slivers. Bands are never made shorter than this; 0 = auto, one band per facet width. Raise it to coarsen an over-fine wall."),
     CLIP_TO_CELL_FIELD,
 ]
 
@@ -633,6 +637,8 @@ QUALITY_FIELDS_MIGNON = [
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
     CLIP_TO_CELL_FIELD,
+    ("min_band_height_mm", ["quality", "min_band_height_mm"], float, "Min band height (mm)",
+     "Wall banding. The body is pre-split into horizontal bands so the boolean that unions the characters in has no full-height face to shatter into slivers. Bands are never made shorter than this; 0 = auto, one band per facet width. Raise it to coarsen an over-fine wall."),
 ]
 
 RESIN_FIELDS_MIGNON = [
@@ -716,6 +722,8 @@ QUALITY_FIELDS_BENNETT = [
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
     CLIP_TO_CELL_FIELD,
+    ("min_band_height_mm", ["quality", "min_band_height_mm"], float, "Min band height (mm)",
+     "Wall banding. The body is pre-split into horizontal bands so the boolean that unions the characters in has no full-height face to shatter into slivers. Bands are never made shorter than this; 0 = auto, one band per facet width. Raise it to coarsen an over-fine wall."),
 ]
 
 RESIN_FIELDS_BENNETT = [
@@ -793,6 +801,8 @@ QUALITY_FIELDS_HELIOS = [
     ("platen_fn", ["quality", "platen_fn"], int, "Platen fn", "Real platen cutout cylinder segments."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
     CLIP_TO_CELL_FIELD,
+    ("min_band_height_mm", ["quality", "min_band_height_mm"], float, "Min band height (mm)",
+     "Wall banding. The body is pre-split into horizontal bands so the boolean that unions the characters in has no full-height face to shatter into slivers. Bands are never made shorter than this; 0 = auto, one band per facet width. Raise it to coarsen an over-fine wall."),
 ]
 
 # v2's own header comment: "the original file declares Resin_Support/
@@ -1006,6 +1016,8 @@ QUALITY_FIELDS_HAMMOND = [
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Mirrors cyl_fn - no separate structural tier."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - biggest cost lever with flatness_tolerance_mm."),
     CLIP_TO_CELL_FIELD,
+    ("min_band_height_mm", ["quality", "min_band_height_mm"], float, "Min band height (mm)",
+     "Wall banding. The body is pre-split into horizontal bands so the boolean that unions the characters in has no full-height face to shatter into slivers. Bands are never made shorter than this; 0 = auto, one band per facet width. Raise it to coarsen an over-fine wall."),
 ]
 
 RESIN_FIELDS_HAMMOND = [
@@ -1160,6 +1172,8 @@ QUALITY_FIELDS_HAMMOND_SPLIT = [
     ("cyl_fn", ["quality", "cyl_fn"], int, "Cylinder fn", "Arc/Center/Rib/Tube/etc. body facet count."),
     ("minkowski_fn", ["quality", "minkowski_fn"], int, "Minkowski fn", "Draft cone segments - only matters while Minkowski (Build tab) is on."),
     CLIP_TO_CELL_FIELD,
+    ("min_band_height_mm", ["quality", "min_band_height_mm"], float, "Min band height (mm)",
+     "Wall banding. The body is pre-split into horizontal bands so the boolean that unions the characters in has no full-height face to shatter into slivers. Bands are never made shorter than this; 0 = auto, one band per facet width. Raise it to coarsen an over-fine wall."),
 ]
 
 RESIN_FIELDS_HAMMOND_SPLIT = [
@@ -1477,6 +1491,8 @@ QUALITY_FIELDS_WING_SLUG = [
      "Kept independent from Loop sweep facets - see scad_primitives.torus()'s docstring."),
     ("post_fn", ["quality", "post_fn"], int, "Post facets", ""),
     ("side_hole_fn", ["quality", "side_hole_fn"], int, "Side hole facets", ""),
+    ("gauge_hole_fn", ["quality", "gauge_hole_fn"], int, "Gauge hole fn",
+     "Facet count for the gauge's pitch holes."),
 ]
 
 QUALITY_FIELDS_BOX_SLUG = [

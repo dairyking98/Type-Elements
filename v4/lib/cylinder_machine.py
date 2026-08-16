@@ -251,7 +251,8 @@ def Cylinder():
     # did not predict anything.
     return sp.cylinder_z(Element_Diameter, Element_Height, sections=sections,
                           z_segments=sp.square_z_segments(Element_Diameter,
-                                                           Element_Height, Surface_Fn))
+                                                           Element_Height, Surface_Fn,
+                                                           Min_Band_Height_Mm))
 
 
 def ClipCylinder(Offset):

@@ -196,11 +196,50 @@ the cited section for the full incident).
   merge them into one catch-all.** Per explicit user direction; each
   covers a distinct surface family. (`README.md` "Facet-count knobs")
   The five are `body_fn`/`cyl_fn`/`surface_fn`/`platen_fn`/
-  `minkowski_fn`. Counting `quality.*_fn` keys in a config turns up a
-  SIXTH, `groove_fn` - that one is deliberately not in the five because
-  it isn't a facet count at all (CoreGrooves twist angular sampling, as
-  its own config comment says); it's independent for the same reason,
-  just not a member of that family.
+  `minkowski_fn`. Counting `quality.*_fn` keys in a config turns up more
+  than five; the extras are deliberate and are NOT members of that
+  family, each covering one machine-specific cutter or a non-facet
+  sampling rate: `groove_fn` (CoreGrooves twist angular sampling - not a
+  facet count at all), `notch_fn` (notched wheel style's groove cutter),
+  `alignment_hole_fn` (Bennett), `gauge_hole_fn` (slug family's pitch
+  holes), and the wing/box slugs' own `corner_fn`/`wing_fn`/`loop_fn`/
+  `loop_tube_fn`/`post_fn`/`side_hole_fn`. They are independent for the
+  same reason as the five, just not part of it.
+- **EVERY facet count lives in `quality:`, and every `quality:` key is
+  exposed on that machine's Quality tab - both directions, no
+  exceptions.** Two knobs used to sit elsewhere purely because they
+  "belonged to" a feature block - `cosmetics.notch_fn` and
+  `gauge.hole_fn` - which meant a user staring at the Quality tab could
+  not find the control for visibly over-detailed geometry they were
+  looking at. Both moved (`quality.notch_fn`, `quality.gauge_hole_fn`).
+  The one deliberate exception is `resin.resin_fn`, which stays under
+  `resin:` because that is already the settled fleet-wide convention
+  (see "Pick one convention" below). A completeness check that compares
+  each config's `quality:` keys against its `QUALITY_FIELDS_*` table
+  both ways is cheap - run it when adding a machine or a knob.
+- **Wall banding is `quality.min_band_height_mm`, never a number in
+  code.** Bodies that receive character roots are pre-split into
+  horizontal bands so the boolean has no full-height face to shatter
+  into long near-zero-area slivers. 0 = auto (one band per angular facet
+  width); a positive value is a FLOOR on band height, for a small body
+  at a high facet count where auto asks for hundreds of sub-0.2mm bands
+  (Mignon 2.0, Helios 2.0 - each config comment carries its own
+  measurement). This shipped hardcoded as `min_band_height_mm=2.0`
+  inside `mignon.py`/`helios.py` first, which is exactly the violation
+  the "numbers live in config YAML" rule above exists to prevent.
+  The seven banded bodies: `cylinder_machine.Cylinder` (Blickensderfer/
+  Postal), `bennett.Cylinder`, `helios.Cylinder`,
+  `mignon.PolygonCylinder`, `hammond.ShuttleCylinder`,
+  `hammond_split.Arc`. Banding changes face count but NEVER volume -
+  that is the check that it is a pure tessellation change.
+- **One name per concept in code, not just in config: the runtime facet
+  global is `Minkowski_Fn` and the cone-segments default is
+  `DEFAULT_CONE_SEGMENTS`, fleet-wide.** The config key `quality.
+  minkowski_fn` was unified long before the globals were - Hammond Split
+  and the spherical family spelled the global `Mink_Fn`, and Hammond
+  Split spelled the default `DEFAULT_MINK_FN`, while the slug family
+  already used `Minkowski_Fn`. Unifying a config key is not finished
+  until the global it feeds matches too.
 - **`layout.latitude_columns` must stay in sync with `placement_map`/the
   physical layout.** It's intentionally not exposed in the Layout tab's
   named-preset picker - edit it directly in the YAML only if you really

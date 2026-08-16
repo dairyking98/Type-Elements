@@ -229,6 +229,12 @@ type_test:
 quality:
   cyl_fn: 120                      # Cyl_Fn
   minkowski_fn: 20                 # Mink_Fn - renamed from mink_fn to match every other machine's key name
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  min_band_height_mm: 0.0
 
 # mesh-pipeline build settings (v4-specific, not real v2 numbers) - see
 # config/hammond.yaml's matching comment. flatness_tolerance_mm feeds

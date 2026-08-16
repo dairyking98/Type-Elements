@@ -149,6 +149,10 @@ quality:
   loop_tube_fn: 32           # unused (element.loop_enabled: false) - see config/type_slug.yaml's matching comment
   post_fn: 360
   side_hole_fn: 360
+  # Facet count for the gauge's pitch holes. Was gauge.hole_fn - moved here
+  # so every facet count lives in quality:, per CLAUDE.md's rule that a
+  # concept shared across machines keeps one section fleet-wide.
+  gauge_hole_fn: 40
 
 resin:
   # Unused (element.loop/post/side_hole are all off and build.
@@ -168,7 +172,6 @@ gauge:
   hole_d_mm: 0.5
   fine_z_mm: -1.5
   major_z_mm: -5.0
-  hole_fn: 40
 
 output:
   directory: "output"

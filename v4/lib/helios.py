@@ -187,6 +187,10 @@ def configure(config_path):
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]  # now genuinely used - Core()'s shaft-bore facet count
+    # Minimum wall-band height (0 = auto, one band per angular facet
+    # width). See quality.min_band_height_mm and scad_primitives.
+    # square_z_segments; 0/None both mean "no clamp".
+    g["Min_Band_Height_Mm"] = q.get("min_band_height_mm", 0.0)
     g["Surface_Fn"] = q["surface_fn"]
     g["Groove_Fn"] = q["groove_fn"]
     g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
@@ -315,13 +319,13 @@ def _require_configured():
 def Cylinder():
     # Wall pre-split into bands so the boolean that unions the characters
     # into it never has a full-height face to shatter into slivers - see
-    # scad_primitives.cylinder_z's z_segments note. Clamped like Mignon:
-    # this body is small at Surface_Fn=360, so the bare facet-width rule
-    # asks for far finer bands than measurably help.
+    # scad_primitives.cylinder_z's z_segments note. How coarse the bands
+    # get is quality.min_band_height_mm (2.0 here, and the config says
+    # why); this reads it rather than hardcoding a number.
     _h = Element_Height + 2 * z
     return sp.cylinder_z(Element_Diameter, _h, sections=Surface_Fn, base_z=-z,
                           z_segments=sp.square_z_segments(Element_Diameter, _h, Surface_Fn,
-                                                           min_band_height_mm=2.0))
+                                                           min_band_height_mm=Min_Band_Height_Mm))
 
 
 def HollowingElement():

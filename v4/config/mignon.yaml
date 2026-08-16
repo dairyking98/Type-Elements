@@ -142,6 +142,15 @@ quality:
   surface_fn: 360
   minkowski_fn: 12
   platen_fn: 360
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  # Same case as Helios: auto wants 249 bands of 0.163mm here, which measured
+  # identical to 20 bands of 2.025mm (worst sliver 5.415mm either way) while
+  # costing 5276 extra faces.
+  min_band_height_mm: 2.0
 
 # per-row baseline/platen-cutout heights (mm, ABSOLUTE from the bottom
 # face - v2/mignon.scad:281 Baseline_Z_Offset=0, unlike Blickensderfer/

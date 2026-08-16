@@ -57,13 +57,13 @@ BASE_EXPANSION_WIDTH_mm = FRONT_BACK_SEPARATION_mm * tan(Mink_Draft_Angle/2).
 --- On "rounding out" the taper (the fn=8-octagon discussion) ---
 
 There are NOT two independent facet knobs here the way OpenSCAD has
-Text_Fn (glyph curve smoothness) and Mink_Fn (swept-cone smoothness/
+Text_Fn (glyph curve smoothness) and Minkowski_Fn (swept-cone smoothness/
 roundness) as separate things. His MeshJoiner stitches side walls directly
 between matching front/back vertices along the SAME outline loop used for
 the glyph curve itself - so one knob (outline point density) drives both.
-Also worth being precise about what Mink_Fn actually rounds: minkowski
+Also worth being precise about what Minkowski_Fn actually rounds: minkowski
 with a CONE only adds a straight linear taper (no axial curvature - that
-would need summing with a sphere/torus instead); what Mink_Fn's facet
+would need summing with a sphere/torus instead); what Minkowski_Fn's facet
 count controls is how many flat panels appear going AROUND the taper,
 same axis as this script's outline point density (originally POINTS_PER_MM,
 now FLATNESS_TOLERANCE_MM - see that constant's own comment). So the fix

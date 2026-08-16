@@ -286,8 +286,12 @@ def configure(config_path):
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
-    g["DEFAULT_MINK_FN"] = q["minkowski_fn"]
-    g["Mink_Fn"] = g["DEFAULT_MINK_FN"]
+    # Minimum wall-band height (0 = auto, one band per angular facet
+    # width). See quality.min_band_height_mm and scad_primitives.
+    # square_z_segments; 0/None both mean "no clamp".
+    g["Min_Band_Height_Mm"] = q.get("min_band_height_mm", 0.0)
+    g["DEFAULT_CONE_SEGMENTS"] = q["minkowski_fn"]
+    g["Minkowski_Fn"] = g["DEFAULT_CONE_SEGMENTS"]
 
     b = cfg["build"]
     g["DEFAULT_FLATNESS_TOLERANCE_MM"] = b["flatness_tolerance_mm"]
@@ -398,7 +402,7 @@ def Arc(extra):
     # slivers (see scad_primitives.cylinder_z's z_segments note - same
     # reasoning, applied to a revolved profile instead of a cylinder).
     # Geometrically identical: the same rectangle, more points along it.
-    n = sp.square_z_segments(2 * (r0 + w), h, Cyl_Fn)
+    n = sp.square_z_segments(2 * (r0 + w), h, Cyl_Fn, Min_Band_Height_Mm)
     zs = [z0 + h * k / n for k in range(n + 1)]
     profile = [(r0 + w, z) for z in zs] + [(r0, z) for z in reversed(zs)]
     return sp.revolve_polygon_partial(profile, 0.0, Arc_End, sections=Cyl_Fn)
@@ -505,7 +509,7 @@ def _letter_text_drafted(char, font_path, font_size_mm, depth):
                                   font_path=font_path, font_size_mm=font_size_mm,
                                   pre_minkowski_char_height_mm=depth, platen_radius_mm=0.0, radius_y_offset_mm=0.0,
                                   minkowski_enabled=False)
-    cone = sp.frustum_z(2 * Mink_Radius, 0.0, Minkowski_Cone_Height, sections=Mink_Fn, base_z=-Minkowski_Cone_Height)
+    cone = sp.frustum_z(2 * Mink_Radius, 0.0, Minkowski_Cone_Height, sections=Minkowski_Fn, base_z=-Minkowski_Cone_Height)
     summed = sp.to_manifold(flat).minkowski_sum(sp.to_manifold(cone))
     summed = sp.from_manifold(summed)
     # difference(translate([0,0,-10]) cube(20,center=true)) - removes z in
@@ -1106,7 +1110,7 @@ def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, sta
 # --------------------------------------------------------------- Entry points
 
 def _build(flatness_tolerance_mm, cone_segments, minkowski_enabled, draft_angle_deg, with_resin):
-    global FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
+    global FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle, Mink_Radius
     if not Render_Left and not Render_Right:
         # sp.union_all([]) silently returns a 0-vertex Trimesh rather than
         # raising - with both Build tab switches off that would otherwise
@@ -1115,12 +1119,12 @@ def _build(flatness_tolerance_mm, cone_segments, minkowski_enabled, draft_angle_
         raise ValueError("hammond_split: Render Left and Render Right are both off - "
                           "nothing to build. Turn at least one back on (Build tab).")
     pts = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
-    fn = DEFAULT_MINK_FN if cone_segments is None else cone_segments
+    fn = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
     mink_on = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
     draft = DEFAULT_MINK_DRAFT_ANGLE if draft_angle_deg is None else draft_angle_deg
 
-    old = (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
-    FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, mink_on, fn, draft
+    old = (FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle, Mink_Radius)
+    FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle = pts, mink_on, fn, draft
     Mink_Radius = np.tan(np.radians(draft / 2.0)) * Minkowski_Cone_Height
     try:
         parts = []
@@ -1140,7 +1144,7 @@ def _build(flatness_tolerance_mm, cone_segments, minkowski_enabled, draft_angle_
         full, _, _, _ = sp.check_and_repair(full, label="hammond_split")
         return full, []  # char_parts always empty - see module docstring on why
     finally:
-        (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old
+        (FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle, Mink_Radius) = old
 
 
 def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
@@ -1182,18 +1186,18 @@ def NormalElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None,
     combined. pre_minkowski_char_height_mm/render_core_groove/align_kwargs/platen_fn
     accepted-but-ignored, same convention as FullElement/ResinPrint."""
     _require_configured()
-    global FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius
+    global FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle, Mink_Radius
     pts = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
-    fn = DEFAULT_MINK_FN if cone_segments is None else cone_segments
+    fn = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
     mink_on = DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None else minkowski_enabled
     draft = DEFAULT_MINK_DRAFT_ANGLE if draft_angle_deg is None else draft_angle_deg
 
-    old = (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius)
-    FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle = pts, mink_on, fn, draft
+    old = (FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle, Mink_Radius)
+    FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle = pts, mink_on, fn, draft
     Mink_Radius = np.tan(np.radians(draft / 2.0)) * Minkowski_Cone_Height
     try:
         full = Assemble()  # reads Render_Left/Render_Right - Assemble() itself raises if both are off
         full, _, _, _ = sp.check_and_repair(full, label="hammond_split normal")
         return full, []  # char_parts always empty - see _build()'s matching comment
     finally:
-        (FLATNESS_TOLERANCE_MM, Mink_On, Mink_Fn, Mink_Draft_Angle, Mink_Radius) = old
+        (FLATNESS_TOLERANCE_MM, Mink_On, Minkowski_Fn, Mink_Draft_Angle, Mink_Radius) = old

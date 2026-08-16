@@ -268,6 +268,10 @@ def configure(config_path):
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
+    # Minimum wall-band height (0 = auto, one band per angular facet
+    # width). See quality.min_band_height_mm and scad_primitives.
+    # square_z_segments; 0/None both mean "no clamp".
+    g["Min_Band_Height_Mm"] = q.get("min_band_height_mm", 0.0)
     g["Surface_Fn"] = q["surface_fn"]
 
     # ---- glyph placement wiring (shared cylinder_machine.py reuse) ----
@@ -428,7 +432,8 @@ def ShuttleCylinder():
     _d = 2 * (Shuttle_Arc_Radius + Shuttle_Thickness)
     _h = Shuttle_Height + 2 * z
     return sp.cylinder_z(_d, _h, sections=Cyl_Fn, base_z=-z,
-                          z_segments=sp.square_z_segments(_d, _h, Surface_Fn))
+                          z_segments=sp.square_z_segments(_d, _h, Surface_Fn,
+                                                           Min_Band_Height_Mm))
 
 
 def AnvilShape():

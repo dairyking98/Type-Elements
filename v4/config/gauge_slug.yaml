@@ -132,6 +132,10 @@ quality:
   loop_tube_fn: 32            # unused - see config/type_slug.yaml's matching comment
   post_fn: 360                # unused
   side_hole_fn: 360            # unused
+  # Facet count for the gauge's pitch holes. Was gauge.hole_fn - moved here
+  # so every facet count lives in quality:, per CLAUDE.md's rule that a
+  # concept shared across machines keeps one section fleet-wide.
+  gauge_hole_fn: 40               # v1 module-level $fn (:4) - these holes have no explicit $fn of their own
 
 resin:
   # Unused (build.resin_support is false) - present only because
@@ -150,7 +154,6 @@ gauge:
   hole_d_mm: 0.5            # v1 both loops' cylinder(d=.5, ...) (:106,111)
   fine_z_mm: -1.5           # v1 fine row's base_z (:105)
   major_z_mm: -5.0          # v1 major row's base_z (:110)
-  hole_fn: 40               # v1 module-level $fn (:4) - these holes have no explicit $fn of their own
 
 output:
   directory: "output"

@@ -100,6 +100,17 @@ quality:
                           # cost scales with the product of the two operands' face counts, so this
                           # (and flatness_tolerance_mm) drive generation time much more than the other Fn
                           # values above; see README's Performance section
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  min_band_height_mm: 0.0
+  # Facet count for the notch groove cutter. A sub-millimetre score line
+  # does not need the body's own facet count - at Surface_Fn it cost 484
+  # faces per notch x 28. Lower it freely; raise it if the grooves look
+  # visibly polygonal.
+  notch_fn: 16
 
 # per-row baseline/cutout (mm from clip end - Baseline_Z_Offset shifts to
 # absolute), latitude spacing, and the DHIATENSOR physical layout + its
@@ -248,11 +259,6 @@ resin:
 cosmetics:
   wheel_style: "notched"      # round | notched | banded
   notch_diameter: 0.5         # groove diameter at each facet corner ("notched")
-  # Facet count for the notch groove cutter. A sub-millimetre score line
-  # does not need the body's own facet count - at Surface_Fn it cost 484
-  # faces per notch x 28. Lower it freely; raise it if the grooves look
-  # visibly polygonal.
-  notch_fn: 16
   # How far radially OUTWARD the notch cutter is hulled past the facet
   # corner. Reaches into the band where the characters' Minkowski draft
   # skirt flares, so the groove trims it instead of leaving it

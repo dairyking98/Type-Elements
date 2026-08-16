@@ -102,6 +102,17 @@ quality:
   groove_fn: 20
   platen_fn: 360
   minkowski_fn: 12                     # v2's Mink_Fn default for Postal (Blickensderfer's is also tunable independently)
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  min_band_height_mm: 0.0
+  # Facet count for the notch groove cutter. A sub-millimetre score line
+  # does not need the body's own facet count - at Surface_Fn it cost 484
+  # faces per notch x 28. Lower it freely; raise it if the grooves look
+  # visibly polygonal.
+  notch_fn: 16
 
 layout:
   # v2's Baseline/Cutout/Latitude_Int (postal.scad:73-76), and
@@ -206,11 +217,6 @@ resin:
 cosmetics:
   wheel_style: "round"        # round | notched | banded
   notch_diameter: 0.7         # groove diameter at each facet corner ("notched")
-  # Facet count for the notch groove cutter. A sub-millimetre score line
-  # does not need the body's own facet count - at Surface_Fn it cost 484
-  # faces per notch x 28. Lower it freely; raise it if the grooves look
-  # visibly polygonal.
-  notch_fn: 16
   # How far radially OUTWARD the notch cutter is hulled past the facet
   # corner. Reaches into the band where the characters' Minkowski draft
   # skirt flares, so the groove trims it instead of leaving it

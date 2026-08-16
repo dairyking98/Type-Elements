@@ -161,6 +161,10 @@ def configure(config_path):
     q = cfg["quality"]
     g["Surface_Fn"] = q["surface_fn"]
     g["Cyl_Fn"] = q["cyl_fn"]
+    # Minimum wall-band height (0 = auto, one band per angular facet
+    # width). See quality.min_band_height_mm and scad_primitives.
+    # square_z_segments; 0/None both mean "no clamp".
+    g["Min_Band_Height_Mm"] = q.get("min_band_height_mm", 0.0)
     g["Platen_Fn"] = q.get("platen_fn", GLYPH_DEFAULT_PLATEN_FN)
 
     layout = cfg["layout"]
@@ -313,12 +317,12 @@ def PolygonCylinder():
     # intermediate rings - its fan caps are valid here because a regular
     # 12-gon is convex.
     _h = Element_Height + 6
-    # Clamped to ~2mm bands: this body is small (18.64mm) at Surface_Fn=360,
-    # so the plain facet-width rule asks for 286 bands of 0.163mm. Measured
-    # identical to 12 bands - worst sliver 5.415mm either way - for 5276
-    # more faces. No other machine's diameter/facet-count combination gets
-    # near this, so none of them clamp.
-    _n = sp.square_z_segments(Element_Diameter, _h, Surface_Fn, min_band_height_mm=2.0)
+    # Band count comes from quality.min_band_height_mm (2.0 here, and the
+    # config says why - this body is small at Surface_Fn=360, so the plain
+    # facet-width rule asks for hundreds of sub-0.2mm bands). Machines
+    # already in range leave it at 0 and get the facet-width rule.
+    _n = sp.square_z_segments(Element_Diameter, _h, Surface_Fn,
+                               min_band_height_mm=Min_Band_Height_Mm)
     shape = sp.linear_extrude_twist(rotated, _h, 0.0, z_steps=_n)
     return sp.translate(shape, [0, 0, -1])
 

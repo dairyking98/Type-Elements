@@ -255,7 +255,7 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
     # v2 source (see spherical_machine's module docstring), not something
     # to reconcile with the cylinder family's formula.
     mink_r = 2.0 * np.tan(np.radians(draft_angle / 2.0))
-    cone1 = Manifold.cylinder(Mink_Cone_Height_Mm, mink_r, 0.0, circular_segments=Mink_Fn)
+    cone1 = Manifold.cylinder(Mink_Cone_Height_Mm, mink_r, 0.0, circular_segments=Minkowski_Fn)
     cone1 = cone1.translate([0, 0, -Mink_Cone_Height_Mm])
     if minklongoffset != 0:
         cone2 = cone1.rotate([-minklongoffset, 0, 0])
@@ -627,7 +627,7 @@ def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, r
     accepted-but-ignored - generate.py's build_fn(...) call is uniform
     across every machine (see CLAUDE.md's "Porting a new machine"
     convention); Selectric has no core-groove concept, no separate
-    Minkowski-cone circular-segments knob (Mink_Fn from config is used
+    Minkowski-cone circular-segments knob (Minkowski_Fn from config is used
     directly - see quality.minkowski_fn), and reuses Cyl_Fn for the
     platen cutter's own facet count (matching v2, which has no distinct
     Platen_Fn variable either - PlatenCutout's cylinder uses Cyl_Fn

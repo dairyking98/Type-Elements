@@ -208,6 +208,10 @@ def configure(config_path):
 
     q = cfg["quality"]
     g["Cyl_Fn"] = q["cyl_fn"]
+    # Minimum wall-band height (0 = auto, one band per angular facet
+    # width). See quality.min_band_height_mm and scad_primitives.
+    # square_z_segments; 0/None both mean "no clamp".
+    g["Min_Band_Height_Mm"] = q.get("min_band_height_mm", 0.0)
     g["Surface_Fn"] = q["surface_fn"]
     g["Groove_Fn"] = q["groove_fn"]
     g["Alignment_Hole_Fn"] = q["alignment_hole_fn"]
@@ -361,7 +365,8 @@ def _require_configured():
 def Cylinder():
     return sp.cylinder_z(Element_Diameter, Element_Height, sections=Surface_Fn,
                           z_segments=sp.square_z_segments(Element_Diameter,
-                                                           Element_Height, Surface_Fn))
+                                                           Element_Height, Surface_Fn,
+                                                           Min_Band_Height_Mm))
 
 
 def PositionerPins():
