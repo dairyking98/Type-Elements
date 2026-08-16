@@ -313,7 +313,12 @@ def PolygonCylinder():
     # intermediate rings - its fan caps are valid here because a regular
     # 12-gon is convex.
     _h = Element_Height + 6
-    _n = sp.square_z_segments(Element_Diameter, _h, Surface_Fn)
+    # Clamped to ~2mm bands: this body is small (18.64mm) at Surface_Fn=360,
+    # so the plain facet-width rule asks for 286 bands of 0.163mm. Measured
+    # identical to 12 bands - worst sliver 5.415mm either way - for 5276
+    # more faces. No other machine's diameter/facet-count combination gets
+    # near this, so none of them clamp.
+    _n = sp.square_z_segments(Element_Diameter, _h, Surface_Fn, min_band_height_mm=2.0)
     shape = sp.linear_extrude_twist(rotated, _h, 0.0, z_steps=_n)
     return sp.translate(shape, [0, 0, -1])
 

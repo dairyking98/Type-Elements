@@ -7389,40 +7389,33 @@ family have no equivalent - a ball and a flat block respectively.
 
 New baseline: mignon 23689 47450 4646.497. The other 13 unchanged.
 
-### Banding was far finer than it needed to be
+### Mignon's banding clamped - and only Mignon's
 
-The user's read was right. `square_z_segments()` derived the band count
-from the caller's FACET COUNT, which ties it to a smoothness choice rather
-than to anything the banding is protecting against. On the two machines
-with `surface_fn: 360` that ran away: Mignon got **286 bands of 0.163mm**,
-Helios 79.
+The user's "super detailed" note was about MIGNON specifically; the first
+response to it retargeted the band height fleet-wide, which changed all
+five banded machines when only one was over-detailed. Reverted: the
+facet-width rule is back for everyone, with an optional
+`min_band_height_mm` clamp that only Mignon passes.
 
-Swept the band count on the machines banding actually helps. The worst
-sliver plateaus early, and the FACE COUNT turns back up past the plateau:
+Mignon is a genuine outlier, not a general problem - a small body
+(18.64mm) at `surface_fn: 360` makes the facets tiny, so the plain rule
+asked for **286 bands of 0.163mm**. Swept against the alternatives:
 
-    bennett    3 bands (6.0mm) -> worst 9.800mm, 247914 faces
-               9 bands (2.0mm) -> worst 9.800mm, 236630 faces  <- best
-              22 bands (0.8mm) -> worst 9.800mm, 237584 faces  <- was shipping this
-              44 bands (0.4mm) -> worst 9.800mm, 239824 faces
     mignon    12 bands (3.9mm) -> worst 5.415mm,  71950 faces  <- knee
-             286 bands (0.2mm) -> worst 5.415mm,  77226 faces  <- was shipping this
+             286 bands (0.2mm) -> worst 5.415mm,  77226 faces  <- was shipping
 
-So it now targets a **2mm band height** directly, which sits at or just
-past both knees while staying near the face minimum. `sections` is still
-accepted and ignored so no call site changed.
+Clamped to ~2mm bands (23), which sits past the knee with margin: worst
+sliver still 5.415mm, 5068 faces saved. No other machine's
+diameter/facet-count combination comes near - blickensderfer 19 bands at
+0.903mm, postal 20 at 0.870mm, bennett 22 at 0.818mm, helios 79 at
+0.237mm - so none of them clamp, and all are byte-identical to before.
 
-Face counts down everywhere at identical volumes: postal -7582, mignon
--5068, hammond -3652, bennett -1620, blickensderfer -668. Render quality
-unchanged - bennett still 9.800mm worst, mignon 5.415mm, postal 7.007mm.
-
-**Also worth recording: blickensderfer gains nothing from banding at all.**
-Its worst sliver is 17.150mm (the full element height) at every band count
-from 1 to 40, because its full-height notch cutters dominate, not the
-wall. Banding it is pure cost. It was un-gated earlier on the grounds that
-sliver COUNT was a bad proxy - which was right - but the worst-case metric
-now says the gate had the correct answer for the wrong reason. Left on for
-now since the user reports preferring the result visually; the measurement
-is here if that changes.
+**Kept from the sweep, worth knowing:** blickensderfer gains nothing from
+banding at any count. Its worst sliver is 17.150mm - the full element
+height - from 1 band to 40, because its full-height notch cutters dominate
+rather than the wall. The round-only gate removed earlier had the right
+answer for the wrong reason. Left enabled since the user likes the result;
+the measurement is here if that changes.
 
 ### Resuming later
 

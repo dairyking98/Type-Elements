@@ -180,33 +180,26 @@ def cylinder_z(diameter, height, sections=128, base_z=0.0, center=False,
     return c
 
 
-# Target height of one wall band, in mm. Measured, not guessed: sweeping
-# the band count on the two machines banding actually helps shows the
-# worst sliver plateauing well before the bands get fine, and the FACE
-# COUNT turning back up past the plateau -
-#
-#   bennett   3 bands (6.0mm) -> worst 9.800mm, 247914 faces
-#             9 bands (2.0mm) -> worst 9.800mm, 236630 faces  <- best
-#            22 bands (0.8mm) -> worst 9.800mm, 237584 faces
-#            44 bands (0.4mm) -> worst 9.800mm, 239824 faces
-#   mignon   12 bands (3.9mm) -> worst 5.415mm,  71950 faces  <- knee
-#           286 bands (0.2mm) -> worst 5.415mm,  77226 faces
-#
-# so ~2mm sits at or just past both knees while staying near the face
-# minimum. This used to be derived from the caller's facet count instead,
-# which tied it to a SMOOTHNESS choice rather than to anything the banding
-# is protecting against: at Surface_Fn=360 that produced 286 bands of
-# 0.163mm on Mignon, costing 5276 faces for zero improvement.
-_BAND_TARGET_HEIGHT_MM = 2.0
-
-
-def square_z_segments(diameter, height, sections=None):
+def square_z_segments(diameter, height, sections, min_band_height_mm=None):
     """How many bands to split a wall into, so the boolean that unions
-    characters into it never has a full-height face to shatter. `sections`
-    is accepted and ignored - kept so existing call sites need no change,
-    and because the angular facet count is deliberately NOT the driver
-    (see _BAND_TARGET_HEIGHT_MM)."""
-    return max(1, int(round(height / _BAND_TARGET_HEIGHT_MM)))
+    characters into it never has a full-height face to shatter.
+
+    Default is one band per angular facet width - bands roughly as tall as
+    they are wide. That is the right scale for a body whose facet count is
+    a smoothness choice in the normal range (Surface_Fn 120 gives ~0.9mm
+    bands on a 34mm element).
+
+    min_band_height_mm clamps it for the case where it is not: a small
+    diameter at Surface_Fn=360 makes the facets tiny and the band count
+    explode - Mignon reached 286 bands of 0.163mm, which measured
+    identical to 12 bands (worst sliver 5.415mm either way) while costing
+    5276 extra faces. Only a machine that actually hits that needs to pass
+    it; the rest are already in range and are left alone."""
+    facet_w = np.pi * diameter / max(sections, 1)
+    n = max(1, int(round(height / facet_w))) if facet_w > 0 else 1
+    if min_band_height_mm:
+        n = min(n, max(1, int(round(height / min_band_height_mm))))
+    return n
 
 
 def frustum_z(d1, d2, height, sections=128, base_z=0.0):
