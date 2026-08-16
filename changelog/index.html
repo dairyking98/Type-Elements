@@ -8017,16 +8017,86 @@ check is a dozen lines and worth re-running when adding a machine.
 
 ### Still open
 
-- **`output/helios_running.stl` is not watertight** - 171 zero-area
-  faces, `is_volume=False`, from `helios.running.yaml`, which differs
-  from master by `resin_support: true` and `logo_enabled: true`. The
-  master config gates clean and watertight, so this is specific to that
-  combination and is NOT the banding work. Not yet chased down.
+- ~~`output/helios_running.stl` is not watertight~~ - **WRONG, retracted
+  the same day; see part 89.** The mesh is watertight. That reading came
+  from re-loading the STL, which is not how to ask the question, and the
+  "specific to resin_support+logo" part was wrong too - resin off/logo
+  off gives the identical result.
 - `helios.running.yaml` still carries two keys deleted fleet-wide,
   `build.points_per_mm` and `build.simplify_tolerance_mm`. Harmless
   (nothing reads them) but they should be migrated out.
 - Unchanged from part 87: per-machine default profiles + example
   renders; `config/vogue_slug.yaml`'s font path missing.
+
+## 89. "Not watertight" was a bad measurement, not a bad mesh (2026-08-16)
+
+Part 88 closed with a flagged defect: `output/helios_running.stl` not
+watertight, 171 zero-area faces, guessed to be specific to
+`resin_support: true` + `logo_enabled: true`. Asked, reasonably: "why is
+it not watertight, it should habe been". It should have been, and it is.
+Both halves of that flag were wrong.
+
+### What the measurement actually was
+
+Watertightness was read by loading the finished STL from disk. That is
+not the same question `generate.py` answers - `generate.py` reports on
+the in-memory mesh, before export. Checked directly, with no file
+involved:
+
+    IN MEMORY               watertight=True   edge multiplicity {2: 311844}
+    AFTER merge_vertices()  watertight=False  edge multiplicity {2: 311604, 4: 120}
+
+Every one of 311844 edges has exactly two faces. The mesh is closed and
+2-manifold as built and as written.
+
+### Why any reload disagrees
+
+No mesh format stores trimesh's in-memory connectivity - STL stores three
+loose corners per triangle - so every loader rebuilds topology by welding
+vertices at equal positions. This model contains 60 vertex pairs at
+EXACTLY distance 0.0: coincident coordinates that are topologically
+distinct points, where two sheets of the surface touch. Welding fuses
+them, and each fused pair converts two ordinary edges into one 4-face
+edge. The arithmetic is exact, which is what makes this certain rather
+than merely plausible:
+
+    103936 - 103876 = 60 vertices lost      120 = 2 x 60 non-manifold edges
+
+Not a float32 precision effect, which was the first hypothesis and was
+tested: the pairs are at distance 0.0, not at rounding distance, and a
+PLY round-trip behaves identically.
+
+### The bit that should have caught it immediately
+
+**Zero 1-face edges.** A mesh with holes has edges belonging to exactly
+one face. Every machine has none. "Not watertight" with no boundary
+edges is never a hole - it can only be non-manifold-ness, which on a
+solid that manifold3d produced points at the reader, not the geometry.
+Check the 1-face count BEFORE reporting a watertightness failure; it
+separates "has holes" from "was welded on load" in one number.
+
+Fleet-wide, all 14 gate outputs, 0 holes each:
+
+    clean round-trip (0 non-manifold):  bennett, gauge_slug, hammond_split,
+                                        lumi_slug, mignon, oliver_slug,
+                                        postal, selectric_composer
+    welded contacts:                    selectric12 4, selectric3 8,
+                                        blickensderfer 32, helios 120,
+                                        type_slug 644, hammond 7091
+
+No print consequence: a closed surface is what a slicer needs, and it
+welds the same way, handling a 4-face edge where two solids kiss.
+
+### Genuinely open
+
+- **Hammond's 7091** is two orders of magnitude above the rest and is the
+  one number here that looks like a real finding rather than incidental
+  contact - large surfaces meeting exactly, not 60 stray points. Not
+  chased.
+- `helios.running.yaml` still carries `build.points_per_mm` and
+  `build.simplify_tolerance_mm`, deleted fleet-wide. Nothing reads them.
+- Unchanged: per-machine default profiles + example renders;
+  `config/vogue_slug.yaml`'s font path missing.
 </name></slug>
 
   </div>
