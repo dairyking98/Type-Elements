@@ -313,7 +313,15 @@ def _require_configured():
 # ------------------------------------------------------------------- Body
 
 def Cylinder():
-    return sp.cylinder_z(Element_Diameter, Element_Height + 2 * z, sections=Surface_Fn, base_z=-z)
+    # Wall pre-split into bands so the boolean that unions the characters
+    # into it never has a full-height face to shatter into slivers - see
+    # scad_primitives.cylinder_z's z_segments note. Clamped like Mignon:
+    # this body is small at Surface_Fn=360, so the bare facet-width rule
+    # asks for far finer bands than measurably help.
+    _h = Element_Height + 2 * z
+    return sp.cylinder_z(Element_Diameter, _h, sections=Surface_Fn, base_z=-z,
+                          z_segments=sp.square_z_segments(Element_Diameter, _h, Surface_Fn,
+                                                           min_band_height_mm=2.0))
 
 
 def HollowingElement():
