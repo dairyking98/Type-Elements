@@ -7594,3 +7594,76 @@ No geometry code was touched, so the CLAUDE.md hard gate does not apply.
   licensing commit - it wants its own decision.
 - Nothing was published to leonardchau.com's project page; that lives
   outside this repo.
+
+## 87. The one body that was never banded: Helios (2026-08-16)
+
+Asked plainly: "helios has no banding?" It did not.
+
+### How it hid
+
+Part 85 banded every body that receives character roots, then went
+through a phase where banding was wrongly concluded not to help and the
+whole thing was reverted with a `git checkout --` across five lib files.
+Re-applying it covered `cylinder_machine.py`, `bennett.py` and (later,
+with the 2.0mm clamp) `mignon.py` - but not `helios.py`. Its
+`Cylinder()` went back to the plain form and stayed there.
+
+The tell was in the gate output the whole time and was read as good
+news: Helios came back byte-identical (71812 / 143648 / 4215.391)
+through BOTH subsequent changes to how band counts are derived. A
+machine whose walls are actually banded cannot be unaffected when the
+band-count rule changes twice. "Unchanged on a change that should have
+touched it" is a finding, not a pass - the same shape as part 85's
+sliver-count lesson, one level up.
+
+### What it was costing
+
+Real render, `config/helios.yaml --cone-segments 12`:
+
+    before   1723 slivers, worst 18.068mm
+    after     548 slivers, worst 11.005mm
+    volume   4295.474mm3 both ways, watertight/winding/is_volume True
+
+18.068mm is not a coincidence - `Element_Height` is 18.7mm. The worst
+sliver was spanning the entire element, which is exactly the
+two-triangles-per-section trimesh cylinder wall being retessellated
+around 80-odd character roots.
+
+Clamped at `min_band_height_mm=2.0`, matching Mignon and for the same
+reason: Helios is a small body at `Surface_Fn=360`, so the bare
+facet-width rule asks for 79 bands of 0.237mm. That is the over-fine
+regime already rejected once, and the measurement above is with the
+clamp - the fine version buys nothing extra.
+
+Every character-receiving body is now banded: `cylinder_machine.
+Cylinder`, `bennett.Cylinder`, `helios.Cylinder`, `mignon.
+PolygonCylinder`, `hammond.ShuttleCylinder`, `hammond_split.Arc`.
+Mignon and Helios carry the 2.0mm clamp; the other four use the plain
+facet-width rule, which the user explicitly asked be left alone ("i
+liked how all the elements behaved, jist was referring t omignon").
+
+### Gate
+
+14 configs, `--no-minkowski`: helios 143648 -> 148800 faces at an
+unchanged 4215.391mm3 (more faces is the point - that is the wall being
+pre-split). All 13 others byte-identical.
+
+### Also resolved
+
+Part 86's "Not done" flagged an uncommitted `BANDS` environment-variable
+override in `lib/mignon.py` violating the config-YAML invariant. It is
+gone - it was removed when `PolygonCylinder()` was rebuilt for the clamp,
+before that part was written. Confirmed by grep: no `environ` reads in
+`mignon.py`, `helios.py`, `cylinder_machine.py` or `scad_primitives.py`.
+
+### Resuming later
+
+Unchanged from part 85, minus the `BANDS` item:
+
+- Per-machine default Font & Alignment profiles + refreshed example
+  renders, one machine at a time (user asked to be reminded).
+- `config/vogue_slug.yaml` still will not build - its font path
+  (`~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf`) does not exist
+  on this machine. It is the one config outside the 14-config gate.
+- punctFatten/weightOffset explained but not implemented, awaiting a
+  go-ahead. hashTwist/skewAngle deliberately not ported.
