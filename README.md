@@ -61,6 +61,39 @@ Preview → Render → Export STL.
 - [IBM Composer](docs/ibm-composer.md) — proportional unit system, hemisphere mapping, Composer vs Selectric
 - [Refactoring plan](docs/refactoring-plan.md) — shared library architecture, extraction order, old vs new code style (executed as of v2.0, see [CHANGELOG.md](CHANGELOG.md))
 
+## License
+
+Dual-licensed. Which license applies depends on whether a file is
+software or design data — [`NOTICE`](NOTICE) has the full breakdown.
+
+| | License | Covers |
+|---|---|---|
+| **Software** | [GPL-3.0-or-later](LICENSE) | All source — the v4 Python pipeline and tuner, the v1/v2/v3 OpenSCAD files, scripts, site templates |
+| **Designs** | [CC BY-NC-SA 4.0](LICENSE-DESIGNS) | Machine dimension/calibration configs, published STLs, renders, documentation |
+
+In plain terms:
+
+- **Print type elements for yourself** — yes, freely. That's what this
+  project is for. Give them to other people too, as long as no money
+  changes hands.
+- **Sell prints** — no. Commercial sale is reserved to the copyright
+  holder. If you want to sell them, [ask](https://leonardchau.com) — a
+  separate license can be granted.
+- **Fork and modify the software** — yes. Keep it open, publish your
+  changes under the GPL, keep the attribution.
+
+The split is deliberate: the output of a GPL program isn't covered by
+the GPL, so licensing only the code would let anyone regenerate the STLs
+and sell them. Licensing the machine data separately is what actually
+reserves that.
+
+IBM Selectric geometry was developed jointly with **Otto Koponen**, with
+reference material from **[Selectric Rescue](https://selectricrescue.org/)**.
+See [`NOTICE`](NOTICE) for full attribution, third-party dependencies,
+and a note on fonts.
+
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## v2.0: shared library files
 `v2/` holds the current, actively-developed set of machine files — a shared
 `lib/` (glyph pipeline, resin support, core/shaft, layouts) plus one thin

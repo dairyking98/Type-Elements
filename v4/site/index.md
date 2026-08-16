@@ -32,6 +32,8 @@ the platen cutout, the final `Additive - Subtractive` - is a real
   started yet.
 - **[Changelog](changelog)** - the full development session log.
 - **[README](readme)** - the repo's own README, mirrored here.
+- **[License](license)** - print these for yourself freely; the software
+  is GPL, the designs are non-commercial.
 
 Source: [github.com/dairyking98/Type-Elements](https://github.com/dairyking98/Type-Elements),
 `v4/` directory.

@@ -23,6 +23,18 @@ header_pages:
   - roadmap.md
   - changelog.md
   - readme.md
+  - license.md
+
+# Footer licence line, rendered by _includes/footer.html. Kept here
+# rather than in the template so the wording is a config edit. The site
+# serves downloadable STLs, so the non-commercial term needs to be
+# visible on every page, not only in the repo's LICENSE files.
+license:
+  copyright: "© 2023-2026 Leonard Chau"
+  code: "GPL-3.0-or-later"
+  code_url: "https://github.com/dairyking98/Type-Elements/blob/main/LICENSE"
+  designs: "CC BY-NC-SA 4.0"
+  designs_url: "https://creativecommons.org/licenses/by-nc-sa/4.0/"
 
 # Off-site nav entries, appended after header_pages by
 # _includes/header.html. The project story (collaborators, real prints,

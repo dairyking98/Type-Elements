@@ -7437,3 +7437,132 @@ New baseline: mignon 23689 47450 4646.497. The other 13 unchanged.
      only check that has reliably caught the artifacts this session (the
      numeric proxies did not).
 6. Part 81's punch list and part 83's Windows-checkout note are unchanged.
+
+## 86. Licensing: GPL for the code, non-commercial for the designs, and why one license could not do the job (2026-08-15)
+
+The repo had no LICENSE file at all, on a public GitHub remote since
+September 2023 - which means default "all rights reserved": everyone
+could read it, nobody could legally reuse it. Fixed, but the shape it
+had to take was not obvious and is worth recording.
+
+### What the requirements actually were
+
+Stated in an interview rather than picked off a menu, because no single
+license covers them: contributions must stay open with changes published
+and attribution kept; commercial sale of type elements reserved to the
+copyright holder; other people free to build on the work and have it
+merged back; the copyright holder does sell prints, and will continue
+to; anyone may print their own freely. Later clarified, and load-bearing:
+**the code itself is never sold - only physical prints.**
+
+### The hole a code license alone cannot close
+
+The output of a GPL program is not covered by the GPL. So licensing only
+the code would have left the non-commercial intent applying to the
+published STLs and nothing else: anyone could fork the pipeline (staying
+GPL, entirely legally), run it, generate their own STLs, and sell prints.
+
+That is why `config/**` is under the design license rather than the code
+license. The machine dimension and calibration data is the part a working
+type element cannot be produced without, and it is read at runtime as
+data - never compiled or linked into the program - so the two licenses
+sit side by side without conflicting.
+
+`lib/layouts/**` is the deliberate exception and is called out in both
+NOTICE and README so it does not get "tidied up" later: it is pure layout
+data, but `tune.py` imports it directly, and a non-commercial license
+inside an imported module would make the combined program
+undistributable. It stays GPL.
+
+### The contributor grant, and why it is narrow
+
+First draft had every contributor grant commercial rights, justified as
+keeping the option to relicense or sell the software. The clarification
+that the code is never sold invalidated that reasoning entirely, and the
+grant was rewritten to the real one:
+
+- **Code contributions carry no extra term at all** - plain GPL, no
+  contributor agreement, no assignment. Using GPL software to produce
+  output you sell is unrestricted, so a contributor's code copyright
+  never obstructs print sales.
+- **Design data contributions carry the grant**, because they arrive
+  under a NonCommercial license. Without it, a contributed machine config
+  would bind the copyright holder to the *contributor's* non-commercial
+  term and bar selling prints of that machine - a contribution that
+  quietly subtracts from the project.
+
+That split is only unambiguous because of an invariant this project
+already enforces: real machine numbers live in config YAML, never in
+code (CLAUDE.md, "Geometry invariants"). Every PR therefore lands
+obviously on one side or the other. CONTRIBUTING.md ties the two rules
+together explicitly so neither drifts.
+
+### Two dependency findings
+
+**`triangle` is the only dependency with a condition.** The LGPL-3.0
+Python wrapper bundles Shewchuk's Triangle C library, which reserves
+*commercial redistribution* to direct arrangement with its author. It is
+load-bearing, not incidental: `glyph_poc.py:689` calls
+`trimesh.creation.triangulate_polygon` with no engine argument and
+`mapbox_earcut` is not installed, so `triangle` is what actually runs.
+Scope, since it is easy to over-read: running the pipeline and selling
+the prints it makes is unaffected (private use is free; the restriction
+is on redistributing Triangle, not on what you make with it), and
+distributing PACKAGING_PLAN.md's exe free of charge is fine with notices
+intact. Only *selling* a binary with it bundled needs permission. Written
+into PACKAGING_PLAN.md's caveats, where it will actually be read,
+including the LGPL relinking problem a single-file exe creates and the
+`mapbox_earcut` escape hatch - noting that `_open_touching_geometry()`'s
+segfault workaround was written against `triangle`'s behavior and would
+need retesting against earcut.
+
+**Part 85's prior art needed a ruling.** RobertG's Blickensderfer
+generator is CC BY-SA 4.0, and ShareAlike is incompatible with a
+NonCommercial term - so if anything of his had landed in `config/**`,
+licensing those files NC would have been a violation. Checked: the
+existing config comments credit him for the "idea/problem statement",
+which is the correct characterization, and part 85 records the
+dimensional values as ported from v2 with his numbers used as an
+independent cross-check. Ideas, methods and measured facts are outside
+copyright, so no derivative work exists and ShareAlike never triggers.
+Recorded in NOTICE as a considered position rather than left as silence,
+along with what would change if code or text were ever ported from it.
+
+### Files
+
+Repository root, since this covers v1 through v4: `LICENSE` (GPL-3.0,
+verbatim from `/usr/share/common-licenses/GPL-3`), `LICENSE-DESIGNS`
+(CC BY-NC-SA 4.0, verbatim from creativecommons.org), `NOTICE` (scope
+map, Otto Koponen and Selectric Rescue attribution, prior art,
+dependencies, font caveat), `CONTRIBUTING.md`. License sections added to
+both READMEs.
+
+Site: a `license.md` page in plain language, a `license:` block in
+`_config.yml` driving a new `_includes/footer.html` override, and a nav
+entry. The footer override follows the same pattern and carries the same
+kind of explanatory comment as the existing `header.html` override. It
+exists for a specific reason: the site serves downloadable STLs from
+`/assets/models/`, and a non-commercial term nobody is shown is a term
+that does not travel with the download. `sync_docs.sh` gained four
+rewrite rules so README.md's `../LICENSE`-style links resolve to GitHub
+blob URLs instead of 404ing on the site.
+
+### Verified
+
+Jekyll build clean (only the theme's own pre-existing sass deprecation
+warnings). `/license/` renders; the footer block renders on every page
+with all three links resolving and no double-escaped entities; the nav
+carries License. The `sync_docs.sh` rewrites tested against the real
+README - all three `../` links become absolute, none left behind.
+
+No geometry code was touched, so the CLAUDE.md hard gate does not apply.
+
+### Not done
+
+- **`v4/lib/mignon.py` has an uncommitted debug edit** (line ~316): a
+  `BANDS` environment-variable override that bypasses `Surface_Fn`,
+  left over from part 85's banding work. It violates the "numbers live
+  in config YAML" invariant. Left alone rather than folded into a
+  licensing commit - it wants its own decision.
+- Nothing was published to leonardchau.com's project page; that lives
+  outside this repo.

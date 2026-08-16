@@ -37,6 +37,23 @@ Rendered at **[type-elements.leonardchau.com](https://type-elements.leonardchau.
 The project story - collaborators, real prints, the machines themselves -
 is at [leonardchau.com/projects/type-elements](https://leonardchau.com/projects/type-elements/).
 
+## License
+
+Dual-licensed, with the license files at the repository root:
+
+- **Code** (`*.py`, `lib/**`, scripts) - [GPL-3.0-or-later](../LICENSE).
+  Fork it, change it, keep it open.
+- **Design data** (`config/**`, generated STLs, renders, these `.md`
+  files) - [CC BY-NC-SA 4.0](../LICENSE-DESIGNS). Print your own freely;
+  commercial sale is reserved to the copyright holder.
+
+[`NOTICE`](../NOTICE) has the exact file-by-file scope, attribution, the
+third-party dependency list, and the font caveat. One rule worth knowing
+before you move files around: `lib/layouts/**` is pure layout data but
+stays under the GPL, because `tune.py` imports it directly and a
+non-commercial license inside an imported module would make the combined
+program undistributable.
+
 ## Setup
 
 Linux/macOS:

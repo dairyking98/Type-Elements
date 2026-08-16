@@ -106,3 +106,29 @@ the summary line for any config, that's a regression to chase down.
   detection uses `sys.frozen` (PyInstaller's own flag) vs. some other
   signal - `sys.frozen` is the standard PyInstaller convention and
   should be the default choice absent a reason otherwise.
+- **Bundling `triangle` has a licensing condition - the only one in the
+  dependency set.** Freezing the app embeds every dependency in the
+  executable, which turns "installed via pip" into "redistributed by
+  us". All of `requirements.txt` is fine with that except `triangle`:
+  the LGPL-3.0 Python wrapper bundles Jonathan Shewchuk's Triangle C
+  library, whose terms permit free redistribution with the copyright
+  notices intact, but reserve *commercial* redistribution to direct
+  arrangement with the author. Distributing the exe free of charge -
+  which is what this plan describes - is fine, and needs no action
+  beyond keeping the notices intact. Selling a binary with Triangle
+  inside it is the case that needs permission first
+  (https://www.cs.cmu.edu/~quake/triangle.html).
+  Two things this does NOT affect, to avoid over-reading it: running the
+  pipeline from a repo checkout, and selling physical prints made with
+  it - private use is free, and the restriction is on redistributing
+  Triangle, not on what you make with it. If a commercial binary is ever
+  wanted, the escape hatch is switching trimesh's triangulation engine
+  to `mapbox_earcut` (ISC), which trimesh supports directly via
+  `triangulate_polygon(engine=...)`; note `lib/glyph_poc.py`'s
+  touching-ring segfault workaround (`_open_touching_geometry`) was
+  written against `triangle`'s behavior specifically and would need
+  retesting against earcut. Also relevant to the LGPL side: LGPL-3.0
+  requires that users be able to relink against a modified version of
+  the library, which a single-file frozen exe makes awkward - the usual
+  answer is to also publish the object/source needed to rebuild, or to
+  drop the dependency. See `NOTICE` at the repo root.

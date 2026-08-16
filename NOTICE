@@ -1,0 +1,169 @@
+Type Elements - 3D printed type elements for antique typewriters
+Copyright (C) 2023-2026 Leonard Chau
+
+This project is licensed in two parts. Which one applies depends on
+whether a file is SOFTWARE or DESIGN DATA. See "Scope" below.
+
+
+-----------------------------------------------------------------------
+Why two licenses
+-----------------------------------------------------------------------
+
+The software is free and copyleft: use it, change it, share it, sell
+services around it - but keep it open and keep the attribution.
+
+The design data is not for commercial use by others. Print your own
+elements freely, for yourself, for a friend, for a restoration club.
+Selling them is reserved to the copyright holder.
+
+The split exists because the output of a GPL program is NOT covered by
+the GPL. If only the code were licensed, anyone could run the pipeline,
+generate their own STLs, and sell them - the copyleft would not reach
+that far. Licensing the machine dimension/calibration data separately is
+what actually reserves commercial print sales, because a type element
+that fits a real machine cannot be produced without it.
+
+
+-----------------------------------------------------------------------
+Scope
+-----------------------------------------------------------------------
+
+GNU General Public License v3.0 or later  (see LICENSE)
+
+  All source code, in every version directory:
+
+    v4/*.py, v4/lib/**            Python pipeline, tuner, libraries
+    v1/**/*.scad, v2/**, v3/**    OpenSCAD sources and shared libs
+    *.sh, *.bat                   setup/launch scripts
+    v4/site/_includes/**,         site templates and build config
+      v4/site/_layouts/**,
+      v4/site/*.yml
+    .github/workflows/**          CI
+
+  v4/lib/layouts/** is pure keyboard-layout DATA, but it is Python that
+  tune.py imports directly, so it stays under the GPL. Mixing a
+  non-commercial license into an imported module would make the combined
+  program undistributable. Do not "fix" this by moving it to the design
+  license.
+
+
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+                                          (see LICENSE-DESIGNS)
+
+  The design data and everything generated from it:
+
+    v4/config/**                  machine dimensions, tolerances,
+                                  offsets, calibration values - read at
+                                  runtime as data, never linked into the
+                                  program
+    v4/site/assets/models/**      published STL files
+    v4/site/assets/thumbnails/**  renders
+    v4/site/assets/legends/**
+    v4/example_renders/**
+    v4/assets/**
+    *.md and v4/site/*.md         documentation prose
+
+  Config YAML is read at runtime and is not compiled or linked into the
+  GPL program, so the two licenses do not conflict.
+
+
+-----------------------------------------------------------------------
+Attribution
+-----------------------------------------------------------------------
+
+IBM Selectric geometry (v1/IBM/IBM2.scad, v2/ibm.scad, and the v4
+machines derived from them - lib/spherical_machine.py, lib/selectric12.py,
+lib/selectric3.py, lib/selectric_composer.py) was developed jointly with:
+
+    Otto Koponen  (November-December 2024)
+
+Selectric reference material and measurements courtesy of
+Selectric Rescue - https://selectricrescue.org/
+
+Keyboard layouts were transcribed from original manufacturer type
+catalogs (Hammond, Blickensderfer, and others - see
+v4/LAYOUT_TRANSCRIPTION.md). The underlying character arrangements are
+historical fact and not claimed as original work; the transcription,
+selection, and encoding of them into this project's layout tables is.
+
+
+-----------------------------------------------------------------------
+Prior art
+-----------------------------------------------------------------------
+
+RobertG's OpenSCAD Blickensderfer type wheel generator
+(badonoer.blogspot.com, CC BY-SA 4.0, March 2025) was read and compared
+against v4 in detail - see SESSION_LOG.md part 85. Several config
+comments credit it by name.
+
+What was taken from it is ideas and problem statements, not expression:
+that a font's caret sits at cap height rather than on the baseline and
+needs a per-character Y offset, that the underscore has the mirrored
+problem, and that a wheel can carry notched or banded cosmetics. Each
+was then implemented independently in v4's own code and its own config
+sections. No source text was copied.
+
+The dimensional values did not come from him either. v4's were ported
+from v2, which predates his generator; part 85 records the two sets
+converging to within 0.025mm from unrelated derivations, and uses that
+as a cross-check, not a source. Physical measurements of a hundred-year-
+old machine are facts in any case, which copyright does not reach.
+
+This matters because his work is ShareAlike and this project's design
+data is NonCommercial, which ShareAlike would not permit in a derivative
+work. Ideas, methods and measured facts are not protected by copyright,
+so no derivative work exists and the ShareAlike term is not triggered.
+The credit in the configs is given because it is deserved, not because a
+license compels it. If anything is ever ported from that project as
+actual code or copied text, this reasoning stops applying and the
+affected files would need to be CC BY-SA 4.0 (compatible with the GPL
+one-way, but not with a NonCommercial term).
+
+
+-----------------------------------------------------------------------
+Third-party software
+-----------------------------------------------------------------------
+
+Installed via v4/requirements.txt, not redistributed in this repository.
+All are GPL-3.0-compatible:
+
+    trimesh, pyyaml, textual, textual-fspicker   MIT
+    shapely, python-fcl, freetype-py, numpy,     BSD
+      scipy
+    bezier, manifold3d                           Apache-2.0
+    triangle                                     LGPL-3.0
+
+  NOTE ON `triangle`: the LGPL-3.0 Python wrapper bundles Jonathan
+  Shewchuk's Triangle C library, which is NOT free for commercial
+  redistribution - shipping it inside a product you sell requires direct
+  arrangement with its author.
+
+  This does not affect how the project is actually used. Private use is
+  free, so running the pipeline and selling the physical prints it
+  produces is unrestricted - the restriction is on redistributing
+  Triangle itself, not on what you make with it. Distributing
+  v4/PACKAGING_PLAN.md's single-executable free of charge is also fine,
+  provided the copyright notices stay intact. The only case that needs
+  permission is SELLING a binary with Triangle bundled inside it, which
+  this project does not do.
+
+  If that ever changes, read the terms at
+  https://www.cs.cmu.edu/~quake/triangle.html first. The alternative is
+  switching trimesh's triangulation engine to mapbox_earcut (ISC
+  licensed) - see lib/glyph_poc.py, whose segfault workaround was written
+  against triangle's behavior and would need retesting.
+
+
+-----------------------------------------------------------------------
+Fonts
+-----------------------------------------------------------------------
+
+No fonts are distributed with this project. Configs reference fonts by
+system path.
+
+Generated type elements contain glyph outlines derived from whatever
+font was used to build them. The design license above covers the type
+element geometry - the body, the draft taper, the placement - not the
+letterforms themselves. Some commercial font licenses restrict embedding
+outlines in derived works or physical products. If you sell or publish
+prints, that is between you and the font's license.

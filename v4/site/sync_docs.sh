@@ -22,7 +22,11 @@ rewrite_links() {
       -e 's|](SESSION_LOG\.md)|](/changelog/)|g' \
       -e 's|](PACKAGING_PLAN\.md)|](/roadmap-packaging/)|g' \
       -e 's|](README\.md)|](/readme/)|g' \
-      -e 's|](CLAUDE\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/v4/CLAUDE.md)|g'
+      -e 's|](CLAUDE\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/v4/CLAUDE.md)|g' \
+      -e 's|](\.\./LICENSE-DESIGNS)|](https://github.com/dairyking98/Type-Elements/blob/main/LICENSE-DESIGNS)|g' \
+      -e 's|](\.\./LICENSE)|](https://github.com/dairyking98/Type-Elements/blob/main/LICENSE)|g' \
+      -e 's|](\.\./NOTICE)|](https://github.com/dairyking98/Type-Elements/blob/main/NOTICE)|g' \
+      -e 's|](\.\./CONTRIBUTING\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/CONTRIBUTING.md)|g'
 }
 
 inject() {
