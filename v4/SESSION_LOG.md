@@ -7667,3 +7667,87 @@ Unchanged from part 85, minus the `BANDS` item:
   on this machine. It is the one config outside the 14-config gate.
 - punctFatten/weightOffset explained but not implemented, awaiting a
   go-ahead. hashTwist/skewAngle deliberately not ported.
+
+## 88. Every facet count in quality:, every quality: key on the tab (2026-08-16)
+
+Asked for, looking at an over-detailed Helios render: "we need to expose
+the variables fo the quality tab. the facet numbers for different things,
+the banding heights, and consistentize everything across all machines".
+
+### What the audit actually turned up
+
+Cross-referencing every config's `quality:` block against every
+`QUALITY_FIELDS_*` table against the `*_Fn` globals each machine module
+really reads. Most facet knobs were already exposed correctly; the
+findings were narrower and more specific than "the tab is incomplete":
+
+1. **Band height was not a config key at all** - `min_band_height_mm=2.0`
+   was written into `mignon.py:321` and `helios.py:323` as a literal.
+   Part 85/87's own work introduced it. It is a resolution constant in
+   code, the exact thing CLAUDE.md's "numbers live in config YAML" rule
+   names.
+2. **`cosmetics.notch_fn`** - a facet count filed under the feature it
+   belongs to rather than under `quality:`, with a hardcoded `16` default
+   in `blickensderfer.py`/`postal.py`. This is the knob asked about
+   earlier ("same for the notches in notched version of blickensderfer,
+   how to reduce that one, its highly uneccessarily detailed") - it
+   existed, but not where anyone would look for it.
+3. **`gauge.hole_fn`** - same shape, in the three wing-slug configs.
+4. **Three names for one concept in code**: the runtime global was
+   `Mink_Fn` (Hammond Split, spherical family) or `Minkowski_Fn` (slug
+   family), and the cone default was `DEFAULT_MINK_FN` (Hammond Split)
+   or `DEFAULT_CONE_SEGMENTS` (the other six). The CONFIG key
+   `quality.minkowski_fn` had already been unified in an earlier pass -
+   which is the lesson: unifying a key is not finished until the global
+   it feeds matches.
+
+### Two things that looked like findings and were not
+
+Worth recording so the next audit does not re-chase them:
+
+- `spherical_machine` appears to read `Platen_Fn` while no Selectric
+  config defines it. The only occurrence is inside a COMMENT explaining
+  that it deliberately has no such variable and reuses `Cyl_Fn`.
+- `Body_Fn` looks unset on Bennett/Helios/Mignon/Hammond. It is only
+  read by `cylinder_machine` functions those four never reach, since
+  each has its own `Cylinder()`. Latent, not active - and left alone
+  rather than "fixed" into a change with no observable effect.
+
+`resin.resin_fn` stays under `resin:` on purpose - that is the settled
+fleet-wide convention from an earlier pass, and moving it would have
+re-forked the thing this session was unforking.
+
+### Verification
+
+The whole change was designed to move zero geometry, so the gate is the
+proof rather than a formality: 14 configs, `--no-minkowski`, all
+byte-identical to part 87's numbers.
+
+Presence is not the same as being wired, so each new knob was also shown
+to actually do something:
+
+    min_band_height_mm  0 -> 6   58608 -> 56164 faces, vol 4355.448 BOTH
+    notch_fn           16 -> 6   58608 -> 56236 faces, vol 4355.448 -> 4361.837
+    gauge_hole_fn      40 -> 8    6986 ->  5300 faces, vol   86.525 ->   86.874
+
+The band row is the interesting one: face count moves and volume does
+not, which is the signature of a pure tessellation change and is what
+banding must always look like. The two cutter knobs shift volume
+slightly in the correct direction - a coarser cutter removes less.
+
+Tab coverage is now checked BOTH ways for all 15 machines (every
+`quality:` key has a field, no field points at a missing key). That
+check is a dozen lines and worth re-running when adding a machine.
+
+### Still open
+
+- **`output/helios_running.stl` is not watertight** - 171 zero-area
+  faces, `is_volume=False`, from `helios.running.yaml`, which differs
+  from master by `resin_support: true` and `logo_enabled: true`. The
+  master config gates clean and watertight, so this is specific to that
+  combination and is NOT the banding work. Not yet chased down.
+- `helios.running.yaml` still carries two keys deleted fleet-wide,
+  `build.points_per_mm` and `build.simplify_tolerance_mm`. Harmless
+  (nothing reads them) but they should be migrated out.
+- Unchanged from part 87: per-machine default profiles + example
+  renders; `config/vogue_slug.yaml`'s font path missing.
