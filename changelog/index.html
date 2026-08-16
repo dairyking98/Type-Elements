@@ -7630,6 +7630,41 @@ user prefers the result visually, not because a metric improved.
 New baselines: hammond 473076 947800 4876.156, hammond_split 35517 71098
 8081.034. The other 12 unchanged.
 
+### Mignon banded too - and it needed it most
+
+Asked whether Mignon needs wall banding. It did, and it was NOT getting
+it: the banding added earlier went onto `sp.cylinder_z`, but Mignon's
+shipped `cylinder_shape: 0` takes the OTHER branch - `PolygonCylinder()`,
+a 12-gon prism built with `trimesh.creation.extrude_polygon`. So the
+patch was inert for the default config.
+
+It was also the worst case in the fleet: the bare prism's longest face
+edge is **46.750mm** on a 40.5mm element, because `extrude_polygon` makes
+one full-height quad per facet and the prism is over-extruded by 6.
+
+Rebuilt with `sp.linear_extrude_twist(..., twist=0, z_steps=N)` - the same
+prism, just with intermediate rings; its fan caps are valid because a
+regular 12-gon is convex. Volume identical (4676.551).
+
+Effect on the real Minkowski render:
+
+    slivers   1145 -&gt; 1218   (slightly MORE)
+    longest   30.294mm -&gt; 5.415mm   (5.6x shorter)
+
+Recorded because the two metrics disagree: the count rose while the worst
+case collapsed. The worst case is the one that matters here - a 30mm
+sliver spans most of the element and is exactly what renders as a
+dramatic spike, where 5mm ones are local. This is another data point that
+sliver COUNT has been a poor proxy all session.
+
+All seven bodies that take a character union are now banded:
+blickensderfer/postal (`cylinder_machine.Cylinder`), mignon
+(`PolygonCylinder`), bennett and helios (own `Cylinder`), hammond
+(`ShuttleCylinder`), hammond_split (`Arc`). The Selectrics and the slug
+family have no equivalent - a ball and a flat block respectively.
+
+New baseline: mignon 23689 47450 4646.497. The other 13 unchanged.
+
 ### Resuming later
 
 1. **Band height 2.0mm does not fit.** Measured clear wall between ink
