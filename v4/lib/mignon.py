@@ -304,7 +304,17 @@ def PolygonCylinder():
     angle = np.radians(360.0 / 24)
     ca, sa = np.cos(angle), np.sin(angle)
     rotated = np.stack([pts[:, 0] * ca - pts[:, 1] * sa, pts[:, 0] * sa + pts[:, 1] * ca], axis=1)
-    shape = trimesh.creation.extrude_polygon(ShapelyPolygon(rotated), Element_Height + 6)
+    # Side faces pre-split into bands rather than one full-height quad per
+    # facet: the characters are unioned into this prism, and a full-height
+    # face is what the boolean shatters into long near-zero-area slivers
+    # (see scad_primitives.cylinder_z's z_segments note). Bare
+    # extrude_polygon gives 46.7mm-long faces on a 40.5mm element.
+    # linear_extrude_twist with twist=0 is the same prism, just built with
+    # intermediate rings - its fan caps are valid here because a regular
+    # 12-gon is convex.
+    _h = Element_Height + 6
+    _n = sp.square_z_segments(Element_Diameter, _h, Surface_Fn)
+    shape = sp.linear_extrude_twist(rotated, _h, 0.0, z_steps=_n)
     return sp.translate(shape, [0, 0, -1])
 
 

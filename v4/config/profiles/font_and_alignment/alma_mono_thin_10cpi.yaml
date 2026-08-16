@@ -1,0 +1,20 @@
+# Font & Alignment profile - see lib/font_profiles.py.
+# 'values' keys are dotted config paths; a machine without a
+# given path simply skips it when this profile is applied.
+name: Alma Mono Thin 10CPI
+values:
+  alignment.caret_drop_mm: 2.4
+  alignment.center_offset_mm: 0.0
+  alignment.left_offset_mm: 0.0
+  alignment.mode: center
+  alignment.modified_left_chars: '!,.;:)'
+  alignment.modified_left_offset_mm: 0.0
+  alignment.modified_right_chars: (
+  alignment.modified_right_offset_mm: 0.0
+  alignment.underscore_lift_mm: 0.0
+  font.path: /home/lchau/fonts/Library/Typewriter & Monospace/Alma Mono-Thin.otf
+  font.size_mm: 2.6
+  font2.font2_chars: ''
+  font2.font2_path: ''
+  font2.font2_size_mm: 0.0
+saved_from: postal
