@@ -31,7 +31,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
+        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -113,6 +113,25 @@ lives in its own document so this one stays short:</p>
 <p>Rendered at <strong><a href="https://type-elements.leonardchau.com">type-elements.leonardchau.com</a></strong>.
 The project story - collaborators, real prints, the machines themselves -
 is at <a href="https://leonardchau.com/projects/type-elements/">leonardchau.com/projects/type-elements</a>.</p>
+
+<h2 id="license">License</h2>
+
+<p>Dual-licensed, with the license files at the repository root:</p>
+
+<ul>
+  <li><strong>Code</strong> (<code class="language-plaintext highlighter-rouge">*.py</code>, <code class="language-plaintext highlighter-rouge">lib/**</code>, scripts) - <a href="https://github.com/dairyking98/Type-Elements/blob/main/LICENSE">GPL-3.0-or-later</a>.
+Fork it, change it, keep it open.</li>
+  <li><strong>Design data</strong> (<code class="language-plaintext highlighter-rouge">config/**</code>, generated STLs, renders, these <code class="language-plaintext highlighter-rouge">.md</code>
+files) - <a href="https://github.com/dairyking98/Type-Elements/blob/main/LICENSE-DESIGNS">CC BY-NC-SA 4.0</a>. Print your own freely;
+commercial sale is reserved to the copyright holder.</li>
+</ul>
+
+<p><a href="https://github.com/dairyking98/Type-Elements/blob/main/NOTICE"><code class="language-plaintext highlighter-rouge">NOTICE</code></a> has the exact file-by-file scope, attribution, the
+third-party dependency list, and the font caveat. One rule worth knowing
+before you move files around: <code class="language-plaintext highlighter-rouge">lib/layouts/**</code> is pure layout data but
+stays under the GPL, because <code class="language-plaintext highlighter-rouge">tune.py</code> imports it directly and a
+non-commercial license inside an imported module would make the combined
+program undistributable.</p>
 
 <h2 id="setup">Setup</h2>
 
@@ -264,9 +283,14 @@ first one - a legend-card holder that goes with the Mignon element.</p>
       <div class="footer-col footer-col-3">
         <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
       </div>
-    </div>
-
-  </div>
+    </div><p class="footer-license" style="margin-top: 1.5em; font-size: 0.85em; opacity: 0.85;">
+      © 2023-2026 Leonard Chau &middot;
+      Software under <a href="https://github.com/dairyking98/Type-Elements/blob/main/LICENSE">GPL-3.0-or-later</a> &middot;
+      Designs, models and documentation under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.
+      <br />
+      Print these for yourself, freely. Selling prints is reserved to the
+      copyright holder &mdash; <a href="/license/">full terms</a>.
+    </p></div>
 
 </footer>
 </body>

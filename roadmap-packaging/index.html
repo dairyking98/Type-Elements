@@ -31,7 +31,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
+        <div class="trigger"><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -162,6 +162,32 @@ smoke testing, not assumed.</li>
 detection uses <code class="language-plaintext highlighter-rouge">sys.frozen</code> (PyInstaller’s own flag) vs. some other
 signal - <code class="language-plaintext highlighter-rouge">sys.frozen</code> is the standard PyInstaller convention and
 should be the default choice absent a reason otherwise.</li>
+  <li><strong>Bundling <code class="language-plaintext highlighter-rouge">triangle</code> has a licensing condition - the only one in the
+dependency set.</strong> Freezing the app embeds every dependency in the
+executable, which turns “installed via pip” into “redistributed by
+us”. All of <code class="language-plaintext highlighter-rouge">requirements.txt</code> is fine with that except <code class="language-plaintext highlighter-rouge">triangle</code>:
+the LGPL-3.0 Python wrapper bundles Jonathan Shewchuk’s Triangle C
+library, whose terms permit free redistribution with the copyright
+notices intact, but reserve <em>commercial</em> redistribution to direct
+arrangement with the author. Distributing the exe free of charge -
+which is what this plan describes - is fine, and needs no action
+beyond keeping the notices intact. Selling a binary with Triangle
+inside it is the case that needs permission first
+(https://www.cs.cmu.edu/~quake/triangle.html).
+Two things this does NOT affect, to avoid over-reading it: running the
+pipeline from a repo checkout, and selling physical prints made with
+it - private use is free, and the restriction is on redistributing
+Triangle, not on what you make with it. If a commercial binary is ever
+wanted, the escape hatch is switching trimesh’s triangulation engine
+to <code class="language-plaintext highlighter-rouge">mapbox_earcut</code> (ISC), which trimesh supports directly via
+<code class="language-plaintext highlighter-rouge">triangulate_polygon(engine=...)</code>; note <code class="language-plaintext highlighter-rouge">lib/glyph_poc.py</code>’s
+touching-ring segfault workaround (<code class="language-plaintext highlighter-rouge">_open_touching_geometry</code>) was
+written against <code class="language-plaintext highlighter-rouge">triangle</code>’s behavior specifically and would need
+retesting against earcut. Also relevant to the LGPL side: LGPL-3.0
+requires that users be able to relink against a modified version of
+the library, which a single-file frozen exe makes awkward - the usual
+answer is to also publish the object/source needed to rebuild, or to
+drop the dependency. See <code class="language-plaintext highlighter-rouge">NOTICE</code> at the repo root.</li>
 </ul>
 
   </div>
@@ -188,9 +214,14 @@ should be the default choice absent a reason otherwise.</li>
       <div class="footer-col footer-col-3">
         <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
       </div>
-    </div>
-
-  </div>
+    </div><p class="footer-license" style="margin-top: 1.5em; font-size: 0.85em; opacity: 0.85;">
+      © 2023-2026 Leonard Chau &middot;
+      Software under <a href="https://github.com/dairyking98/Type-Elements/blob/main/LICENSE">GPL-3.0-or-later</a> &middot;
+      Designs, models and documentation under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.
+      <br />
+      Print these for yourself, freely. Selling prints is reserved to the
+      copyright holder &mdash; <a href="/license/">full terms</a>.
+    </p></div>
 
 </footer>
 </body>
