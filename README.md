@@ -57,6 +57,7 @@ Preview → Render → Export STL.
 - [Glyph pipeline](docs/glyph-pipeline.md) — how characters are rendered, draft angles, platen cutout, CharLegend
 - [Text centering & dead space](docs/text-centering.md) — how `halign="center"` actually centers glyphs, why narrow characters can sit off-center in their slot, and options to correct it
 - [Resin support systems](docs/resin-supports.md) — CutGroove, rod geometry, per-machine support placement
+- [Resin selection](docs/resin-selection.md) — material choice: glyph fidelity, dimensional stability over time, current printer/slicer/profile setup
 - [Calibration procedures](docs/calibration.md) — sweep tests, debugging symptoms, procedure order
 - [IBM Composer](docs/ibm-composer.md) — proportional unit system, hemisphere mapping, Composer vs Selectric
 - [Refactoring plan](docs/refactoring-plan.md) — shared library architecture, extraction order, old vs new code style (executed as of v2.0, see [CHANGELOG.md](CHANGELOG.md))
