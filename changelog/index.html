@@ -8097,6 +8097,81 @@ welds the same way, handling a 4-face edge where two solids kiss.
   `build.simplify_tolerance_mm`, deleted fleet-wide. Nothing reads them.
 - Unchanged: per-machine default profiles + example renders;
   `config/vogue_slug.yaml`'s font path missing.
+
+---
+
+## 90. The resin history nobody wrote down, and the material nobody chose (2026-08-29)
+
+Asked whether anything on resin selection and usage history existed, with
+a stated concern about **shrinkage over time**. Nothing in the repo
+covered materials at all: `docs/resin-supports.md` and every `resin:`
+config block are support *geometry*, and Hammond's
+`element.shrinkage_multiplier` is a one-time print-shrinkage scale
+(currently `1.00`), not an aging model. `docs/resin-selection.md` did
+exist — 74 lines of real hands-on verdicts — but was **linked from
+nowhere**, absent from README's docs index, and never mentioned
+dimensional stability.
+
+The real history turned out to live off-repo, on the laptop's Windows
+partition (`/media/lchau/Windows`, user `leona`), including a surviving
+Claude transcript from 2026-07-26 under
+`.claude/projects/C--WINDOWS-system32/`. What it establishes:
+
+- Printer **Anycubic Photon Mono 4K**; slicer **Photon Workshop 4.1.8**
+  (Lychee installed and uninstalled the same day over its account/network
+  requirement); UVtools installed and used for calibration generation.
+- Active profile **Elegoo ABS-Like 3.0** — 0.05 mm / 3.0 s / 30 s bottom
+  x 6 / lift 5 mm @ 1.33 mm/s / 0.5 s rest — derived from Elegoo's
+  official spreadsheet **Mars 3** row, because Elegoo publishes no
+  Anycubic rows at all. Vendor-chart values, never measured on this
+  machine.
+- Siraya Tech's full 37-profile pack is imported. That is a bulk vendor
+  import, **not** a shortlist — the picker's contents are not a selection
+  history, and reading them as one is the obvious trap.
+
+Two findings worth the dig:
+
+**The calibration was generated and never run.** Five sliced exposure
+files (2.0–4.0 s) have sat untouched in `Desktop\ExposureTest_ABSLike3\`
+since 2026-07-26 14:39, with no result files or notes, and Photon
+Workshop's `launchCount` is 0. So 3.0 s is still an unvalidated starting
+point.
+
+**The stated concern and the actual setup are in direct conflict.**
+Zero occurrences of "shrink" or "dimensional" across the entire 1.5 MB
+setup transcript — it was all exposure and plate adhesion. Meanwhile
+every resin in `resin-selection.md`'s tried/owned table is ABS-like,
+including both currently on hand, and ABS-like is the worst available
+family for long-term dimensional stability: toughness there comes from
+lower crosslink density and lower Tg, which are the same properties that
+produce creep. The material was never chosen against this requirement;
+it was inherited by default.
+
+The useful synthesis is that this does **not** fight the doc's existing
+fidelity-first framing. Standard/high-detail resins have higher
+crosslink density and higher Tg and no elastomeric content, so leaving
+the ABS-like family improves sharpness and stability together. The only
+real tension is with *filled* resins — the strongest lever on creep, but
+higher viscosity and more light scatter, which is exactly what blurs
+small type.
+
+Documented in `docs/resin-selection.md` (setup, resin table, a new
+"Dimensional stability over time" section, open items) and the file is
+now linked from README's docs index. No code or geometry touched.
+
+### Genuinely open
+
+- **No shrinkage baseline exists.** Datasheets omit anisotropy (Z vs XY);
+  a measured coupon at 24 h / 1 wk / 1 mo / 6 mo would beat them. The
+  exposure test has to be printed and read *first* — over-exposure causes
+  its own dimensional bloat and would confound the result.
+- **Nowhere to apply a measured figure.** Only Hammond has a scale
+  compensation knob; the cylinder and spherical families have none. A
+  fleet-wide `shrinkage_multiplier` is a real design decision, not a gap
+  to quietly fill.
+- Pre-2026 resin profiles ("profiles ive used in the past") were wanted
+  for cross-reference and never located. Possibly on the Windows desktop
+  box (`192.168.4.20`) — searchable there with Everything/`es.exe`.
 </name></slug>
 
   </div>
