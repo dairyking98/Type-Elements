@@ -7896,3 +7896,68 @@ now linked from README's docs index. No code or geometry touched.
 - Pre-2026 resin profiles ("profiles ive used in the past") were wanted
   for cross-reference and never located. Possibly on the Windows desktop
   box (`192.168.4.20`) — searchable there with Everything/`es.exe`.
+
+---
+
+## 91. The printer shortlist that only survived as questions (2026-09-01)
+
+Part 90 recorded that `docs/resin-selection.md` ends with a cross-reference
+to a "printer shortlist" in machine notes, and that no such shortlist
+exists. Called that a dangling pointer. **That was wrong, and the way it
+was wrong is the point.**
+
+The research did happen — 2026-07-26, two sessions, 40 minutes before the
+resin doc was written. It was invisible because **both transcripts have
+been deleted**: the earliest surviving mention of `resin-selection`
+anywhere is 2026-07-29, three days after commit `7e5307f` created the file.
+Searching transcripts found nothing and I reported nothing found.
+
+What survives is `~/.claude/history.jsonl` — the global prompt history,
+which outlives the transcripts it came from. It holds the user's side of
+the conversation verbatim:
+
+    2026-07-22 02:43  "a good resin slicer for ubuntu 24.04? anycubic
+                       mono 4k unless i get a newer nicer one"
+    2026-07-26 12:42  "anycubic photon mono 4k is my printer - is it open
+                       source? any othe ropen source solutions?"
+    2026-07-26 12:50  "i need high detail, not large screen, my parts
+                       arent large. and more open sourcey the better."
+    2026-07-26 16:54  "elegoo mars 5 ultra, how much it cost? anything
+                       close to it in price and capability with finer pixel?"
+    2026-07-26 17:02  "write a document on resin selection..."
+
+**Lesson worth keeping: prompt history is a separate, longer-lived store
+than transcripts.** When a search for prior context comes up empty, that is
+not evidence the work never happened — check `history.jsonl` before saying
+so. The requirements were fully recoverable from questions alone; only the
+answers were lost.
+
+Also corrected a factual assumption raised in conversation — that a finer
+machine would bring square pixels. The Mono 4K's own profile declares
+`xy_pixel` and `xy_pixel_y` both 35.0 um: **already square**. Dividing the
+build area (132.9 x 80.0) by resolution appears to give an anisotropic
+answer only because the build area is a masked subset of the 134.4 x 84.0 mm
+panel span. The gain from a new machine is pitch alone, not squareness —
+though squareness is still worth verifying per candidate.
+
+Written up as new `docs/printer-selection.md`: recovered requirements
+(quoted, marked as settled), the measured case against the current machine
+(the 13 islands at exactly 1 px² are the strongest single datum — glyph
+geometry sitting at the resolution limit), what actually matters
+(pitch dominant, build volume actively working against you, collimation
+unlisted on datasheets, DLP under-considered), and Mars 5 Ultra as an open
+candidate with its price/pitch questions still unanswered. Deliberately
+records **no** vendor specs — that market churns faster than the doc, and
+a remembered number would be worse than none.
+
+Both docs now carry ordered "Next steps", and the resin doc's cross-
+reference points at a real file. README indexes both.
+
+### Genuinely open
+
+- Everything in part 90's open list still stands: exposure test unprinted,
+  no shrinkage baseline, nowhere fleet-wide to apply a measured figure.
+- Requirement 2 from the 2026-07-26 research — "is Elegoo any more open
+  than Anycubic" — was asked and never answered.
+- DLP was never priced. It is the strongest fit for small high-fidelity
+  parts and was absent from the original research entirely.

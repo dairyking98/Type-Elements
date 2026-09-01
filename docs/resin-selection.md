@@ -197,6 +197,31 @@ durability cost this use case mostly doesn't need to pay.
 
 ---
 
+## Next steps
+
+In order — each one is cheap, and each makes the next one interpretable.
+
+1. **Print the five exposure files** already sliced in
+   `Desktop\ExposureTest_ABSLike3\`. Pick the *lowest* exposure where the
+   glyph strip stays crisp and the bullseye rings stay separated. Nothing
+   else on this list means anything until exposure is settled — over-exposure
+   thickens stems and fills counters, which mimics both a bad resin and a
+   coarse printer.
+2. **Turn anti-aliasing on** (currently off) and reprint the winner. Verify
+   it actually helps; Photon Workshop's AA here is emulated greyscale.
+3. **Record the result in the table above** — the Elegoo ABS-Like 3.0 row
+   has no print results at all, which is the largest single gap in this doc.
+4. **Buy one detail resin and one stability-oriented resin** and print the
+   same part in each. Phrozen TR250 LV is the one candidate that serves both
+   priorities, so it is the efficient first purchase.
+5. **Build a shrinkage coupon** (see open items) and start the clock. This is
+   the only item with a multi-month lead time, so starting it late costs the
+   most.
+6. Only after 1–3 are done does a printer change become diagnosable — see
+   `printer-selection.md`.
+
+---
+
 ## Open items
 
 - **The exposure calibration was generated but never run.** Five sliced
@@ -221,8 +246,8 @@ durability cost this use case mostly doesn't need to pay.
   current support systems.
 - Record actual glyph-edge results here once a batch is printed in
   Aqua-Gray/TR250, alongside which printer/pixel-size it was printed on
-  (see machine notes on printer shortlist — pixel geometry and resin
-  viscosity both affect edge sharpness, worth separating the two variables).
+  (see `printer-selection.md` — pixel geometry and resin viscosity both
+  affect edge sharpness, worth separating the two variables).
 - Older resin profiles from before this rig ("profiles ive used in the
   past") were wanted for cross-reference on 2026-07-26 but were not
   accessible then, and have not been located since. If they turn up, the
