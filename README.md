@@ -59,6 +59,7 @@ Preview → Render → Export STL.
 - [Resin support systems](docs/resin-supports.md) — CutGroove, rod geometry, per-machine support placement
 - [Resin selection](docs/resin-selection.md) — material choice: glyph fidelity, dimensional stability over time, current printer/slicer/profile setup
 - [Printer selection](docs/printer-selection.md) — pixel pitch vs. build volume, the measured case against the current machine, recovered requirements and open candidates
+- [Formlabs Form Studio 1](docs/formlabs-studio-1.md) — 2026-10 evaluation: specs, Alpha resins, stability gaps, purchase plan
 - [Calibration procedures](docs/calibration.md) — sweep tests, debugging symptoms, procedure order
 - [IBM Composer](docs/ibm-composer.md) — proportional unit system, hemisphere mapping, Composer vs Selectric
 - [Refactoring plan](docs/refactoring-plan.md) — shared library architecture, extraction order, old vs new code style (executed as of v2.0, see [CHANGELOG.md](CHANGELOG.md))

@@ -128,6 +128,13 @@ good proxy), and whether third-party firmware exists and is maintained.
 
 ## Candidate
 
+**Update 2026-10-15:** Formlabs announced the **Form Studio 1** — see
+`formlabs-studio-1.md`. Same 35 µm pitch as the Mono 4K, so it is a
+collimation/AA/process upgrade rather than a pitch upgrade — and the user
+judged (2026-10-15, from experience) that pixel size was never the limiting
+factor on the Mono 4K: 35 µm is past diminishing returns for these parts,
+which supersedes the "pitch is the dominant spec" framing below.
+
 **Elegoo Mars 5 Ultra** — the one concrete machine named on 2026-07-26. The
 questions asked about it were never answered:
 
