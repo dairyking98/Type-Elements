@@ -221,7 +221,7 @@ loses the Flex plate's value for small, hard-to-pry parts.
 | Recommended | Extra standard Resin Tank (one per resin) | $55 | **$1,068** |
 | Optional | Wash+Cure Rinse Bucket (two-stage wash) | $59 | $1,127 |
 
-**$1,068 + tax** is the recommendation. Core alone ($977) is a complete,
+**$1,068** is the recommendation — no sales tax, shipping to Oregon (resins/tanks may still add shipping). Core alone ($977) is a complete,
 working setup if a second resin can wait.
 
 Spend the $29 first-bottle discount on **Alpha Model** — it is the dearest
