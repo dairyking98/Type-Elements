@@ -296,7 +296,16 @@ you?"; "aim to respond within 10 minutes" in business hours) or call
 **+1 833 489 0545** (9–6 ET). Technical support for owners:
 https://support.formlabs.com/s/contact-support
 
-Draft message:
+**Sent 2026-10-15** via the Sales form (reply to dairyking98@gmail.com / phone). The
+final version asked three questions — the draft below was trimmed and edited
+before sending: (1) shrinkage / long-term stability / water-absorption data for
+*every* resin Studio 1 runs (all Alpha, Tough 1500 V2, Rigid 4000/10K, Tough 2000
+V2, Grey V5) and which is most stable; (2) whether heated cure in Form Cure V2
+reduces long-term shrinkage/creep or only adds strength; (3) whether $948 Complete
+and the $499 Cure V2 add-on are launch promotions, until when, and whether Cure V2
+can be added at $499 after the printer order. **Reply: pending** — record it here.
+
+Original draft (superseded):
 
 > I'm planning to buy a Form Studio 1 Complete (Founders Edition) to print
 > small precision parts (~25–33 mm) where dimensional stability over years
