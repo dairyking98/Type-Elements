@@ -215,7 +215,7 @@ loses the Flex plate's value for small, hard-to-pry parts.
 
 | Tier | Item | Price | Running total |
 |---|---|---|---|
-| Core | Form Studio 1 **Complete** | $948 | $948 |
+| Core | Form Studio 1 **Complete** — colour **Aqua** (Founders, user's pick 2026-10-15) | $948 | $948 |
 | Core | **Alpha Model** (founders: first Alpha bottle $29, list $42) | $29 | $977 |
 | Recommended | **Alpha Black** | $36 | $1,013 |
 | Recommended | Extra standard Resin Tank (one per resin) | $55 | **$1,068** |
