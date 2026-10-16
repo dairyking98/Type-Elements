@@ -257,7 +257,7 @@ marginally the *more* stable on the one stability proxy published.
 | Item | Price | Trigger |
 |---|---|---|
 | Resin Tank Pro | $79 | only to try Rigid 4000 (stability) or a third-party resin. With the printer choice settled, the ABS-Like 3.0 A/B comparison is no longer worth $79 |
-| Form Cure V2 (heated) | $499 (list $999) | only if the shrinkage coupon shows Alpha resins drifting and heated cure is the fix. *Ask Formlabs whether $499 is launch-only* — if it is, revisit before Nov 30 |
+| ~~Form Cure V2 (heated)~~ | $499 (list $999) | **dropped 2026-10-15** — Formlabs says heated cure doesn't improve stability (see "Asking Formlabs") |
 | Rigid 4000 | — | after the Pro tank, if Alpha drifts |
 | VOC Extractor | $179 | only if the printer lives in a living space; delays delivery to Jan 22 |
 | Flexible 80A V2 | $199 | parked by user, 2026-10-15 |
@@ -312,8 +312,13 @@ can be added at $499 after the printer order. **Reply (phone call, 2026-10-15, a
 - **Engineering resins (Rigid, Tough 2000 etc.): data exists**, but these are
   "not really designed for Studio 1" — consistent with their "compatible"
   status (Resin Tank Pro, self-tuned settings, no mixer for filled resins).
-- Heated cure (Q2) and pricing (Q3): not covered in what was relayed — still
-  open.
+- **Heated cure (Q2): "doesn't really help"** for stability. If anything,
+  heat during cure can introduce more creep; Formlabs tunes heat,
+  intensity and time so the effect is minimal. Decision: **no Form Cure V2.**
+  This overrides the general warm-post-cure advice in `resin-selection.md`
+  for Formlabs resins on this machine.
+- **Engineering resin data:** not requested — plan is Alpha-only to start.
+- Pricing (Q3): not covered in what was relayed; moot now that Cure V2 is out.
 
 Original draft (superseded):
 
@@ -352,8 +357,11 @@ sending.
 3. **Day one:** print the same Selectric element and the same coupon in
    Alpha Model and Alpha Black; start their clocks too. Check whether the
    ±0.5 % XY error is a consistent scale (compensable) or scatter.
-4. If Alpha resins drift on the coupon: buy the Pro tank and trial
-   **Rigid 4000** (hand-stirred), and decide on Form Cure V2 then.
+4. If Alpha drift is a consistent scale, compensate it in geometry (needs a
+   global scale knob — only Hammond has one today, see `resin-selection.md`).
+   Only if drift is too large or inconsistent: Pro tank ($79) + **Rigid 4000**
+   trial (hand-stirred). A Form 4 is the last resort, not the next step — its
+   50 µm pixel is coarser than Studio 1's 35 µm.
 5. Record results here and in `resin-selection.md`'s table.
 
 ---
