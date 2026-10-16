@@ -303,7 +303,17 @@ before sending: (1) shrinkage / long-term stability / water-absorption data for
 V2, Grey V5) and which is most stable; (2) whether heated cure in Form Cure V2
 reduces long-term shrinkage/creep or only adds strength; (3) whether $948 Complete
 and the $499 Cure V2 add-on are launch promotions, until when, and whether Cure V2
-can be added at $499 after the printer order. **Reply: pending** — record it here.
+can be added at $499 after the printer order. **Reply (phone call, 2026-10-15, as relayed by the user):**
+
+- **Alpha resins: Formlabs does no dimensional-accuracy / stability
+  characterisation.** No shrinkage or aging data exists to send — not merely
+  unpublished. The shrinkage coupon is therefore the *only* source of
+  stability data for the resins this printer is built around.
+- **Engineering resins (Rigid, Tough 2000 etc.): data exists**, but these are
+  "not really designed for Studio 1" — consistent with their "compatible"
+  status (Resin Tank Pro, self-tuned settings, no mixer for filled resins).
+- Heated cure (Q2) and pricing (Q3): not covered in what was relayed — still
+  open.
 
 Original draft (superseded):
 
@@ -352,8 +362,8 @@ sending.
 
 - Real-world XY accuracy on ~25–33 mm parts — systematic or random?
 - Does supersampling AA apply to non-native Formlabs resins (Rigid 4000)?
-- Alpha resin long-term dimensional stability — unpublished; asked of
-  Formlabs, and the coupon test regardless.
+- Alpha resin long-term dimensional stability — Formlabs confirmed
+  (2026-10-15) it does not characterise this. Coupon test is the only route.
 - Alpha Black pigment (carbon black?) — unpublished; asked of Formlabs.
 - Return policy — check before ordering.
 - Account requirement and firmware downgrade policy — unstated.
