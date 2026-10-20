@@ -33,7 +33,9 @@ function fontFamily(path) {
   if (!(path in faces)) {
     faces[path] = null;
     const name = `tef${++faceSeq}`;
-    new FontFace(name, `url("${engine.fontUrl(path)}")`).load()
+    // the in-browser engine hands over font bytes; the local engine a URL
+    const source = engine.fontData ? engine.fontData(path) : Promise.resolve(`url("${engine.fontUrl(path)}")`);
+    source.then((src) => new FontFace(name, src).load())
       .then((f) => { document.fonts.add(f); faces[path] = name; })
       .catch(() => { faces[path] = "error"; });
   }
@@ -109,6 +111,7 @@ const S = reactive({
   legendStamp: 0, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
   engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
+  booting: false, engineStatus: null, engineError: "", phoneLanding: false,
 });
 
 const fieldsByKey = computed(() => {
@@ -394,12 +397,14 @@ const FontField = {
     const fam = computed(() => fontFamily(path.value));
     const changed = computed(() => props.f.key in S.edits);
     const pick = () => { S.picker = { key: props.f.key, label: props.f.label, current: path.value, sample: props.sample }; };
-    return { path, fam, changed, pick, fontLabel, setVal, famStyle };
+    const substituted = computed(() => (S.data.font_substitutions || []).find((s) => s.key === props.f.key && s.to === path.value));
+    return { path, fam, changed, pick, fontLabel, setVal, famStyle, substituted, baseName };
   },
   template: `
   <div class="field wide" :id="'f-' + f.key">
     <label>{{ f.label }}<span v-if="changed" class="changed"></span></label>
     <div class="font-field">
+      <div v-if="substituted" class="note warn" style="margin:10px 12px 0">"{{ baseName(substituted.from) }}" isn't available in this browser - using {{ baseName(substituted.to) }} until you choose a font.</div>
       <div v-if="!path" class="font-missing" style="color:var(--text-3)">No font set{{ f.key === 'font2_path' ? ' - these characters use the main font.' : '.' }}</div>
       <div v-else class="spec" :style="fam === null ? { opacity: .35 } : {}">
         <div class="name"><FontText :path="path" :text="fontLabel(path)" /></div>
@@ -684,24 +689,74 @@ const FontPicker = {
     const sample = (S.picker.sample || "AaBbCc 0123 &?!").split("\n")[0];
     const choose = (p) => { setVal(S.picker.key, p); S.picker = null; };
     const close = () => (S.picker = null);
-    return { S, q, manual, shown, list, listEl, visible, sample, choose, close };
+    // In-browser engine: the page can't see the disk, so fonts are added -
+    // from the fonts installed on this computer (Chrome/Edge's Local Font
+    // Access, asks permission once) or as uploaded files. Both are kept in
+    // browser storage for next time.
+    const browserMode = engine.kind === "browser";
+    const localFonts = ref(null);
+    const localErr = ref("");
+    const busy = ref("");
+    const canLocal = typeof window.queryLocalFonts === "function";
+    async function loadLocal() {
+      localErr.value = "";
+      try {
+        const fonts = await window.queryLocalFonts();
+        localFonts.value = fonts.map((f) => ({ ps: f.postscriptName, family: f.family, style: f.style, full: f.fullName, data: f }));
+        if (!localFonts.value.length) localErr.value = "The browser didn't share any fonts.";
+      } catch (e) { localErr.value = "The browser didn't allow access to installed fonts (" + (e.message || e) + ")."; }
+    }
+    const shownLocal = computed(() => {
+      if (!localFonts.value) return [];
+      const toks = q.value.toLowerCase().split(/\s+/).filter(Boolean);
+      return localFonts.value.filter((f) => { const h = (f.family + " " + f.style + " " + f.full).toLowerCase(); return toks.every((t) => h.includes(t)); }).slice(0, 400);
+    });
+    async function addAndChoose(name, buffer) {
+      busy.value = "Adding " + name + "…";
+      try {
+        const entry = await engine.addFont(name, buffer);
+        S.fonts = null;
+        choose(entry.path);
+      } catch (e) { localErr.value = String(e.message || e); }
+      busy.value = "";
+    }
+    const pickLocal = async (f) => addAndChoose(f.ps + ".ttf", await (await f.data.blob()).arrayBuffer());
+    const upload = async (ev) => { const file = ev.target.files[0]; if (file) addAndChoose(file.name, await file.arrayBuffer()); };
+    const localStyle = (f) => ({ fontFamily: `"${f.full}", var(--sans)` });
+    return { S, q, manual, shown, list, listEl, visible, sample, choose, close,
+             browserMode, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localStyle };
   },
   template: `
   <div class="modal-bg" @click.self="close" @keydown.esc="close">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="head"><h2>{{ S.picker.label }}</h2><span class="spacer"></span><button class="btn small ghost" @click="close" aria-label="Close">✕</button></div>
       <div class="tools">
-        <div class="search" style="flex:1"><input id="font-q" class="input" style="width:100%" v-model="q" placeholder="Search installed fonts…" @keydown.esc="close"></div>
-        <span class="chip" v-if="list">{{ shown.length }}{{ shown.length === 800 ? '+' : '' }} / {{ list.length }}</span>
+        <div class="search" style="flex:1"><input id="font-q" class="input" style="width:100%" v-model="q" :placeholder="browserMode ? 'Search fonts…' : 'Search installed fonts…'" @keydown.esc="close"></div>
+        <span class="chip" v-if="list && !browserMode">{{ shown.length }}{{ shown.length === 800 ? '+' : '' }} / {{ list.length }}</span>
+      </div>
+      <div v-if="browserMode" class="tools" style="flex-wrap:wrap">
+        <button v-if="canLocal && !localFonts" class="btn small primary" @click="loadLocal">Show fonts installed on this computer</button>
+        <label class="btn small">Upload a font file…<input type="file" accept=".ttf,.otf,.ttc,.otc" style="display:none" @change="upload"></label>
+        <span v-if="busy" class="help">{{ busy }}</span>
+        <span v-if="localErr" class="help" style="color:var(--bad)">{{ localErr }}</span>
+        <span v-if="!canLocal" class="help">This browser can't list installed fonts (Chrome and Edge can) - upload a font file instead.</span>
       </div>
       <div class="list" ref="listEl">
-        <div v-if="!list" style="padding:20px;color:var(--text-3)">Loading installed fonts…</div>
+        <div v-if="!list" style="padding:20px;color:var(--text-3)">Loading fonts…</div>
+        <div v-if="browserMode && list" class="list-label">In the app{{ list.some(f => f.source === 'yours') ? ' (bundled + yours)' : ' (bundled)' }}</div>
         <div v-for="f in shown" :key="f.path" class="font-row" :data-path="f.path" :class="{ sel: f.path === S.picker.current }" @click="choose(f.path)">
           <div class="preview"><FontText v-if="visible[f.path]" :path="f.path" :text="sample" /><span v-else style="color:var(--text-3)">{{ sample }}</span></div>
           <div class="fam" :title="f.path">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
         </div>
       </div>
-      <div class="foot">
+      <div v-if="browserMode && localFonts" class="list" style="border-top:0;max-height:45%">
+        <div class="list-label">On this computer · click to add</div>
+        <div v-for="f in shownLocal" :key="f.ps" class="font-row" @click="pickLocal(f)">
+          <div class="preview" :style="localStyle(f)">{{ sample }}</div>
+          <div class="fam">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
+        </div>
+      </div>
+      <div class="foot" v-if="!browserMode">
         <input class="input" style="flex:1;font-family:var(--mono);font-size:12px;min-width:0" v-model="manual" placeholder="…or paste a font file path">
         <button class="btn primary" :disabled="!manual" @click="choose(manual)">Use this file</button>
       </div>
@@ -738,12 +793,17 @@ const App = {
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
-      // A phone can't reach an engine on itself - don't even try (no stuck
-      // "connecting", no local-network permission prompt); show the phone page.
-      if (engine.hosted && phone.value) { S.engineDown = true; S.engineUrl = engine.base; return; }
-      if (engine.hosted) S.connecting = true;
-      const ok = await engine.ping().catch(() => false);
-      S.connecting = false;
+      start();
+    });
+    // Phones see a short "what this is" page first: the local engine can't run
+    // on them, and the in-browser one is heavy for a phone. They can go on.
+    async function start() {
+      if (phone.value) { S.phoneLanding = true; return; }
+      S.phoneLanding = false;
+      if (engine.kind === "browser") { S.booting = true; engine.onStatus((s) => (S.engineStatus = s)); }
+      else if (engine.hosted) S.connecting = true;
+      const ok = await engine.ping().catch((e) => { S.engineError = String(e.message || e); return false; });
+      S.connecting = false; S.booting = false;
       if (!ok) { S.engineDown = true; S.engineUrl = engine.base; return; }
       S.machines = (await engine.machines()).groups;
       const all = S.machines.flatMap((g) => g.machines.filter((m) => m.available).map((m) => m.key));
@@ -757,26 +817,37 @@ const App = {
         else if (e.key === "Escape" && S.picker) S.picker = null;
       });
       addEventListener("beforeunload", (e) => { if (dirty.value) e.preventDefault(); });
-    });
+    }
+    const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, loadMachine, runBuild, saveCopy,
+    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
-             cancel: () => engine.cancel(), baseName };
+             cancel: () => engine.cancel(), baseName, location };
   },
   template: `
-  <div v-if="S.engineDown && phone" class="connect">
+  <div v-if="S.phoneLanding" class="connect">
     <div class="connect-card phone-card">
       <div class="brand" style="font-size:20px;margin-bottom:6px"><span class="dot">T</span>Type Elements</div>
       <img src="https://type-elements.leonardchau.com/assets/og/selectric-render.png" alt="A generated IBM Selectric typeball" class="phone-hero">
       <h1>Typewriter type elements, from any font.</h1>
       <p>Pick a machine, choose a typeface, arrange the keyboard, and export a print-ready 3D model of a working Selectric ball, Blickensderfer wheel or Hammond shuttle.</p>
-      <p class="note info" style="margin:14px 0">Building elements needs a computer for now - open this page on a laptop or desktop. A version that runs right in your phone's browser is in the works.</p>
+      <p class="note info" style="margin:14px 0">Best on a computer. It runs entirely in your browser, which is a lot to ask of a phone - it may be slow or run out of memory.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn primary" @click="shareLink">{{ S.shared ? 'Link copied' : 'Send this link to myself' }}</button>
         <a class="btn" href="/">Read about it</a>
         <a class="btn ghost" href="/v5-performance/">How fast is it?</a>
       </div>
-      <p class="help" style="margin-top:14px"><a href="#" @click.prevent="S.forceDesktop = true">Show the full app anyway</a></p>
+      <p class="help" style="margin-top:14px"><a href="#" @click.prevent="tryOnPhone">Try it here anyway</a></p>
+    </div>
+  </div>
+  <div v-else-if="S.engineDown && engine.kind === 'browser'" class="connect">
+    <div class="connect-card">
+      <div class="brand" style="font-size:20px;margin-bottom:6px"><span class="dot">T</span>Type Elements</div>
+      <h1>The engine couldn't start in this browser</h1>
+      <p class="note bad">{{ S.engineError || 'Unknown error' }}</p>
+      <p>It needs a recent Chrome, Edge or Firefox with WebAssembly. You can also run the engine on your computer instead.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" @click="location.reload()">Try again</button>
+        <button class="btn" @click="engine.setMode('local')">Use the local engine</button></div>
     </div>
   </div>
   <div v-else-if="S.engineDown" class="connect">
@@ -794,7 +865,7 @@ const App = {
         <input class="input" style="flex:1" v-model="S.engineUrl" aria-label="Engine address">
         <button class="btn primary" @click="retryEngine">Retry</button>
       </div>
-      <p class="help">A fully in-browser version - no install at all - is the next milestone.</p>
+      <p class="help">Or skip all that: <a href="#" @click.prevent="engine.setMode('browser')">run the engine in this browser instead</a> - nothing to install.</p>
     </div>
   </div>
   <div v-else class="shell">
@@ -835,6 +906,9 @@ const App = {
         <div class="nav-label">Machine</div>
         <button class="nav-item" @click="openConfigs"><span class="ico">⇪</span>Open config…</button>
         <button class="nav-item" @click="resetToMaster"><span class="ico">↺</span>Reset to defaults</button>
+        <div class="nav-label">Engine</div>
+        <button class="nav-item" :class="{ active: engine.mode === 'browser' }" @click="engine.mode !== 'browser' && engine.setMode('browser')" title="Runs entirely in this tab - nothing to install"><span class="ico">◍</span>In this browser</button>
+        <button class="nav-item" :class="{ active: engine.mode === 'local' }" @click="engine.mode !== 'local' && engine.setMode('local')" title="v5/server.py running on this computer"><span class="ico">⌁</span>Local engine</button>
       </nav>
 
       <main class="main" v-if="S.data">
@@ -863,7 +937,15 @@ const App = {
         </template>
       </main>
       <main class="main" v-else>
-        <div v-if="S.connecting" class="note info">Connecting to the engine on your computer at <b>{{ engine.base }}</b>…
+        <div v-if="S.booting" class="card boot-card">
+          <div class="card-body">
+            <h2 style="margin:0 0 6px;font-size:16px">Starting the engine in your browser</h2>
+            <p class="help" style="margin:0 0 12px">First visit downloads about 35 MB (Python, the geometry engine and Type Elements itself) - after that it's cached and starts in a few seconds. Nothing is uploaded; everything runs on this computer.</p>
+            <div class="progress"><div :style="{ width: ((S.engineStatus && S.engineStatus.progress) || 0.03) * 100 + '%' }"></div></div>
+            <p class="help" style="margin:8px 0 0">{{ S.engineStatus ? S.engineStatus.text : 'Starting…' }}</p>
+          </div>
+        </div>
+        <div v-else-if="S.connecting" class="note info">Connecting to the engine on your computer at <b>{{ engine.base }}</b>…
           If your browser is asking whether this site may access apps or devices on your local network, choose <b>Allow</b>.</div>
         <p v-else style="color:var(--text-3)">Loading…</p>
       </main>
@@ -890,7 +972,7 @@ const App = {
             <span class="chip" style="min-width:64px;justify-content:center">{{ S.job.running ? S.job.label + ' ' : '' }}{{ S.job.elapsed ? S.job.elapsed.toFixed(0) + 's' : '—' }}</span>
           </div>
           <div class="row" v-if="S.build.stl && !S.job.running">
-            <a class="btn small" :href="engine.stlUrl(S.machine)" download>Download STL</a>
+            <a class="btn small" :href="engine.stlUrl(S.machine)" :download="S.machine + '.stl'">Download STL</a>
             <button class="btn small" @click="saveCopy" title="Timestamped copy + config sidecar in output/saved">Save a copy</button>
           </div>
           <details>

@@ -25,17 +25,26 @@ import yaml
 V4 = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "v4")
 CONFIG_DIR = os.path.join(V4, "config")
 COVERAGE_REPORT = os.path.join(V4, "output", "font_coverage_report.md")
+RUNNING_DIR = None    # None = running copies sit next to their master (tune.py's convention)
+PROFILES_DIR = None   # None = <config dir>/profiles (tune.py's convention)
 
 
-def configure(v4_dir=None, config_dir=None):
+def configure(v4_dir=None, config_dir=None, running_dir=None, profiles_dir=None):
     """Point the core at a v4 tree (and optionally a different folder of
-    master configs) and make v4's modules importable."""
-    global V4, CONFIG_DIR, COVERAGE_REPORT
+    master configs) and make v4's modules importable. running_dir /
+    profiles_dir let the in-browser engine keep the user's own state in
+    persistent browser storage while the masters ship with the site."""
+    global V4, CONFIG_DIR, COVERAGE_REPORT, RUNNING_DIR, PROFILES_DIR
     if v4_dir:
         V4 = os.path.abspath(v4_dir)
         CONFIG_DIR = os.path.join(V4, "config")
     if config_dir:
         CONFIG_DIR = os.path.abspath(config_dir)
+    if running_dir:
+        RUNNING_DIR = os.path.abspath(running_dir)
+        os.makedirs(RUNNING_DIR, exist_ok=True)
+    if profiles_dir:
+        PROFILES_DIR = os.path.abspath(profiles_dir)
     COVERAGE_REPORT = os.path.join(V4, "output", "font_coverage_report.md")
     for p in (os.path.join(V4, "lib"), V4):
         if p not in sys.path:
@@ -85,7 +94,7 @@ def paths(machine):
     master = os.path.join(CONFIG_DIR, f"{machine}.yaml")
     if not os.path.isfile(master):
         raise EngineError(404, f"no config for {machine!r} in {CONFIG_DIR}")
-    return master, os.path.join(CONFIG_DIR, f"{machine}.running.yaml")
+    return master, os.path.join(RUNNING_DIR or CONFIG_DIR, f"{machine}.running.yaml")
 
 
 def load_running(machine):
@@ -603,6 +612,11 @@ def save_copy(machine, body=None):
 
 # ------------------------------------------------------------------ font profiles
 
+def _profiles_root():
+    """font_profiles keeps profiles in <root>/profiles/font_and_alignment."""
+    return PROFILES_DIR or CONFIG_DIR
+
+
 def profile_field_paths(machine):
     return [list(f[1]) for f in tune.SECTIONS_BY_MACHINE.get(machine, {}).get("Font & Alignment", [])]
 
@@ -612,7 +626,7 @@ def profiles(machine):
     paths_ = profile_field_paths(machine)
     current = font_profiles.collect_from_config(cfg, paths_)
     out = []
-    for name, path in font_profiles.list_profiles(CONFIG_DIR):
+    for name, path in font_profiles.list_profiles(_profiles_root()):
         _n, values = font_profiles.load_profile(path)
         applied, aliased, skipped, unset = font_profiles.apply_to(values, paths_)
         merged = {**applied, **{k: v for k, (v, _src) in aliased.items()}}
@@ -626,21 +640,21 @@ def profile_save(machine, body):
     name = (body.get("name") or "").strip()
     if not name:
         raise EngineError(400, "profile needs a name")
-    font_profiles.save_profile(CONFIG_DIR, name, font_profiles.collect_from_config(cfg, profile_field_paths(machine)),
+    font_profiles.save_profile(_profiles_root(), name, font_profiles.collect_from_config(cfg, profile_field_paths(machine)),
                                saved_from=machine)
     return profiles(machine)
 
 
 def profile_rename(machine, body):
     try:
-        font_profiles.rename_profile(CONFIG_DIR, body["old"], body["new"])
+        font_profiles.rename_profile(_profiles_root(), body["old"], body["new"])
     except (KeyError, ValueError, FileExistsError, FileNotFoundError) as e:
         raise EngineError(400, str(e))
     return profiles(machine)
 
 
 def profile_delete(machine, body):
-    font_profiles.delete_profile(CONFIG_DIR, body.get("name", ""))
+    font_profiles.delete_profile(_profiles_root(), body.get("name", ""))
     return profiles(machine)
 
 

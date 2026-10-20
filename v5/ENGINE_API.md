@@ -13,12 +13,21 @@ Two implementations share this contract:
   The folder must contain an `index.html`. It is served at
   `http://127.0.0.1:8090/app/`, so use relative URLs for your own assets and
   absolute `/api/...` URLs for the engine.
-- **Later:** an in-browser engine (Pyodide + manifold WebAssembly) behind the
-  same methods, so a UI can be published as a plain static site.
+- **In the browser:** `v5/ui/engine_browser.js`, the same methods with v4
+  running in a Web Worker (Pyodide + manifold WebAssembly). This is how the
+  hosted site works with no server. A UI can import it directly.
 
-The reference UI (`v5/ui/`) keeps every engine call in `engine.js`. Copy that
-file into your UI and you have the whole API as JavaScript functions. When the
-in-browser engine lands, only that file changes.
+The reference UI (`v5/ui/`) keeps every engine call behind `engine.js`, which
+picks `engine_http.js` (local server) or `engine_browser.js` (in-browser). Copy
+those three into your UI and you have the whole API as JavaScript functions,
+on either engine.
+
+The browser engine adds a few things a UI should use:
+- `fontData(path)` returns font bytes (it has no font URLs).
+- `addFont(name, arrayBuffer)` adds a font the user picked.
+- `onStatus(fn)` reports boot progress.
+- `config()` results carry `font_substitutions` for fonts that aren't
+  available in the browser.
 
 All bodies are JSON. Errors come back as HTTP 4xx with `{"detail": "message"}`.
 

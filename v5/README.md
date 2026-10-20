@@ -19,9 +19,21 @@ Options: `--ui DIR` (serve a different front end), `--config-dir DIR`
 (scratch config copies for testing), `--port`, `--host` (default 127.0.0.1 =
 this computer only). First time: `v4/.venv/bin/python3 -m pip install fastapi uvicorn`.
 
-**Try it:** [type-elements.leonardchau.com/app/](https://type-elements.leonardchau.com/app/)
-(the hosted UI - it connects to the engine on your computer until the
-in-browser engine lands).
+**Try it:** [type-elements.leonardchau.com/app/](https://type-elements.leonardchau.com/app/) -
+runs entirely in your browser, nothing to install.
+
+## Two engines, one API
+
+| engine | where it runs | needs | default when |
+|---|---|---|---|
+| **In this browser** | v4's own Python under Pyodide in a Web Worker, Minkowski sums on a worker pool (`browser/`, `ui/engine_browser.js`) | a recent Chrome / Edge / Firefox; ~35 MB first visit, cached after | the hosted site |
+| **Local engine** | `v5/server.py` running v4's scripts | the repo + Python | the page is served by `server.py` |
+
+Both run the same `engine_core.py`, so they behave the same; switch in the
+app's sidebar (Engine). In the browser, fonts come from a bundled set
+(GNU FreeMono/FreeSans) plus any you add - installed fonts (Chrome/Edge ask
+permission once) or uploaded files - and everything you change is kept in
+browser storage.
 
 ## Performance
 
@@ -83,6 +95,6 @@ saves, `Ctrl+Enter` previews. Light/dark. Works down to phone width.
 
 | | |
 |---|---|
-| done | engine API + local server; reference UI covering every v4 parameter; hosted UI at /app/; Minkowski-in-WebAssembly spike (worker pool beats native) |
-| **now - phase 2** | v4's Python running in the page (Pyodide) with the worker-pool Minkowski; then an engine switch: *in-browser* (no install, default) or *local engine* (desktop) |
+| done | engine API + local server; reference UI covering every v4 parameter; Minkowski-in-WebAssembly spike (worker pool beats native); **in-browser engine live at /app/** - v4's own Python in a worker, output identical to native, engine switch in the app |
+| next | test every machine in the browser engine; ship merge vectors with pool results (exact vertex counts) |
 | later | single-file desktop launcher; vendored libraries for offline use |

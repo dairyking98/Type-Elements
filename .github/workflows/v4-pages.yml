@@ -16,9 +16,13 @@ on:
       - "v4/LIMITATIONS.md"
       - "v4/docs/**"
       - "v4/example_renders/**"
-      - "v5/ui/**"
-      - "v5/*.md"
-      - "v5/docs/**"
+      - "v5/**"
+      - "v4/lib/**"
+      - "v4/config/**"
+      - "v4/generate.py"
+      - "v4/type_test.py"
+      - "v4/generate_legend.py"
+      - "v4/font_coverage.py"
       - ".github/workflows/v4-pages.yml"
   workflow_dispatch: {}
 
@@ -58,6 +62,10 @@ jobs:
         run: |
           mkdir -p _site/app
           cp -r v5/ui/. _site/app/
+          rm -rf _site/app/_engine
+          # the in-browser engine: v4's code + configs, engine_core, the
+          # browser adapters and bundled fonts (see v5/browser/make_bundle.py)
+          python3 v5/browser/make_bundle.py _site/app/_engine
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
