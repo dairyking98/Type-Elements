@@ -95,7 +95,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=4fac0c0d81", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=47d1df6d5d", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;

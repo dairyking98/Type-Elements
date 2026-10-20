@@ -1,13 +1,13 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=4fac0c0d81";
-import { Viewer } from "./viewer.js?v=4fac0c0d81";
+import { engine } from "./engine.js?v=47d1df6d5d";
+import { Viewer } from "./viewer.js?v=47d1df6d5d";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
 // regrouped by what the user is doing. A machine only sees groups it has
 // something in; any section no group claims lands in Element.
 const GROUPS = [
-  { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment"], custom: "profiles",
+  { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment", "Type test"], custom: "profiles",
     blurb: "The fonts every struck character is cut from, with sizing and alignment. Save a combination as a profile to reuse it." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
@@ -22,7 +22,7 @@ const GROUPS = [
   { id: "tools", label: "Tests & tools", icon: "⚙", sections: ["Calibration", "Gauge"], custom: "tools",
     blurb: "Calibration sweeps, the shaft gauge, type-test plates, legend sheets and font coverage." },
 ];
-const TOOL_SECTIONS = ["Type test", "Legend", "Legend output"];   // drawn inside the Tools page's own cards
+const TOOL_SECTIONS = ["Legend", "Legend output"];   // drawn inside the Tools page's own cards
 const FONT_KEYS = new Set(["path", "font2_path", "font_path", "label_font_path", "legend_font_path"]);
 
 // ---------------------------------------------------------------- fonts
@@ -112,6 +112,7 @@ const S = reactive({
   legendStamp: 0, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
   engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
+  typeTestAuto: (() => { try { return !!localStorage.getItem("te.typeTestAuto"); } catch { return false; } })(),
   booting: false, engineStatus: null, engineError: "", phoneLanding: false,
 });
 
@@ -179,8 +180,8 @@ async function save() {
   let res;
   try { res = await engine.save(S.machine, body); } catch (e) { toast(String(e), "bad"); return false; }
   S.data = res; S.edits = {}; S.rows = null; S.preset = null;
-  if (res.errors.length) { toast(res.errors.join(" · "), "bad"); refreshGlyphs(); return false; }
-  toast(`Saved ${res.changed} change${res.changed === 1 ? "" : "s"}`, "ok");
+  if ((res.errors || []).length) { toast(res.errors.join(" · "), "bad"); refreshGlyphs(); return false; }
+  toast(`Saved ${res.changed ?? ""} change${res.changed === 1 ? "" : "s"}`.replace("  ", " "), "ok");
   engine.profiles(S.machine).then((p) => (S.profiles = p));
   refreshGlyphs();
   return true;
@@ -619,10 +620,6 @@ const ToolsPage = {
   <SectionCard v-if="gauge" :s="gauge" title="Shaft gauge">
     <template #actions><button class="btn small" :disabled="S.job.running" @click="buildAs('gauge')">Build shaft gauge</button></template>
   </SectionCard>
-  <SectionCard v-if="tt" :s="tt" title="Type test plate">
-    <template #top><p class="help" style="margin-top:0">A flat plate of text in the current font and alignment - print it to check spacing before cutting a whole element.</p></template>
-    <template #actions><button class="btn small primary" :disabled="S.job.running" @click="runTypeTest">Render type test</button></template>
-  </SectionCard>
   <SectionCard v-if="legend" :s="legend" title="Legend sheet">
     <template #actions><button class="btn small primary" :disabled="S.job.running" @click="runLegend">Generate legend</button></template>
     <div v-if="legendOut" class="fields" style="margin-top:14px">
@@ -661,6 +658,35 @@ const ToolsPage = {
       <p class="help">Results stream into the build log. "Check current font" lists what the font is missing, the glyphs it has that you could swap in, and other fonts that cover the gap.</p>
     </div>
   </section>`,
+};
+
+// Type test plate on the Typeface page: render a flat plate of text in the
+// current font/alignment, optionally re-rendering after every change so a
+// size or offset tweak shows up in the 3D view a few seconds later.
+let autoTimer = null, autoPending = false;
+watch(() => JSON.stringify(S.edits), () => {
+  if (!S.typeTestAuto || !Object.keys(S.edits).length) return;
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    if (S.job.running) { autoPending = true; return; }
+    runTypeTest();
+  }, 900);
+});
+watch(() => S.job.running, (running) => { if (!running && autoPending && S.typeTestAuto) { autoPending = false; runTypeTest(); } });
+
+const TypeTestCard = {
+  props: ["s"],
+  components: { SectionCard },
+  setup() {
+    const toggleAuto = (v) => { S.typeTestAuto = v; try { localStorage.setItem("te.typeTestAuto", v ? "1" : ""); } catch {} };
+    return { S, runTypeTest, toggleAuto };
+  },
+  template: `
+  <section-card :s="s" title="Type test plate">
+    <template #top><p class="help" style="margin-top:0">A flat plate of text in the current font and alignment - render it to check spacing, then print it before cutting a whole element. It shows up in the 3D view, seen from above.</p>
+      <label class="switch" style="margin-bottom:10px"><input type="checkbox" :checked="S.typeTestAuto" @change="toggleAuto($event.target.checked)"><span>Re-render after every change</span></label></template>
+    <template #actions><button class="btn small primary" :disabled="S.job.running" @click="runTypeTest">Render type test</button></template>
+  </section-card>`,
 };
 
 const FontPicker = {
@@ -793,7 +819,7 @@ const FontPicker = {
 };
 
 const App = {
-  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontPicker },
+  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontPicker, TypeTestCard },
   setup() {
     const viewerEl = ref(null);
     const logRef = ref(null);
@@ -958,7 +984,8 @@ const App = {
           </div>
           <LayoutPage v-if="currentGroup.custom === 'layout' && S.data.cfg.layout && S.data.cfg.layout.rows" />
           <template v-for="name in (currentGroup.custom === 'tools' ? [] : currentGroup.sections)" :key="name">
-            <SectionCard :s="section(name)" />
+            <TypeTestCard v-if="name === 'Type test'" :s="section(name)" />
+            <SectionCard v-else :s="section(name)" />
             <ProfilesCard v-if="name === 'Font & Alignment'" />
           </template>
           <ToolsPage v-if="currentGroup.custom === 'tools'" />
