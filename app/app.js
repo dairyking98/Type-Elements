@@ -404,7 +404,10 @@ const FontField = {
   <div class="field wide" :id="'f-' + f.key">
     <label>{{ f.label }}<span v-if="changed" class="changed"></span></label>
     <div class="font-field">
-      <div v-if="substituted" class="note warn" style="margin:10px 12px 0">"{{ baseName(substituted.from) }}" isn't available in this browser - using {{ baseName(substituted.to) }} until you choose a font.</div>
+      <div v-if="substituted" class="note warn" style="margin:10px 12px 0">
+        <template v-if="baseName(substituted.from) === baseName(substituted.to)">Using the copy of {{ fontLabel(substituted.to) }} that ships with the app - this config's own file is on another computer.</template>
+        <template v-else>"{{ fontLabel(substituted.from) }}" isn't available in this browser - using {{ fontLabel(substituted.to) }} until you choose a font.</template>
+      </div>
       <div v-if="!path" class="font-missing" style="color:var(--text-3)">No font set{{ f.key === 'font2_path' ? ' - these characters use the main font.' : '.' }}</div>
       <div v-else class="spec" :style="fam === null ? { opacity: .35 } : {}">
         <div class="name"><FontText :path="path" :text="fontLabel(path)" /></div>
