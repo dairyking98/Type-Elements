@@ -1,43 +1,62 @@
-# Web GUI (branch `web-gui`)
+# Web UI (branch `web-gui`)
 
-A local web app to replace `tune.py`: Python backend (NiceGUI on FastAPI),
-UI in the browser. Same on Linux and Windows, renders every Unicode
-character, 3D preview built in (no f3d).
+The replacement for `tune.py`: a **static web app** (`webgui/static/`, plain
+HTML/CSS/JS, no build step) plus a small **local engine server**
+(`webgui/server.py`, FastAPI) that runs the existing pipeline.
 
 ```
-.venv/bin/python3 webgui/app.py            # Linux  - opens http://127.0.0.1:8090
-.venv\Scripts\python webgui\app.py         # Windows
+.venv/bin/python3 webgui/server.py --open        # Linux   -> http://127.0.0.1:8090
+.venv\Scripts\python webgui\server.py --open     # Windows
 ```
 
-Options: `--machine selectric12` (open with), `--port`, `--no-browser`,
-`--host` (default 127.0.0.1 = this machine only), `--config-dir DIR`
-(test against scratch config copies, never the real files).
+Options: `--config-dir DIR` (scratch config copies for testing), `--port`,
+`--host` (default 127.0.0.1 = this computer only).
 
-It reads and writes the same `config/<machine>.running.yaml` files tune.py
-does, with tune.py's own field tables and YAML patchers (`import tune`), and
-builds with the same `generate.py` subprocess. Both front ends can be used
-side by side while this grows.
+## Why this shape
 
-## Done (slice 1, 2026-10-19)
+End goal: publish the UI on GitHub Pages and run everything **in the
+visitor's browser** - no server. `static/engine.js` is the only file that
+knows where the work happens; today it talks HTTP to `server.py`, later it
+talks to an in-browser engine with the same methods:
 
-- Machine picker; every scalar settings field from tune.py's per-machine
-  tables, tooltips from their help text; Save.
-- Preview (no Minkowski) / Render (Minkowski) of the element target: live
-  log with WARNING lines highlighted, progress bar from the `[n/total]`
-  lines, elapsed time.
-- 3D viewer of the built STL, refreshed after each build.
-- Layout grid drawn **in the configured font**, characters the font lacks
-  flagged red (same check as the build-time "Characters not found").
+- Pyodide (Python in WebAssembly) ships numpy, scipy, shapely, pyyaml,
+  fontTools.
+- manifold has an official WebAssembly build with `minkowskiSum`
+  (manifold-3d 3.4+), replacing the manifold3d Python wheel.
+- Three dependencies have no browser build and need small adapter modules:
+  freetype-py (-> fontTools), triangle (-> shapely/earcut), python-fcl.
+- Fonts come from the visitor's own files (browser file picker), never
+  uploaded anywhere.
 
-## Next
+## What the server reuses
 
-1. Layout editing in the grid (click a slot, pick a character — including
-   the font's unused glyphs as swap candidates), presets, hemisphere maps.
-2. Build targets: gauge, calibration, Hammond rib/normal, cross-section,
-   cut bodies, resin on/off.
-3. Font picker (installed fonts list via `lib/system_fonts.py`), font 2,
-   font profiles.
-4. Font Coverage, Type Test, Legend tabs.
-5. Move the field tables out of tune.py into a `lib/` module both import.
-6. Native window + single-exe packaging (NiceGUI `native=True` / PyInstaller)
-   — see `PACKAGING_PLAN.md`; f3d download step no longer needed.
+`server.py` imports tune.py for its field tables, comment-preserving YAML
+patchers and running-config migration, and runs `generate.py`,
+`type_test.py`, `generate_legend.py` and `font_coverage.py` as subprocesses
+with exactly the flags tune.py uses. Both front ends read and write the same
+`config/<machine>.running.yaml`, so they can be used side by side.
+
+## UI map
+
+Settings regrouped by task instead of tune.py's 17 tabs:
+
+| Page | Contains |
+|---|---|
+| Typeface | font, font 2 (specimens drawn in the real font), size, alignment, font profiles |
+| Layout | keyboard grid in the real font, missing characters flagged, click a slot to swap (including the font's unused glyphs), presets (sets hemisphere map / Hammond baselines like tune.py), row baselines/cutouts |
+| Element | Element, Cosmetics, bands, Rib, Ticks |
+| Logo & label | Logo, Label (font specimens show the actual logo/label text) |
+| Print prep | resin supports, orientation, Hammond horizontal method, Hammond Split halves, Resin |
+| Quality | facet counts |
+| Tests & tools | Calibration and Shaft gauge (with build buttons), Type test plate, Legend sheet (preview + download), Font coverage |
+
+Always visible: 3D viewer, build target, Preview / Render / Stop, progress,
+warnings summary, log, Download STL, Save a copy (timestamped STL + config
+sidecar in `output/saved/`). Search (`/`) across every setting. `Ctrl+S`
+saves, `Ctrl+Enter` previews. Light/dark. Works down to phone width.
+
+## Not done yet
+
+- Browse to a different master config (tune.py's Browse).
+- In-browser engine (the GitHub Pages step).
+- Single-file packaging.
