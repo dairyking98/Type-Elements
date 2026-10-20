@@ -108,7 +108,7 @@ const S = reactive({
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
-  engineDown: false, engineUrl: "",
+  engineDown: false, engineUrl: "", connecting: false,
 });
 
 const fieldsByKey = computed(() => {
@@ -728,7 +728,10 @@ const App = {
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
-      if (!(await engine.ping().catch(() => false))) { S.engineDown = true; S.engineUrl = engine.base; return; }
+      if (engine.hosted) S.connecting = true;
+      const ok = await engine.ping().catch(() => false);
+      S.connecting = false;
+      if (!ok) { S.engineDown = true; S.engineUrl = engine.base; return; }
       S.machines = (await engine.machines()).groups;
       const all = S.machines.flatMap((g) => g.machines.filter((m) => m.available).map((m) => m.key));
       await loadMachine(all.includes(S.machine) ? S.machine : all[0], true);
@@ -828,7 +831,11 @@ const App = {
           <ToolsPage v-if="currentGroup.custom === 'tools'" />
         </template>
       </main>
-      <main class="main" v-else><p style="color:var(--text-3)">Loading…</p></main>
+      <main class="main" v-else>
+        <div v-if="S.connecting" class="note info">Connecting to the engine on your computer at <b>{{ engine.base }}</b>…
+          If your browser is asking whether this site may access apps or devices on your local network, choose <b>Allow</b>.</div>
+        <p v-else style="color:var(--text-3)">Loading…</p>
+      </main>
 
       <aside class="side">
         <div class="viewer" ref="viewerEl">
