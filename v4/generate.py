@@ -64,6 +64,25 @@ def _load_machine(config_path):
     return importlib.import_module(cfg.get("machine", "blickensderfer"))
 
 
+def _report_glyph_problems():
+    """WARNING for every character a font didn't have (glyph_poc.GLYPH_
+    PROBLEMS) - printed after `wrote ...` like the overhang report, so a
+    build with a blank or boxed slot can't pass unnoticed. Font Coverage's
+    CHECK CURRENT FONT finds replacements."""
+    import glyph_poc
+    for font_path, chars in glyph_poc.GLYPH_PROBLEMS.items():
+        missing = "".join(c for c, k in chars.items() if k == "missing")
+        blank = "".join(c for c, k in chars.items() if k == "blank")
+        detail = []
+        if missing:
+            detail.append(f"not in font: {missing}")
+        if blank:
+            detail.append(f"in font but empty: {blank}")
+        build_log.warn("Characters not found",
+                       f"{os.path.basename(font_path)} - {'; '.join(detail)} - those slots are "
+                       f"empty or a placeholder box. Font Coverage > CHECK CURRENT FONT finds a replacement.")
+
+
 def _report_overhangs(bd, args, mesh, label, has_supports, rows=False):
     """lib/overhang.py's print-orientation report, printed AFTER `wrote
     ...` so the mesh_report line stays the last line before it (the hard-
@@ -225,6 +244,7 @@ def main():
         build_log.mesh_report(full, "GaugeTestSet")
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
+        _report_glyph_problems()
         _report_overhangs(bd, args, full, "GaugeTestSet", has_supports=None)
         return
 
@@ -269,6 +289,7 @@ def main():
         with open(mapping_path, "w") as f:
             f.write("\n".join(mapping_lines) + "\n")
         print(f"wrote {mapping_path}", flush=True)
+        _report_glyph_problems()
         _report_overhangs(bd, args, full, "CalibrationElement", has_supports=None)
         return
 
@@ -284,6 +305,7 @@ def main():
         build_log.mesh_report(full, label)
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
+        _report_glyph_problems()
         _report_overhangs(bd, args, full, "RibOnly", has_supports=None)
         return
 
@@ -305,6 +327,7 @@ def main():
         build_log.mesh_report(full, "NormalElement")
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
+        _report_glyph_problems()
         _report_overhangs(bd, args, full, "NormalElement", has_supports=None)
         return
 
@@ -336,6 +359,7 @@ def main():
     build_log.atomic_export(full, out_path)
     print(f"wrote {out_path}", flush=True)
     if not args.cut_bodies:
+        _report_glyph_problems()
         _report_overhangs(bd, args, full, label, has_supports=resin_support, rows=True)
 
 

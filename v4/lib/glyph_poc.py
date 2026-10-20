@@ -348,14 +348,38 @@ def get_glyph_contours(char, flatness_tolerance_mm, scale, font_path=None):
     return contours
 
 
+# Every character a build asked a font for and didn't get - {font_path:
+# {char: "missing" | "blank"}}. "missing" = not in the font's character
+# map (FreeType silently substitutes .notdef, often an empty box);
+# "blank" = mapped but drawn with zero contours (whitespace excluded).
+# Either way the element gets a wrong or empty slot with no error, so
+# generate.py prints this as a WARNING after every build. Same two
+# categories as font_coverage.py's check_font().
+GLYPH_PROBLEMS = {}
+
+
+def _record_glyph_problem(font_path, char, face):
+    if char.isspace():
+        return
+    if face.get_char_index(ord(char)) == 0:
+        kind = "missing"
+    elif face.glyph.outline.n_contours == 0:
+        kind = "blank"
+    else:
+        return
+    GLYPH_PROBLEMS.setdefault(font_path, {})[char] = kind
+
+
 def get_glyph_contours_and_advance(char, flatness_tolerance_mm, scale, font_path=None):
     """Returns contours already scaled to real mm (contour_to_points() does
     the scaling internally now, since its flatness test needs mm-space
     regardless - callers no longer need their own separate "* scale" step,
     unlike the old points_per_mm version this replaced)."""
-    face = load_font_face(font_path or FONT_PATH)
+    font_path = font_path or FONT_PATH
+    face = load_font_face(font_path)
     face.set_char_size(face.units_per_EM)
     face.load_char(char, freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING)
+    _record_glyph_problem(font_path, char, face)
     outline = face.glyph.outline
     advance_mm = face.glyph.advance.x * scale
     contours = []

@@ -8004,3 +8004,30 @@ unrelated.
 - The threshold is a guess; tune it once Studio 1 prints show which wall
   angles actually droop.
 
+
+## 93. Missing characters: warned at build, checked per font (2026-10-19)
+
+Asked for: a Font Coverage check of the *current* font against every
+layout character, with replacement-finding for anything missing, and a
+"character not found" warning so elements stop getting built with empty
+slots.
+
+- `glyph_poc.get_glyph_contours_and_advance` records every character a
+  font lacks (`GLYPH_PROBLEMS`: "missing" = not in cmap, FreeType quietly
+  draws .notdef, often an empty box; "blank" = mapped, zero contours;
+  whitespace exempt). `generate.py` prints `Characters not found: WARNING`
+  per font after `wrote ...` on every output path. Covers font2 and logo
+  fonts too, since it records the font actually used.
+- `font_coverage.py --font [--font2 --font2-chars]`: checks the configured
+  font(s) the way the machines pick them; if anything is missing, the
+  existing directory scan runs on just the missing characters. Whitespace
+  no longer counts as "blank" in `check_font` (an empty slot is by design).
+- tune.py Font Coverage tab: CHECK CURRENT FONT button, reading the Font
+  tab's live font/font2 values. Also part of this commit series: RENDER
+  TEST TEXT shows only on the Type Test tab; Blick/Postal
+  `logo.radial_offset_mm` -> `logo.outer_inset_mm`.
+
+Verified: scratch Blickensderfer config with "⅌" in a row -> warning
+naming the font and character; real configs -> no warning, gate identical
+(blickensderfer, selectric12); tune.py pilot on a scratch config -> button
+reports 2/3 present, ⅌ missing, 10 replacement fonts.

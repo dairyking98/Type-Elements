@@ -21,6 +21,11 @@ Usage:
     # FONT_AUDIT.md found - slow, minutes over a 1000+ font library):
     python3 font_coverage.py --preset hammond:"Universal, Math" --deep
 
+    # check ONE font (plus an optional font2 for listed characters, the way
+    # the machines pick it) against the set; if anything is missing, scan
+    # --font-dir for fonts that have exactly the missing characters:
+    python3 font_coverage.py --config config/blickensderfer.yaml --font "/path/Font.ttf"
+
 --preset reads lib/layouts, which is plain data with no third-party
 imports, so it no longer needs tune.py's TUI dependency stack installed.
 """
@@ -86,6 +91,9 @@ def check_font(font_path, charset, deep=False):
     scale = em_to_mm_scale(FONT_SIZE_MM, face.units_per_EM) if face.units_per_EM else 1.0
     ok, blank, missing, deep_errors = [], [], [], []
     for ch in charset:
+        if ch.isspace():  # an empty slot by design, never a coverage gap
+            ok.append(ch)
+            continue
         gid = face.get_char_index(ord(ch))
         if gid == 0:
             missing.append(ch)
@@ -111,6 +119,41 @@ def check_font(font_path, charset, deep=False):
     }
 
 
+def check_current_font(charset, args):
+    """--font mode: check the configured font(s) the way the machines pick
+    them (font2 for --font2-chars, else the main font) and print what's
+    missing. Returns the problem characters - the charset the replacement
+    scan should run with - or [] when everything is there."""
+    font2 = args.font2 or args.font
+    by_font = {}
+    for ch in charset:
+        path = font2 if ch in args.font2_chars else args.font
+        by_font.setdefault(path, []).append(ch)
+    problems = []
+    for path, chars in by_font.items():
+        r = check_font(path, chars, deep=args.deep)
+        name = os.path.basename(path)
+        if "error" in r:
+            print(f"WARNING: can't read current font {path}: {r['error']}")
+            problems.extend(chars)
+            continue
+        bad = r["missing"] + r["blank"] + [c for c, _e in r["deep_errors"]]
+        print(f"current font {name}: {len(chars) - len(bad)}/{len(chars)} characters present")
+        if r["missing"]:
+            print(f"  WARNING: character not found (not in font): {format_chars(r['missing'])}")
+        if r["blank"]:
+            print(f"  WARNING: character not found (in font but empty): {format_chars(r['blank'])}")
+        if r["deep_errors"]:
+            print(f"  WARNING: pipeline errors: {format_chars([c for c, _e in r['deep_errors']])}")
+        problems.extend(bad)
+    if not problems:
+        print(f"\nOK: all {len(charset)} characters present - no replacement needed.")
+        return []
+    print(f"\nsearching for replacement fonts covering the {len(problems)} missing "
+          f"character(s): {format_chars(problems)}\n", flush=True)
+    return problems
+
+
 def format_chars(chars):
     return "".join(chars) if chars else "-"
 
@@ -128,6 +171,10 @@ def main():
     parser.add_argument("--deep", action="store_true",
                          help="also run each glyph through the real contour/triangulate pipeline")
     parser.add_argument("--out", help="write the full per-font breakdown as markdown to this path")
+    parser.add_argument("--font", help="check this one font against the set first; only if characters "
+                                       "are missing, scan --font-dir for replacements covering them")
+    parser.add_argument("--font2", help="with --font: secondary font used for --font2-chars")
+    parser.add_argument("--font2-chars", default="", help="with --font: characters drawn from --font2")
     args = parser.parse_args()
 
     if args.preset:
@@ -137,6 +184,11 @@ def main():
     else:
         charset = args.chars
     charset = list(dict.fromkeys(charset))  # de-dupe, keep first-seen order
+
+    if args.font:
+        charset = check_current_font(charset, args)
+        if not charset:
+            return
     total_chars = len(charset)
 
     font_dir = os.path.expanduser(args.font_dir)

@@ -3654,8 +3654,14 @@ class TuneApp(App):
                     classes="field-help")
 
                 with Horizontal(id="coverage-buttons"):
+                    yield Button("CHECK CURRENT FONT", id="btn-coverage-check-current", variant="primary")
                     yield Button("SCAN FONTS", id="btn-coverage-scan", variant="success")
                     yield Button("SAVE REPORT", id="btn-coverage-save-report", variant="warning")
+                yield Static(
+                    "Check Current Font tests the Font tab's font (and font 2 for its own "
+                    "characters) against the set above; if any character is missing, it "
+                    "then scans the directory for fonts that have exactly those.",
+                    classes="field-help")
                 yield Static("", id="coverage-status", classes="field-help")
 
     def _compose_type_test_tab(self):
@@ -4154,6 +4160,50 @@ class TuneApp(App):
             cmd, success_message=f"report written to {FONT_COVERAGE_REPORT_PATH}")
         status.update("done - see log above, then Save Report to keep a copy" if returncode == 0
                        else f"failed (exit {returncode}) - see log above")
+
+    def _current_font_value(self, key, section):
+        """A Font-tab value as currently typed (the live Input, so an
+        unsaved edit counts), falling back to the loaded config."""
+        try:
+            return self.query_one(f"#field-{key}", Input).value.strip()
+        except NoMatches:
+            return str((self.cfg.get(section) or {}).get(key) or "").strip()
+
+    async def _run_current_font_check(self):
+        """Font Coverage tab's CHECK CURRENT FONT - font_coverage.py --font
+        mode: the configured font(s) against #coverage-chars, then a
+        replacement scan of the font directory restricted to whatever is
+        missing. Reads the Font tab's font but, like SCAN FONTS, never
+        writes the config."""
+        chars = self.query_one("#coverage-chars", TextArea).text.replace("\n", "").replace("\r", "")
+        if not chars:
+            self.log_line("[yellow]character set is empty - pick a layout or type some characters[/yellow]")
+            return
+        font = os.path.expanduser(self._current_font_value("path", "font"))
+        if not font:
+            self.log_line("[red]this machine has no font path set on its Font tab[/red]")
+            return
+        font_dir = os.path.expanduser(self.query_one("#coverage-font-dir", Input).value.strip())
+        if not font_dir or not os.path.isdir(font_dir):
+            self.log_line(f"[red]not a directory: {font_dir!r}[/red]")
+            return
+        os.makedirs(os.path.dirname(FONT_COVERAGE_REPORT_PATH), exist_ok=True)
+        self.log_line("[bold]--- Check Current Font ---[/bold]")
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "font_coverage.py"),
+               "--chars=" + chars, "--font", font, "--font-dir", font_dir,
+               "--out", FONT_COVERAGE_REPORT_PATH]
+        font2 = os.path.expanduser(self._current_font_value("font2_path", "font2"))
+        font2_chars = self._current_font_value("font2_chars", "font2")
+        if font2_chars:
+            cmd += ["--font2-chars=" + font2_chars]
+            if font2:
+                cmd += ["--font2", font2]
+        if self.query_one("#coverage-deep", Switch).value:
+            cmd.append("--deep")
+        status = self.query_one("#coverage-status", Static)
+        status.update("checking current font...")
+        returncode = await self._stream_subprocess(cmd, success_message="current font check finished")
+        status.update("done - see log above" if returncode == 0 else f"failed (exit {returncode}) - see log above")
 
     async def _save_font_coverage_report(self):
         """Same durable-snapshot pattern as action_save/action_save_legend
@@ -5054,6 +5104,8 @@ class TuneApp(App):
             self._reset_layout_rows_to_selected_preset()
         elif button_id == "btn-coverage-scan":
             self.run_worker(self._run_font_coverage_scan(), exclusive=True)
+        elif button_id == "btn-coverage-check-current":
+            self.run_worker(self._run_current_font_check(), exclusive=True)
         elif button_id == "btn-coverage-save-report":
             self.run_worker(self._save_font_coverage_report(), exclusive=True)
         elif button_id == "browse-config":
