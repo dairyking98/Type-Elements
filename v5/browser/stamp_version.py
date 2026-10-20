@@ -21,3 +21,11 @@ for path in glob.glob(os.path.join(root, "*.js")) + glob.glob(os.path.join(root,
     if new != text:
         open(path, "w", encoding="utf-8").write(new)
         print("stamped", os.path.basename(path))
+
+# index.html compares its own version with version.json (fetched uncached)
+# and reloads when a newer deploy is live
+index = os.path.join(root, "index.html")
+text = open(index, encoding="utf-8").read()
+open(index, "w", encoding="utf-8").write(text.replace("__TE_VERSION__", version))
+with open(os.path.join(root, "version.json"), "w") as f:
+    f.write('{"v": "%s"}\n' % version)
