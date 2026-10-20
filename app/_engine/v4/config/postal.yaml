@@ -1,0 +1,266 @@
+# Postal type element - all real parameters ported 1:1 from
+# v2/postal.scad (see that file for authoritative source/comments).
+# Postal is a strict simplification of Blickensderfer (same physical
+# cylinder form, same shared lib/core_shaft.scad + lib/resin_rod.scad +
+# lib/resin_support.scad + lib/glyph_pipeline.scad includes) - the only
+# genuine CODE-level divergence is the "drive pin trio"
+# (HollowSpace/DrivePin/ResinSupport, see lib/postal.py): no drive-pin
+# countersink at all, vs. Blickensderfer's countersink + 2 selectable
+# styles. Everything else differs only in the parameter VALUES below.
+# Derived values (Shaft_Diameter, Clip_OD, Bottom_Slope/Bottom_Z_Offset,
+# Core_Top_Z/Core_Bottom_Z/Core_Taper_Top_Z, Baseline_Z_Offset, Logo_Radius)
+# are computed in code from these, not duplicated here.
+
+# generate.py/export_glyphs.py dispatch on this key to import
+# blickensderfer.py vs postal.py - see lib/cylinder_machine.py's docstring
+# for the shared-module mechanism this feeds into.
+machine: postal
+
+font:
+  # v2's real value is the font family name "Alma Mono" (Font_Size=2.4),
+  # not a file path - this is that font's real file. Was a placeholder
+  # (a substitute TrueType font) until glyph_poc.py gained CFF/cubic-curve
+  # outline support - this file's outlines are CFF-flavored (confirmed via
+  # FreeType tag inspection), which used to silently mis-render.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Alma Mono.otf"
+  size_mm: 2.4
+
+# Secondary font - characters listed in font2_chars are struck in this
+# font/size instead of the main one. Same feature the Selectric family and
+# Hammond Split have, under the same key names. Empty font2_chars =
+# inactive (the default), so this changes nothing until it is filled in.
+# The real use is glyph coverage: measured across the 170 distinct
+# characters in all 28 Blickensderfer layout presets, Royal Vogue v3 is
+# missing 87 (fractions, currency), Erica Type 52 (including "@"), Alma
+# Mono and CMU Typewriter 50 each, and no non-Hebrew font covers the
+# Hebrew-English preset at all.
+font2:
+  font2_path: ""            # blank = use the main font
+  font2_size_mm: 0.0        # 0 = use the main font size
+  font2_chars: ""
+
+logo:
+  # v2's real value is "FreeMono:style=Bold" (a system font name, not a
+  # file path) - this is that font's real file, also CFF-flavored - see
+  # font.path's note above.
+  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/FreeMono-Bold.otf"
+  text: "Leonard Chau 2026"
+  text_size_mm: 3.0
+  text_spacing: 10.0
+  position_offset_deg: 180.0
+  text_offset_deg: 180.0
+  # placement radius = outer radius (element_diameter/2) - this. Real v2
+  # value: postal.scad:203 translate([0, Logo_Radius+1.5, ...]) with
+  # Logo_Radius = outer radius - 2.0, i.e. an inset of 0.5.
+  outer_inset_mm: 0.5
+
+element:
+  element_diameter: 32.8
+  platen_diameter: 31.9
+  min_final_character_diameter: 34.1
+  element_height: 17.4
+  wall_min_thickness: 1.5
+  wall_chamfer: 0.5
+  roof_offset: 0.5
+  speed_hole_id: 5.2
+  speed_hole_qty: 8
+  speed_hole_radial: 10.3
+  core_id_in: 0.125
+  core_groove_qty: 16
+  core_groove_d: 0.6
+  core_chamfer: 0.5
+  core_bottom_offset: 1.0
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 7.0
+  clip_height: 3.0
+  clip_wire_od: 0.554
+  clip_opening: 1.0
+  clip_bite: 0.7
+  drive_pin_widthmm: 2.5
+  drive_pin_length: 3.6
+  drive_pin_radial: 11.5
+  # Postal has no drive-pin countersink at all (see lib/postal.py's
+  # HollowSpace/DrivePin/ResinSupport) - no
+  # drive_pin_countersink_depth/drive_pin_support_radial_offset/
+  # drive_pin_support_height/drive_pin_style keys needed here.
+  core_id_offset: 0.20                 # print-tolerance addition to shaft minor diameter
+  # NOTE: no drive_pin_width_offset key - Postal reuses core_id_offset
+  # directly as its drive-pin tolerance addition (postal.scad:217:
+  # Drive_Pin_Width=Drive_Pin_Widthmm+Core_ID_Offset), see lib/postal.py's
+  # configure() comment.
+
+# quality/facet counts
+quality:
+  surface_fn: 120
+  cyl_fn: 360
+  # body_fn: v2's Cylinder()/ClipCylinder() use DIFFERENT Fn values in
+  # Postal (Cyl_Fn/Surface_Fn respectively), unlike Blickensderfer where
+  # both match - v4's shared Body_Fn knob only has one value; set to
+  # Postal's Cyl_Fn so the main body cylinder is exact (ClipCylinder ends
+  # up slightly over-faceted, harmless - see lib/postal.py's comment).
+  body_fn: 360
+  groove_fn: 20
+  platen_fn: 360
+  minkowski_fn: 12                     # v2's Mink_Fn default for Postal (Blickensderfer's is also tunable independently)
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  min_band_height_mm: 0.0
+  # Facet count for the notch groove cutter. A sub-millimetre score line
+  # does not need the body's own facet count - at Surface_Fn it cost 484
+  # faces per notch x 28. Lower it freely; raise it if the grooves look
+  # visibly polygonal.
+  notch_fn: 16
+
+layout:
+  # v2's Baseline/Cutout/Latitude_Int (postal.scad:73-76), and
+  # Physical_Layout = Keyboard_Layout_Array remapped through
+  # Element_Layout_Array_Map at CHARACTER-SELECTION time (not placement,
+  # unlike Blickensderfer) - baked in below so rows are already in
+  # physical column order, matching what v2's own Physical_Layout array
+  # produces. No placement_map override needed (Postal has none - the lib
+  # defaults to identity).
+  baseline_row: [-3.6, -10.0, -15.7]
+  cutout_row: [-2.65, -9.1, -14.5]
+  latitude_columns: 28
+  placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                   14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+  # Physical_Layout = Keyboard_Layout_Array[row][Element_Layout_Array_Map[col]]
+  # (postal.scad:67,68,271-274), computed once and baked in here (see
+  # placement_map's comment above - no runtime remap needed, unlike
+  # Blickensderfer's DHIATENSOR + a real placement_map).
+  rows:
+    - "byhnujmik,ol.pqazwsxedcrfvtg"
+    - "BYHNUJMIK&OL?PQAZWSXEDCRFVTG"
+    - "!6_+7;=8:§9'-%\"(£2)ä3@ö4/ü5$"
+  modify_glyphs: false
+
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+  # Per-character baseline overrides, y-axis counterparts to the
+  # modified_left/right_chars nudges above (see glyph_poc.alignment_offset).
+  # caret_drop_mm shifts "^" DOWN - the Blickensderfer's caret sits on the
+  # baseline, but digital fonts draw U+005E up at cap height because there
+  # it doubles as the spacing circumflex accent. underscore_lift_mm shifts
+  # "_" UP - many TTFs sink U+005F well below the baseline to clear
+  # descenders in running text, which drops it out of the character cell on
+  # a struck element. Both 0.0 = use the font's own glyph position, i.e. the
+  # behavior every config had before these keys existed. Idea/problem
+  # statement from RobertG's OpenSCAD Blickensderfer generator
+  # (badonoer.blogspot.com, CC BY-SA 4.0) caretDrop/uScoreLift.
+  caret_drop_mm: 0.0
+  underscore_lift_mm: 0.0
+
+build:
+  flatness_tolerance_mm: 0.005
+  pre_minkowski_char_height_mm: 1.0
+  # MINKOWSKI CONE HEIGHT - the tapered part of the character, added BELOW
+  # the straight part. Total character depth is pre_minkowski_char_height_mm +
+  # this, and the tip does not move when either changes. Lower it for a
+  # shallower flare without pulling the root out of the wall - which is
+  # what shrinking the character alone used to do, until the roots lifted
+  # clear and the characters floated free of the body.
+  minkowski_cone_height_mm: 2.0
+  # Trim each placed character to its own angular slot so its Minkowski
+  # draft skirt cannot bleed into the neighbouring character. See
+  # cylinder_machine._clip_to_cell. Off = the historical behavior.
+  clip_to_cell: false
+  render_core_groove: true
+  resin_support: true
+  target: "element"
+  minkowski_enabled: true
+  draft_angle_deg: 55.0
+
+# Every value here matches config/blickensderfer.yaml's resin: section
+# exactly (see its comment there - Blickensderfer's original v2 values
+# are the standard the two machines are unified against, not Postal's) -
+# the two machines' resin supports are damn near identical by design, so
+# there's no reason for the actual VALUES to diverge either. Postal's
+# original v2 file had rod_raft=false/cut_groove_inner_x=-14.9 (a
+# continuous raft plate) hardcoded as its only behavior; that's now
+# available as raft: true below instead of a silent per-machine default.
+resin:
+  # Overhang report threshold (lib/overhang.py, printed after every
+  # generate.py build): downward faces and, on the Selectric family,
+  # glyph rows whose walls rise less than this many degrees above
+  # horizontal are flagged. Printer/resin dependent - 30 is a
+  # conservative MSLA starting point, not a measured value.
+  overhang_warn_deg: 30.0
+  resin_fn: 20
+  rod_od: 1.0
+  tip_od: 0.6
+  tip_l: 1.0
+  inset: 0.3
+  min_rod_height: 4.0
+  raft_od: 2.0
+  raft_thickness: 1.0
+  groove_od: 0.8
+  groove_thickness: 0.3
+  raft: false
+  bottom_support_fractions: [0.2]
+  bottom_support_inner_angle_offset: 0.5
+
+# Wheel cosmetics - decorative treatment of the outer wall. Real features
+# of original wheels, observed on the user's own elements.
+#   "round"   - plain circular body (the default, and what this config
+#               built before this section existed).
+#   "notched" - body faceted one facet per character column, corners on
+#               element_diameter, with a groove at every facet corner.
+#   "banded"  - the same faceting, plus a ring cut between each adjacent
+#               pair of character rows.
+# The facet COUNT is not settable here on purpose: it is always
+# layout.latitude_columns, because the alignment that makes this look
+# right is a facet corner landing BETWEEN two character columns. See
+# cylinder_machine's "Wheel cosmetics" section.
+cosmetics:
+  wheel_style: "round"        # round | notched | banded
+  notch_diameter: 0.7         # groove diameter at each facet corner ("notched")
+  # How far radially OUTWARD the notch cutter is hulled past the facet
+  # corner. Reaches into the band where the characters' Minkowski draft
+  # skirt flares, so the groove trims it instead of leaving it
+  # overhanging - a bare cylinder on the corner never gets out that far.
+  # Wants to clear element.min_final_character_diameter/2.
+  notch_extension: 1.0
+  band_depth: 0.15            # how far inside the facet minor diameter a band cuts
+  # One entry per gap between adjacent baselines (3 baselines -> 2 bands).
+  # Position is the MIDPOINT of the gap plus this signed offset, so bands
+  # track the rows if the baselines are ever retuned.
+  band_z_offsets: [0.0, 0.0]
+  band_heights: [2.0, 2.0]
+
+output:
+  directory: "output"
+  stl_name: "postal_running.stl"
+
+gauge:
+  offset_start: 0.2
+  offset_int: 0.02
+
+# Calibration - see config/blickensderfer.yaml's matching comment.
+calibration:
+  test_char: "X"
+  vary_baseline: false
+  vary_cutout: true
+  start: -0.7
+  interval: 0.05
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/postal.scad) - see config/blickensderfer.yaml's matching comment.
+type_test:
+  cpi: 10.0
+  lpi: 6.0
+  text: |-
+    to do: stop.
+    wait! uh... no,
+    (parentheses)
+    excitement!

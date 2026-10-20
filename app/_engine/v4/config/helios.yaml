@@ -1,0 +1,282 @@
+# Helios Klimax type element - all real parameters ported 1:1 from
+# v2/heliosklimax.scad (see that file's header comment for the full
+# byte-check/correction history against v1/HeliosKlimax/HeliosKlimaxElement.scad).
+#
+# Helios's v2 source has NO SecondaryCore/CoreGrooves/CoreChamfer/
+# CoreEllipses system at all (its shaft bore was originally a plain
+# rotate_extrude() hull profile, HollowingElement() in lib/helios.py), NO
+# Logo/Label engraved-TEXT feature, and NO Shaft Gauge Test - v2's own
+# header: "Sections with no Helios equivalent (Logo, Print Tolerances,
+# Shaft Gauge Test) are omitted rather than left empty." (v1's separate
+# SVG_Logo mark - an imported vector image, not engraved text - IS ported
+# below as a deliberate v1-sourced, not-a-v2-port addition; see the
+# logo: section's own comment.) Its clip/wire-bite
+# mechanism (WireClip() below) is structurally similar in spirit to
+# Blickensderfer/Postal's own local (never-shared-to-a-lib) clip/wire-bite,
+# but built from plain hulled cylinders rather than core_shaft.scad
+# concepts - see lib/helios.py's module docstring for the full
+# function-by-function comparison against cylinder_machine.py.
+#
+# DELIBERATE v4-only ENHANCEMENT (explicit user direction, not a v2 port):
+# the shaft bore now reuses lib/cylinder_machine.py's shared core_shaft
+# family (Core/CoreChamfer/SecondaryCore/CoreEllipses/CoreGrooves - the
+# "fancy core stuff" every other cylinder machine has) in place of the
+# plain straight bore v2 actually had. Since v2 never had this system for
+# Helios, core_chamfer/core_bottom_offset/core_contact_length/
+# core_web_*/core_groove_* below are NOT real-machine numbers ported from
+# anywhere - they're starting estimates scaled from Bennett's config
+# (closest shaft diameter, 3.4mm vs Helios's own 4.16mm; Bennett's own
+# element_height 18.0mm is also close to Helios's 18.7mm), meant to be
+# dialed in against the real part the same way baseline_row/cutout_row
+# already are. Core_Top_Z/Core_Taper_Top_Z follow Blickensderfer/Postal's
+# "has a clip" convention (not Bennett/Mignon's clip-less one) since
+# Helios's own ClipRetainer()/WireClip() put it in that same situation -
+# see lib/helios.py's configure() comment.
+machine: helios
+
+font:
+  # v2's real value is the font family name "Kurinto Type" (Type_Size=2.7),
+  # not a file path - this is that font's real regular-weight file.
+  path: "/home/lchau/fonts/Library/Sans Text/Kurinto Type.ttf"
+  size_mm: 2.7
+
+# Secondary font - characters listed in font2_chars are struck in this
+# font/size instead of the main one. Same feature the Selectric family and
+# Hammond Split have, under the same key names. Empty font2_chars =
+# inactive (the default), so this changes nothing until it is filled in.
+# The real use is glyph coverage: measured across the 170 distinct
+# characters in all 28 Blickensderfer layout presets, Royal Vogue v3 is
+# missing 87 (fractions, currency), Erica Type 52 (including "@"), Alma
+# Mono and CMU Typewriter 50 each, and no non-Hebrew font covers the
+# Hebrew-English preset at all.
+font2:
+  font2_path: ""            # blank = use the main font
+  font2_size_mm: 0.0        # 0 = use the main font size
+  font2_chars: ""
+
+element:
+  platen_diameter: 30
+  element_diameter: 27.15
+  min_final_character_diameter: 28.19   # Char_Protrusion = (this - element_diameter)/2
+  element_height: 18.7
+  shaft_diameter: 4.16
+  # Alignment pin (a boss + through-hole near the shaft, not a countersunk
+  # drive pin like Blickensderfer/Postal's DrivePin() - see
+  # lib/helios.py's AlignmentPinSupport()/AlignmentPinHole()).
+  element_square_hole_position: 8.92    # Element_Square_Hole_Position
+  element_square_hole_width: 4.10       # Element_Square_Hole_Width
+  element_square_hole_length: 2.88      # Element_Square_Hole_Length
+  element_square_hole_support_height: 3 # Element_Square_Hole_Support_Height
+  element_indicator_hole_position: 10   # Element_Indicator_Hole_Position
+  element_indicator_hole_diameter: 2    # Element_Indicator_Hole_Diameter
+  element_shell_thickness: 1.5          # Element_Shell_Thickness
+  element_inside_radius: 1              # Element_Inside_Radius - HollowingElement()'s hull-circle rounding radius
+  element_clip_height: 3                # Element_Clip_Height
+  element_clip_diameter: 7              # Element_Clip_Diameter
+  element_wire_diameter: 0.554          # Element_Wire_Diameter
+  element_clip_bite: 0.7                # Element_Clip_Bite
+  element_clip_angle: 180               # Element_Clip_Angle
+  # core_shaft family (v4-only enhancement, see this file's header) -
+  # reused via lib/cylinder_machine.py's Core/CoreChamfer/SecondaryCore/
+  # CoreEllipses/CoreGrooves. Values scaled from config/bennett.yaml's
+  # equivalent fields (closest shaft diameter) - not real Helios
+  # dimensions, tune against the physical part.
+  core_chamfer: 0.5
+  core_bottom_offset: 0.0
+  core_contact_length: 4.0
+  core_web_width: 2.0
+  core_web_qty: 3
+  core_web_length: 6.0
+  core_groove_qty: 16
+  core_groove_d: 0.6
+
+# quality/facet counts. cyl_fn is now genuinely used (Core()'s shaft-bore
+# facet count, via the core_shaft family above) - previously declared but
+# unused, since v2's real Assemble()/TypeTest() never reference it
+# (every cylinder there uses Surface_Fn instead; still true for every
+# OTHER cylinder in the body - HollowingElement/MinkCleanup/clip/etc). Text_
+# Fn/Text_2D_Fn (v2's OpenSCAD $fn hook for glyph curves) has no v4
+# equivalent at all - text-curve sampling is controlled by
+# build.flatness_tolerance_mm's adaptive vector tracing instead, unlike v2's $fn-based
+# approach - so it is NOT ported (not even declared-but-unused).
+quality:
+  cyl_fn: 360
+  surface_fn: 360
+  groove_fn: 40           # CoreGrooves() twist angular sampling - v4-only, see core_shaft note above
+  minkowski_fn: 12       # Mink_Fn - v2's own comment: "not a calibrated dimension"
+  platen_fn: 360          # v4-only, no dedicated v2 Platen_Fn - real platen cutout cylinder segments
+  # Wall banding. The body is pre-split into horizontal bands so the boolean
+  # that unions the characters into it never has a full-height face to
+  # shatter into long near-zero-area slivers. Bands are never made SHORTER
+  # than this; 0 = auto, one band per angular facet width (bands roughly as
+  # tall as they are wide). Raise it to coarsen an over-fine wall.
+  # Helios is a small body at surface_fn=360, so the auto rule asks for 79
+  # bands of 0.237mm. Measured: 9 bands of 2.078mm gives the same sliver
+  # reduction (1723 -> 548, worst 18.068 -> 11.005mm) for far fewer faces.
+  min_band_height_mm: 2.0
+
+# per-row baseline/platen-cutout heights (mm, negative-from-clip-end - v2's
+# Baseline_Z_Offset=Element_Height, same convention as Blickensderfer/
+# Postal, NOT Bennett/Mignon's absolute-from-bottom convention - see v2's
+# own file-header CORRECTION note, part 1), latitude spacing
+# (Latitude_Int=360/21, Angle_Half_Step=0 - no half-column centering term,
+# like Mignon), and the physical layout.
+#
+# rows: v2's GERMAN_MOD array (LAYOUT=GERMAN_MOD is the real default/only
+# content actually used - GERMAN above it in v2 is superseded, not
+# separately exposed as a preset here). Physical_Layout=LAYOUT directly
+# (no CharLegend remap, unlike Bennett/Mignon) - placement_map is identity.
+layout:
+  baseline_row: [-3.0, -7.8, -12.5, -17.3]
+  cutout_row: [-2.5, -7.3, -12, -16.8]
+  latitude_columns: 21
+  placement_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  rows:
+    - "wertuionklpasdcfghbvm"
+    - "WERTUIONKLPASDCFGHBVM"
+    - "'!+züjö.:xyä23456789q"
+    - "\"()Z⁄J=,;XY¢ß&%/-_§?Q"
+  modify_glyphs: false
+
+# alignment.mode "center" = v2's Text_Align_Method=0 (Advance Center,
+# native) - Helios's real defaults never set Text_Align_Modified_Chars/
+# Text_Align_Modified2_Chars, so no per-character overrides here either.
+alignment:
+  mode: "center"
+  center_offset_mm: 0.0
+  left_offset_mm: 0.0
+  modified_left_chars: ""
+  modified_left_offset_mm: 0.0
+  modified_right_chars: ""
+  modified_right_offset_mm: 0.0
+  # Per-character baseline overrides, y-axis counterparts to the
+  # modified_left/right_chars nudges above (see glyph_poc.alignment_offset).
+  # caret_drop_mm shifts "^" DOWN - the Blickensderfer's caret sits on the
+  # baseline, but digital fonts draw U+005E up at cap height because there
+  # it doubles as the spacing circumflex accent. underscore_lift_mm shifts
+  # "_" UP - many TTFs sink U+005F well below the baseline to clear
+  # descenders in running text, which drops it out of the character cell on
+  # a struck element. Both 0.0 = use the font's own glyph position, i.e. the
+  # behavior every config had before these keys existed. Idea/problem
+  # statement from RobertG's OpenSCAD Blickensderfer generator
+  # (badonoer.blogspot.com, CC BY-SA 4.0) caretDrop/uScoreLift.
+  caret_drop_mm: 0.0
+  underscore_lift_mm: 0.0
+
+# SVG Logo - DELIBERATE v4-only ADDITION, not a v2 port (v2's own header
+# explicitly has no Logo concept for Helios at all - see this file's own
+# header above). Ground truth is v1/HeliosKlimax/HeliosKlimaxTester.scad's
+# SVG_Logo/SVG_Scale toggle instead (lines 103-104, 365-368) - the one
+# real Logo mechanism v1 ever had for this machine, engraved into the top
+# face in the same difference()-stage v1 cuts it in alongside Cutting
+# Center Shaft Hole/Cutting Wire Clip/Cutting Top Speed Holes - see
+# lib/helios.py's Logo()/_final_cut(). Source artwork copied from v1/
+# HeliosKlimax/helios-klimax.svg to assets/svg/helios-klimax.svg (see
+# lib/svg_import.py) - v1's own SVG_Scale=.03 is an OpenSCAD-import-space
+# value (that importer's own baked-in px/DPI convention - see
+# lib/svg_import.py's module docstring for why v4 doesn't reproduce it)
+# and does NOT mean the same thing as v4's real-mm scale_mm_per_unit
+# below. scale_mm_per_unit=0.010583 was derived by cross-checking v1's
+# actual rendered size with the real openscad-nightly binary (per this
+# file's own top-level CLAUDE.md "OpenSCAD binary" note):
+#   linear_extrude(0.31) scale([.03,.03])
+#   import("helios-klimax.svg", center=true)
+# renders a real 19.83mm x 7.27mm bounding box; scale_mm_per_unit is that
+# same physical size divided by the SVG's own raw path-unit extents
+# (~1873.5 x 687.3, post the file's internal <g transform="translate(0,
+# 906) scale(0.1,-0.1)">, which lib/svg_import.py now parses - a
+# potrace-style export convention AR1.svg/vogue-foundry-*.svg don't use).
+#
+# logo_enabled defaults OFF: SVG_Logo lived only in the experimental
+# Tester customizer (HeliosKlimaxTester.scad), never in the polished
+# HeliosKlimaxElement.scad, and its real size (19.8mm x 7.3mm) is large
+# relative to element.element_diameter=27.15mm - dial in logo_enabled/
+# x_offset_mm/scale_mm_per_unit against the real part before printing,
+# the same way every other estimate-not-measured value in this file
+# (core_chamfer etc., see the header note above) is meant to be.
+logo:
+  logo_enabled: false
+  svg_file: "assets/svg/helios-klimax.svg"
+  scale_mm_per_unit: 0.010583
+  logo_depth_mm: 0.3            # v1 Element_Label_Depth
+  x_offset_mm: -6.25            # v1's fixed translate([-6.25, 0, ...]) - see lib/helios.py's Logo()
+
+# mesh-pipeline build settings (v4-specific). placement_protrusion is left
+# at its default (Char_Protrusion) - NOT v2's raw Letter_Placement_
+# Protrusion=-.05 (that value only ever moved v2's own pre-cutout
+# extrusion block, an independent transform from the platen cutter that
+# actually sets the visible strike depth; v4 has no such split - see
+# lib/helios.py's configure() comment and SESSION_LOG.md part 25, a real
+# "characters sat too deep" bug fixed there by re-deriving this the way
+# Bennett's port already had to, instead of copying v2's raw value).
+# angle_half_step=0 (a real, unrelated v2 value - Angle_Half_Step=0, no
+# two-transform split for angle) is still threaded through as an explicit
+# lib/helios.py module global (Angle_Half_Step), the same pattern
+# lib/mignon.py's configure() uses for its own non-default overrides.
+build:
+  flatness_tolerance_mm: 0.005
+  pre_minkowski_char_height_mm: 1.0
+  # MINKOWSKI CONE HEIGHT - the tapered part of the character, added BELOW
+  # the straight part. Total character depth is pre_minkowski_char_height_mm +
+  # this, and the tip does not move when either changes. Lower it for a
+  # shallower flare without pulling the root out of the wall - which is
+  # what shrinking the character alone used to do, until the roots lifted
+  # clear and the characters floated free of the body.
+  minkowski_cone_height_mm: 2.0
+  # Trim each placed character to its own angular slot so its Minkowski
+  # draft skirt cannot bleed into the neighbouring character. See
+  # cylinder_machine._clip_to_cell. Off = the historical behavior.
+  clip_to_cell: false
+  resin_support: false         # see the resin: section below - v2 never builds any support geometry
+  render_core_groove: true     # CoreGrooves() - v4-only, see the core_shaft note above; slow, off for quick iteration
+  target: "element"
+  minkowski_enabled: true
+  draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated dimension
+
+# v2's own file-header note: "the original file declares Resin_Support/
+# Resin_Support_* parameters but never actually generates any resin
+# support geometry with them (no ResinRod/CutGroove-equivalent module,
+# nothing calls them)". Preserved here as declared-but-unused too, same
+# as quality.cyl_fn above - lib/helios.py's ResinPrint() is therefore
+# identical to FullElement() (see its docstring), and the values below are
+# schema parity only, not wired to any geometry.
+resin:
+  # Overhang report threshold (lib/overhang.py, printed after every
+  # generate.py build): downward faces and, on the Selectric family,
+  # glyph rows whose walls rise less than this many degrees above
+  # horizontal are flagged. Printer/resin dependent - 30 is a
+  # conservative MSLA starting point, not a measured value.
+  overhang_warn_deg: 30.0
+  resin_support_base_thickness: 2.0
+  resin_support_rod_thickness: 0.4
+  resin_support_min_height: 1.0
+  resin_support_spacing: 3.0
+  resin_support_contact_radius: 0.2
+
+output:
+  directory: "output"
+  stl_name: "helios_running.stl"
+
+# tune.py's Type Test tab (v4-specific, not part of the real element or
+# v2/heliosklimax.scad) - see config/blickensderfer.yaml's matching comment.
+# text below is v2's own Test_String_Text default.
+type_test:
+  cpi: 10.0                    # Test_CPI
+  lpi: 6.0
+  text: |-
+    The quick brown fox jumps over the lazy dog 1234567890
+
+# Calibration (v2's Testing_Baseline/Testing_Cutout/Testing_Layout +
+# Testing_Offsets=[-.5,-.4,...,.6], wired to the same Cutout_Test/
+# Baseline_Test/Test_Layout mechanism every other machine uses) - see
+# config/blickensderfer.yaml's matching comment. Testing_Offsets is
+# exactly testSweepArray(-0.5, 0.1, 12), the same start/interval Mignon's
+# real defaults use. v2's own real Testing_Baseline/Testing_Cutout
+# defaults are BOTH false (neither sweep active), same as Bennett - kept
+# faithful to that here rather than defaulting one on.
+calibration:
+  test_char: "H"
+  vary_baseline: false
+  vary_cutout: false
+  start: -0.5
+  interval: 0.1

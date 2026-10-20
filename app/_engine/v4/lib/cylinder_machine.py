@@ -1,0 +1,1170 @@
+"""
+Shared cylinder-machine-family code. Structurally, this module is a full
+shared implementation for exactly Blickensderfer/Postal - functions here
+are structurally identical between those two machines in v2 (same
+lib/core_shaft.scad, lib/resin_rod.scad, lib/resin_support.scad,
+lib/glyph_pipeline.scad includes), differing only in the config-derived
+parameter VALUES each machine's own configure() sets. Machine-specific
+functions (HollowSpace/DrivePin/ResinSupport - the "drive pin trio", the
+one place v2's two machines genuinely diverge in code, not just values)
+live one-per-machine in lib/blickensderfer.py / lib/postal.py instead, and
+are called from here as ordinary bare names.
+
+Other cylindrical machines (Mignon, Bennett, and presumably Helios) are
+NOT full-module reuse cases - each diverges from the rest of this module
+across most of its own body-construction pipeline, and only pulls in
+specific pieces (place_on_cylinder/TextRing/CalibrationTextRing, the
+resin-rod helpers, lib/core_shaft.scad's shared functions). Being
+cylindrical in outward form does not predict how much of this module a
+new machine can actually reuse - verify function-by-function against the
+real v2 source before assuming otherwise (see CLAUDE.md "Porting a new
+machine").
+
+Dynamic dispatch: each machine's configure() calls _receive_config(g,
+name) at the end, which copies every uppercase-leading global (the ~100
+config values AND the HollowSpace/DrivePin/ResinSupport function objects
+themselves) into THIS module's own globals() dict. A function object's
+__globals__ is a live reference to its defining module's dict, not a
+snapshot - so once Subtractive()/FullElement()/etc (defined here) are
+called, their bare-name lookups of HollowSpace()/DrivePin()/ResinSupport()
+resolve against whichever machine configured most recently. This directly
+mirrors OpenSCAD's own "last include wins" dynamic module redefinition,
+which is how v2's shared lib files achieve machine-specific behavior in
+the first place. Safe here because generate.py/export_glyphs.py each
+configure exactly one machine per process and exit (tune.py never imports
+these modules at all - it only edits YAML and shells out to generate.py
+as a subprocess) - _active_machine below is a cheap guard against a
+future script that imports+configures both in one process, not a
+guard against anything that happens today.
+"""
+
+import time
+
+import numpy as np
+import trimesh
+
+from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance, em_to_mm_scale, load_font_face
+import scad_primitives as sp
+import resin_support
+import build_log
+
+_active_machine = None
+
+
+def _receive_config(source_globals, machine_name):
+    global _active_machine
+    if _active_machine not in (None, machine_name):
+        raise RuntimeError(
+            f"cylinder_machine already configured for {_active_machine!r}; "
+            f"cannot reconfigure for {machine_name!r} in the same process")
+    _active_machine = machine_name
+    # Every real config/derived value + the HollowSpace/DrivePin/
+    # ResinSupport trio is uppercase-leading, EXCEPT the epsilon constant
+    # `z` (configure()'s g["z"] = 0.01) - the one lowercase exception,
+    # called out explicitly rather than widening the filter and risking
+    # picking up stray imports/private helpers from the machine module's
+    # own globals() (np, trimesh, yaml, sp, cylinder_machine itself, ...).
+    globals().update({k: v for k, v in source_globals.items() if k[:1].isupper() or k == "z"})
+
+
+def resin_raft_config(element_diameter, wall_min_thickness, raft_enabled):
+    """Thin pass-through to resin_support.raft_config() - see that
+    function's docstring for the real derivation. Kept here (rather than
+    updating blickensderfer.py/postal.py to call resin_support directly)
+    so those two call sites don't need to change."""
+    return resin_support.raft_config(element_diameter, wall_min_thickness, raft_enabled)
+
+
+def _require_configured():
+    if _active_machine is None:
+        raise RuntimeError("call <machine>.configure(config_path) before using this module")
+
+
+# -------------------------------------------------------- Wheel cosmetics
+# Decorative treatments of the element's outer wall. Real features
+# observed on original Blickensderfer wheels (per the user's own
+# elements), not invented here, and not a port of anyone else's code.
+#
+#   "round"   - a plain circular body. The default, and what every
+#               machine built before these existed, so an absent
+#               cosmetics: section is byte-identical to a round one.
+#   "notched" - the body is faceted, one facet per character column, with
+#               a small cylindrical groove running the full height at
+#               every facet corner.
+#   "banded"  - the same faceting, plus a ring cut between each adjacent
+#               pair of character rows, recessed to (just past) the
+#               facet's minor diameter.
+#
+# Facet COUNT is deliberately not configurable: it is always the column
+# count, because the whole point of the alignment is that a facet corner
+# lands between two character columns rather than under one. Characters
+# sit at (0.5 + col) * Latitude_Int (see place_on_cylinder's
+# angle_half_step), and a trimesh cylinder puts its first vertex at angle
+# 0, so an N-section cylinder's corners land at n * Latitude_Int -
+# exactly halfway between columns, with no phase rotation needed
+# (verified: corners at exact multiples of 360/28 with the rim on
+# Element_Diameter/2). Letting the two counts diverge would silently
+# break that, the same way CLAUDE.md warns about layout.latitude_columns
+# drifting out of sync with placement_map.
+
+WHEEL_STYLE_ROUND = "round"
+WHEEL_STYLE_NOTCHED = "notched"
+WHEEL_STYLE_BANDED = "banded"
+WHEEL_STYLES = (WHEEL_STYLE_ROUND, WHEEL_STYLE_NOTCHED, WHEEL_STYLE_BANDED)
+
+
+def _wheel_style():
+    """The active style, defaulting to "round" for any machine whose
+    config has no cosmetics: section at all (Mignon/Bennett/Helios/
+    Hammond all reach Cylinder() through this module too)."""
+    style = globals().get("Wheel_Style", WHEEL_STYLE_ROUND)
+    if style not in WHEEL_STYLES:
+        raise ValueError(
+            f"cosmetics.wheel_style must be one of {WHEEL_STYLES}, got {style!r}")
+    return style
+
+
+def _facet_count():
+    """One facet per character column - see the section comment above for
+    why this is derived rather than configurable."""
+    return int(round(360.0 / LATITUDE_INT))
+
+
+def _facet_minor_diameter():
+    """The faceted body's inscribed-circle diameter. Facet CORNERS sit on
+    Element_Diameter (the circumscribed circle), so the flats fall inside
+    it by cos(180/N) - that difference is the whole visible depth of the
+    faceting."""
+    return Element_Diameter * np.cos(np.radians(180.0 / _facet_count()))
+
+
+def _band_z_centers():
+    """Absolute Z of each decorative band: the midpoint between one
+    baseline and the next, plus that band's own signed offset. Derived
+    from BASELINE_ROW rather than stored as absolute Z so the bands
+    follow the rows if the baselines are ever retuned via the
+    Calibration tab - which is the whole reason they sit "between
+    character rows" physically. N baselines give N-1 bands."""
+    offsets = globals().get("Band_Z_Offsets", []) or []
+    centers = []
+    for i in range(len(BASELINE_ROW) - 1):
+        mid = (BASELINE_ROW[i] + BASELINE_ROW[i + 1]) / 2.0
+        offset = offsets[i] if i < len(offsets) else 0.0
+        centers.append(BASELINE_Z_OFFSET + mid + offset)
+    return centers
+
+
+def WheelStyleCutters():
+    """Cutters realizing the active wheel style, subtracted along with
+    everything else in Subtractive(). Empty for "round", so that style
+    costs nothing and changes nothing."""
+    style = _wheel_style()
+    if style == WHEEL_STYLE_ROUND:
+        return []
+
+    n = _facet_count()
+    if style == WHEEL_STYLE_NOTCHED:
+        # A groove at each facet corner, on the corner radius so it bites
+        # equally into the two facets meeting there. Full height plus a
+        # margin at both ends so the cut resolves cleanly against the top
+        # chamfer and the bottom face instead of leaving a coplanar sliver.
+        #
+        # NOT a bare cylinder: it is hulled with a second cylinder the same
+        # diameter, sitting Notch_Extension further out radially, making
+        # each cutter a stadium that runs well clear of the body. The
+        # reason is the Minkowski draft skirt, not the body wall. A
+        # cylinder centred on the corner lies entirely inside
+        # Element_Diameter/2 + Notch_Diameter/2, but struck characters
+        # protrude to Char_Protrusion beyond the body and their draft
+        # sweep flares outward from the base - so the flare spreads
+        # angularly toward the facet corners in exactly the radial band a
+        # bare cylinder never reaches. Extending the cutter outward trims
+        # that flare where it crowds the groove, instead of leaving it
+        # overhanging a notch that stops short of it. Everything the
+        # extension adds beyond the character envelope is empty space, so
+        # it costs nothing on the body itself.
+        cutters = []
+        half_h = (Element_Height + 4 * z)
+        for i in range(n):
+            angle = np.radians(i * 360.0 / n)
+            ends = []
+            for radius in (Element_Diameter / 2.0,
+                            Element_Diameter / 2.0 + Notch_Extension):
+                # cosmetics.notch_fn, not Surface_Fn: describing a
+                # sub-millimetre groove at the body's own facet count spent
+                # 484 faces per cutter x 28 = 13552 faces on a decorative
+                # score line.
+                c = sp.cylinder_z(Notch_Diameter, half_h,
+                                   sections=globals().get("Notch_Fn", 16),
+                                   base_z=-2 * z)
+                ends.append(sp.translate(
+                    c, [radius * np.cos(angle), radius * np.sin(angle), 0.0]))
+            # hull() of two same-diameter cylinders - a convex hull of two
+            # convex solids is exactly the hull of their combined vertices,
+            # so no boolean is needed (same shortcut wing_slug's body hull
+            # and blickensderfer's early drive pin already use).
+            cutters.append(trimesh.Trimesh(
+                vertices=np.vstack([e.vertices for e in ends]),
+                process=True).convex_hull)
+        return cutters
+
+    # WHEEL_STYLE_BANDED - an annular ring cut per inter-row gap. Built as
+    # (outer cylinder - inner cylinder) so it removes only the wall, never
+    # anything on the axis. The inner face sits band_depth INSIDE the
+    # facet's minor diameter, so the band reads as a recess below even the
+    # flats rather than merely erasing the facet corners.
+    heights = globals().get("Band_Heights", []) or []
+    inner_d = _facet_minor_diameter() - 2.0 * Band_Depth
+    cutters = []
+    for i, z_center in enumerate(_band_z_centers()):
+        height = heights[i] if i < len(heights) else 2.0
+        outer = sp.cylinder_z(Element_Diameter * 2.0, height,
+                               sections=Surface_Fn, base_z=z_center, center=True)
+        inner = sp.cylinder_z(inner_d, height + 4 * z,
+                               sections=Body_Fn, base_z=z_center, center=True)
+        cutters.append(outer.difference(inner, engine="manifold"))
+    return cutters
+
+
+# ---------------------------------------------------------------- Additive
+
+def Cylinder():
+    """The element's outer body. Faceted (one facet per character column,
+    corners on Element_Diameter) for the notched/banded wheel styles,
+    plain and Body_Fn-smooth for "round" - see the wheel-cosmetics
+    section above."""
+    sections = Body_Fn if _wheel_style() == WHEEL_STYLE_ROUND else _facet_count()
+    # Wall pre-split into bands, so the boolean that unions 84 character
+    # roots into it never has a full-height face to shatter into slivers.
+    # trimesh's cylinder is two triangles per section spanning the ENTIRE
+    # height, and manifold retessellates those into long near-zero-area
+    # needles around every character root - which render as phantom spikes
+    # (a zero-area triangle has no meaningful normal) and cannot simply be
+    # deleted, since they are load-bearing for watertightness.
+    #
+    # Applied to every wheel style. It was briefly gated to round only,
+    # on the basis that a notched body's own full-height cosmetic cutters
+    # dominate and banding raised the SLIVER count there (3451 -> 10682) -
+    # but sliver count turned out to be a poor proxy for the artifacts
+    # actually being seen, and banding the notched body causes no problem
+    # in practice, so the gate is gone rather than kept on a metric that
+    # did not predict anything.
+    return sp.cylinder_z(Element_Diameter, Element_Height, sections=sections,
+                          z_segments=sp.square_z_segments(Element_Diameter,
+                                                           Element_Height, Surface_Fn,
+                                                           Min_Band_Height_Mm))
+
+
+def ClipCylinder(Offset):
+    c = sp.cylinder_z(Clip_OD + Offset, Clip_Height + z, sections=Body_Fn)
+    return sp.translate(c, [0, 0, Element_Height - z])
+
+
+def _font_for(char):
+    """(font_path, size_mm) for one character - font 2 when the character
+    is in Font2_Chars, otherwise the main font. Same secondary-font
+    concept the Selectric family and Hammond Split already had; added here
+    because the real need is in this family's own layouts. Many typewriter
+    faces simply lack the characters these presets use: measured against
+    the 170 distinct characters across all 28 Blickensderfer presets,
+    Royal Vogue v3 is missing 87 of them (including the fractions and
+    currency), Erica Type 52 (including "@"), Alma Mono and CMU Typewriter
+    50 each, and every non-Hebrew font misses the Hebrew-English preset's
+    alphabet entirely.
+
+    Font2_Chars empty (the default everywhere) means this always returns
+    the main font, so nothing changes until a config asks for it."""
+    chars = globals().get("Font2_Chars") or ""
+    if char and char in chars:
+        return (globals().get("FONT2_PATH") or FONT_PATH,
+                globals().get("Font2_Size") or FONT_SIZE_MM)
+    return FONT_PATH, FONT_SIZE_MM
+
+
+def _clip_to_cell(mesh, col, angle_half_step=None):
+    """Trims an already-placed character to its own angular slot, so its
+    Minkowski draft skirt cannot bleed into the neighbouring character's.
+
+    Why this is needed at all: the draft flare is widest at the glyph's
+    ROOT and the column pitch is SMALLEST there (the root sits at the
+    innermost radius), so the root is exactly where neighbours collide.
+    With pre_minkowski_char_height_mm=2.0 and the real 55-degree draft the flare is
+    1.04mm per side against a 3.48mm root pitch, and adjacent characters
+    genuinely intersect - 'M' next to 'M' overlaps by 1.94mm3, measured.
+    At a deliberately fat draft angle it is far worse (90 degrees gives a
+    2.0mm-per-side flare, i.e. wider than the entire slot). TextRing's
+    _check_inter_character_collisions() has always REPORTED this; this is
+    the repair it never had.
+
+    The slot: a character sits at (angle_half_step + col) * Latitude_Int,
+    so its cell spans half a Latitude_Int either side. For the machines
+    that use angle_half_step=0.5 (Blickensderfer/Postal/Bennett) those
+    boundaries land exactly on the facet corners the notched/banded wheel
+    styles cut at, which is the same "between two columns" line - not a
+    coincidence, both follow from the half-column offset.
+
+    The wedge itself is scad_primitives.clip_to_angular_cell, shared with
+    the shuttle and spherical families - all three distribute characters
+    by rotation about Z, so all three clip with the same shape."""
+    angle_half_step = 0.5 if angle_half_step is None else angle_half_step
+    center = (angle_half_step + PLACEMENT_MAP[col]) * LATITUDE_INT
+    return sp.clip_to_angular_cell(mesh, center, LATITUDE_INT,
+                                    r_out=Element_Diameter)
+
+
+def place_on_cylinder(mesh, row, col, pre_minkowski_char_height_mm, baseline_mm=None,
+                       placement_protrusion=None, angle_half_step=None):
+    """LetterPlacement() equivalent - see conversation for the full
+    derivation from rotate([90,0,90])+translate((R+protrusion),0,0)+
+    translate(0,0,textBaseline)+rotate([0,0,angle]).
+
+    Radial anchor: the platen-bite point (the print face's deepest/
+    narrowest point, at y=radius_y_offset where the scallop is zero, i.e.
+    mesh z_local=pre_minkowski_char_height_mm exactly) sits at
+    Element_Diameter/2+Char_Protrusion - a FIXED real-machine value, not
+    pre_minkowski_char_height_mm. The root (z_local=0) sits INWARD from that anchor by
+    pre_minkowski_char_height_mm - the base pushes toward the axis as it widens (like a
+    nail driven in with a wide head sitting proud), not flush-and-sideways.
+
+    baseline_mm: overrides BASELINE_ROW[row] - CalibrationTextRing's own
+    per-column swept baseline value, when calibrating that variable
+    (v2's charBaseline, vs. the row's own fixed Baseline[row] every other
+    caller uses). None (every other caller) preserves the exact prior
+    behavior.
+
+    placement_protrusion: v2's Letter_Placement_Protrusion - Blickensderfer/
+    Postal add the FULL Char_Protrusion at the placement stage too (their
+    raw material genuinely stands proud of the plain element surface
+    before any cutout trims it) - None defaults to Char_Protrusion,
+    preserving that. Mignon's placement radius is the raw Element_Diameter/2
+    instead (embed depth controlled by the glyph's own geometry, not a
+    placement-stage protrusion) - it passes 0. Bennett does NOT pass 0
+    despite being cylindrical like Mignon - it deliberately keeps the
+    default (Char_Protrusion), because v4's single-transform placement
+    pipeline doesn't behave like v2's two-independent-transforms one; see
+    lib/bennett.py's module docstring and configure() comment for the full
+    derivation. Don't assume a new machine's value from its physical form -
+    verify against its own v2 source. Helios ALSO keeps the default
+    (Char_Protrusion), for the exact same reason as Bennett - its own v2
+    source has the same two-independent-transforms split (Letter_
+    Placement_Protrusion=-.05 only moves where the raw pre-cutout block
+    starts; the platen cutter that actually sets the visible low point is
+    positioned independently, at the same Element_Diameter/2+Platen_
+    Diameter/2+Char_Protrusion formula Blickensderfer/Postal use) - a real
+    bug shipped once by copying the raw v2 value (-0.05) directly instead
+    of re-deriving it the way Bennett's port already had to; see
+    lib/helios.py's configure() comment and SESSION_LOG.md part 25.
+    Does NOT affect the platen cutout's own radius formula (still always the full
+    Char_Protrusion, baked into build_glyph via radius_y_offset_mm,
+    unrelated to this override - verified algebraically in v2, see
+    PlatenCutout's comment in lib/glyph_pipeline.scad).
+
+    angle_half_step: v2's Angle_Half_Step - the constant added to the
+    physical column before multiplying by Latitude_Int. None defaults to
+    0.5 (Blickensderfer/Postal/Bennett center each column between
+    latitude band edges this way); Mignon has no half-column offset, so
+    it passes 0."""
+    baseline_mm = BASELINE_ROW[row] if baseline_mm is None else baseline_mm
+    placement_protrusion = Char_Protrusion if placement_protrusion is None else placement_protrusion
+    angle_half_step = 0.5 if angle_half_step is None else angle_half_step
+    v = mesh.vertices
+    x_local, y_local, z_local = v[:, 0], v[:, 1], v[:, 2]
+    radial = (Element_Diameter / 2.0 + placement_protrusion - pre_minkowski_char_height_mm) + z_local
+    axial = BASELINE_Z_OFFSET + baseline_mm + y_local
+    lateral = x_local
+    placement_col = PLACEMENT_MAP[col]
+    angle = np.radians((angle_half_step + placement_col) * LATITUDE_INT)
+    ca, sa = np.cos(angle), np.sin(angle)
+    world_x = radial * ca - lateral * sa
+    world_y = radial * sa + lateral * ca
+    new_v = np.stack([world_x, world_y, axial], axis=1)
+    # process=False: this is a pure coordinate move (rotation+translation),
+    # topology is unchanged - trimesh's default process=True re-runs vertex
+    # merging on construction, which was found to CORRUPT already-valid
+    # self-unioned meshes here (identity-transform reconstruction alone
+    # reproduced it: 2195->1507 vertices, watertight True->False - nothing
+    # to do with the rotation/translation itself, purely re-processing a
+    # mesh that's already correct).
+    return trimesh.Trimesh(vertices=new_v, faces=mesh.faces, process=False)
+
+
+def TextRing(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None, cone_segments=None,
+             platen_fn=None, minkowski_enabled=None,
+             draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
+    """Per-character self-intersection ('the draft offset folds through
+    itself on narrow features like H's inter-stroke gap or m's diagonal
+    junctions') used to be a real, unsolved problem here - build_glyph now
+    builds the draft via a real Minkowski sum (manifold3d), which cannot
+    produce that defect on any input topology (see build_glyph's
+    docstring). So there's nothing left to detect/report per character;
+    only inter-character collisions (a placement/spacing issue, unrelated
+    to a single glyph's own geometry) are still checked below."""
+    _require_configured()
+    flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
+    pre_minkowski_char_height_mm = DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM if pre_minkowski_char_height_mm is None else pre_minkowski_char_height_mm
+    align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
+    cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
+    platen_fn = Platen_Fn if platen_fn is None else platen_fn
+    minkowski_enabled = (DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None
+                          else minkowski_enabled)
+    draft_angle_deg = DEFAULT_DRAFT_ANGLE_DEG if draft_angle_deg is None else draft_angle_deg
+    parts = []
+    skipped = []
+    # Row-count-agnostic (not hardcoded to 3) - Blickensderfer/Postal have
+    # 3 rows, Mignon has 7 (v2/mignon.scad's Baseline_Regular/Cutout are
+    # both 7-entry arrays) - DHIATENSOR/BASELINE_ROW/CUTOUT_ROW's own
+    # length is authoritative, whatever it is.
+    total = sum(len(row) for row in DHIATENSOR)
+    n = 0
+    t_start = time.perf_counter()
+    for row in range(len(DHIATENSOR)):
+        for col, ch in enumerate(DHIATENSOR[row]):
+            n += 1
+            build_log.progress_start("TextRing", n, total, f"building {ch!r} (row {row}, col {col})")
+            t0 = time.perf_counter()
+            try:
+                fp2, fs2 = _font_for(ch)
+                mesh = build_glyph(
+                    ch, flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm, row=row,
+                    align_kwargs=align_kwargs, font_path=fp2, font_size_mm=fs2,
+                    radius_y_offset_mm=CUTOUT_ROW[row] - BASELINE_ROW[row],
+                    platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
+                    platen_fn=platen_fn,
+                    minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+                    minkowski_cone_height_mm=globals().get("Minkowski_Cone_Height_Mm"))
+            except Exception as e:
+                skipped.append((row, col, ch, str(e)))
+                build_log.progress_skipped(e)
+                continue
+            build_log.progress_done(time.perf_counter() - t0)
+            placed = place_on_cylinder(mesh, row, col, pre_minkowski_char_height_mm,
+                                        placement_protrusion=placement_protrusion,
+                                        angle_half_step=angle_half_step)
+            # Off by default fleet-wide, so no existing config changes
+            # behavior - see _clip_to_cell.
+            if globals().get("Clip_To_Cell", False):
+                placed = _clip_to_cell(placed, col, angle_half_step)
+            parts.append(placed)
+    build_log.progress_summary("TextRing", len(parts), skipped, time.perf_counter() - t_start)
+
+    # Real union, not trimesh.util.concatenate: characters routinely overlap
+    # each other (the collisions just reported above) and every character's
+    # root overlaps the main Cylinder() by design (that's the whole point of
+    # "embedded"). concatenate() just merges vertex/face arrays with no
+    # boolean resolution at all - both surfaces stay fully intact and
+    # superimposed wherever they overlap, so no new edge forms where they
+    # actually intersect (confirmed: concatenating text_ring+Cylinder+
+    # ClipCylinder measured 1148mm3 MORE volume than a real union of the
+    # same parts - the double-counted overlap). sp.union_all() uses
+    # manifold3d's real boolean union instead.
+    return sp.union_all(parts), parts
+
+
+def _check_inter_character_collisions(parts):
+    """Mesh-vs-mesh collision check between DIFFERENT character parts.
+    DEBUGGING ONLY - deliberately not called by TextRing anymore.
+
+    It used to run on every build and print its findings, which was noise
+    rather than signal for two reasons. It reports CONTACT, not overlap,
+    so once clip_to_cell is on and neighbours abut exactly along their
+    shared cell boundary it flags all of them anyway - measured 165
+    "collisions" on a build whose adjacent characters have a pairwise
+    boolean intersection of exactly 0.0mm3. And even with clipping off,
+    the overlap it was flagging is buried inside the body wall, which
+    Additive() unions in regardless, so there was never anything to act
+    on. Call it by hand from a REPL if a specific glyph pair needs
+    investigating."""
+    cm = trimesh.collision.CollisionManager()
+    for i, part in enumerate(parts):
+        cm.add_object(str(i), part)
+    _, names = cm.in_collision_internal(return_names=True)
+    return names
+
+
+def Additive(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None, cone_segments=None,
+             platen_fn=None, minkowski_enabled=None,
+             draft_angle_deg=None, placement_protrusion=None, angle_half_step=None):
+    text_ring, char_parts = TextRing(flatness_tolerance_mm, pre_minkowski_char_height_mm, align_kwargs=align_kwargs,
+                                      cone_segments=cone_segments,
+                                      platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                      draft_angle_deg=draft_angle_deg,
+                                      placement_protrusion=placement_protrusion,
+                                      angle_half_step=angle_half_step)
+    return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), char_parts
+
+
+# --------------------------------------------------------------- Calibration
+# Ports v2's Cutout_Test/Baseline_Test/Test_Layout mechanism (v2/lib/
+# testing.scad's testSweepArray + lib/glyph_pipeline.scad's TextRing/
+# TextRingDebug, ~line 407-451) - a real, already-designed v2 feature for
+# empirically finding the right Baseline/Cutout row values, not something
+# invented here. Every physical position renders the SAME test character
+# (v2's Test_Layout, always on for this - the whole point is a consistent
+# reference shape to compare across positions). vary_baseline/vary_cutout
+# are independent (matching v2's own separate Cutout_Test/Baseline_Test
+# booleans) - usually only one is on at a time, but both CAN be on
+# together (both move by the SAME swept offset per column, one shared
+# start/interval - v2 gives each its own separate sweep array, but a
+# single shared one is enough for v4's actual use case and keeps the
+# config/UI simpler; nothing stops a future per-variable split if that
+# turns out to matter). Whichever is off stays at its row's normal fixed
+# value. Print it, physically test-fit each position on the real machine,
+# and read off which column's value looks/fits best from the console
+# output (or generate.py --calibrate's .txt sidecar).
+
+def CalibrationTextRing(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                         reference_baseline_row=None, reference_cutout_row=None,
+                         flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None,
+                         cone_segments=None, platen_fn=None,
+                         minkowski_enabled=None, draft_angle_deg=None,
+                         placement_protrusion=None, angle_half_step=None):
+    _require_configured()
+    test_char = Calibration_Test_Char if test_char is None else test_char
+    vary_baseline = Calibration_Vary_Baseline if vary_baseline is None else vary_baseline
+    vary_cutout = Calibration_Vary_Cutout if vary_cutout is None else vary_cutout
+    start = Calibration_Start if start is None else start
+    interval = Calibration_Interval if interval is None else interval
+    # The row this sweep is centered on - NOT necessarily the currently
+    # CONFIGURED BASELINE_ROW/CUTOUT_ROW (which reflect whatever config
+    # this process was configure()'d with - the live-edited RUNNING
+    # config, when called from generate.py via tune.py). Defaulting to
+    # those globals here preserves that behavior for direct/CLI callers
+    # that don't pass an override; generate.py's --calibration-reference-
+    # config loads a SEPARATE file (tune.py passes the MASTER config) and
+    # passes its arrays in explicitly instead, so repeated calibration
+    # passes always sweep around the same fixed anchor - editing the
+    # running config's own baseline_row/cutout_row (e.g. dialing in a
+    # value found from a previous test) does NOT move the target for the
+    # next one.
+    reference_baseline_row = BASELINE_ROW if reference_baseline_row is None else reference_baseline_row
+    reference_cutout_row = CUTOUT_ROW if reference_cutout_row is None else reference_cutout_row
+    flatness_tolerance_mm = DEFAULT_FLATNESS_TOLERANCE_MM if flatness_tolerance_mm is None else flatness_tolerance_mm
+    pre_minkowski_char_height_mm = DEFAULT_PRE_MINKOWSKI_CHAR_HEIGHT_MM if pre_minkowski_char_height_mm is None else pre_minkowski_char_height_mm
+    align_kwargs = ALIGN_KWARGS if align_kwargs is None else align_kwargs
+    cone_segments = DEFAULT_CONE_SEGMENTS if cone_segments is None else cone_segments
+    platen_fn = Platen_Fn if platen_fn is None else platen_fn
+    minkowski_enabled = (DEFAULT_MINKOWSKI_ENABLED if minkowski_enabled is None
+                          else minkowski_enabled)
+    draft_angle_deg = DEFAULT_DRAFT_ANGLE_DEG if draft_angle_deg is None else draft_angle_deg
+
+    print(f"CalibrationTextRing: test_char={test_char!r} vary_baseline={vary_baseline} "
+          f"vary_cutout={vary_cutout} start={start}mm interval={interval}mm - "
+          f"reference baseline_row={list(reference_baseline_row)} "
+          f"cutout_row={list(reference_cutout_row)}", flush=True)
+
+    n_cols = len(PLACEMENT_MAP)
+    n_rows = len(reference_baseline_row)  # row-count-agnostic - see TextRing's matching note
+    total = n_rows * n_cols
+    parts = []
+    mapping_lines = []
+    n = 0
+    t_start = time.perf_counter()
+    for row in range(n_rows):
+        for col in range(n_cols):
+            n += 1
+            t0 = time.perf_counter()
+            # matches v2's per-column testSweepArray(start, interval, 28) -
+            # same offset applied to every row at this column
+            offset = start + interval * col
+            baseline_mm = reference_baseline_row[row] + (offset if vary_baseline else 0.0)
+            cutout_mm = reference_cutout_row[row] + (offset if vary_cutout else 0.0)
+            cal_fp, cal_fs = _font_for(test_char)
+            mesh = build_glyph(
+                test_char, flatness_tolerance_mm, pre_minkowski_char_height_mm=pre_minkowski_char_height_mm, row=row,
+                align_kwargs=align_kwargs, font_path=cal_fp, font_size_mm=cal_fs,
+                radius_y_offset_mm=cutout_mm - baseline_mm,
+                platen_radius_mm=PLATEN_RADIUS_MM, cone_segments=cone_segments,
+                platen_fn=platen_fn,
+                minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg,
+                minkowski_cone_height_mm=globals().get("Minkowski_Cone_Height_Mm"))
+            placed = place_on_cylinder(mesh, row, col, pre_minkowski_char_height_mm, baseline_mm=baseline_mm,
+                                       placement_protrusion=placement_protrusion,
+                                       angle_half_step=angle_half_step)
+            if globals().get("Clip_To_Cell", False):
+                placed = _clip_to_cell(placed, col, angle_half_step)
+            parts.append(placed)
+
+            # angle_deg computed from the REAL physical placement (matching
+            # place_on_cylinder's own angle formula) rather than v2's raw
+            # content-order col - more directly useful for correlating
+            # against the printed part, and avoids relying on Blickensderfer's
+            # non-identity placement_map lining up with v2's o'clock formula
+            # (which assumes content order == physical order, true for
+            # Postal's identity placement_map but not Blickensderfer's).
+            placement_col = PLACEMENT_MAP[col]
+            angle_deg = (0.5 + placement_col) * LATITUDE_INT
+            keyboard_char = DHIATENSOR[row][col] if col < len(DHIATENSOR[row]) else "?"
+            line = (f"[{n}/{total}] row {row} col {col} (keyboard key {keyboard_char!r}, "
+                    f"{angle_deg:.1f}deg): cutout={cutout_mm:.4f}mm baseline={baseline_mm:.4f}mm "
+                    f"({time.perf_counter() - t0:.2f}s)")
+            mapping_lines.append(line)
+            print(line, flush=True)
+    print(f"CalibrationTextRing: all {total} positions built in "
+          f"{time.perf_counter() - t_start:.1f}s", flush=True)
+    return sp.union_all(parts), mapping_lines
+
+
+def CalibrationAdditive(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                         reference_baseline_row=None, reference_cutout_row=None,
+                         flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, align_kwargs=None,
+                         cone_segments=None, platen_fn=None,
+                         minkowski_enabled=None, draft_angle_deg=None):
+    text_ring, mapping_lines = CalibrationTextRing(
+        test_char, vary_baseline, vary_cutout, start, interval,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, pre_minkowski_char_height_mm,
+        align_kwargs=align_kwargs, cone_segments=cone_segments,
+        platen_fn=platen_fn,
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+    return sp.union_all([text_ring, Cylinder(), ClipCylinder(0)]), mapping_lines
+
+
+def CalibrationElement(test_char=None, vary_baseline=None, vary_cutout=None, start=None, interval=None,
+                        reference_baseline_row=None, reference_cutout_row=None,
+                        flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None,
+                        align_kwargs=None, cone_segments=None, platen_fn=None, minkowski_enabled=None, draft_angle_deg=None):
+    """FullElement()'s calibration counterpart - same real body/hollow-out
+    (Subtractive() is unchanged, identical to a normal build), just with
+    CalibrationTextRing() in place of TextRing() for the additive ring."""
+    _require_configured()
+    additive, mapping_lines = CalibrationAdditive(
+        test_char, vary_baseline, vary_cutout, start, interval,
+        reference_baseline_row, reference_cutout_row, flatness_tolerance_mm, pre_minkowski_char_height_mm,
+        align_kwargs=align_kwargs, cone_segments=cone_segments,
+        platen_fn=platen_fn,
+        minkowski_enabled=minkowski_enabled, draft_angle_deg=draft_angle_deg)
+    build_log.mesh_report(additive, "CalibrationAdditive")
+    subtractive = Subtractive(render_core_groove)
+    build_log.mesh_report(subtractive, "Subtractive (unioned)")
+    full = additive.difference(subtractive, engine="manifold")
+    full, _, _, _ = sp.check_and_repair(full, label="CalibrationElement")
+    return full, mapping_lines
+
+
+# ------------------------------------------------------------- Subtractive
+
+def Core(Offset):
+    c = sp.cylinder_z(Shaft_Diameter + Offset, Element_Height + Clip_Height + 2 * z,
+                       sections=Cyl_Fn)
+    return sp.translate(c, [0, 0, -z])
+
+
+def SpeedHoles():
+    parts = []
+    for n in range(Speed_Hole_Qty):
+        h = sp.cylinder_z(Speed_Hole_ID, Element_Height + 2 * z, sections=Surface_Fn,
+                           base_z=-z + (Element_Height / 2.0 if n == 0 else 0.0))
+        h = sp.translate(h, [Speed_Hole_Radial, 0, 0])
+        h = sp.rotate_z(h, 360.0 / Speed_Hole_Qty * n)
+        parts.append(h)
+    return sp.union_all(parts)
+
+
+def _hollow_space_profile():
+    return [
+        (Shaft_Diameter / 2 + Wall_Min_Thickness, Wall_Min_Thickness + Wall_Chamfer + Core_Bottom_Offset),
+        (Shaft_Diameter / 2 + Wall_Min_Thickness, Element_Height - Wall_Min_Thickness - Wall_Chamfer),
+        (Shaft_Diameter / 2 + Wall_Min_Thickness + Wall_Chamfer, Element_Height - Wall_Min_Thickness),
+        ((Shaft_Diameter + Element_Diameter) / 4, Element_Height - Wall_Min_Thickness + Roof_Offset),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer, Element_Height - Wall_Min_Thickness),
+        (Element_Diameter / 2 - Wall_Min_Thickness, Element_Height - Wall_Min_Thickness - Wall_Chamfer),
+        (Element_Diameter / 2 - Wall_Min_Thickness, Wall_Min_Thickness + Wall_Chamfer),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer, Wall_Min_Thickness),
+        (Shaft_Diameter / 2 + Wall_Min_Thickness + Wall_Chamfer, Wall_Min_Thickness + Core_Bottom_Offset),
+    ]
+
+
+def _bottom_x(zval):
+    return (zval - Bottom_Z_Offset) / Bottom_Slope
+
+
+def BottomSlopedSpace():
+    floor_z = Bottom_Sloped_Space_Floor_Z
+    profile = [
+        (0, -z - 5),
+        (0, Core_Bottom_Offset),
+        (_bottom_x(Core_Bottom_Offset), Core_Bottom_Offset),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer, floor_z),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer + 5, floor_z),
+        (Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer + 5, -z - 5),
+    ]
+    return sp.revolve_polygon(profile, sections=Surface_Fn)
+
+
+def TopMinkCleanup():
+    outer = sp.cylinder_z(Element_Diameter, 5, sections=Surface_Fn, base_z=Element_Height)
+    inner = sp.cylinder_z(Element_Diameter - 15, 15, sections=Surface_Fn,
+                           base_z=Element_Height, center=True)
+    return outer.difference(inner, engine="manifold")
+
+
+def WireBite():
+    """WireBite(): rotate([0,0,-90]) translate([...]) rotate([90,0,0])
+    linear_extrude(Clip_OD+2z) hull(circle, square). Built as: true 2D
+    shapely hull (matching OpenSCAD's hull() exactly) -> extrude_polygon
+    along LOCAL Z (matching linear_extrude's own axis) -> the full
+    rotate/translate/rotate stack applied via scad_transform, in the same
+    top-to-bottom order as the SCAD source."""
+    from shapely.geometry import Point, box as shapely_box
+    from shapely.ops import unary_union
+
+    circle_poly = Point(Clip_Wire_OD / 2, Clip_Wire_OD / 2).buffer(Clip_Wire_OD / 2, resolution=32)
+    sq_x0 = Clip_Bite + (Clip_OD - Shaft_Diameter) / 2
+    square_poly = shapely_box(sq_x0, 0, sq_x0 + z, Clip_Opening)
+    hull_poly = unary_union([circle_poly, square_poly]).convex_hull
+
+    shape = trimesh.creation.extrude_polygon(hull_poly, Clip_OD + 2 * z)
+
+    out = sp.scad_transform(
+        shape,
+        ("rotate", [0, 0, -90]),
+        ("translate", [Shaft_Diameter / 2 - Clip_Bite, Clip_OD / 2 + z, Element_Height]),
+        ("rotate", [90, 0, 0]),
+    )
+    return out
+
+
+def SecondaryCore(Offset):
+    """lib/core_shaft.scad - Blickensderfer sets Core_Taper_Top_Z=Element_Height
+    (below the clip), distinct from Core_Top_Z=Element_Height+Clip_Height."""
+    taper_top_z = Core_Taper_Top_Z
+    profile = [
+        (0, Core_Bottom_Z + Core_Contact_Length),
+        (0, Core_Top_Z),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset, Core_Top_Z),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset, taper_top_z),
+        (Shaft_Diameter / 2 + Offset / 2, taper_top_z - Core_Secondary_ID_Offset),
+        (Shaft_Diameter / 2 + Offset / 2, taper_top_z - Core_Contact_Length),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset,
+         taper_top_z - Core_Contact_Length - Core_Secondary_ID_Offset),
+        (Shaft_Diameter / 2 + Offset / 2 + Core_Secondary_ID_Offset,
+         Core_Bottom_Z + Core_Contact_Length + Core_Secondary_ID_Offset),
+        (Shaft_Diameter / 2 + Offset / 2, Core_Bottom_Z + Core_Contact_Length),
+    ]
+    return sp.revolve_polygon(profile, sections=Surface_Fn)
+
+
+def CoreGrooves(Offset):
+    parts = []
+    circle_theta = np.linspace(0, 2 * np.pi, Groove_Fn, endpoint=False)
+    r = Core_Groove_D / 2.0
+    radial = Shaft_Diameter / 2 + Offset / 2
+    profile = np.column_stack([radial + r * np.cos(circle_theta), r * np.sin(circle_theta)])
+    height = Core_Top_Z + 2 * z
+    twist_span = Core_Top_Z - Core_Bottom_Z + 2 * z
+    for n in range(Core_Groove_Qty):
+        sign = 1 if n % 2 == 0 else -1
+        twist = 360 * twist_span / (np.pi * (Shaft_Diameter + Offset)) * sign
+        groove = sp.linear_extrude_twist(profile, height=height, twist_degrees=twist,
+                                          z_steps=96, base_z=-z)
+        groove = sp.rotate_z(groove, 360.0 / Core_Groove_Qty * n)
+        parts.append(groove)
+    return sp.union_all(parts)
+
+
+def CoreChamferShape(Offset, size=None):
+    """size overrides the global Core_Chamfer for this call only - Bennett's
+    top instance sizes up past the default so its cone's opening radius
+    reaches exactly where it meets bennett.RoofTaper()'s cone (see
+    bennett.configure()'s Core_Chamfer_Top_Size derivation)."""
+    chamfer_size = Core_Chamfer if size is None else size
+    return sp.frustum_z(Shaft_Diameter + Offset + 2 * chamfer_size,
+                         Shaft_Diameter + Offset, chamfer_size + z, sections=Surface_Fn)
+
+
+def CoreChamfer(Offset, chamfer_top=True):
+    bottom = sp.translate(CoreChamferShape(Offset), [0, 0, Core_Bottom_Z - z])
+    parts = [bottom]
+    if chamfer_top:
+        top_shape = CoreChamferShape(Offset + Core_Secondary_ID_Offset / 2)
+        top = sp.scad_transform(top_shape,
+                                 ("translate", [0, 0, Core_Top_Z + z]),
+                                 ("rotate", [180, 0, 0]))
+        parts.append(top)
+    return sp.union_all(parts)
+
+
+def CoreEllipses():
+    taper_top_z = Core_Taper_Top_Z
+    parts = []
+    for n in range(Core_Web_Qty):
+        c1 = sp.cylinder_z(Core_Web_Width, 5, sections=32, base_z=0)
+        c1 = sp.translate(c1, [0, Core_Web_Width / 2.0, 0])
+        c2 = sp.cylinder_z(Core_Web_Width, 5, sections=32, base_z=0)
+        c2 = sp.translate(c2, [0, Core_Web_Length - Core_Web_Width / 2.0, 0])
+        shape = trimesh.util.concatenate([c1, c2]).convex_hull
+        shape = sp.scad_transform(
+            shape,
+            ("translate", [0, 0, Core_Bottom_Z + (taper_top_z - Core_Bottom_Z) / 2 - Core_Web_Length / 2]),
+            ("rotate", [90, 0, 90]),
+        )
+        shape = sp.rotate_z(shape, n * 360.0 / Core_Web_Qty)
+        parts.append(shape)
+    return sp.union_all(parts)
+
+
+def LogoText(flatness_tolerance_mm=0.005):
+    """LogoText(): each character gets its own angular position, sitting
+    flat on the XY plane (extruded along Z, not wrapped radially like
+    TextRing characters) near the top face. halign=center in the real
+    file centers on the advance box (see docs/text-centering.md); this
+    port centers on the ink bbox HORIZONTALLY instead - a simplification,
+    fine for a decorative logo, not attempted to match exactly.
+
+    Vertically, characters are aligned by BASELINE (y=0, FreeType's own
+    pen-origin convention - get_glyph_contours applies no baseline shift),
+    not by ink-bbox center. Centering each character on its own ink bbox
+    independently (the original approach) put every character at a
+    different height depending on its own ascender/descender/x-height -
+    e.g. 'L' (cap-height, no descender) and 'e' (x-height only) would
+    each get centered on a different Y, breaking a common baseline across
+    the ring. Baseline alignment is the standard convention for setting
+    multi-character text for exactly this reason."""
+    n_chars = len(Logo_Text)
+    parts = []
+    for n, ch in enumerate(Logo_Text):
+        if ch == " ":
+            continue
+        mesh = build_flat_text(ch, flatness_tolerance_mm, 0.4, font_size_mm=Logo_Text_Size,
+                                font_path=LOGO_FONT_PATH)
+        center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
+        mesh.apply_translation([-center_x, 0, 0])
+
+        angle_n = Logo_Position_Offset - 90 + Logo_Text_Spacing * n - (n_chars - 1) * Logo_Text_Spacing / 2
+        placed = sp.scad_transform(mesh, ("rotate", [0, 0, Logo_Text_Offset]))
+        placed = sp.translate(placed, [0, Logo_Radius, Element_Height - 0.3])
+        placed = sp.rotate_z(placed, angle_n)
+        parts.append(placed)
+    return sp.union_all(parts)
+
+
+def build_text_string(text, size, font_path, depth, flatness_tolerance_mm=0.005):
+    """Whole-string flat text, e.g. v2's text(text=<whole string>,
+    halign="center", valign="center") called directly on a multi-character
+    string rather than a ring of individually angle-placed characters
+    (LogoText's own model). Ported as build_flat_text() called per
+    character at its natural FreeType pen-origin advance (no align_kwargs),
+    summed left to right, then the WHOLE assembled string shifted by
+    -total_advance/2 - the same "native halign=center centers the ADVANCE
+    box" convention already verified/established elsewhere (see lib/
+    glyph_pipeline.scad's AlignedText comment). Vertically, stays at
+    baseline (y=0) rather than attempting true valign=center - the same
+    simplification LogoText()/mignon.ElementLabel() already make for their
+    own decorative text - fine for an engraved label, not attempted to
+    match exactly. Originally Bennett-only (bennett.py's private
+    _build_text_string); promoted here once Hammond's Label() needed the
+    identical derivation, per this repo's "extract shared derivations
+    instead of hand-copying them" convention."""
+    face = load_font_face(font_path)
+    scale = em_to_mm_scale(size, face.units_per_EM)
+    parts = []
+    cursor = 0.0
+    for ch in text:
+        _, advance_mm = get_glyph_contours_and_advance(ch, flatness_tolerance_mm, scale, font_path=font_path)
+        if ch != " ":
+            mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=size, font_path=font_path)
+            parts.append(sp.translate(mesh, [cursor, 0, 0]))
+        cursor += advance_mm
+    whole = sp.union_all(parts)
+    return sp.translate(whole, [-cursor / 2.0, 0, 0])
+
+
+# ------------------------------------------------------------------ Element
+
+def Subtractive(render_core_groove=None):
+    render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
+    parts = [
+        Core(0),
+        CoreChamfer(0),
+        WireBite(),
+        SpeedHoles(),
+        HollowSpace(),
+        DrivePin(),
+        BottomSlopedSpace(),
+        SecondaryCore(0),
+        CoreEllipses(),
+        TopMinkCleanup(),
+        LogoText(),
+    ]
+    if render_core_groove:
+        parts.append(CoreGrooves(0))
+    # Empty for the default "round" style, so this is a no-op unless a
+    # config actually asks for faceting - see WheelStyleCutters().
+    parts.extend(WheelStyleCutters())
+    print("Subtractive: unioning", len(parts), "parts", flush=True)
+    return sp.union_all(parts)
+
+
+def FullElement(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
+                 cone_segments=None, platen_fn=None, minkowski_enabled=None,
+                 draft_angle_deg=None):
+    _require_configured()
+    additive, char_parts = Additive(flatness_tolerance_mm, pre_minkowski_char_height_mm, align_kwargs=align_kwargs,
+                                     cone_segments=cone_segments,
+                                     platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                     draft_angle_deg=draft_angle_deg)
+    build_log.mesh_report(additive, "Additive")
+    subtractive = Subtractive(render_core_groove)
+    build_log.mesh_report(subtractive, "Subtractive (unioned)")
+    full = additive.difference(subtractive, engine="manifold")
+    full, _, _, _ = sp.check_and_repair(full, label="FullElement")
+    return full, char_parts
+
+
+# ------------------------------------------------------------- Resin support
+# lib/resin_rod.scad + lib/resin_support.scad - cylinder-machine-family
+# (Blickensderfer/Postal only) print supports. ResinSupport() is UNIONED
+# onto FullElement() (support material to be broken off after printing),
+# not subtracted - matches ResinPrint() = union(FullElement(), ResinSupport()).
+# ResinSupport() itself is machine-specific (the drive-pin trio) and lives
+# in blickensderfer.py/postal.py; everything it's built from lives here.
+
+def _resin_rod(h, add_raft=None):
+    """Thin pass-through to resin_support.resin_rod(), reading this
+    module's own config-derived globals (populated by _receive_config) -
+    kept here (rather than having mignon.py/bennett.py/hammond.py call
+    resin_support.resin_rod() directly with their own globals) so those
+    call sites don't need to change; the actual shape-building logic
+    lives in lib/resin_support.py."""
+    add_raft = Resin_Rod_Raft if add_raft is None else add_raft
+    return resin_support.resin_rod(h, Resin_Tip_OD, Resin_Tip_L, Resin_Rod_OD, Resin_Inset,
+                                    Resin_Min_Rod_Height, Resin_Raft_Thickness, Resin_Raft_OD,
+                                    add_raft=add_raft, resin_fn=Resin_Fn)
+
+
+def _bottom_z(xval):
+    return Bottom_Slope * xval + Bottom_Z_Offset
+
+
+def CutGroove():
+    """CutGroove(): rotate_extrude() of (ring profile - 2 circular holes),
+    at radius Element_Diameter/2-Wall_Min_Thickness. The 2D difference
+    happens BEFORE the revolve in the real file, so each hole becomes a
+    full 360deg toroidal channel (a continuous score line to snap the
+    support ring off), not discrete point perforations. Built as
+    revolve(profile) - revolve(hole1) - revolve(hole2), since revolving is
+    linear with respect to this kind of cross-section boolean."""
+    inner_x = Cut_Groove_Inner_X
+    wmt = Wall_Min_Thickness
+    radius = Element_Diameter / 2 - Wall_Min_Thickness
+    profile = [
+        (radius + inner_x, -Resin_Min_Rod_Height - Resin_Raft_Thickness),
+        (radius + inner_x, -Resin_Min_Rod_Height),
+        (radius + wmt - Resin_Groove_OD - Resin_Groove_Thickness, -Resin_Groove_OD),
+        (radius + wmt - Resin_Groove_OD - Resin_Groove_Thickness, z),
+        (radius + wmt, z),
+        (radius + wmt, -Resin_Min_Rod_Height),
+        (radius + wmt + Resin_Raft_Thickness, -Resin_Min_Rod_Height),
+        (radius + wmt, -Resin_Min_Rod_Height - Resin_Raft_Thickness),
+    ]
+    base = sp.revolve_polygon(profile, sections=Surface_Fn)
+
+    hole_r = Resin_Groove_OD / 2
+    # Tube cross-section resolution: resin.resin_fn, the same knob that
+    # sets the rods/raft. Was hardcoded at 32.
+    theta = np.linspace(0, 2 * np.pi, Resin_Fn, endpoint=False)
+
+    def circle_profile(cx, cz):
+        return np.column_stack([cx + hole_r * np.cos(theta), cz + hole_r * np.sin(theta)])
+
+    hole1 = sp.revolve_polygon(circle_profile(radius + wmt, -Resin_Groove_OD / 2), sections=Surface_Fn)
+    hole2 = sp.revolve_polygon(
+        circle_profile(radius + wmt - Resin_Groove_OD - Resin_Groove_Thickness, -Resin_Groove_OD / 2),
+        sections=Surface_Fn)
+
+    return base.difference(hole1, engine="manifold").difference(hole2, engine="manifold")
+
+
+def SpeedHoleSupport():
+    parts = []
+    r1 = Speed_Hole_Radial + Speed_Hole_ID / 2 + Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(r1)), [r1, 0, 0]))
+    r2 = Speed_Hole_Radial - Speed_Hole_ID / 2 - Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(r2)), [r2, 0, 0]))
+    r3 = np.hypot(Speed_Hole_Radial, Speed_Hole_ID / 2 + Resin_Tip_OD / 2)
+    parts.append(sp.translate(_resin_rod(_bottom_z(r3)), [Speed_Hole_Radial, Speed_Hole_ID / 2 + Resin_Tip_OD / 2, 0]))
+    r4 = np.hypot(Speed_Hole_Radial, Speed_Hole_ID / 2 + Resin_Tip_OD / 2)
+    parts.append(sp.translate(_resin_rod(_bottom_z(r4)), [Speed_Hole_Radial, -(Speed_Hole_ID / 2 + Resin_Tip_OD / 2), 0]))
+    return sp.union_all(parts)
+
+
+def SpeedHoleSupports():
+    parts = []
+    for n in range(Speed_Hole_Qty):
+        if n == 0:
+            continue
+        parts.append(sp.rotate_z(SpeedHoleSupport(), 360.0 / Speed_Hole_Qty * n))
+    return sp.union_all(parts)
+
+
+def DrivePinSupport(radius, half_extent_x, half_extent_y):
+    parts = []
+    x1 = radius + half_extent_x + Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(x1)), [x1, 0, 0]))
+    x2 = radius - half_extent_x - Resin_Tip_OD / 2
+    parts.append(sp.translate(_resin_rod(_bottom_z(x2)), [x2, 0, 0]))
+    r3 = np.hypot(radius, half_extent_y + Resin_Tip_OD / 2)
+    parts.append(sp.translate(_resin_rod(_bottom_z(r3)), [radius, half_extent_y + Resin_Tip_OD / 2, 0]))
+    parts.append(sp.translate(_resin_rod(_bottom_z(r3)), [radius, -(half_extent_y + Resin_Tip_OD / 2), 0]))
+    return sp.union_all(parts)
+
+
+def BottomSupports():
+    fractions = Bottom_Support_Fractions
+    inner_angle_offset = Bottom_Support_Inner_Angle_Offset
+    a = _bottom_x(Core_Bottom_Offset)
+    b = Element_Diameter / 2 - Wall_Min_Thickness - Wall_Chamfer
+    parts = []
+    for n in range(Speed_Hole_Qty):
+        outer_rods = [sp.translate(_resin_rod(_bottom_z(a + (b - a) * f)), [a + (b - a) * f, 0, 0])
+                      for f in fractions]
+        parts.append(sp.rotate_z(sp.union_all(outer_rods), (n + 0.5) * 360.0 / Speed_Hole_Qty))
+
+        inner_x = Shaft_Diameter / 2 + Core_Chamfer + Resin_Tip_OD / 2
+        inner_rod = sp.translate(_resin_rod(Core_Bottom_Offset), [inner_x, 0, 0])
+        parts.append(sp.rotate_z(inner_rod, (n + inner_angle_offset) * 360.0 / Speed_Hole_Qty))
+    return sp.union_all(parts)
+
+
+def ResinPrint(flatness_tolerance_mm=None, pre_minkowski_char_height_mm=None, render_core_groove=None, align_kwargs=None,
+               cone_segments=None, platen_fn=None, minkowski_enabled=None,
+               draft_angle_deg=None):
+    full, char_parts = FullElement(flatness_tolerance_mm, pre_minkowski_char_height_mm, render_core_groove, align_kwargs,
+                                    cone_segments=cone_segments,
+                                    platen_fn=platen_fn, minkowski_enabled=minkowski_enabled,
+                                    draft_angle_deg=draft_angle_deg)
+    support = ResinSupport()
+    build_log.mesh_report(support, "ResinSupport")
+    combined = sp.union_all([full, support])
+    combined, _, _, _ = sp.check_and_repair(combined, label="ResinPrint")
+    return combined, char_parts
+
+
+# ------------------------------------------------------------ Shaft Gauge
+# Ported from v2/blickensderfer.scad's [Shaft Gauge Test] section
+# (Render_Mode==2 -> GaugeTestSet(), lines 265-267/517-589). A 6-pocket
+# "revolver" test print: each pocket bores the real shaft passage
+# (Core/CoreChamfer/SecondaryCore/CoreGrooves, all Offset-parameterized,
+# already ported above and reused verbatim here) at
+# Gauge_Offset_Start + n*Gauge_Offset_Int for n=0..5, engraved with its
+# own offset value so you can tell pockets apart after printing. Workflow:
+# print it, test-fit each numbered pocket on the real machine's shaft, and
+# set element.core_id_offset (config) to whichever number fits. Blickensderfer/
+# Postal-only in v2 (the other machine families explicitly omit it) - both
+# cylinder-machine-family members share this verbatim.
+
+def CylinderGauge(offset):
+    h = Element_Height + Clip_Height - Core_Bottom_Offset
+    c = sp.cylinder_z(Shaft_Diameter + 2 * Wall_Min_Thickness + offset, h, sections=Surface_Fn)
+    return sp.translate(c, [0, 0, Core_Bottom_Offset])
+
+
+def GaugeResinSupport(offset):
+    parts = []
+    for n in range(8):
+        rod = sp.translate(_resin_rod(Core_Bottom_Offset),
+                            [Shaft_Diameter / 2 + offset / 2 + Wall_Min_Thickness / 2, 0, 0])
+        parts.append(sp.rotate_z(rod, n * 360.0 / 8))
+    return sp.union_all(parts)
+
+
+def GaugeResinSupportsRaft():
+    d = 3 * (Shaft_Diameter + 2 * Wall_Min_Thickness)
+    return sp.frustum_z(d, d + 2 * Resin_Raft_Thickness, Resin_Raft_Thickness, sections=Resin_Fn,
+                         base_z=-Resin_Min_Rod_Height - Resin_Raft_Thickness)
+
+
+def RevolverSolid():
+    """hull() of 6 CylinderGauge(0) posts on a hexagonal ring - trimesh has
+    no hull-of-solids primitive, so (as with CoreEllipses() above)
+    concatenate their vertices and take .convex_hull; valid here because
+    every input is itself convex, matching hull(union(convex_i)) ==
+    convex_hull(union(vertices_i))."""
+    radius = Shaft_Diameter + Wall_Min_Thickness * 2 - Wall_Min_Thickness / 2
+    posts = []
+    for n in range(6):
+        c = sp.translate(CylinderGauge(0), [radius, 0, 0])
+        posts.append(sp.rotate_z(c, n * 360.0 / 6))
+    return trimesh.util.concatenate(posts).convex_hull
+
+
+def GaugeText(offset):
+    """GaugeText(Offset) - blickensderfer.scad:558-564. Engraves the
+    pocket's calibration offset (e.g. "0.025") on its outer wall, using
+    natural (advance-based) character spacing, not the fixed-pitch CPI
+    convention type_test.py uses - this is a plain label, not simulating
+    struck type. Reuses the logo's engraved font (v2 uses "Consolas"
+    specifically for this, which isn't a font v4 has a config slot for -
+    the logo font serves the same "small engraved label" role). Skipped
+    entirely for Offset==0, matching v2's `if (Offset!=0)`."""
+    if offset == 0:
+        return None
+    label = f"{round(offset, 4):g}"
+    size_mm = 3.0
+    depth = 4.0
+    face = load_font_face(LOGO_FONT_PATH)
+    scale = em_to_mm_scale(size_mm, face.units_per_EM)
+
+    parts = []
+    advances = []
+    cursor = 0.0
+    for ch in label:
+        _, advance_mm = get_glyph_contours_and_advance(ch, 8.0, scale, font_path=LOGO_FONT_PATH)
+        mesh = build_flat_text(ch, 8.0, depth, font_size_mm=size_mm, font_path=LOGO_FONT_PATH)
+        mesh.apply_translation([cursor, 0, 0])
+        parts.append(mesh)
+        advances.append(advance_mm)
+        cursor += advance_mm
+    total_width = cursor
+    text_mesh = sp.union_all(parts)
+    text_mesh.apply_translation([-total_width / 2.0, 0, 0])
+
+    # v2 source order is translate() THEN rotate([0,90,0]) (translate
+    # outermost) - scad_transform's ops list must match that top-to-bottom
+    # source order, not the reverse
+    return sp.scad_transform(
+        text_mesh,
+        ("translate", [Shaft_Diameter / 2 + Wall_Min_Thickness - Wall_Min_Thickness / 2
+                        + Core_Secondary_ID_Offset / 2,
+                        0, Core_Bottom_Offset + (Element_Height + Clip_Height - Core_Bottom_Offset) / 2]),
+        ("rotate", [0, 90, 0]),
+    )
+
+
+def GaugeTestSubtractive(offset, render_core_groove=None):
+    render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
+    parts = [Core(offset), CoreChamfer(offset), SecondaryCore(offset), sp.rotate_z(CoreEllipses(), 180)]
+    if render_core_groove:
+        parts.append(CoreGrooves(offset))
+    text = GaugeText(offset)
+    if text is not None:
+        parts.append(text)
+    return sp.union_all(parts)
+
+
+def GaugeTestSet(render_core_groove=None, gauge_offset_start=None, gauge_offset_int=None):
+    _require_configured()
+    gauge_offset_start = Gauge_Offset_Start if gauge_offset_start is None else gauge_offset_start
+    gauge_offset_int = Gauge_Offset_Int if gauge_offset_int is None else gauge_offset_int
+    radius = Shaft_Diameter + Wall_Min_Thickness * 2 - Wall_Min_Thickness / 2
+
+    subtractive_parts = [GaugeTestSubtractive(0, render_core_groove)]
+    for n in range(6):
+        offset = gauge_offset_start + n * gauge_offset_int
+        pocket = sp.translate(GaugeTestSubtractive(offset, render_core_groove), [radius, 0, 0])
+        subtractive_parts.append(sp.rotate_z(pocket, n * 360.0 / 6))
+    subtractive = sp.union_all(subtractive_parts)
+    print(f"GaugeTestSet: subtractive unioned, {len(subtractive_parts)} parts", flush=True)
+
+    body = RevolverSolid().difference(subtractive, engine="manifold")
+
+    support_parts = []
+    for n in range(6):
+        offset = gauge_offset_start + (n + 1) * gauge_offset_int
+        support = sp.translate(GaugeResinSupport(offset), [radius, 0, 0])
+        support_parts.append(sp.rotate_z(support, n * 360.0 / 6))
+    support_parts.append(GaugeResinSupportsRaft())
+    supports = sp.union_all(support_parts)
+
+    combined = sp.union_all([body, supports])
+    combined, _, _, _ = sp.check_and_repair(combined, label="GaugeTestSet")
+    return combined

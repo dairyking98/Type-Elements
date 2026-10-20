@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.1 -->
-<title>v5: the app | Type Elements</title>
+<title>v5 | Type Elements</title>
 <meta name="generator" content="Jekyll v4.4.1" />
-<meta property="og:title" content="v5: the app" />
+<meta property="og:title" content="v5" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Make 3D-printable typewriter type elements - IBM Selectric balls, Blickensderfer wheels, Hammond shuttles and more - from any font. Pick a machine, choose a typeface, preview the element in 3D and export a print-ready STL." />
 <meta name="twitter:description" property="og:description" content="Make 3D-printable typewriter type elements - IBM Selectric balls, Blickensderfer wheels, Hammond shuttles and more - from any font. Pick a machine, choose a typeface, preview the element in 3D and export a print-ready STL." />
@@ -16,10 +16,10 @@
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://type-elements.leonardchau.com/assets/og/type-elements-card.png" />
-<meta name="twitter:title" content="v5: the app" />
+<meta name="twitter:title" content="v5" />
 <meta name="twitter:site" content="@" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Make 3D-printable typewriter type elements - IBM Selectric balls, Blickensderfer wheels, Hammond shuttles and more - from any font. Pick a machine, choose a typeface, preview the element in 3D and export a print-ready STL.","headline":"v5: the app","image":"https://type-elements.leonardchau.com/assets/og/type-elements-card.png","url":"https://type-elements.leonardchau.com/v5/"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Make 3D-printable typewriter type elements - IBM Selectric balls, Blickensderfer wheels, Hammond shuttles and more - from any font. Pick a machine, choose a typeface, preview the element in 3D and export a print-ready STL.","headline":"v5","image":"https://type-elements.leonardchau.com/assets/og/type-elements-card.png","url":"https://type-elements.leonardchau.com/v5/"}</script>
 <!-- End Jekyll SEO tag -->
 <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -38,7 +38,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/v5/">v5: the app</a><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="/app/">Open the app</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
+        <div class="trigger"><a class="page-link" href="/v5/">v5</a><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="/app/">Open the app</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -46,7 +46,7 @@
         <article class="post">
 
   <header class="post-header">
-    <h1 class="post-title">v5: the app</h1>
+    <h1 class="post-title">v5</h1>
   </header>
 
   <div class="post-content">
@@ -87,9 +87,41 @@ v4\.venv\Scripts\python v5\server.py --open     # Windows
 (scratch config copies for testing), <code class="language-plaintext highlighter-rouge">--port</code>, <code class="language-plaintext highlighter-rouge">--host</code> (default 127.0.0.1 =
 this computer only). First time: <code class="language-plaintext highlighter-rouge">v4/.venv/bin/python3 -m pip install fastapi uvicorn</code>.</p>
 
-<p><strong>Try it:</strong> <a href="https://type-elements.leonardchau.com/app/">type-elements.leonardchau.com/app/</a>
-(the hosted UI - it connects to the engine on your computer until the
-in-browser engine lands).</p>
+<p><strong>Try it:</strong> <a href="https://type-elements.leonardchau.com/app/">type-elements.leonardchau.com/app/</a> -
+runs entirely in your browser, nothing to install.</p>
+
+<h2 id="two-engines-one-api">Two engines, one API</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>engine</th>
+      <th>where it runs</th>
+      <th>needs</th>
+      <th>default when</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>In this browser</strong></td>
+      <td>v4’s own Python under Pyodide in a Web Worker, Minkowski sums on a worker pool (<code class="language-plaintext highlighter-rouge">browser/</code>, <code class="language-plaintext highlighter-rouge">ui/engine_browser.js</code>)</td>
+      <td>a recent Chrome / Edge / Firefox; ~35 MB first visit, cached after</td>
+      <td>the hosted site</td>
+    </tr>
+    <tr>
+      <td><strong>Local engine</strong></td>
+      <td><code class="language-plaintext highlighter-rouge">v5/server.py</code> running v4’s scripts</td>
+      <td>the repo + Python</td>
+      <td>the page is served by <code class="language-plaintext highlighter-rouge">server.py</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Both run the same <code class="language-plaintext highlighter-rouge">engine_core.py</code>, so they behave the same; switch in the
+app’s sidebar (Engine). In the browser, fonts come from a bundled set
+(GNU FreeMono/FreeSans) plus any you add - installed fonts (Chrome/Edge ask
+permission once) or uploaded files - and everything you change is kept in
+browser storage.</p>
 
 <h2 id="performance">Performance</h2>
 
@@ -190,11 +222,11 @@ saves, <code class="language-plaintext highlighter-rouge">Ctrl+Enter</code> prev
   <tbody>
     <tr>
       <td>done</td>
-      <td>engine API + local server; reference UI covering every v4 parameter; hosted UI at /app/; Minkowski-in-WebAssembly spike (worker pool beats native)</td>
+      <td>engine API + local server; reference UI covering every v4 parameter; Minkowski-in-WebAssembly spike (worker pool beats native); <strong>in-browser engine live at /app/</strong> - v4’s own Python in a worker, output identical to native, engine switch in the app</td>
     </tr>
     <tr>
-      <td><strong>now - phase 2</strong></td>
-      <td>v4’s Python running in the page (Pyodide) with the worker-pool Minkowski; then an engine switch: <em>in-browser</em> (no install, default) or <em>local engine</em> (desktop)</td>
+      <td>next</td>
+      <td>test every machine in the browser engine; ship merge vectors with pool results (exact vertex counts)</td>
     </tr>
     <tr>
       <td>later</td>

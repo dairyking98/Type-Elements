@@ -38,7 +38,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/v5/">v5: the app</a><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="/app/">Open the app</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
+        <div class="trigger"><a class="page-link" href="/v5/">v5</a><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="/app/">Open the app</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -66,13 +66,24 @@ geometry pipeline, which a UI never touches.</p>
 <code class="language-plaintext highlighter-rouge">http://127.0.0.1:8090/app/</code>, so use relative URLs for your own assets and
 absolute <code class="language-plaintext highlighter-rouge">/api/...</code> URLs for the engine.</p>
   </li>
-  <li><strong>Later:</strong> an in-browser engine (Pyodide + manifold WebAssembly) behind the
-same methods, so a UI can be published as a plain static site.</li>
+  <li><strong>In the browser:</strong> <code class="language-plaintext highlighter-rouge">v5/ui/engine_browser.js</code>, the same methods with v4
+running in a Web Worker (Pyodide + manifold WebAssembly). This is how the
+hosted site works with no server. A UI can import it directly.</li>
 </ul>
 
-<p>The reference UI (<code class="language-plaintext highlighter-rouge">v5/ui/</code>) keeps every engine call in <code class="language-plaintext highlighter-rouge">engine.js</code>. Copy that
-file into your UI and you have the whole API as JavaScript functions. When the
-in-browser engine lands, only that file changes.</p>
+<p>The reference UI (<code class="language-plaintext highlighter-rouge">v5/ui/</code>) keeps every engine call behind <code class="language-plaintext highlighter-rouge">engine.js</code>, which
+picks <code class="language-plaintext highlighter-rouge">engine_http.js</code> (local server) or <code class="language-plaintext highlighter-rouge">engine_browser.js</code> (in-browser). Copy
+those three into your UI and you have the whole API as JavaScript functions,
+on either engine.</p>
+
+<p>The browser engine adds a few things a UI should use:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">fontData(path)</code> returns font bytes (it has no font URLs).</li>
+  <li><code class="language-plaintext highlighter-rouge">addFont(name, arrayBuffer)</code> adds a font the user picked.</li>
+  <li><code class="language-plaintext highlighter-rouge">onStatus(fn)</code> reports boot progress.</li>
+  <li><code class="language-plaintext highlighter-rouge">config()</code> results carry <code class="language-plaintext highlighter-rouge">font_substitutions</code> for fonts that aren’t
+available in the browser.</li>
+</ul>
 
 <p>All bodies are JSON. Errors come back as HTTP 4xx with <code class="language-plaintext highlighter-rouge">{"detail": "message"}</code>.</p>
 
