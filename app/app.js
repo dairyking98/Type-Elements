@@ -1,7 +1,7 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=bc416d19fa";
-import { Viewer } from "./viewer.js?v=bc416d19fa";
-import { progressTracker } from "./progress.js?v=bc416d19fa";
+import { engine } from "./engine.js?v=5cb25e9d3b";
+import { Viewer } from "./viewer.js?v=5cb25e9d3b";
+import { progressTracker } from "./progress.js?v=5cb25e9d3b";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
