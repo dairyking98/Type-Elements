@@ -7,7 +7,12 @@ description: >-
 # Link previews (Discord, Slack, iMessage, social): jekyll-seo-tag turns
 # `image` into og:image/twitter:image; `twitter.card` makes it the large
 # image card. Size/alt/accent colour are in _includes/head.html.
-image: /assets/og/type-elements-card.png
+# jekyll-seo-tag reads `image` per page, so it's set for every page here.
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/og/type-elements-card.png
 twitter:
   card: summary_large_image
 url: "https://type-elements.leonardchau.com"
