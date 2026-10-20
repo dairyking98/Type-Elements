@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
 Builds the in-browser engine bundle: every file the Pyodide engine needs,
-copied into OUTDIR at the path it will have in the engine's in-memory
-filesystem, plus manifest.json listing them. The deploy workflow writes it
+packed into one file, OUTDIR/engine.pack, so starting the engine costs one
+request (cacheable like any other) instead of one per file. Format: a 4-byte
+little-endian header length, a JSON header [[engine path, size], ...], then
+the files' bytes back to back. manifest.json lists the same files, for
+people. The deploy workflow writes it
 next to the app (/app/_engine/); for local testing, v5/ui/_engine/.
 
     python3 v5/browser/make_bundle.py v5/ui/_engine
@@ -16,6 +19,7 @@ import glob
 import json
 import os
 import shutil
+import struct
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -43,12 +47,13 @@ for src in glob.glob(os.path.join(HERE, "fonts", "*.ttf")):
 
 if os.path.isdir(out):
     shutil.rmtree(out)
-total = 0
-for dest, src in files.items():
-    target = os.path.join(out, dest.lstrip("/"))
-    os.makedirs(os.path.dirname(target), exist_ok=True)
-    shutil.copyfile(src, target)
-    total += os.path.getsize(src)
+os.makedirs(out)
+order = sorted(files)
+blobs = [open(files[dest], "rb").read() for dest in order]
+header = json.dumps([[dest, len(b)] for dest, b in zip(order, blobs)]).encode()
+with open(os.path.join(out, "engine.pack"), "wb") as f:
+    f.write(struct.pack("<I", len(header)) + header + b"".join(blobs))
+total = sum(map(len, blobs))
 with open(os.path.join(out, "manifest.json"), "w") as f:
-    json.dump({"files": sorted(files), "bytes": total}, f)
-print(f"{len(files)} files, {total / 1e6:.1f} MB -> {out}")
+    json.dump({"files": order, "bytes": total}, f)
+print(f"{len(files)} files, {total / 1e6:.1f} MB -> {out}/engine.pack")

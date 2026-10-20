@@ -114,12 +114,12 @@ export const browserEngine = {
     return { cancelled: true };
   },
   // "Save a copy": in a browser that means downloading it.
-  async saveCopy(m) {
+  async saveCopy(m, body = {}) {
     const url = urls.stl[m];
     if (!url) throw new Error("nothing built yet");
-    const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 19);
+    const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 16);
     const a = document.createElement("a");
-    a.href = url; a.download = `${m}_${stamp}.stl`; a.click();
+    a.href = url; a.download = `${body.last_build?.name || `${m}_${stamp}`}.stl`; a.click();
     return { path: `${a.download} (downloaded)` };
   },
 };

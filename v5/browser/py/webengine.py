@@ -80,7 +80,16 @@ def font_bytes(path):
         return f.read()
 
 
+# Fonts configs name that we can't ship, mapped to a free look-alike we do.
+STAND_INS = {
+    "ocr-a ii regular.ttf": "OCRA-TE.ttf",   # Monotype's OCR-A II -> public-domain OCR-A, rescaled to match
+}
+
+
 def _replacement(path):
+    stand_in = STAND_INS.get(os.path.basename(path).lower())
+    if stand_in:
+        return os.path.join(BUNDLED, stand_in)
     same = os.path.join(BUNDLED, os.path.basename(path))
     if os.path.isfile(same):
         return same

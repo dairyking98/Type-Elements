@@ -1,6 +1,7 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
 import { engine } from "./engine.js";
 import { Viewer } from "./viewer.js";
+import { progressTracker } from "./progress.js";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -106,14 +107,14 @@ const S = reactive({
   data: null, edits: {}, rows: null, preset: null, group: localStorage.getItem("te.group") || "typeface", search: "",
   glyphs: { status: {}, unused: {} }, sel: null, profiles: [],
   job: { running: false, label: "", progress: 0, state: "", elapsed: 0, log: [], partial: "", issues: [],
-         phase: "", phaseStart: 0, phaseEnd: 1 },
+         phase: "", eta: null },
   build: { target: "element", crossSection: false, crossAngle: 0, cutBodies: false, stl: null, last: null },
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
   engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
   typeTestAuto: (() => { try { return !!localStorage.getItem("te.typeTestAuto"); } catch { return false; } })(),
-  booting: false, engineStatus: null, engineError: "", phoneLanding: false,
+  booting: false, engineStatus: null, bootedBefore: (() => { try { return !!localStorage.getItem("te.engineBooted"); } catch { return false; } })(), engineError: "", phoneLanding: false,
 });
 
 const fieldsByKey = computed(() => {
@@ -163,7 +164,8 @@ async function loadMachine(m, force = false) {
   refreshGlyphs();
   engine.profiles(m).then((p) => (S.profiles = p)).catch(() => (S.profiles = []));
   viewer?.clear();
-  try { S.build.stl = await viewer?.load(engine.stlUrl(m)); } catch { S.build.stl = null; }
+  const lastStl = engine.stlUrl(m);   // null in the browser engine until something is built
+  try { S.build.stl = lastStl ? await viewer?.load(lastStl) : null; } catch { S.build.stl = null; }
 }
 
 function setVal(key, v) {
@@ -233,21 +235,21 @@ async function runJob(label, start, after) {
   if (S.job.running) return;
   if (!(await save())) return;
   const j = S.job;
-  Object.assign(j, { running: true, label, progress: 0, state: "", log: [], partial: "", issues: [], phase: "", phaseStart: 0, phaseEnd: 1 });
+  Object.assign(j, { running: true, label, progress: 0, state: "", log: [], partial: "", issues: [], phase: "", eta: null });
   if (narrow()) S.view = "build";
   const t0 = Date.now();
-  const tick = setInterval(() => (j.elapsed = (Date.now() - t0) / 1000), 250);
+  // see progress.js: timed from this job's previous runs, ticked smoothly
+  const prog = progressTracker([engine.mode, S.machine, label, S.build.target].join("|"));
+  const tick = setInterval(() => {
+    j.elapsed = (Date.now() - t0) / 1000;
+    j.progress = prog.value();
+    j.eta = prog.remaining();
+  }, 100);
   let rc = -1;
   try {
     await start((ev) => {
-      if (ev.phase) { [j.phaseStart, j.phaseEnd, j.phase] = ev.phase; j.progress = Math.max(j.progress, j.phaseStart); }
-      const text = ev.line ?? ev.partial;
-      if (text !== undefined) {
-        const m = text.match(/\[(\d+)\/(\d+)\]/);
-        // "[n/total]" counts within the current stage; map it into that
-        // stage's slice so the one bar only ever moves forward
-        if (m) j.progress = Math.max(j.progress, j.phaseStart + (j.phaseEnd - j.phaseStart) * 0.95 * (+m[1] / Math.max(+m[2], 1)));
-      }
+      prog.event(ev);
+      if (ev.phase) j.phase = ev.phase[2];
       if (ev.line !== undefined) {
         j.partial = "";
         j.log.push({ t: ev.line, c: classify(ev.line) });
@@ -258,7 +260,8 @@ async function runJob(label, start, after) {
     });
   } catch (e) { j.log.push({ t: String(e.message || e), c: "e" }); }
   clearInterval(tick);
-  j.running = false;
+  prog.finish(rc === 0);
+  j.running = false; j.eta = null;
   j.elapsed = (Date.now() - t0) / 1000;
   if (rc === 0) {
     j.progress = 1; j.state = "ok";
@@ -272,17 +275,26 @@ async function runJob(label, start, after) {
   logScroll();
 }
 
+// File name for a download: the engine's machine_font_size stem (as of this
+// build), what was built, and when - e.g. selectric12_FreeSans_2.4mm_2026-10-19_2231.
+function fileStem(kind) {
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  const when = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+  const what = kind === "preview" ? "_preview" : kind === "type_test" ? "_typetest" : "";
+  return `${S.data?.export_name || S.machine}${what}_${when}`;
+}
+
 function runBuild(fast) {
   const b = S.build;
   const opts = { fast, target: b.target, cross_section: b.crossSection, cross_section_angle: b.crossAngle, cut_bodies: b.cutBodies };
   return runJob(fast ? "Preview" : "Render", (on) => engine.build(S.machine, opts, on), async () => {
     b.stl = await viewer.load(engine.stlUrl(S.machine));
-    b.last = { kind: fast ? "preview" : "render", target: b.target, at: new Date().toISOString() };
+    b.last = { kind: fast ? "preview" : "render", target: b.target, at: new Date().toISOString(), name: fileStem(fast ? "preview" : "render") };
   });
 }
 const runTypeTest = () => runJob("Type test", (on) => engine.tool(S.machine, { tool: "type_test" }, on), async () => {
   S.build.stl = await viewer.load(engine.stlUrl(S.machine), { top: true });
-  S.build.last = { kind: "type_test", at: new Date().toISOString() };
+  S.build.last = { kind: "type_test", at: new Date().toISOString(), name: fileStem("type_test") };
 });
 const runLegend = () => runJob("Legend", (on) => engine.tool(S.machine, { tool: "legend" }, on),
   async () => { S.legendStamp = Date.now(); });
@@ -873,6 +885,7 @@ const App = {
       else if (engine.hosted) S.connecting = true;
       const ok = await engine.ping().catch((e) => { S.engineError = String(e.message || e); return false; });
       S.connecting = false; S.booting = false;
+      if (ok && engine.kind === "browser") { try { localStorage.setItem("te.engineBooted", "1"); } catch {} }
       if (!ok) { S.engineDown = true; S.engineUrl = engine.base; return; }
       S.machines = (await engine.machines()).groups;
       const all = S.machines.flatMap((g) => g.machines.filter((m) => m.available).map((m) => m.key));
@@ -1013,7 +1026,8 @@ const App = {
         <div v-if="S.booting" class="card boot-card">
           <div class="card-body">
             <h2 style="margin:0 0 6px;font-size:16px">Starting the engine in your browser</h2>
-            <p class="help" style="margin:0 0 12px">First visit downloads about 35 MB (Python, the geometry engine and Type Elements itself) - after that it's cached and starts in a few seconds. Nothing is uploaded; everything runs on this computer.</p>
+            <p v-if="S.bootedBefore" class="help" style="margin:0 0 12px">Everything comes from your browser's cache - starting Python and the engine takes a few seconds. Nothing is uploaded; everything runs on this computer.</p>
+            <p v-else class="help" style="margin:0 0 12px">First visit downloads about 35 MB (Python, the geometry engine and Type Elements itself) - after that it's cached and starts in a few seconds. Nothing is uploaded; everything runs on this computer.</p>
             <div class="progress"><div :style="{ width: ((S.engineStatus && S.engineStatus.progress) || 0.03) * 100 + '%' }"></div></div>
             <p class="help" style="margin:8px 0 0">{{ S.engineStatus ? S.engineStatus.text : 'Starting…' }}</p>
           </div>
@@ -1042,11 +1056,11 @@ const App = {
           </div>
           <div class="row">
             <div class="progress" :class="S.job.state"><div :style="{ width: (S.job.progress * 100) + '%' }"></div></div>
-            <span class="chip" style="min-width:64px;justify-content:center">{{ S.job.running ? S.job.label + ' ' : '' }}{{ S.job.elapsed ? S.job.elapsed.toFixed(0) + 's' : '—' }}</span>
+            <span class="chip" style="min-width:64px;justify-content:center">{{ S.job.running ? S.job.label + ' ' : '' }}{{ S.job.elapsed ? S.job.elapsed.toFixed(0) + 's' : '—' }}<template v-if="S.job.running && S.job.eta != null && S.job.elapsed > 2">&nbsp;· ~{{ Math.max(1, Math.round(S.job.eta)) }}s left</template></span>
           </div>
           <div v-if="S.job.running && S.job.phase" class="help" style="margin-top:-4px">{{ S.job.label }}: {{ S.job.phase }}</div>
           <div class="row" v-if="S.build.stl && !S.job.running">
-            <a class="btn small" :href="engine.stlUrl(S.machine)" :download="S.machine + '.stl'">Download STL</a>
+            <a class="btn small" :href="engine.stlUrl(S.machine)" :download="(S.build.last?.name || S.machine) + '.stl'">Download STL</a>
             <button class="btn small" @click="saveCopy" title="Timestamped copy + config sidecar in output/saved">Save a copy</button>
           </div>
           <details>

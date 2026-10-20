@@ -111,6 +111,7 @@ and row baselines. Make those look dangerous.
   "row_cap": 28 | null,          // max chars per row (cylinder/shuttle machines)
   "targets": [{value, label}],   // build targets this machine offers
   "target": "element",           // the current one
+  "export_name": "selectric12_FreeSans_2.4mm",   // file name stem for downloads: machine_font_size[_target]; add date/time + extension
   "warning": {short, long} | null,
   "migrated": ["section.key", ...],   // settings just added from the master
   "running_path": "...", "master_path": "..."
@@ -152,8 +153,9 @@ finishes:
 {"done": 0}                                          // exit code: 0 ok, >0 failed, <0 stopped
 ```
 
-- **Progress:** take it from any `[n/total]` in `line` or `partial`. It covers
-  roughly the first 95%.
+- **Progress:** take it from any `[n/total]` in `line` or `partial`. Those
+  only count inside loops, so for a smooth bar that tracks time, use
+  `v5/ui/progress.js`: it learns each job's timeline from its previous run.
 - **Warnings:** lines containing `WARNING` are things the user should see.
   Examples: characters missing from the font, overhang islands, unprintable
   rows.

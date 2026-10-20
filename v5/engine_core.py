@@ -16,6 +16,7 @@ Reuses v4's lib/tune_tables.py (tune.py's field tables, comment-preserving
 YAML patchers, running-config migration) - no logic is copied from v4.
 """
 import os
+import re
 import shutil
 import sys
 from datetime import datetime
@@ -266,6 +267,27 @@ def machines():
     return {"groups": groups}
 
 
+def export_name(machine, cfg, target=None):
+    """Download/save-copy file name stem: machine, font, size, plus the build
+    target when it isn't the plain element - e.g.
+    selectric12_FreeSans_2.4mm or hammond_IosevkaTermSlab_3.1mm_calibration.
+    The caller appends the build's date/time and extension."""
+    font = cfg.get("font") or {}
+    stem = os.path.splitext(os.path.basename(str(font.get("path") or "")))[0]
+    stem = re.sub(r"\(.*?\)", "", stem)                     # "FreeMono (Leonard Chau)" -> "FreeMono"
+    stem = re.sub(r"[^A-Za-z0-9-]", "", stem.replace(" - ", "-"))[:24].strip("-") or "font"
+    if font.get("size_mm") is not None:
+        size = f"{float(font['size_mm']):g}mm"
+    elif font.get("composer_cap_height") is not None:       # Composer sizes type by cap height, in points
+        size = f"{float(font['composer_cap_height']):g}pt"
+    else:
+        size = None
+    parts = [machine, stem] + ([size] if size else [])
+    if target and target not in ("element", "normal"):
+        parts.append(target)
+    return "_".join(parts)
+
+
 def get_config(machine):
     cfg, _text, migrated = load_running(machine)
     master, running = paths(machine)
@@ -284,6 +306,7 @@ def get_config(machine):
             "fixed_row_lengths": "rows" in lay and "placement_map" not in lay,
             "row_cap": len(lay["placement_map"]) if "placement_map" in lay else None,
             "targets": targets, "target": target,
+            "export_name": export_name(machine, cfg, target),
             "warning": {"short": warning[0], "long": warning[1]} if isinstance(warning, tuple) else warning}
 
 
@@ -596,7 +619,8 @@ def save_copy(machine, body=None):
         raise EngineError(404, "nothing built yet")
     save_dir = os.path.join(os.path.dirname(src), "saved")
     os.makedirs(save_dir, exist_ok=True)
-    base = f"{machine}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    target = (body.get("last_build") or {}).get("target")
+    base = f"{export_name(machine, cfg, target)}_{datetime.now().strftime('%Y-%m-%d_%H%M')}"
     dst = os.path.join(save_dir, base + ".stl")
     shutil.copyfile(src, dst)
     with open(os.path.splitext(dst)[0] + ".yaml", "w", encoding="utf-8") as f:
