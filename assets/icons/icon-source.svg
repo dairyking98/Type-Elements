@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="ball" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#dfe5f2"/>
+      <stop offset="1" stop-color="#9aa6c2"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#2f6fde"/>
+  <circle cx="32" cy="33" r="23" fill="url(#ball)"/>
+  <ellipse cx="32" cy="14.5" rx="7" ry="2.6" fill="#7d89a8"/>
+  <text x="32" y="44.5" text-anchor="middle" font-family="Inter, DejaVu Sans, sans-serif" font-weight="800" font-size="31" fill="#16213a">Te</text>
+</svg>
