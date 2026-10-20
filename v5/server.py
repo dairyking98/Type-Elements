@@ -18,8 +18,8 @@ Later the same API gets an in-browser implementation (Pyodide + manifold's
 WebAssembly build), so a UI can be published as a plain static site with
 no server at all.
 
-Reuses tune.py (field tables, comment-preserving YAML patchers, running-
-config migration) and runs v4's scripts as subprocesses with exactly the
+Reuses v4's lib/tune_tables.py (tune.py's field tables, comment-preserving
+YAML patchers, running-config migration) and runs v4's scripts as subprocesses with exactly the
 flags tune.py uses - no logic is copied. Localhost-only unless --host says
 otherwise.
 """
@@ -44,7 +44,7 @@ DEFAULT_UI = os.path.join(V5, "ui")
 sys.path.insert(0, V4)
 sys.path.insert(0, os.path.join(V4, "lib"))
 
-import tune  # noqa: E402  (tables + patchers + migration; importing does not start the TUI)
+from lib import tune_tables as tune  # noqa: E402  (v4's field tables, YAML patchers, migration - no UI deps)
 import font_coverage  # noqa: E402
 from lib import font_profiles  # noqa: E402
 from lib.layouts import (LAYOUT_PRESETS_BY_MACHINE, LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE,  # noqa: E402
@@ -92,8 +92,7 @@ def load_running(machine):
     master, running = paths(machine)
     if not os.path.exists(running):
         shutil.copyfile(master, running)
-    migrated = tune.TuneApp._migrate_running_config(
-        SimpleNamespace(master_config_path=master, config_path=running))
+    migrated = tune.migrate_running_config(master, running)
     with open(running, encoding="utf-8") as f:
         text = f.read()
     return yaml.safe_load(text) or {}, text, migrated

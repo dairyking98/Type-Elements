@@ -8040,3 +8040,33 @@ same font has by editing the layout. Combining marks are excluded (accents,
 never a standalone slot). The log shows up to 300 per group; the report
 lists all. E.g. Alma Mono: 255 swap candidates for this layout.
 
+
+## 94. tune.py's tables move to lib/tune_tables.py (2026-10-20)
+
+For v5: its engines - the local server and the in-browser Pyodide engine,
+which cannot load Textual - need tune.py's field tables. They used to
+`import tune`, which drags in Textual.
+
+**What moved:** verbatim, by script, into new `lib/tune_tables.py`:
+
+- MACHINES, MACHINE_CATEGORIES, MACHINE_PICKER_WARNINGS
+- every *_FIELDS_* table, SECTIONS_BY_MACHINE, SECTION_INTROS,
+  SELECT_FIELD_OPTIONS, RESIN_SUPPORT_UNAVAILABLE_NOTE, the HAMMOND_BUILD_*
+  tables and helpers
+- get_nested and the five patch_yaml_* helpers
+- TuneApp._migrate_running_config's body, as
+  `migrate_running_config(master, running)`. The method now delegates to it.
+
+**What stays:** the Textual-dependent pieces (file filters, widgets).
+
+**How tune.py gets them back:** a star import, plus the three
+underscore/function names a star import skips.
+
+**Verified:**
+
+- A snapshot of all 79 public tables/helpers (repr, plus bytecode for
+  functions) is byte-identical before and after.
+- A headless tune.py run on a scratch Hammond config starts with all
+  12 tabs, and still back-fills a missing running-config key.
+
+v5/server.py now imports lib/tune_tables instead of tune.
