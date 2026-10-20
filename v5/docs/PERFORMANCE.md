@@ -67,13 +67,29 @@ WebAssembly geometry engine:
 - **It needs no special hosting.** Workers don't share memory, so none of
   the cross-origin-isolation headers GitHub Pages can't send are required.
 
+## Full build in the browser (phase 2)
+
+v4's own unmodified Python, running in the tab under Pyodide, building a
+complete Selectric I/II element on the same laptop.
+[Details and how it works](../browser/README.md).
+
+<table><thead><tr><th></th><th>native Python</th><th>browser</th><th>output vs native</th></tr></thead><tbody>
+<tr><td>Preview</td><td>2.6 s</td><td>6.7 s</td><td>identical</td></tr>
+<tr><td>Render, one thread</td><td>32.0 s</td><td>96.0 s</td><td>identical</td></tr>
+<tr><td><b>Render, 16-worker pool</b></td><td>32.0 s</td><td><b>28.3 s</b></td><td>identical volume</td></tr>
+</tbody></table>
+
+"Identical" means the same vertex count, face count and volume: the line
+v4's own verification compares. With the worker pool, a full Render is
+faster in the browser than native Python. The first visit also downloads
+the engine, about 6 s on this connection; it's cached after that.
+
 ## Caveats
 
 - **One machine.** These numbers come from one laptop. Fewer cores means a
   higher floor, but the 2-worker speed-up should hold almost anywhere.
-- **Minkowski stage only.** The rest of a Render (booleans, supports, export)
-  was not measured here. Phase 2 times a complete build, with v4's Python
-  running in the page via Pyodide.
+- **One machine type.** Only the Selectric I/II has been built in the browser
+  so far. The other machines use the same adapters and should follow.
 
 ## Reproduce
 

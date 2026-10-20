@@ -55,7 +55,8 @@ rewrite_v5() {
   rewrite_links | sed -e 's|](ENGINE_API\.md)|](/v5-engine-api/)|g' \
       -e 's|](docs/PERFORMANCE\.md)|](/v5-performance/)|g' \
       -e 's|](\.\./spike/RESULTS\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/v5/spike/RESULTS.md)|g' \
-      -e 's|](README\.md)|](/v5/)|g'
+      -e 's|](README\.md)|](/v5/)|g' \
+      -e 's|](\.\./browser/README\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/v5/browser/README.md)|g'
 }
 inject_v5() {
   local src="$1" dest="$2" title="$3"
