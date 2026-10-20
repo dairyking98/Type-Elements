@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2: v4 in the browser</title>
+<style>
+  :root { --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #5b6470; --accent: #2f6fde; --ok: #1f8a4c; --bad: #c62f2f; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111418; --panel: #181c21; --text: #e7eaee; --muted: #a3abb5; --accent: #6c9cff; --ok: #4cc685; --bad: #ff6b6b; color-scheme: dark; } }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px 16px; }
+  main { max-width: 860px; margin: 0 auto; }
+  .card { background: var(--panel); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .muted { color: var(--muted); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button, select { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent); background: var(--panel); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  table { border-collapse: collapse; font-variant-numeric: tabular-nums; width: 100%; }
+  td, th { text-align: left; padding: 5px 8px; border-bottom: 1px solid color-mix(in srgb, var(--muted) 20%, transparent); }
+  pre { font: 12px/1.45 ui-monospace, monospace; max-height: 360px; overflow: auto; margin: 0; white-space: pre-wrap; }
+  .w { color: #b25e09; font-weight: 600; } .e { color: var(--bad); } .ok { color: var(--ok); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Phase 2: v4's own Python, running in this tab</h1>
+    <p class="muted">Pyodide (Python in WebAssembly) runs v4's unmodified <code>generate.py</code> and <code>lib/</code>.
+      Two adapters stand in for libraries with no browser build: <code>freetype</code> (on fontTools) and
+      <code>manifold3d</code> (on manifold's WebAssembly build). Nothing runs on a server.</p>
+    <div class="row">
+      <button id="boot" class="primary">1. Load engine</button>
+      <select id="mode">
+        <option value="preview">Preview (no draft)</option>
+        <option value="render">Render, 1 thread</option>
+        <option value="pool">Render, worker pool</option>
+      </select>
+      <select id="workers"></select>
+      <button id="build" disabled>2. Build Selectric I/II</button>
+      <a id="dl" style="display:none">Download STL</a>
+    </div>
+  </div>
+  <div class="card"><table><tbody id="times"></tbody></table></div>
+  <div class="card"><pre id="log"></pre></div>
+</main>
+<script type="module">
+import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.mjs";
+import Module from "https://cdn.jsdelivr.net/npm/manifold-3d@3.5.4/manifold.js";
+
+const $ = (id) => document.getElementById(id);
+const cores = navigator.hardwareConcurrency || 4;
+for (const n of [2, 4, 8, cores].filter((v, i, a) => a.indexOf(v) === i && v <= cores)) $("workers").add(new Option(`${n} workers`, n, false, n === Math.min(14, cores)));
+const logLine = (s, cls = "") => { const d = document.createElement("div"); d.textContent = s; if (cls) d.className = cls; $("log").appendChild(d); $("log").scrollTop = 1e9; };
+const classify = (s) => (/WARNING/.test(s) ? "w" : /Error|Traceback/.test(s) ? "e" : "");
+const time = (label, s) => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${label}</td><td><b>${s.toFixed(1)} s</b></td>`; $("times").appendChild(tr); window.phase2 = { ...(window.phase2 || {}), [label]: s }; };
+let py;
+
+async function boot() {
+  $("boot").disabled = true;
+  let t = performance.now();
+  const wasm = await Module(); wasm.setup();
+  globalThis.__manifold = wasm;
+  py = await loadPyodide();
+  py.setStdout({ batched: (s) => logLine(s, classify(s)) });
+  py.setStderr({ batched: (s) => logLine(s, "e") });
+  time("Pyodide + manifold loaded", (performance.now() - t) / 1000);
+
+  t = performance.now();
+  await py.loadPackage(["numpy", "scipy", "shapely", "pyyaml", "fonttools", "networkx", "micropip"]);
+  await py.runPythonAsync(`import micropip\nawait micropip.install("trimesh==4.12.2")`);
+  time("Python packages", (performance.now() - t) / 1000);
+
+  t = performance.now();
+  const man = await (await fetch("manifest.json", { cache: "no-store" })).json();
+  const put = async (dest, url) => {
+    const buf = new Uint8Array(await (await fetch(url, { cache: "no-store" })).arrayBuffer());
+    py.FS.mkdirTree(dest.slice(0, dest.lastIndexOf("/")) || "/");
+    py.FS.writeFile(dest, buf);
+  };
+  await Promise.all([
+    ...Object.entries(man.files).map(([dest, url]) => put(dest, ".." + "/.." + url)),
+    ...Object.entries(man.fonts).map(([dest, url]) => put(dest, ".." + "/.." + url)),
+    ...["freetype.py", "manifold3d.py", "triangle.py"].map((f) => put(`/shim/${f}`, `py/${f}`)),
+  ]);
+  py.runPython(`
+import sys, os
+sys.path[:0] = ["/shim", "/v4/lib", "/v4"]
+os.chdir("/v4")
+import trimesh, freetype, manifold3d, triangle
+print("engine ready: trimesh", trimesh.__version__, "| triangulation engines", trimesh.creation._engines)
+`);
+  time(`v4 files + ${Object.keys(man.fonts).length} fonts`, (performance.now() - t) / 1000);
+  $("build").disabled = false;
+}
+
+// Worker pool for the Minkowski sums (see v5/spike): each worker is its own
+// manifold WASM instance; the largest jobs go first.
+async function runPool(jobs, n) {
+  const workers = Array.from({ length: n }, () => new Worker("../spike/minkowski_worker_mesh.js", { type: "module" }));
+  const queue = jobs.map((j, id) => ({ id, ...j })).sort((a, b) => b.weight - a.weight);
+  const out = new Array(jobs.length);
+  await Promise.all(workers.map((w) => new Promise((done) => {
+    const next = () => {
+      const job = queue.shift();
+      if (!job) return done();
+      w.onmessage = ({ data }) => { out[data.id] = data; next(); };
+      w.postMessage({ id: job.id, glyph: job.glyph, cone: job.cone });
+    };
+    next();
+  })));
+  workers.forEach((w) => w.terminate());
+  return out;
+}
+
+async function build() {
+  $("build").disabled = true;
+  $("log").textContent = "";
+  const mode = $("mode").value;
+  const flags = mode === "preview" ? `"--no-minkowski", "--no-minkowski-text"` : `"--minkowski"`;
+  const run = (extra = "") => py.runPython(`
+import sys, runpy, time
+${extra}
+sys.argv = ["generate.py", "config/selectric12.yaml", "--out", "/tmp/out.stl", ${flags}]
+t0 = time.perf_counter()
+runpy.run_path("generate.py", run_name="__main__")
+t_build = time.perf_counter() - t0
+`);
+  const t = performance.now();
+  if (mode !== "pool") {
+    run();
+    time(mode === "preview" ? "Preview build" : "Render build, 1 thread", (performance.now() - t) / 1000);
+  } else {
+    // Pass 1: build with every Minkowski sum recorded instead of computed
+    // (the glyph passes through un-drafted, so the rest of the build still runs).
+    run(`
+import manifold3d, numpy as np
+_jobs = []
+def _record(a, b):
+    ma, mb = a.to_mesh(), b.to_mesh()
+    _jobs.append((ma.vert_properties.ravel().tolist(), ma.tri_verts.ravel().tolist(),
+                  mb.vert_properties.ravel().tolist(), mb.tri_verts.ravel().tolist()))
+    return a
+manifold3d.set_minkowski_hook(_record)
+`);
+    const t1 = (performance.now() - t) / 1000;
+    time("pass 1: build, Minkowski recorded", t1);
+    const jobs = py.globals.get("_jobs").toJs().map(([gv, gf, cv, cf]) => ({ glyph: { v: gv, f: gf }, cone: { v: cv, f: cf }, weight: gf.length }));
+    const tp = performance.now();
+    const results = await runPool(jobs, +$("workers").value);
+    time(`${jobs.length} Minkowski sums on ${$("workers").value} workers`, (performance.now() - tp) / 1000);
+    py.globals.set("_results", py.toPy(results.map((r) => [r.v, r.f])));
+    const t2 = performance.now();
+    // Pass 2: same build, each Minkowski sum answered from the pool's results, in order.
+    run(`
+import manifold3d
+from manifold3d import Manifold, Mesh
+_it = iter(_results)
+def _replay(a, b):
+    v, f = next(_it)
+    return Manifold(mesh=Mesh(vert_properties=v, tri_verts=f))
+manifold3d.set_minkowski_hook(_replay)
+`);
+    py.runPython(`import manifold3d; manifold3d.set_minkowski_hook(None)`);
+    time("pass 2: build with pool results", (performance.now() - t2) / 1000);
+    time("Render build, worker pool (total)", (performance.now() - t) / 1000);
+  }
+  const bytes = py.FS.readFile("/tmp/out.stl");
+  const a = $("dl");
+  a.href = URL.createObjectURL(new Blob([bytes], { type: "model/stl" }));
+  a.download = `selectric12_${mode}.stl`;
+  a.style.display = "";
+  a.textContent = `Download STL (${(bytes.length / 1e6).toFixed(1)} MB)`;
+  logLine(`done - ${mode}`, "ok");
+  $("build").disabled = false;
+}
+
+$("boot").onclick = () => boot().catch((e) => { logLine(String(e), "e"); console.error(e); });
+$("build").onclick = () => build().catch((e) => { logLine(String(e), "e"); console.error(e); $("build").disabled = false; });
+if (location.hash === "#auto") boot().then(build);
+</script>
+</body>
+</html>
