@@ -325,7 +325,7 @@ MACHINE_PICKER_WARNINGS = {
 }
 
 FONT_FILE_FILTERS = Filters(
-    ("Font files", lambda p: p.suffix.lower() in (".ttf", ".otf", ".ttc")),
+    ("Font files", lambda p: p.suffix.lower() in (".ttf", ".otf", ".ttc", ".otc")),
     ("All files", lambda _: True),
 )
 STL_FILE_FILTERS = Filters(("STL files", lambda p: p.suffix.lower() == ".stl"))

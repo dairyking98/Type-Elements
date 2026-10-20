@@ -57,13 +57,13 @@ character:
 
 logo:
   logo_enabled: false             # GaugeTypeSlugSlug.scad's real body never imports an SVG either - see this file's header comment
-  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/AR1.svg"
+  svg_file: "assets/svg/AR1.svg"
   scale_mm_per_unit: 0.02
   logo_depth_mm: 0.05
   location_frac: 0.5
   vogue_enabled: false
-  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
-  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
+  vogue_arrow_svg_file: "assets/svg/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "assets/svg/vogue-foundry-v.svg"
   # vogue_scale_mm_per_unit - unused (vogue_enabled: false), but required
   # unconditionally by wing_slug._receive_config - see config/type_slug.
   # yaml's matching comment. Real value copied from config/vogue_slug.yaml.

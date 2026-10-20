@@ -47,7 +47,7 @@ character:
 
 logo:
   logo_enabled: false            # v1 SVG_Enable ("True_Vogue" preset: false - the generic AR1 logo isn't used here)
-  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/AR1.svg"
+  svg_file: "assets/svg/AR1.svg"
   # v1 has TWO real, genuinely different scale variables here - SVG_Scale=
   # 1/40*SVG_Size for THIS (AR1/Logo()) vs SVG_V1_Scale=1/80*SVG_V1_Size
   # for the Vogue Foundry mark below (VogueSlug.scad:55-56, vogue_
@@ -70,8 +70,8 @@ logo:
   # exposed as a per-preset override in the real Customizer JSON either -
   # it's the whole point of this file).
   vogue_enabled: true
-  vogue_arrow_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-arrow.svg"
-  vogue_v_svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/vogue-foundry-v.svg"
+  vogue_arrow_svg_file: "assets/svg/vogue-foundry-arrow.svg"
+  vogue_v_svg_file: "assets/svg/vogue-foundry-v.svg"
   # vogue_scale_mm_per_unit (v1 SVG_V1_Scale, see scale_mm_per_unit's own
   # comment above for why this is a SEPARATE field, not scale_mm_per_unit
   # reused) - tuned empirically for the arrow+V mark's own much smaller

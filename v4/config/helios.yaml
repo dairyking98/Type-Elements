@@ -196,7 +196,7 @@ alignment:
 # (core_chamfer etc., see the header note above) is meant to be.
 logo:
   logo_enabled: false
-  svg_file: "/home/lchau/github/Type-Elements/v4/assets/svg/helios-klimax.svg"
+  svg_file: "assets/svg/helios-klimax.svg"
   scale_mm_per_unit: 0.010583
   logo_depth_mm: 0.3            # v1 Element_Label_Depth
   x_offset_mm: -6.25            # v1's fixed translate([-6.25, 0, ...]) - see lib/helios.py's Logo()

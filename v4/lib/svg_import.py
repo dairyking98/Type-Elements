@@ -49,6 +49,7 @@ constants, which were tuned against OpenSCAD's own (different) import
 convention and would not mean the same thing here.
 """
 
+import os
 import re
 import xml.etree.ElementTree as ET
 
@@ -316,6 +317,32 @@ def _parse_path_d(d, flatness_tolerance_mm):
     return out
 
 
+# v4/ - repo-relative asset paths in configs (assets/svg/...) resolve here.
+_V4_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def resolve_svg_path(svg_path):
+    """Config SVG paths are repo-relative (assets/svg/AR1.svg), so the same
+    YAML works on the Linux laptop and the Windows desktop. Two other
+    shapes are still accepted: an absolute path that exists (an SVG kept
+    outside the repo), and - for running copies saved before the configs
+    went relative - an absolute path from ANOTHER machine that points into
+    some checkout's v4/assets/, remapped to this checkout's assets/. That
+    second case is exactly what used to fail on Windows: the configs
+    shipped /home/lchau/github/Type-Elements/v4/assets/... verbatim."""
+    if not os.path.isabs(svg_path):
+        return os.path.join(_V4_ROOT, svg_path)
+    if os.path.exists(svg_path):
+        return svg_path
+    norm = svg_path.replace("\\", "/")
+    i = norm.rfind("/assets/")
+    if i >= 0:
+        local = os.path.join(_V4_ROOT, *norm[i + 1:].split("/"))
+        if os.path.exists(local):
+            return local
+    return svg_path
+
+
 def parse_svg_contours_mm(svg_path, flatness_tolerance_mm, scale_mm_per_unit, center=True):
     """Reads every <path> in svg_path (namespace-agnostic - SVG's default
     xmlns means ElementTree tags come back as "{http://www.w3.org/2000/
@@ -336,7 +363,11 @@ def parse_svg_contours_mm(svg_path, flatness_tolerance_mm, scale_mm_per_unit, ce
     above (no rotation/skew involved), so doing it here in output mm
     space rather than in raw SVG-unit space beforehand is equivalent to
     OpenSCAD's own pre-transform centering, just simpler to express."""
-    tree = ET.parse(svg_path)
+    resolved = resolve_svg_path(svg_path)
+    if not os.path.isfile(resolved):
+        raise FileNotFoundError(f"SVG file not found: {svg_path!r} - check the svg_file setting in "
+                                f"your config YAML (repo assets are written as assets/svg/<name>.svg)")
+    tree = ET.parse(resolved)
     root = tree.getroot()
     contours = []
     tol_units = flatness_tolerance_mm / scale_mm_per_unit
