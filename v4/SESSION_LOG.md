@@ -8031,3 +8031,12 @@ Verified: scratch Blickensderfer config with "⅌" in a row -> warning
 naming the font and character; real configs -> no warning, gate identical
 (blickensderfer, selectric12); tune.py pilot on a scratch config -> button
 reports 2/3 present, ⅌ missing, 10 replacement fonts.
+
+Follow-up, same part: when the current font is missing something, CHECK
+CURRENT FONT also lists that font's *unused* glyphs (in cmap, drawn with
+contours, not already in the layout), grouped letters / digits /
+punctuation / symbols, so a missing character can be swapped for one the
+same font has by editing the layout. Combining marks are excluded (accents,
+never a standalone slot). The log shows up to 300 per group; the report
+lists all. E.g. Alma Mono: 255 swap candidates for this layout.
+

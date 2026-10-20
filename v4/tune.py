@@ -3659,8 +3659,9 @@ class TuneApp(App):
                     yield Button("SAVE REPORT", id="btn-coverage-save-report", variant="warning")
                 yield Static(
                     "Check Current Font tests the Font tab's font (and font 2 for its own "
-                    "characters) against the set above; if any character is missing, it "
-                    "then scans the directory for fonts that have exactly those.",
+                    "characters) against the set above; if any character is missing, it lists "
+                    "the font's other unused glyphs you could swap into the layout instead, then "
+                    "scans the directory for fonts that have exactly the missing ones.",
                     classes="field-help")
                 yield Static("", id="coverage-status", classes="field-help")
 

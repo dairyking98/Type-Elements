@@ -33,6 +33,7 @@ imports, so it no longer needs tune.py's TUI dependency stack installed.
 import argparse
 import os
 import sys
+import unicodedata
 
 import freetype
 import yaml
@@ -119,6 +120,39 @@ def check_font(font_path, charset, deep=False):
     }
 
 
+# Unicode general-category initial -> heading for the unused-glyph list.
+# Combining marks (category M) are left out entirely: they are accents
+# meant to stack on another glyph, never a standalone type slot.
+_GLYPH_GROUPS = [("L", "letters"), ("N", "digits/numbers"), ("P", "punctuation"),
+                 ("S", "symbols")]
+# Per-group cap for the console/TUI log only - the --out report lists all.
+_GLYPH_GROUP_PRINT_CAP = 300
+
+
+def unused_glyphs(font_path, used):
+    """Every character the font actually draws (in its cmap AND with at
+    least one contour) that isn't already in `used` - what's available to
+    swap into the layout from this same font. Control/format/whitespace
+    code points and combining marks are skipped. Returns {group heading: [chars]}."""
+    face = load_font_face(font_path)
+    used = set(used)
+    groups = {}
+    for code, gid in face.get_chars():
+        if gid == 0:
+            continue
+        ch = chr(code)
+        cat = unicodedata.category(ch)
+        if ch in used or ch.isspace() or cat[0] in "CZM":
+            continue
+        face.load_glyph(gid, freetype.FT_LOAD_NO_SCALE)
+        if face.glyph.outline.n_contours == 0:
+            continue
+        heading = dict(_GLYPH_GROUPS).get(cat[0], "other")
+        groups.setdefault(heading, []).append(ch)
+    order = [h for _k, h in _GLYPH_GROUPS] + ["other"]
+    return {h: sorted(groups[h]) for h in order if h in groups}
+
+
 def check_current_font(charset, args):
     """--font mode: check the configured font(s) the way the machines pick
     them (font2 for --font2-chars, else the main font) and print what's
@@ -146,6 +180,16 @@ def check_current_font(charset, args):
         if r["deep_errors"]:
             print(f"  WARNING: pipeline errors: {format_chars([c for c, _e in r['deep_errors']])}")
         problems.extend(bad)
+        if bad:
+            spare = unused_glyphs(path, charset)
+            args.unused_glyphs[name] = spare
+            n = sum(len(v) for v in spare.values())
+            print(f"  {n} other glyph(s) in {name} not used by this layout - swap candidates:")
+            for heading, chs in spare.items():
+                shown = "".join(chs[:_GLYPH_GROUP_PRINT_CAP])
+                more = f" (+{len(chs) - _GLYPH_GROUP_PRINT_CAP} more in the report)" \
+                    if len(chs) > _GLYPH_GROUP_PRINT_CAP else ""
+                print(f"    {heading}: {shown}{more}")
     if not problems:
         print(f"\nOK: all {len(charset)} characters present - no replacement needed.")
         return []
@@ -185,6 +229,7 @@ def main():
         charset = args.chars
     charset = list(dict.fromkeys(charset))  # de-dupe, keep first-seen order
 
+    args.unused_glyphs = {}
     if args.font:
         charset = check_current_font(charset, args)
         if not charset:
@@ -265,6 +310,10 @@ def main():
                 f.write(f"\n## Unreadable ({len(errored)})\n\n")
                 for r in errored:
                     f.write(f"- `{r['rel']}` — {r['error']}\n")
+            for name, spare in args.unused_glyphs.items():
+                f.write(f"\n## Unused glyphs in {name} (swap candidates)\n\n")
+                for heading, chs in spare.items():
+                    f.write(f"- {heading} ({len(chs)}): `{''.join(chs)}`\n")
         print(f"\nwrote full report to {args.out}")
 
 
