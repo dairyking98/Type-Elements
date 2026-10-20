@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minkowski WASM bench</title>
+<style>
+  :root { --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #5b6470; --ok: #1f8a4c; --bad: #c62f2f; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111418; --panel: #181c21; --text: #e7eaee; --muted: #a3abb5; --ok: #4cc685; --bad: #ff6b6b; color-scheme: dark; } }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px 16px; }
+  main { max-width: 760px; margin: 0 auto; }
+  .card { background: var(--panel); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .big { font-size: 28px; font-weight: 700; }
+  .muted { color: var(--muted); }
+  pre { font: 12px/1.5 ui-monospace, monospace; max-height: 320px; overflow: auto; margin: 0; white-space: pre-wrap; }
+  button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 0; background: #2f6fde; color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Spike: v4's Minkowski sums in WebAssembly</h1>
+    <p class="muted">Replays the exact glyph + draft-cone pairs a real Selectric I/II Render sums (exported by
+      export_minkowski_inputs.py) through manifold's official WebAssembly build, and compares with the
+      native Python run on the same machine. Throwaway measurement page.</p>
+    <p class="muted" id="env"></p>
+    <button id="go">Run benchmark</button>
+  </div>
+  <div class="card"><div class="big" id="result">—</div><div class="muted" id="sub"></div></div>
+  <div class="card"><pre id="log"></pre></div>
+</main>
+<script type="module">
+import Module from "https://cdn.jsdelivr.net/npm/manifold-3d@3.5.4/manifold.js";
+
+const $ = (id) => document.getElementById(id);
+const log = (s) => { $("log").textContent += s + "\n"; $("log").scrollTop = 1e9; };
+$("env").textContent = `crossOriginIsolated (threads possible): ${self.crossOriginIsolated} · ${navigator.hardwareConcurrency} logical cores · ${navigator.userAgent.match(/(Chrome|Firefox|Edg)\/[\d.]+/)?.[0] || ""}`;
+
+async function run() {
+  $("go").disabled = true;
+  log("loading manifold WASM…");
+  const t0 = performance.now();
+  const wasm = await Module();
+  wasm.setup();
+  const { Manifold, Mesh } = wasm;
+  log(`manifold ready in ${((performance.now() - t0) / 1000).toFixed(2)}s`);
+  const data = await (await fetch("minkowski_inputs.json")).json();
+  log(`${data.count} pairs from ${data.config}, native total ${data.native_total_s}s`);
+  const mk = (o) => new Manifold(new Mesh({ numProp: 3, vertProperties: new Float32Array(o.v), triVerts: new Uint32Array(o.f) }));
+  let total = 0, worst = { t: 0 };
+  const rows = [];
+  for (const [i, p] of data.pairs.entries()) {
+    const a = mk(p.glyph), b = mk(p.cone);
+    const t = performance.now();
+    const r = a.minkowskiSum(b);
+    const tris = r.numTri();
+    const vol = r.volume();
+    const dv = Math.abs(vol - p.native_vol) / Math.max(p.native_vol, 1e-9);
+    const dt = (performance.now() - t) / 1000;
+    total += dt;
+    if (dt > worst.t) worst = { t: dt, ch: p.char };
+    rows.push({ ch: p.char, wasm: dt, native: p.native_s, ok: tris === p.native_tris, dv });
+    log(`[${i + 1}/${data.count}] ${JSON.stringify(p.char)}  wasm ${dt.toFixed(3)}s  native ${p.native_s.toFixed(3)}s  tris ${tris}${tris === p.native_tris ? "" : " (native " + p.native_tris + ")"}  vol Δ ${(dv * 100).toFixed(4)}%`);
+    a.delete(); b.delete(); r.delete();
+    $("result").textContent = `${total.toFixed(1)}s so far…`;
+    await new Promise((res) => setTimeout(res, 0));   // let the page repaint
+  }
+  const ratio = total / data.native_total_s;
+  const same = rows.filter((r) => r.ok).length;
+  const maxDv = Math.max(...rows.map((r) => r.dv));
+  $("result").textContent = `WASM ${total.toFixed(1)}s vs native ${data.native_total_s.toFixed(1)}s  (×${ratio.toFixed(2)})`;
+  $("sub").textContent = `${data.count} Minkowski sums · slowest ${JSON.stringify(worst.ch)} ${worst.t.toFixed(2)}s · identical triangle counts on ${same}/${rows.length} · worst volume difference ${(maxDv * 100).toFixed(4)}%`;
+  window.benchResult = { wasm_s: total, native_s: data.native_total_s, ratio, same, maxDv, n: rows.length, worst, isolated: self.crossOriginIsolated, cores: navigator.hardwareConcurrency };
+  log(JSON.stringify(window.benchResult));
+  $("go").disabled = false;
+}
+$("go").onclick = run;
+if (location.hash === "#auto") run();
+</script>
+</body>
+</html>
