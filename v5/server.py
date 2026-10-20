@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 """
-Local engine server for the Type Elements web UI (branch web-gui).
+Type Elements v5 - local engine server.
 
-The UI itself is a static site (webgui/static/) - plain HTML/CSS/JS with no
-build step - so the same files can later be published to GitHub Pages and
-run against an in-browser engine (Pyodide + manifold's WebAssembly build)
-instead of this server. Everything the UI needs goes through the small JSON
-API below; webgui/static/engine.js is the only file that knows it is
-talking to HTTP.
+v5 splits the program in two:
 
-    .venv/bin/python3 webgui/server.py                    # http://127.0.0.1:8090
-    .venv/bin/python3 webgui/server.py --config-dir DIR   # scratch configs
+  * the ENGINE - v4's geometry pipeline (generate.py and friends, untouched)
+    behind the JSON API in this file, documented in ENGINE_API.md;
+  * the UI - any static web front end (default: v5/ui/) that talks only to
+    that API. Swap it with --ui to try a completely different interface
+    without touching a line of geometry.
+
+    v4/.venv/bin/python3 v5/server.py --open                 # http://127.0.0.1:8090
+    v4/.venv/bin/python3 v5/server.py --ui path/to/my-ui     # someone else's front end
+    v4/.venv/bin/python3 v5/server.py --config-dir DIR       # scratch configs for testing
+
+Later the same API gets an in-browser implementation (Pyodide + manifold's
+WebAssembly build), so a UI can be published as a plain static site with
+no server at all.
 
 Reuses tune.py (field tables, comment-preserving YAML patchers, running-
-config migration) and generate.py (the build, as a subprocess, exactly as
-tune.py runs it) - no logic is copied. Localhost-only unless --host says
+config migration) and runs v4's scripts as subprocesses with exactly the
+flags tune.py uses - no logic is copied. Localhost-only unless --host says
 otherwise.
 """
 
@@ -32,8 +38,9 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-V4 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+V5 = os.path.dirname(os.path.abspath(__file__))
+V4 = os.path.join(os.path.dirname(V5), "v4")      # the geometry engine v5 drives - never edited from here
+DEFAULT_UI = os.path.join(V5, "ui")
 sys.path.insert(0, V4)
 sys.path.insert(0, os.path.join(V4, "lib"))
 
@@ -55,9 +62,18 @@ BUILD = SimpleNamespace(proc=None)
 
 # ------------------------------------------------------------------ helpers
 
+MASTER_OVERRIDE = {}   # machine -> a different master opened with "Open config" (tune.py's Browse)
+
+
 def paths(machine):
+    """(master, running). Running is always <master's dir>/<machine>.running.yaml
+    - tune.py's convention, so opening a config elsewhere gets its own
+    running copy next to it."""
     if machine not in tune.MACHINES:
         raise HTTPException(404, f"unknown machine {machine!r}")
+    if machine in MASTER_OVERRIDE:
+        master = MASTER_OVERRIDE[machine]
+        return master, os.path.join(os.path.dirname(master), f"{machine}.running.yaml")
     master = os.path.join(CONFIG_DIR, f"{machine}.yaml")
     if not os.path.isfile(master):
         raise HTTPException(404, f"no config for {machine!r} in {CONFIG_DIR}")
@@ -94,6 +110,13 @@ def intro_text(intro):
 
 def _f(key, path, typ, label, help_text="", options=None):
     return (key, path, typ, label, help_text, options or [])
+
+
+EXTRA_INTROS = {
+    "Row baselines": {"level": "advanced", "text":
+        "ADVANCED - measured per machine. A wrong value shifts a whole row of characters off the platen "
+        "line. Find the right numbers with the Calibration element, not by guessing."},
+}
 
 
 def extra_sections(machine, cfg):
@@ -162,7 +185,7 @@ def schema(machine, cfg):
     for section, fields in extra_sections(machine, cfg).items():
         if not fields:
             continue
-        out.append({"section": section, "intro": None, "fields": [{
+        out.append({"section": section, "intro": EXTRA_INTROS.get(section), "fields": [{
             "key": key, "path": path, "type": "str" if typ == "select" else typ, "label": label,
             "help": help_text, "value": get_path(cfg, path),
             "options": [{"label": l, "value": v} for l, v in opts], "list": False, "extra": True,
@@ -203,39 +226,13 @@ def coerce(value, typ):
     return "" if value is None else str(value)
 
 
-def font_paths_in(cfg):
-    """Every font file a config references - the only paths /api/font will
-    serve besides the system-font list."""
-    found = set()
-
-    def walk(node):
-        if isinstance(node, dict):
-            for k, v in node.items():
-                if isinstance(v, str) and v.lower().endswith(FONT_EXTS) and ("font" in k or k == "path"):
-                    found.add(os.path.abspath(os.path.expanduser(v)))
-                else:
-                    walk(v)
-        elif isinstance(node, list):
-            for v in node:
-                walk(v)
-    walk(cfg)
-    return found
-
-
 def allowed_font(path):
+    """Any existing font file. The server only listens on localhost by
+    default and only hands out files with a font extension, so this is no
+    wider than the fonts the user can already pick - and a path typed into
+    the UI previews before it is saved."""
     path = os.path.abspath(os.path.expanduser(path))
-    if not (path.lower().endswith(FONT_EXTS) and os.path.isfile(path)):
-        return False
-    if path in {os.path.abspath(e.path) for e in list_system_fonts()}:
-        return True
-    for machine in tune.MACHINES:
-        running = os.path.join(CONFIG_DIR, f"{machine}.running.yaml")
-        for p in (running, os.path.join(CONFIG_DIR, f"{machine}.yaml")):
-            if os.path.isfile(p):
-                with open(p, encoding="utf-8") as f:
-                    if path in font_paths_in(yaml.safe_load(f) or {}):
-                        return True
-    return False
+    return path.lower().endswith(FONT_EXTS) and os.path.isfile(path)
 
 
 # ------------------------------------------------------------------ API
@@ -338,6 +335,49 @@ def put_config(machine, body: dict = Body(...)):
     return {"changed": changed, "errors": errors, **get_config(machine)}
 
 
+def config_candidates(machine):
+    """Masters that can be opened for this machine: every config in the
+    config folder (variants included) and every saved-copy sidecar in
+    output/saved/ whose machine: matches - the same rule tune.py's Browse
+    enforces."""
+    found = []
+    saved = os.path.join(V4, "output", "saved")
+    for folder, kind in ((CONFIG_DIR, "config"), (saved, "saved copy")):
+        if not os.path.isdir(folder):
+            continue
+        for fn in sorted(os.listdir(folder)):
+            if not fn.endswith(".yaml") or fn.endswith(".running.yaml"):
+                continue
+            path = os.path.join(folder, fn)
+            try:
+                with open(path, encoding="utf-8") as f:
+                    m = (yaml.safe_load(f) or {}).get("machine", "blickensderfer")
+            except Exception:
+                continue
+            if m == machine:
+                found.append({"path": path, "label": fn, "kind": kind})
+    return found
+
+
+@app.get("/api/configs/{machine}")
+def list_configs(machine):
+    master, _r = paths(machine)
+    return {"current": master, "default": os.path.join(CONFIG_DIR, f"{machine}.yaml"),
+            "configs": config_candidates(machine)}
+
+
+@app.post("/api/config/{machine}/open")
+def open_config(machine, body: dict = Body(...)):
+    path = os.path.abspath(body.get("path") or "")
+    if path not in {c["path"] for c in config_candidates(machine)}:
+        raise HTTPException(400, "not a config for this machine")
+    if path == os.path.join(CONFIG_DIR, f"{machine}.yaml"):
+        MASTER_OVERRIDE.pop(machine, None)
+    else:
+        MASTER_OVERRIDE[machine] = path
+    return get_config(machine)
+
+
 @app.post("/api/config/{machine}/reset")
 def reset_config(machine):
     master, running = paths(machine)
@@ -361,6 +401,48 @@ def font_file(path: str):
     if not allowed_font(path):
         raise HTTPException(404, "font not available")
     return FileResponse(os.path.abspath(os.path.expanduser(path)))
+
+
+@app.post("/api/outlines")
+def outlines(body: dict = Body(...)):
+    """Glyph outlines as SVG path data, read with FreeType - the same
+    library the build uses. The UI draws these when the browser refuses a
+    font file (Chrome's sanitizer rejects some fonts FreeType reads fine,
+    e.g. OCR-A II), so every preview still shows the real shapes.
+    Coordinates are font units, y up; the UI flips them."""
+    import freetype
+    path = os.path.expanduser(body.get("font") or "")
+    if not allowed_font(path):
+        raise HTTPException(404, "font not available")
+    face = freetype.Face(path)
+    out = {}
+    for ch in dict.fromkeys(body.get("chars") or ""):
+        gid = face.get_char_index(ord(ch))
+        if gid == 0:
+            out[ch] = None
+            continue
+        face.load_glyph(gid, freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING)
+        cmds = []
+
+        def move_to(a, _ctx):
+            if cmds:
+                cmds.append("Z")
+            cmds.append(f"M{a.x} {a.y}")
+
+        def line_to(a, _ctx):
+            cmds.append(f"L{a.x} {a.y}")
+
+        def conic_to(a, b, _ctx):
+            cmds.append(f"Q{a.x} {a.y} {b.x} {b.y}")
+
+        def cubic_to(a, b, c, _ctx):
+            cmds.append(f"C{a.x} {a.y} {b.x} {b.y} {c.x} {c.y}")
+
+        face.glyph.outline.decompose(None, move_to=move_to, line_to=line_to, conic_to=conic_to, cubic_to=cubic_to)
+        if cmds:
+            cmds.append("Z")
+        out[ch] = {"d": " ".join(cmds), "adv": face.glyph.advance.x}
+    return {"upem": face.units_per_EM, "ascender": face.ascender, "descender": face.descender, "glyphs": out}
 
 
 @app.post("/api/glyphs")
@@ -656,9 +738,6 @@ def cancel():
     return {"cancelled": False}
 
 
-app.mount("/app", StaticFiles(directory=STATIC, html=True), name="static")
-
-
 @app.get("/")
 def root():
     return RedirectResponse("/app/")
@@ -671,7 +750,13 @@ def main():
     p.add_argument("--host", default="127.0.0.1", help="localhost only by default")
     p.add_argument("--port", type=int, default=8090)
     p.add_argument("--open", action="store_true", help="open the UI in the default browser")
+    p.add_argument("--ui", default=DEFAULT_UI,
+                   help="directory of the front end to serve (default v5/ui). Any static site that "
+                        "speaks ENGINE_API.md works - point this at your own to swap the whole UI.")
     args = p.parse_args()
+    if not os.path.isfile(os.path.join(args.ui, "index.html")):
+        p.error(f"--ui {args.ui!r} has no index.html")
+    app.mount("/app", StaticFiles(directory=os.path.abspath(args.ui), html=True), name="ui")
     if args.config_dir:
         CONFIG_DIR = os.path.abspath(args.config_dir)
     if args.open:

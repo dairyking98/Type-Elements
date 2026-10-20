@@ -39,9 +39,63 @@ function fontFamily(path) {
   }
   return faces[path];
 }
+// When the browser refuses a font file (Chrome's sanitizer rejects some
+// fonts FreeType - and therefore the build - reads fine), text is drawn from
+// the engine's own FreeType outlines instead, so previews still show the
+// real shapes.
+const outlines = reactive({});   // path -> { upem, ascender, descender, glyphs: {char: {d, adv} | null} }
+const pendingOutline = {};
+function needOutlines(path, text) {
+  const have = outlines[path]?.glyphs || {};
+  const missing = [...new Set([...text])].filter((c) => !(c in have) && !c.match(/\s/));
+  if (!missing.length) return;
+  const key = path + "\u0000" + missing.join("");
+  if (pendingOutline[key]) return;
+  pendingOutline[key] = engine.outlines(path, missing.join("")).then((r) => {
+    const cur = outlines[path] || { upem: r.upem, ascender: r.ascender, descender: r.descender, glyphs: {} };
+    outlines[path] = { ...cur, glyphs: { ...cur.glyphs, ...r.glyphs } };
+  }).catch(() => {});
+}
+const FontText = {
+  props: { path: String, text: String, fit: Boolean },
+  setup(props) {
+    const fam = computed(() => fontFamily(props.path));
+    const lines = computed(() => String(props.text ?? "").split("\n"));
+    const svgLines = computed(() => {
+      if (fam.value !== "error") return null;
+      needOutlines(props.path, props.text || "");
+      const o = outlines[props.path];
+      if (!o) return [];
+      const h = o.ascender - o.descender;
+      return lines.value.map((line) => {
+        let x = 0;
+        const parts = [];
+        for (const c of line) {
+          const g = o.glyphs[c];
+          if (g) { parts.push({ d: g.d, x }); x += g.adv; }
+          else x += o.upem * 0.5;
+        }
+        return { w: Math.max(x, 1), h, asc: o.ascender, parts };
+      });
+    });
+    return { fam, lines, svgLines, famStyle };
+  },
+  template: `<span v-if="fam !== 'error'" class="ft" :style="famStyle(fam)">{{ text }}</span>
+  <span v-else class="ft ft-svg"><span v-for="l in svgLines" class="ft-line">
+    <svg :viewBox="'0 0 ' + l.w + ' ' + l.h" :style="{ height: '1.2em', width: (l.w / l.h * 1.2) + 'em' }" aria-hidden="true">
+      <path v-for="p in l.parts" :d="p.d" :transform="'translate(' + p.x + ' ' + l.asc + ') scale(1 -1)'" fill="currentColor"/>
+    </svg></span></span>`,
+};
+
 const famStyle = (fam, extra = {}) => (fam && fam !== "error" ? { fontFamily: `${fam}, var(--sans)`, ...extra } : extra);
 const baseName = (p) => (p || "").split(/[\\/]/).pop();
 const fontLabel = (p) => baseName(p).replace(/\.(ttf|otf|ttc|otc)$/i, "");
+// Number steps: 0.1 (mm, degrees) unless the current value is already finer,
+// then match its precision - 0.05 steps by 0.01, 0.005 by 0.001.
+function stepOf(v) {
+  const d = (String(v ?? "").split(".")[1] || "").replace(/e.*$/i, "").length;
+  return d <= 1 ? 0.1 : Number((10 ** -Math.min(d, 6)).toFixed(Math.min(d, 6)));
+}
 const hex = (c) => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
 
 // ---------------------------------------------------------------- state
@@ -53,7 +107,7 @@ const S = reactive({
   build: { target: "element", crossSection: false, crossAngle: 0, cutBodies: false, stl: null, last: null },
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, fonts: null, picker: null, toast: null,
-  theme: localStorage.getItem("te.theme") || "auto", view: "settings",
+  theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
 });
 
 const fieldsByKey = computed(() => {
@@ -128,6 +182,15 @@ async function save() {
 }
 
 function discard() { S.edits = {}; S.rows = null; S.preset = null; refreshGlyphs(); }
+
+async function openConfigs() { S.configs = await engine.configs(S.machine); }
+async function openConfig(path) {
+  if (dirty.value && !confirm("Discard unsaved changes?")) return;
+  await engine.openConfig(S.machine, path);
+  S.configs = null;
+  await loadMachine(S.machine, true);
+  toast(`Opened ${baseName(path)}`);
+}
 
 async function resetToMaster() {
   if (!confirm(`Replace ${S.data.label}'s running config with the master defaults? Every customization for this machine is lost.`)) return;
@@ -282,7 +345,13 @@ const FieldInput = {
     const textFam = computed(() => (props.f.type === "textblock" ? fontFamily(val("path")) : null));
     const setItem = (i, x) => { const a = [...(v.value || [])]; a[i] = x === "" ? 0 : Number(x); setVal(props.f.key, a); };
     const rowLabel = (i) => ["lowercase", "uppercase", "figures", "math"][i] ? `Row ${i + 1} · ${["lowercase", "uppercase", "figures", "math"][i]}` : `Row ${i + 1}`;
-    return { v, changed, setVal, setItem, textFam, famStyle, rowLabel };
+    const ALIGN = ["left", "center", "right", "justify"];
+    const isAlign = computed(() => props.f.options.length > 1 && props.f.options.every((o) => ALIGN.includes(o.value)));
+    // paragraph-alignment glyph: [x, width] per bar
+    const alignBars = (a) => ({ left: [[2, 16], [2, 10], [2, 14], [2, 8]], center: [[2, 16], [5, 10], [3, 14], [6, 8]],
+      right: [[2, 16], [8, 10], [4, 14], [10, 8]], justify: [[2, 16], [2, 16], [2, 16], [2, 16]] }[a]);
+    const step = computed(() => (props.f.type === "int" ? 1 : stepOf(v.value)));
+    return { v, changed, setVal, setItem, textFam, famStyle, rowLabel, isAlign, alignBars, step, stepOf };
   },
   template: `
   <div class="field" :class="{ wide: f.type === 'floatlist' || f.type === 'textblock' }" :id="'f-' + f.key" :title="f.help || ''">
@@ -292,18 +361,23 @@ const FieldInput = {
     </template>
     <template v-else>
       <label :for="'i-' + f.key">{{ f.label }}<span v-if="changed" class="changed"></span></label>
-      <select v-if="f.options.length" class="select" :id="'i-' + f.key" :value="String(v)" @change="setVal(f.key, $event.target.value)">
+      <div v-if="isAlign" class="seg-icons" role="radiogroup" :aria-label="f.label">
+        <button v-for="o in f.options" :class="{ on: String(v) === o.value }" :title="o.label" :aria-label="o.label" role="radio" :aria-checked="String(v) === o.value" @click="setVal(f.key, o.value)">
+          <svg viewBox="0 0 20 20" fill="currentColor"><rect v-for="(w, i) in alignBars(o.value)" :x="w[0]" :y="3 + i * 4" :width="w[1]" height="2" rx="1"/></svg>
+        </button>
+      </div>
+      <select v-else-if="f.options.length" class="select" :id="'i-' + f.key" :value="String(v)" @change="setVal(f.key, $event.target.value)">
         <option v-for="o in f.options" :value="o.value">{{ o.label }}</option>
       </select>
       <div v-else-if="f.type === 'floatlist'" class="listrow">
         <div v-for="(x, i) in (v || [])" class="listitem">
           <span class="help">{{ f.key.startsWith('band') ? 'Band ' + (i + 1) : rowLabel(i) }}</span>
-          <input class="input" type="number" step="any" :value="x" @input="setItem(i, $event.target.value)">
+          <input class="input" type="number" :step="stepOf(x)" :value="x" @input="setItem(i, $event.target.value)">
         </div>
       </div>
       <textarea v-else-if="f.type === 'textblock'" class="input textblock" :id="'i-' + f.key" :value="v ?? ''"
                 :style="famStyle(textFam)" @input="setVal(f.key, $event.target.value)"></textarea>
-      <input v-else-if="f.type === 'int' || f.type === 'float'" class="input" type="number" :step="f.type === 'int' ? 1 : 'any'"
+      <input v-else-if="f.type === 'int' || f.type === 'float'" class="input" type="number" :step="step"
              :id="'i-' + f.key" :value="v" @input="setVal(f.key, $event.target.value === '' ? '' : Number($event.target.value))">
       <input v-else class="input" :id="'i-' + f.key" :value="v ?? ''" @input="setVal(f.key, $event.target.value)">
     </template>
@@ -313,6 +387,7 @@ const FieldInput = {
 
 const FontField = {
   props: ["f", "sample"],
+  components: { FontText },
   setup(props) {
     const path = computed(() => val(props.f.key) || "");
     const fam = computed(() => fontFamily(path.value));
@@ -325,10 +400,10 @@ const FontField = {
     <label>{{ f.label }}<span v-if="changed" class="changed"></span></label>
     <div class="font-field">
       <div v-if="!path" class="font-missing" style="color:var(--text-3)">No font set{{ f.key === 'font2_path' ? ' - these characters use the main font.' : '.' }}</div>
-      <div v-else-if="fam === 'error'" class="font-missing">This font file isn't on this computer: {{ path }}</div>
-      <div v-else class="spec" :style="fam ? famStyle(fam) : { opacity: .35 }">
-        <div class="name">{{ fontLabel(path) }}</div>
-        <div class="sample">{{ sample || 'AaBbCc 0123456789 &?!' }}</div>
+      <div v-else class="spec" :style="fam === null ? { opacity: .35 } : {}">
+        <div class="name"><FontText :path="path" :text="fontLabel(path)" /></div>
+        <div class="sample"><FontText :path="path" :text="sample || 'AaBbCc 0123456789 &?!'" /></div>
+        <div v-if="fam === 'error'" class="help" style="margin-top:6px">Drawn from the font's outlines - this browser won't load the file directly, but the build reads it fine.</div>
       </div>
       <div class="meta">
         <span class="path" :title="path">{{ path || '—' }}</span>
@@ -349,7 +424,7 @@ const SectionCard = {
     const lists = computed(() => props.s.fields.filter((f) => f.list));
     const sampleFor = (key) => {
       const c = S.data.cfg;
-      if (key === "path") return (layoutRows.value || []).join("").replace(/\s/g, "").slice(0, 64) || null;
+      if (key === "path") return (layoutRows.value || []).join("\n") || null;   // one line per keyboard row
       if (key === "font2_path") return font2Chars.value || null;
       if (key === "font_path") return c.logo?.text || [c.label?.label1, c.label?.label2].filter(Boolean).join("  ") || null;
       if (key === "label_font_path") return [c.label?.label1, c.label?.label2, c.label?.text].filter(Boolean).join("  ") || null;
@@ -358,7 +433,7 @@ const SectionCard = {
     return { fonts, plain, lists, sampleFor };
   },
   template: `
-  <section class="card">
+  <section class="card" :class="{ advanced: s.intro && s.intro.level === 'advanced' }">
     <div class="card-head"><h2>{{ title || s.section }}</h2><span class="sub">{{ s.fields.length }} setting{{ s.fields.length === 1 ? '' : 's' }}</span><span class="spacer"></span><slot name="actions"></slot></div>
     <div class="card-body">
       <div v-if="s.intro" class="note" :class="s.intro.level">{{ s.intro.text }}</div>
@@ -420,12 +495,15 @@ const ProfilesCard = {
 };
 
 const LayoutPage = {
+  components: { FontText },
   setup() {
     const fam = computed(() => fontFamily(val("path")));
     const fam2 = computed(() => fontFamily(val("font2_path") || val("path")));
     const sel = computed(() => S.sel);
     const selChar = computed(() => (sel.value ? [...layoutRows.value[sel.value.r]][sel.value.i] : null));
     const famFor = (c) => (font2Chars.value.includes(c) ? fam2.value : fam.value);
+    const mainPath = computed(() => val("path"));
+    const pathFor = (c) => (font2Chars.value.includes(c) ? (val("font2_path") || val("path")) : val("path"));
     const pick = (r, i) => { S.sel = S.sel && S.sel.r === r && S.sel.i === i ? null : { r, i }; };
     const presetNames = computed(() => Object.keys(S.data.presets || {}));
     const activePreset = computed(() => S.preset ?? (S.rows === null ? S.data.current_preset : null));
@@ -435,7 +513,7 @@ const LayoutPage = {
     const showText = ref(false);
     const origLen = (r) => [...(S.data.cfg.layout.rows[r] || "")].length;
     const lenBad = (r, row) => S.data.fixed_row_lengths && !S.preset && [...row].length !== origLen(r);
-    return { S, fam, famFor, pick, sel, selChar, presetNames, activePreset, applyPreset, setChar, setRowText,
+    return { S, fam, famFor, mainPath, pathFor, pick, sel, selChar, presetNames, activePreset, applyPreset, setChar, setRowText,
              typed, applyTyped, showText, badGlyphs, layoutRows, font2Chars, famStyle, hex, lenBad, origLen };
   },
   template: `
@@ -460,17 +538,17 @@ const LayoutPage = {
       </div>
       <div v-else-if="Object.keys(S.glyphs.status).length" class="note ok">Every character is in the font.</div>
       <div v-if="S.data.fixed_row_lengths" class="help" style="margin:-4px 0 10px">On this machine each row maps onto fixed ball positions, so rows keep their exact length - swap characters, don't add or remove them.</div>
-      <div v-if="!showText" class="kb">
+      <div v-if="!showText" class="kb-scroll"><div class="kb">
         <div v-for="(row, r) in layoutRows" class="kb-row" :style="{ '--n': [...row].length }">
           <span class="rn">{{ r + 1 }}</span>
           <div class="kb-keys">
             <div v-for="(c, i) in [...row]" class="key"
                  :title="hex(c) + (S.glyphs.status[c] && S.glyphs.status[c] !== 'ok' ? ' - ' + S.glyphs.status[c] + ' in font' : '')"
                  :class="[S.glyphs.status[c] && S.glyphs.status[c] !== 'ok' ? S.glyphs.status[c] : '', sel && sel.r === r && sel.i === i ? 'sel' : '', c.trim() ? '' : 'space', font2Chars.includes(c) ? 'f2' : '']"
-                 :style="famStyle(famFor(c))" @click="pick(r, i)">{{ c.trim() ? c : '␣' }}</div>
+                 @click="pick(r, i)"><FontText v-if="c.trim()" :path="pathFor(c)" :text="c" /><template v-else>␣</template></div>
           </div>
         </div>
-      </div>
+      </div></div>
       <div v-else>
         <div v-for="(row, r) in layoutRows" class="field" style="margin-bottom:10px">
           <label>Row {{ r + 1 }} · {{ [...row].length }} slots</label>
@@ -485,7 +563,7 @@ const LayoutPage = {
       <span class="spacer"></span><button class="btn small ghost" @click="S.sel = null">Close</button></div>
     <div class="card-body">
       <div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-        <div class="key big" :class="S.glyphs.status[selChar] && S.glyphs.status[selChar] !== 'ok' ? S.glyphs.status[selChar] : ''" :style="famStyle(famFor(selChar))">{{ selChar }}</div>
+        <div class="key big" :class="S.glyphs.status[selChar] && S.glyphs.status[selChar] !== 'ok' ? S.glyphs.status[selChar] : ''"><FontText :path="pathFor(selChar)" :text="selChar" /></div>
         <div class="field" style="flex:1;min-width:180px">
           <label>Character</label>
           <div style="display:flex;gap:8px"><input class="input" v-model="typed" style="width:90px;font-size:18px" @keyup.enter="applyTyped">
@@ -496,7 +574,7 @@ const LayoutPage = {
       <div v-for="(chars, heading) in S.glyphs.unused" style="margin-bottom:12px">
         <div class="help" style="margin-bottom:4px">Unused {{ heading }} in this font · {{ chars.length }}</div>
         <div class="glyph-pal">
-          <button v-for="c in chars.slice(0, 500)" :style="famStyle(fam)" :title="hex(c)" @click="setChar(sel.r, sel.i, c)">{{ c }}</button>
+          <button v-for="c in chars.slice(0, 500)" :title="hex(c)" @click="setChar(sel.r, sel.i, c)"><FontText :path="mainPath" :text="c" /></button>
         </div>
       </div>
     </div>
@@ -573,6 +651,7 @@ const ToolsPage = {
 };
 
 const FontPicker = {
+  components: { FontText },
   setup() {
     const q = ref("");
     const manual = ref(S.picker.current || "");
@@ -601,10 +680,10 @@ const FontPicker = {
     });
     watch(shown, () => nextTick(observe));
     const famOf = (p) => (visible[p] ? fontFamily(p) : null);
-    const sample = S.picker.sample || "AaBbCc 0123 &?!";
+    const sample = (S.picker.sample || "AaBbCc 0123 &?!").split("\n")[0];
     const choose = (p) => { setVal(S.picker.key, p); S.picker = null; };
     const close = () => (S.picker = null);
-    return { S, q, manual, shown, list, listEl, famOf, sample, choose, close, famStyle };
+    return { S, q, manual, shown, list, listEl, visible, sample, choose, close };
   },
   template: `
   <div class="modal-bg" @click.self="close" @keydown.esc="close">
@@ -617,7 +696,7 @@ const FontPicker = {
       <div class="list" ref="listEl">
         <div v-if="!list" style="padding:20px;color:var(--text-3)">Loading installed fonts…</div>
         <div v-for="f in shown" :key="f.path" class="font-row" :data-path="f.path" :class="{ sel: f.path === S.picker.current }" @click="choose(f.path)">
-          <div class="preview" :style="famOf(f.path) ? famStyle(famOf(f.path)) : { color: 'var(--text-3)' }">{{ sample }}</div>
+          <div class="preview"><FontText v-if="visible[f.path]" :path="f.path" :text="sample" /><span v-else style="color:var(--text-3)">{{ sample }}</span></div>
           <div class="fam" :title="f.path">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
         </div>
       </div>
@@ -661,7 +740,7 @@ const App = {
       });
       addEventListener("beforeunload", (e) => { if (dirty.value) e.preventDefault(); });
     });
-    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, loadMachine, runBuild, saveCopy,
+    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, loadMachine, runBuild, saveCopy,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName };
   },
@@ -674,7 +753,7 @@ const App = {
           <option v-for="m in g.machines" :value="m.key" :disabled="!m.available">{{ m.label }}</option>
         </optgroup>
       </select>
-      <span v-if="S.data" class="chip hide-md" :title="S.data.running_path">{{ baseName(S.data.running_path) }}</span>
+      <button v-if="S.data" class="chip chip-btn hide-md" :title="'Master: ' + S.data.master_path + ' · running copy: ' + S.data.running_path + ' · click to open a different config'" @click="openConfigs">{{ baseName(S.data.master_path) }} ▾</button>
       <span v-if="dirty" class="chip dirty">● Unsaved</span>
       <span v-else-if="S.data" class="chip ok hide-sm">Saved</span>
       <div class="seg" role="tablist">
@@ -702,6 +781,7 @@ const App = {
           <span v-else-if="g.count" class="count">{{ g.count }}</span>
         </button>
         <div class="nav-label">Machine</div>
+        <button class="nav-item" @click="openConfigs"><span class="ico">⇪</span>Open config…</button>
         <button class="nav-item" @click="resetToMaster"><span class="ico">↺</span>Reset to defaults</button>
       </nav>
 
@@ -772,6 +852,19 @@ const App = {
     </div>
 
     <FontPicker v-if="S.picker" />
+    <div v-if="S.configs" class="modal-bg" @click.self="S.configs = null">
+      <div class="modal small" role="dialog" aria-modal="true">
+        <div class="head"><h2>Open a config for {{ S.data.label }}</h2><span class="spacer"></span><button class="btn small ghost" @click="S.configs = null">✕</button></div>
+        <div class="tools"><p class="help" style="margin:0">Edits go to a running copy next to the config you open; the config itself is never changed.</p></div>
+        <div class="list">
+          <div v-for="c in S.configs.configs" class="font-row" :class="{ sel: c.path === S.configs.current }" @click="openConfig(c.path)" style="grid-template-columns:1fr auto">
+            <div><div>{{ c.label }}</div><div class="help" style="font-size:12px;color:var(--text-3)">{{ c.path }}</div></div>
+            <span class="chip">{{ c.path === S.configs.default ? 'default' : c.kind }}</span>
+          </div>
+        </div>
+        <div class="foot"><span class="help">Saved copies (Save a copy) appear here too.</span></div>
+      </div>
+    </div>
     <div v-if="S.toast" class="toast note" :class="S.toast.kind === 'bad' ? 'bad' : S.toast.kind === 'ok' ? 'ok' : 'info'">{{ S.toast.msg }}</div>
   </div>`,
 };

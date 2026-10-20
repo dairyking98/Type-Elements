@@ -137,13 +137,15 @@ details.adv[open] > summary::before { content: "▾ "; }
 .font-missing { color: var(--bad); font-size: 13px; padding: 10px 16px; }
 
 /* ---------- layout grid ---------- */
-/* Keys shrink to fit a whole row on one line, down to a readable 30px;
-   below that a row wraps inside its own band rather than scrolling. */
-.kb { display: flex; flex-direction: column; gap: 8px; container-type: inline-size; }
-.kb-row { display: flex; gap: 4px; align-items: flex-start; padding: 6px; border-radius: 8px; background: var(--panel-2); }
-.kb-row .rn { width: 16px; color: var(--text-3); font-size: 11px; text-align: right; flex: none; padding-top: 4px; }
-.kb-keys { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; --kw: clamp(30px, calc((100cqw - 40px) / var(--n) - 4px), 44px); }
-.kb-keys .key { width: var(--kw); height: calc(var(--kw) * 1.15); font-size: calc(var(--kw) * 0.6); background: var(--panel); }
+/* Every keyboard row stays ONE line. Keys shrink to fit the card (down to
+   22px); past that the whole keyboard scrolls sideways together, rows still
+   aligned, rather than wrapping a row onto a second line. */
+.kb-scroll { overflow-x: auto; container-type: inline-size; padding-bottom: 4px; }
+.kb { display: flex; flex-direction: column; gap: 6px; width: max-content; min-width: 100%; }
+.kb-row { display: flex; gap: 4px; align-items: center; padding: 5px 6px; border-radius: 8px; background: var(--panel-2); }
+.kb-row .rn { width: 16px; color: var(--text-3); font-size: 11px; text-align: right; flex: none; }
+.kb-keys { display: flex; flex-wrap: nowrap; gap: 3px; --kw: clamp(22px, calc((100cqw - 44px) / var(--n) - 3px), 44px); }
+.kb-keys .key { width: var(--kw); height: calc(var(--kw) * 1.18); font-size: calc(var(--kw) * 0.62); background: var(--panel); border-radius: 5px; }
 .key {
   width: 40px; height: 46px; flex: none; display: grid; place-items: center; border-radius: 6px; cursor: pointer;
   background: var(--panel-2); border: 1px solid var(--line); font-size: 24px; line-height: 1; position: relative; overflow: hidden;
@@ -246,3 +248,24 @@ textarea.input.textblock { height: auto; min-height: 96px; padding: 8px 10px; fo
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); box-shadow: 0 8px 30px rgba(0,0,0,.18); z-index: 60; margin: 0; max-width: min(92vw, 640px); }
 .field label .changed, .switch .changed { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); display: inline-block; }
 .card-head { flex-wrap: wrap; row-gap: 6px; }
+
+/* FontText - real font when the browser accepts it, FreeType outlines when it doesn't */
+.ft { white-space: pre; }
+.ft-svg { display: inline-flex; flex-direction: column; vertical-align: middle; }
+.ft-line { display: block; line-height: 0; }
+.ft-line svg { display: block; overflow: visible; }
+.key .ft-svg, .glyph-pal .ft-svg, .font-row .ft-svg { vertical-align: middle; }
+.font-field .spec .sample { overflow-x: auto; }
+/* alignment as paragraph-alignment buttons */
+.seg-icons { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; width: max-content; }
+.seg-icons button { width: 40px; height: 34px; border: 0; border-right: 1px solid var(--line); background: var(--panel); cursor: pointer; display: grid; place-items: center; color: var(--text-2); }
+.seg-icons button:last-child { border-right: 0; }
+.seg-icons button.on { background: var(--accent); color: #fff; }
+.seg-icons svg { width: 18px; height: 18px; }
+/* high-risk settings */
+.note.advanced { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+.card.advanced { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+.card.advanced .card-head h2::after { content: "ADVANCED"; margin-left: 8px; font-size: 10px; letter-spacing: .06em; color: #fff; background: var(--bad); padding: 2px 6px; border-radius: 4px; vertical-align: 2px; }
+.chip-btn { cursor: pointer; font: inherit; font-size: 12px; }
+.chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+.modal.small { width: min(620px, 100%); height: min(520px, calc(100dvh - 40px)); }

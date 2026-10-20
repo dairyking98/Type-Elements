@@ -1,5 +1,5 @@
 // The engine adapter - the ONLY module that knows where the work happens.
-// Today: the local Python server (webgui/server.py) over HTTP. Later: an
+// Today: the local Python server (v5/server.py, see ENGINE_API.md) over HTTP. Later: an
 // in-browser engine (Pyodide + manifold WASM in a Web Worker) exposing the
 // same methods, so the static UI can be published to GitHub Pages and run
 // entirely on the visitor's machine.
@@ -21,9 +21,12 @@ export const engine = {
   save: (m, body) => fetch(`/api/config/${m}`, {
     method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   }).then(json),
+  configs: (m) => fetch(`/api/configs/${m}`).then(json),
+  openConfig: (m, path) => post(`/api/config/${m}/open`, { path }),
   reset: (m) => fetch(`/api/config/${m}/reset`, { method: "POST" }).then(json),
   fonts: () => fetch("/api/fonts").then(json),
   fontUrl: (path) => `/api/font?path=${encodeURIComponent(path)}`,
+  outlines: (font, chars) => post("/api/outlines", { font, chars }),
   glyphs: (body) => fetch("/api/glyphs", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   }).then(json),

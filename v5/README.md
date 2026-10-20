@@ -1,21 +1,34 @@
-# Web UI (branch `web-gui`)
+# Type Elements v5
 
-The replacement for `tune.py`: a **static web app** (`webgui/static/`, plain
-HTML/CSS/JS, no build step) plus a small **local engine server**
-(`webgui/server.py`, FastAPI) that runs the existing pipeline.
+v5 is the app around v4's geometry engine: a **swappable web UI** on top of a
+documented **engine API**. v4 (the geometry pipeline) is unchanged; v5 never
+edits it.
 
 ```
-.venv/bin/python3 webgui/server.py --open        # Linux   -> http://127.0.0.1:8090
-.venv\Scripts\python webgui\server.py --open     # Windows
+v4/.venv/bin/python3 v5/server.py --open        # Linux   -> http://127.0.0.1:8090
+v4\.venv\Scripts\python v5\server.py --open     # Windows
 ```
 
-Options: `--config-dir DIR` (scratch config copies for testing), `--port`,
-`--host` (default 127.0.0.1 = this computer only).
+| Path | What it is |
+|---|---|
+| `v5/server.py` | local engine server (FastAPI) - the API below, driving v4 |
+| `v5/ENGINE_API.md` | **the contract** - every endpoint, field record, the job stream |
+| `v5/ui/` | reference UI (static, no build step); `engine.js` is its only API client |
+
+Options: `--ui DIR` (serve a different front end), `--config-dir DIR`
+(scratch config copies for testing), `--port`, `--host` (default 127.0.0.1 =
+this computer only). First time: `v4/.venv/bin/python3 -m pip install fastapi uvicorn`.
+
+## Writing your own UI
+
+Make a folder with an `index.html`, copy `v5/ui/engine.js` in, build whatever
+you like against [ENGINE_API.md](ENGINE_API.md), run with `--ui your-folder`.
+You can't break the geometry from there - the engine owns all of it.
 
 ## Why this shape
 
 End goal: publish the UI on GitHub Pages and run everything **in the
-visitor's browser** - no server. `static/engine.js` is the only file that
+visitor's browser** - no server. `ui/engine.js` is the only file that
 knows where the work happens; today it talks HTTP to `server.py`, later it
 talks to an in-browser engine with the same methods:
 
@@ -30,7 +43,7 @@ talks to an in-browser engine with the same methods:
 
 ## What the server reuses
 
-`server.py` imports tune.py for its field tables, comment-preserving YAML
+`server.py` imports v4's tune.py for its field tables, comment-preserving YAML
 patchers and running-config migration, and runs `generate.py`,
 `type_test.py`, `generate_legend.py` and `font_coverage.py` as subprocesses
 with exactly the flags tune.py uses. Both front ends read and write the same
@@ -57,6 +70,5 @@ saves, `Ctrl+Enter` previews. Light/dark. Works down to phone width.
 
 ## Not done yet
 
-- Browse to a different master config (tune.py's Browse).
 - In-browser engine (the GitHub Pages step).
 - Single-file packaging.
