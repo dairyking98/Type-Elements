@@ -106,6 +106,7 @@ and row baselines. Make those look dangerous.
   "schema": [ /* section records, in display order */ ],
   "presets": { "US": ["row1", "row2", ...], ... },   // layout presets, may be {}
   "current_preset": "US" | null,                     // preset whose rows equal cfg.layout.rows
+  "preset_baselines": { "Universal, Math": [3.74, -1.21, -5.71, -9.89], ... },   // baselines a preset sets on save, may be {}
   "layout_help": "str" | null,
   "fixed_row_lengths": true,     // rows must keep their exact length (Selectrics)
   "row_cap": 28 | null,          // max chars per row (cylinder/shuttle machines)

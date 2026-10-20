@@ -199,6 +199,13 @@ def configure(config_path):
     # config/hammond_split.yaml's matching comment) rather than as
     # separate live gaps/offset keys.
     g["Baselines"] = np.array(cfg["layout"]["baseline_row"], dtype=float)
+    # The split shuttle is built for 3 rows only (TextAssemble's range(3));
+    # unlike lib/hammond.py there is no Math shuttle height or 4th baseline
+    # for it yet, so a 4-row "Universal, Math ..." layout's math row would be
+    # dropped without a word. Say so.
+    if len(g["Layout"]) > 3:
+        print(f"WARNING: this layout has {len(g['Layout'])} rows, but the split shuttle only builds 3 - "
+              f"row 4 (math) is left off. Use the Hammond machine for Math shuttles.", flush=True)
 
     align = cfg["alignment"]
     g["ALIGN_KWARGS"] = {

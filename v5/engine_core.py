@@ -300,6 +300,8 @@ def get_config(machine):
             "schema": schema(machine, cfg), "migrated": migrated,
             "running_path": running, "master_path": master,
             "presets": presets, "current_preset": current_preset,
+            # baselines a preset sets when saved (Hammond: a 4-row Math preset adds a 4th)
+            "preset_baselines": LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE.get(machine, {}),
             "layout_help": LAYOUT_PICKER_HELP.get(machine),
             # Selectric rows are flat-indexed onto a fixed hemisphere: every row
             # must keep its exact length (tune.py refuses the edit otherwise)
@@ -363,9 +365,10 @@ def put_config(machine, body):
                 if hmap:
                     text = tune.patch_yaml_value(text, "hemisphere_map", hmap)
                 seeds = LAYOUT_PRESET_BASELINE_ROW_BY_MACHINE.get(machine, {}).get(preset)
-                if seeds:
-                    text = tune.patch_yaml_inline_list(text, "baseline_row", seeds)
-                    text = tune.patch_yaml_inline_list(text, "cutout_row", seeds)
+                given = body.get("values") or {}
+                for key in ("baseline_row", "cutout_row"):   # values sent with the save win over the preset's
+                    if seeds and key not in given:
+                        text = tune.patch_yaml_inline_list(text, key, seeds)
             elif "modify_glyphs" in lay:
                 text = tune.patch_yaml_value(text, "modify_glyphs", True)
     if changed:

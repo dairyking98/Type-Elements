@@ -91,3 +91,8 @@ Split out of `README.md` to keep it direct - see
   it would sit. It needs a real Math-shuttle index card (photo or scan) to
   place the 4th label, plus legend fields for its size/offset, exposed only
   when the layout has 4 rows.
+- **Hammond split has no Math shuttle.** `lib/hammond_split.py` builds 3
+  rows only (no 4th baseline or taller Math shuttle like `lib/hammond.py`'s
+  `Is_Math`). Its "Universal, Math (braces/Greek)" presets still load, but
+  row 4 is left off; the build says so with a WARNING. Needs the split
+  shuttle's real Math dimensions.
