@@ -66,6 +66,9 @@ jobs:
           # the in-browser engine: v4's code + configs, engine_core, the
           # browser adapters and bundled fonts (see v5/browser/make_bundle.py)
           python3 v5/browser/make_bundle.py _site/app/_engine
+          # cache-busting: every app file reference gets ?v=<commit>, so a
+          # deploy is never served from a visitor's stale browser cache
+          python3 v5/browser/stamp_version.py _site/app "${GITHUB_SHA::10}"
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
