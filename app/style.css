@@ -277,3 +277,4 @@ textarea.input.textblock { height: auto; min-height: 96px; padding: 8px 10px; fo
 .connect-card p { color: var(--text-2); }
 .connect-card ol { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .connect-card code { font: 12.5px var(--mono); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.machine-warning details summary { cursor: pointer; font-weight: 500; margin-top: 4px; }
