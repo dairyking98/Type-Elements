@@ -19,6 +19,17 @@ Options: `--ui DIR` (serve a different front end), `--config-dir DIR`
 (scratch config copies for testing), `--port`, `--host` (default 127.0.0.1 =
 this computer only). First time: `v4/.venv/bin/python3 -m pip install fastapi uvicorn`.
 
+**Try it:** [type-elements.leonardchau.com/app/](https://type-elements.leonardchau.com/app/)
+(the hosted UI - it connects to the engine on your computer until the
+in-browser engine lands).
+
+## Performance
+
+Rendering in the browser is not the slow option: spread across Web Workers,
+the slowest stage of a Selectric Render runs **faster than native Python**
+(16.7 s vs 30.4 s on an 8-core laptop), and two workers already halve it.
+Chart, method and caveats: [PERFORMANCE](docs/PERFORMANCE.md).
+
 ## Writing your own UI
 
 Make a folder with an `index.html`, copy `v5/ui/engine.js` in, build whatever
@@ -68,7 +79,10 @@ warnings summary, log, Download STL, Save a copy (timestamped STL + config
 sidecar in `output/saved/`). Search (`/`) across every setting. `Ctrl+S`
 saves, `Ctrl+Enter` previews. Light/dark. Works down to phone width.
 
-## Not done yet
+## Status and roadmap
 
-- In-browser engine (the GitHub Pages step).
-- Single-file packaging.
+| | |
+|---|---|
+| done | engine API + local server; reference UI covering every v4 parameter; hosted UI at /app/; Minkowski-in-WebAssembly spike (worker pool beats native) |
+| **now - phase 2** | v4's Python running in the page (Pyodide) with the worker-pool Minkowski; then an engine switch: *in-browser* (no install, default) or *local engine* (desktop) |
+| later | single-file desktop launcher; vendored libraries for offline use |

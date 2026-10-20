@@ -14,6 +14,7 @@ minima:
   date_format: "%Y-%m-%d"
 
 header_pages:
+  - v5.md
   - how-it-works.md
   - machines.md
   - accessories.md

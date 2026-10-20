@@ -1,0 +1,15 @@
+{
+  "measured": "2026-10-19",
+  "job": "Minkowski draft sums for one Selectric I/II element - 88 characters, full Render quality (flatness 0.005 mm)",
+  "machine": {
+    "computer": "Lenovo ThinkPad (model 21MD)",
+    "cpu": "AMD Ryzen 7 PRO 8840U - 8 cores / 16 threads",
+    "ram": "32 GB",
+    "os": "Ubuntu 24.04.4 LTS (kernel 6.17)",
+    "browser": "Google Chrome 152.0.7977.64",
+    "engine": "manifold-3d 3.5.4 WebAssembly, one instance per Web Worker"
+  },
+  "native_s": 30.4,
+  "native_note": "manifold3d 3.5.2, Python, its own multithreading",
+  "runs": [[1, 86.9], [2, 45.8], [4, 27.6], [8, 19.1], [14, 16.7], [16, 16.7]]
+}

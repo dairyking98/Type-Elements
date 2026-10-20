@@ -48,6 +48,23 @@ inject MACHINES.md "$SITE/machines-detail.md" "Machines (detail)"
 inject TUNER.md "$SITE/tuner.md" "Interactive Tuner"
 inject LIMITATIONS.md "$SITE/limitations.md" "Known Limitations"
 
+# v5 (the app + engine API) keeps its own docs next to its code in ../v5/;
+# published as a "v5" section. Their cross-links get the same pretty-URL
+# rewrite, plus links into v5's source tree pointed at GitHub.
+rewrite_v5() {
+  rewrite_links | sed -e 's|](ENGINE_API\.md)|](/v5-engine-api/)|g' \
+      -e 's|](docs/PERFORMANCE\.md)|](/v5-performance/)|g' \
+      -e 's|](\.\./spike/RESULTS\.md)|](https://github.com/dairyking98/Type-Elements/blob/main/v5/spike/RESULTS.md)|g' \
+      -e 's|](README\.md)|](/v5/)|g'
+}
+inject_v5() {
+  local src="$1" dest="$2" title="$3"
+  { printf -- '---\nlayout: page\ntitle: "%s"\n---\n\n' "$title"; rewrite_v5 < "$src"; } > "$dest"
+}
+inject_v5 ../v5/README.md "$SITE/v5.md" "v5: the app"
+inject_v5 ../v5/ENGINE_API.md "$SITE/v5-engine-api.md" "v5 Engine API"
+inject_v5 ../v5/docs/PERFORMANCE.md "$SITE/v5-performance.md" "v5 Performance"
+
 for f in docs/*.md; do
   [ -e "$f" ] || continue
   base=$(basename "$f")
