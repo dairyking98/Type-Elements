@@ -98,6 +98,21 @@ def _expand(path):
     return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
 
+def default_font_dir():
+    """A font directory that actually EXISTS on this machine, for UI
+    defaults (Font Coverage's directory box and its Browse starting
+    point): ~/fonts first - the personal library on the Linux laptop -
+    then this platform's system font dirs, then the home directory.
+    ~/fonts alone used to be hardcoded, and Browse crashed on Windows
+    (C:\\Users\\<name>\\fonts doesn't exist there - a folder picker
+    can't open a missing directory)."""
+    for d in ("~/fonts",) + _FALLBACK_FONT_DIRS[_platform_key()]:
+        path = _expand(d)
+        if os.path.isdir(path):
+            return path
+    return os.path.expanduser("~")
+
+
 def _read_names(path):
     """The font's own family/style, via freetype's name table. Returns
     (family, style) with a filename-derived family as the last resort -

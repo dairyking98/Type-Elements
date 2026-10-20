@@ -45,8 +45,10 @@ from glyph_poc import (  # noqa: E402
     em_to_mm_scale, FONT_SIZE_MM, DEFAULT_FLATNESS_TOLERANCE_MM,
 )
 
+from system_fonts import default_font_dir  # noqa: E402
+
 FONT_EXTS = {".ttf", ".otf", ".ttc", ".otc"}
-DEFAULT_FONT_DIR = os.path.expanduser("~/fonts")
+DEFAULT_FONT_DIR = default_font_dir()  # ~/fonts if it exists, else the OS font dir
 
 
 def charset_from_preset(spec):

@@ -380,6 +380,7 @@ def _font_display_name(path):
 # that module's docstring for what counts as "installed" per platform.
 from lib.system_fonts import display_name as font_display_name  # noqa: E402
 from lib.system_fonts import list_system_fonts  # noqa: E402
+from lib.system_fonts import default_font_dir  # noqa: E402
 
 # Layout presets/help for every machine live in lib/layouts/ (one module
 # per machine), NOT here - tune.py hardcodes no layout data of its own.
@@ -3637,7 +3638,7 @@ class TuneApp(App):
                 with Vertical(classes="field-row"):
                     with Horizontal():
                         yield Static("Font directory", classes="field-label")
-                        yield Input(value=os.path.expanduser("~/fonts"), id="coverage-font-dir")
+                        yield Input(value=default_font_dir(), id="coverage-font-dir")
                         yield Button("Browse", id="browse-coverage-font-dir", classes="browse-btn")
                     yield Static("Searched recursively for .ttf/.otf/.ttc/.otc files.",
                                  classes="field-help")
@@ -4128,7 +4129,7 @@ class TuneApp(App):
 
     async def _browse_coverage_font_dir(self):
         current = os.path.expanduser(self.query_one("#coverage-font-dir", Input).value)
-        start_dir = current if os.path.isdir(current) else os.path.expanduser("~/fonts")
+        start_dir = current if os.path.isdir(current) else default_font_dir()
         result = await self.push_screen_wait(SelectDirectory(start_dir))
         if result is not None:
             self.query_one("#coverage-font-dir", Input).value = str(result)
