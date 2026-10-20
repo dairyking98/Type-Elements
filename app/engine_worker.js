@@ -95,7 +95,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=7d18ce8778", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=4fac0c0d81", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;
@@ -133,7 +133,10 @@ async function job({ id, kind, machine, body, workers }) {
       rc = eng.run_job(toPyList(argv));
     } else {
       // pass 1: build with every Minkowski sum recorded, not computed
+      // One job, three stages - report them as slices of one progress bar
+      // (phase = [start, end, label]) instead of three bars that each refill.
       eng.pool_record();
+      postMessage({ id, phase: [0, 0.25, "building (1 of 3)"] });
       postMessage({ id, line: "--- pass 1: building, Minkowski sums recorded for the worker pool" });
       rc = eng.run_job(toPyList(argv));
       if (rc === 0) {
@@ -141,9 +144,11 @@ async function job({ id, kind, machine, body, workers }) {
         const jobs = recorded.map(([gv, gf, cv, cf]) => ({ gv: gv.buffer, gf: gf.buffer, cv: cv.buffer, cf: cf.buffer, weight: gf.byteLength }));
         if (jobs.length) {
           const t = performance.now();
+          postMessage({ id, phase: [0.25, 0.75, `draft angles on ${workers} workers (2 of 3)`] });
           const results = await minkowskiPool(jobs, workers, id);
           postMessage({ id, line: `--- ${jobs.length} Minkowski sums on ${workers} workers in ${((performance.now() - t) / 1000).toFixed(1)}s` });
           eng.pool_replay(py.toPy(results.map((r) => [new Uint8Array(r.v), new Uint8Array(r.f)])));
+          postMessage({ id, phase: [0.75, 1, "assembling (3 of 3)"] });
           postMessage({ id, line: "--- pass 2: building with the pool's results" });
           rc = eng.run_job(toPyList(argv));
         }

@@ -182,7 +182,11 @@ details.adv[open] > summary::before { content: "▾ "; }
 /* ---------- modal ---------- */
 .modal-bg { position: fixed; inset: 0; background: rgba(10, 14, 20, .45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; overflow: hidden; }
 /* explicit viewport-based height: a percentage max-height let the 800-row list stretch the dialog off screen */
-.modal { background: var(--panel); border-radius: 14px; width: min(860px, 100%); height: min(760px, calc(100dvh - 40px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+/* flex column, not a fixed-row grid: the browser-engine picker adds a row of
+   buttons, and a 4-row grid then gave the stretch to the wrong row */
+.modal { background: var(--panel); border-radius: 14px; width: min(860px, 100%); height: min(760px, calc(100dvh - 40px)); display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+.modal > .head, .modal > .tools, .modal > .foot { flex: none; }
+.modal > .list { flex: 1 1 auto; min-height: 0; }
 @media (max-width: 860px) { .modal-bg { padding: 8px; } .modal { height: calc(100dvh - 16px); } .font-row { grid-template-columns: minmax(0, 1fr); gap: 2px; } .font-row .fam { text-align: left; } }
 .modal .head { padding: 16px 18px 8px; display: flex; align-items: center; gap: 10px; }
 .modal .head h2 { margin: 0; font-size: 16px; }
