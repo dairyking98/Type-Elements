@@ -108,7 +108,7 @@ const S = reactive({
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
-  engineDown: false, engineUrl: "", connecting: false,
+  engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
 });
 
 const fieldsByKey = computed(() => {
@@ -723,11 +723,24 @@ const App = {
       }).slice(0, 100);
     });
     const groupOf = (f) => (groups.value.find((g) => g.sections.includes(f.section)) || groups.value.find((g) => g.id === "tools"))?.label;
+    // Phones can't run the local engine (yet), so they get a "what this is"
+    // page instead of install steps they can't follow.
+    const phone = computed(() => !S.forceDesktop && matchMedia("(pointer: coarse)").matches && innerWidth < 900);
+    const shareLink = async () => {
+      const url = "https://type-elements.leonardchau.com/app/";
+      try {
+        if (navigator.share) await navigator.share({ title: "Type Elements", text: "Typewriter type elements from any font - open on a computer", url });
+        else { await navigator.clipboard.writeText(url); S.shared = true; }
+      } catch {}
+    };
     onMounted(async () => {
       viewer = new Viewer(viewerEl.value);
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+      // A phone can't reach an engine on itself - don't even try (no stuck
+      // "connecting", no local-network permission prompt); show the phone page.
+      if (engine.hosted && phone.value) { S.engineDown = true; S.engineUrl = engine.base; return; }
       if (engine.hosted) S.connecting = true;
       const ok = await engine.ping().catch(() => false);
       S.connecting = false;
@@ -746,12 +759,27 @@ const App = {
       addEventListener("beforeunload", (e) => { if (dirty.value) e.preventDefault(); });
     });
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, loadMachine, runBuild, saveCopy,
+    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, loadMachine, runBuild, saveCopy,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName };
   },
   template: `
-  <div v-if="S.engineDown" class="connect">
+  <div v-if="S.engineDown && phone" class="connect">
+    <div class="connect-card phone-card">
+      <div class="brand" style="font-size:20px;margin-bottom:6px"><span class="dot">T</span>Type Elements</div>
+      <img src="https://type-elements.leonardchau.com/assets/og/selectric-render.png" alt="A generated IBM Selectric typeball" class="phone-hero">
+      <h1>Typewriter type elements, from any font.</h1>
+      <p>Pick a machine, choose a typeface, arrange the keyboard, and export a print-ready 3D model of a working Selectric ball, Blickensderfer wheel or Hammond shuttle.</p>
+      <p class="note info" style="margin:14px 0">Building elements needs a computer for now - open this page on a laptop or desktop. A version that runs right in your phone's browser is in the works.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" @click="shareLink">{{ S.shared ? 'Link copied' : 'Send this link to myself' }}</button>
+        <a class="btn" href="/">Read about it</a>
+        <a class="btn ghost" href="/v5-performance/">How fast is it?</a>
+      </div>
+      <p class="help" style="margin-top:14px"><a href="#" @click.prevent="S.forceDesktop = true">Show the full app anyway</a></p>
+    </div>
+  </div>
+  <div v-else-if="S.engineDown" class="connect">
     <div class="connect-card">
       <div class="brand" style="font-size:20px;margin-bottom:6px"><span class="dot">T</span>Type Elements</div>
       <h1>Start the engine on your computer</h1>
