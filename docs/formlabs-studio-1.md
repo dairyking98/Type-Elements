@@ -13,6 +13,14 @@ hosted the reviewer). URLs at the bottom.
 
 ---
 
+## Status
+
+**Ordered 2026-10-19** — the cart below as recommended (Complete, Aqua,
+Alpha Model, Alpha Black, extra standard tank; no Cure V2, no Pro tank, no
+VOC Extractor). **ETA 2027-01-13.**
+
+---
+
 ## Verdict up front
 
 **A good fit. Buy it — the open question is the resin, not the printer.**
