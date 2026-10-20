@@ -10,3 +10,4 @@ pyyaml
 manifold3d
 textual
 textual-fspicker
+nicegui==2.24.2

@@ -100,8 +100,14 @@ def _report_overhangs(bd, args, mesh, label, has_supports, rows=False):
     if rows and sm is not None:
         mink = sm.DEFAULT_MINKOWSKI_ENABLED if args.minkowski_enabled is None else args.minkowski_enabled
         draft = sm.Mink_Draft_Angle if args.draft_angle_deg is None else args.draft_angle_deg
-        # No Minkowski sum = no draft: the walls run straight along the glyph axis.
-        overhang.report_spherical_rows(sm.Row_Latitudes, draft if mink else 0.0, warn_deg)
+        # The row table predicts the PRINTED element, so it always uses the
+        # configured draft - a Preview (no Minkowski) mesh has straight
+        # walls, but reporting draft 0 there raised island warnings for a
+        # geometry nobody prints. The mesh check below still reports the
+        # mesh as built.
+        if not mink:
+            build_log.note("Overhang rows", "preview mesh has no draft; table below is for the real render")
+        overhang.report_spherical_rows(sm.Row_Latitudes, draft, warn_deg)
     overhang.report_mesh(mesh, label, warn_deg, has_supports)
 
 
