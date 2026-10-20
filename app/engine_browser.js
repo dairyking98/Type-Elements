@@ -19,7 +19,7 @@ let lastStatus = { text: "Engine not started", progress: 0 };
 
 function boot() {
   if (ready) return ready;
-  worker = new Worker(new URL("engine_worker.js?v=276d0496c0", import.meta.url), { type: "module" });
+  worker = new Worker(new URL("engine_worker.js?v=bc416d19fa", import.meta.url), { type: "module" });
   ready = new Promise((resolve, reject) => {
     worker.onmessage = ({ data }) => {
       if (data.type === "status") { lastStatus = data; statusListeners.forEach((fn) => fn(data)); return; }
@@ -114,12 +114,12 @@ export const browserEngine = {
     return { cancelled: true };
   },
   // "Save a copy": in a browser that means downloading it.
-  async saveCopy(m) {
+  async saveCopy(m, body = {}) {
     const url = urls.stl[m];
     if (!url) throw new Error("nothing built yet");
-    const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 19);
+    const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 16);
     const a = document.createElement("a");
-    a.href = url; a.download = `${m}_${stamp}.stl`; a.click();
+    a.href = url; a.download = `${body.last_build?.name || `${m}_${stamp}`}.stl`; a.click();
     return { path: `${a.download} (downloaded)` };
   },
 };

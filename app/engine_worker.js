@@ -1,7 +1,7 @@
 // The in-browser engine: Pyodide running v4 + engine_core in this Web Worker,
 // so the page stays responsive while it builds. Talks to engine_browser.js
 // with messages:
-//   page -> worker  {type:"init", base}            boot, base = URL of the bundle (_engine/)
+//   page -> worker  {type:"init", base}            boot, base = URL of the bundle (_engine/engine.pack)
 //                   {type:"call", id, method, args}  one engine call (JSON in, JSON out)
 //                   {type:"job", id, kind, machine, body, workers}   build / tool, streamed
 //   worker -> page  {type:"status", text, progress}  boot progress
@@ -18,25 +18,47 @@ const STOPPED_FOR_POOL = 99;   // webengine.STOPPED_FOR_POOL: pass 1 stopped aft
 const MUTATING = new Set(["put_config", "reset_config", "open_config", "add_font", "profile_save", "profile_rename", "profile_delete"]);
 const status = (text, progress) => postMessage({ type: "status", text, progress });
 
+// trimesh isn't in Pyodide's own package set; a pinned wheel URL (rather than
+// letting micropip ask PyPI which file to get) keeps every boot cacheable.
+const TRIMESH = "https://files.pythonhosted.org/packages/05/98/716a473cfb24750858ddd5d14e6527539dd206583a46408d08eeb2844a75/trimesh-4.12.2-py3-none-any.whl";
+
+// engine.pack (make_bundle.py): Type Elements' files in one request. The
+// deploy stamps this worker with ?v=<version>, so the pack URL changes with
+// every deploy and can come from the browser cache otherwise.
+function fetchPack(base) {
+  const v = new URL(import.meta.url).searchParams.get("v");
+  return fetch(new URL("engine.pack" + (v ? `?v=${v}` : ""), base), v ? {} : { cache: "no-cache" }).then((r) => {
+    if (!r.ok) throw new Error(`engine.pack: HTTP ${r.status}`);
+    return r.arrayBuffer();
+  });
+}
+
+function unpack(buf) {
+  const n = new DataView(buf).getUint32(0, true);
+  const index = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, n)));
+  let at = 4 + n;
+  for (const [dest, size] of index) {
+    py.FS.mkdirTree(dest.slice(0, dest.lastIndexOf("/")) || "/");
+    py.FS.writeFile(dest, new Uint8Array(buf, at, size));
+    at += size;
+  }
+}
+
 async function init(b) {
   base = b;
   const t0 = performance.now();
-  status("Loading the geometry engine…", 0.05);
-  const wasm = await Module();
-  wasm.setup();
-  globalThis.__manifold = wasm;
-  status("Loading Python…", 0.15);
+  // everything that only waits on the network starts at once
+  const pack = fetchPack(base);
+  pack.catch(() => {});   // reported where it's awaited
+  const geometry = Module().then((wasm) => { wasm.setup(); globalThis.__manifold = wasm; });
+  status("Starting Python…", 0.1);
   py = await loadPyodide();
-  status("Loading Python libraries…", 0.35);
+  status("Loading Python libraries…", 0.2);
   await py.loadPackage(["numpy", "scipy", "shapely", "pyyaml", "fonttools", "networkx", "micropip"]);
-  await py.runPythonAsync(`import micropip\nawait micropip.install("trimesh==4.12.2")`);
-  status("Loading Type Elements…", 0.7);
-  const man = await (await fetch(new URL("manifest.json", base), { cache: "no-cache" })).json();
-  await Promise.all(man.files.map(async (dest) => {
-    const buf = new Uint8Array(await (await fetch(new URL(dest.slice(1), base), { cache: "no-cache" })).arrayBuffer());
-    py.FS.mkdirTree(dest.slice(0, dest.lastIndexOf("/")) || "/");
-    py.FS.writeFile(dest, buf);
-  }));
+  await py.runPythonAsync(`import micropip\nawait micropip.install("${TRIMESH}")`);
+  status("Loading Type Elements…", 0.5);
+  await geometry;
+  unpack(await pack);
   py.FS.mkdirTree("/persist");
   py.FS.mount(py.FS.filesystems.IDBFS, {}, "/persist");
   await syncfs(true);
@@ -47,7 +69,7 @@ sys.path[:0] = ["/shim", "/v5", "/v4/lib", "/v4"]
 if not os.path.isdir("/persist/profiles") and os.path.isdir("/persist-seed/profiles"):
     shutil.copytree("/persist-seed/profiles", "/persist/profiles")
 `);
-  status("Starting…", 0.92);
+  status("Starting Type Elements…", 0.6);
   eng = py.pyimport("webengine");
   await syncfs(false);
   postMessage({ type: "ready", seconds: (performance.now() - t0) / 1000 });
@@ -96,7 +118,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=276d0496c0", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=bc416d19fa", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;
