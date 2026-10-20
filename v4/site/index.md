@@ -14,7 +14,7 @@ description: >-
   .hero img { width: 100%; height: auto; }
   .cta { display: inline-block; background: #2f6fde; color: #fff !important; padding: 11px 20px; border-radius: 8px; font-weight: 600; text-decoration: none !important; margin: 0 10px 10px 0; }
   .cta.alt { background: transparent; color: #2f6fde !important; border: 1px solid #2f6fde; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 8px 0 28px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 8px 0 28px; }
   .tile { border: 1px solid #e3e6eb; border-radius: 10px; padding: 14px 16px; }
   .tile b { display: block; font-size: 16px; margin-bottom: 4px; }
   .tile span { color: #666; font-size: 15px; }
@@ -32,7 +32,7 @@ description: >-
     <a class="cta alt" href="/how-it-works/">How it works</a>
     <div class="mobile-note">On a phone? Read on here - building elements needs a computer for now.</div>
   </div>
-  <img src="/assets/og/selectric-render.png" alt="A generated IBM Selectric typeball with resin supports, rendered in 3D" width="800" height="700">
+  <img src="/assets/og/selectric-render.png" alt="A generated IBM Selectric typeball with resin supports, rendered in 3D" width="480" height="487">
 </div>
 
 <div class="tiles">

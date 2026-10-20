@@ -62,7 +62,7 @@ inject_v5() {
   local src="$1" dest="$2" title="$3"
   { printf -- '---\nlayout: page\ntitle: "%s"\n---\n\n' "$title"; rewrite_v5 < "$src"; } > "$dest"
 }
-inject_v5 ../v5/README.md "$SITE/v5.md" "v5: the app"
+inject_v5 ../v5/README.md "$SITE/v5.md" "v5"
 inject_v5 ../v5/ENGINE_API.md "$SITE/v5-engine-api.md" "v5 Engine API"
 inject_v5 ../v5/docs/PERFORMANCE.md "$SITE/v5-performance.md" "v5 Performance"
 
