@@ -831,7 +831,7 @@ def LogoText(flatness_tolerance_mm=0.005):
 
         angle_n = Logo_Position_Offset - 90 + Logo_Text_Spacing * n - (n_chars - 1) * Logo_Text_Spacing / 2
         placed = sp.scad_transform(mesh, ("rotate", [0, 0, Logo_Text_Offset]))
-        placed = sp.translate(placed, [0, Logo_Radius + Logo_Radial_Offset, Element_Height - 0.3])
+        placed = sp.translate(placed, [0, Logo_Radius, Element_Height - 0.3])
         placed = sp.rotate_z(placed, angle_n)
         parts.append(placed)
     return sp.union_all(parts)

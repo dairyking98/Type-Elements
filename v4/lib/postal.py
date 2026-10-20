@@ -69,7 +69,8 @@ def configure(config_path):
     g["Logo_Text_Spacing"] = logo["text_spacing"]
     g["Logo_Position_Offset"] = logo["position_offset_deg"]
     g["Logo_Text_Offset"] = logo["text_offset_deg"]
-    g["Logo_Radial_Offset"] = logo.get("radial_offset_mm", 1.5)
+    # inset from the outer radius - see lib/blickensderfer.py's Logo_Outer_Inset
+    g["Logo_Outer_Inset"] = logo["outer_inset_mm"]
 
     e = cfg["element"]
     g["z"] = 0.01
@@ -108,7 +109,7 @@ def configure(config_path):
     # Postal reuses Core_ID_Offset directly - no dedicated width-offset key
     g["Drive_Pin_Width"] = g["Drive_Pin_Widthmm"] + g["Core_ID_Offset"]
     g["Clip_OD"] = g["Shaft_Diameter"] + 2 * g["Wall_Min_Thickness"]
-    g["Logo_Radius"] = g["Element_Diameter"] / 2 - 2.0
+    g["Logo_Radius"] = g["Element_Diameter"] / 2 - g["Logo_Outer_Inset"]
 
     g["Core_Top_Z"] = g["Element_Height"] + g["Clip_Height"]
     g["Core_Bottom_Z"] = g["Core_Bottom_Offset"]

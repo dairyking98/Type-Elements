@@ -89,7 +89,7 @@ def configure(config_path):
     g["Logo_Position_Offset"] = logo["position_offset_deg"]
     # Cylinder_Label_Height_Offset - the local radial nudge off the chamfer
     # surface (ElementLogo's own transform, unrelated to Blickensderfer/
-    # Postal's Logo_Radial_Offset - Mignon's logo/label sit on an angled
+    # Postal's Logo_Outer_Inset - Mignon's logo/label sit on an angled
     # chamfer surface, not the flat top face, so their geometry needs a
     # different placement chain entirely, see _render_engraved_text()).
     g["Logo_Height_Offset"] = logo["height_offset_mm"]

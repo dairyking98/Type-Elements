@@ -68,12 +68,15 @@ def configure(config_path):
     g["Logo_Text_Spacing"] = logo["text_spacing"]
     g["Logo_Position_Offset"] = logo["position_offset_deg"]
     g["Logo_Text_Offset"] = logo["text_offset_deg"]
-    # real v2 value - the logo ring's placement radius = Logo_Radius +
-    # this. Exposed as a tunable: at the real value, the logo's angular
-    # spacing can coincidentally land very close to a DHIATENSOR column
-    # (confirmed once, on this exact layout - see SESSION_LOG.md) since
-    # nothing forces separation between the two independent layouts.
-    g["Logo_Radial_Offset"] = logo.get("radial_offset_mm", 1.5)
+    # The logo ring's placement radius, as an inset from the element's
+    # outer radius. v2 expresses it as Logo_Radius (= Element_Diameter/2 -
+    # 2.0) + 1.5, i.e. an inset of 0.5 - re-expressed as one number per
+    # user direction, which also removes the hardcoded 2.0. Tunable: at the
+    # real value, the logo's angular spacing can coincidentally land very
+    # close to a DHIATENSOR column (confirmed once, on this exact layout -
+    # see SESSION_LOG.md) since nothing forces separation between the two
+    # independent layouts.
+    g["Logo_Outer_Inset"] = logo["outer_inset_mm"]
 
     e = cfg["element"]
     g["z"] = 0.01
@@ -129,7 +132,7 @@ def configure(config_path):
     # its own length, not by a directly-measured centre radius.
     g["Drive_Pin_Radial_Old"] = g["Drive_Pin_Length_Start_Old"] + g["Drive_Pin_Length_Old"] / 2.0
     g["Clip_OD"] = g["Shaft_Diameter"] + 2 * g["Wall_Min_Thickness"]
-    g["Logo_Radius"] = g["Element_Diameter"] / 2 - 2.0
+    g["Logo_Radius"] = g["Element_Diameter"] / 2 - g["Logo_Outer_Inset"]
 
     g["Core_Top_Z"] = g["Element_Height"] + g["Clip_Height"]
     g["Core_Bottom_Z"] = g["Core_Bottom_Offset"]

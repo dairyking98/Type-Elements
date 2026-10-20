@@ -49,8 +49,10 @@ logo:
   text_spacing: 10.0
   position_offset_deg: 180.0
   text_offset_deg: 180.0
-  # real v2 value (postal.scad:203: translate([0, Logo_Radius+1.5, ...]))
-  radial_offset_mm: 1.5
+  # placement radius = outer radius (element_diameter/2) - this. Real v2
+  # value: postal.scad:203 translate([0, Logo_Radius+1.5, ...]) with
+  # Logo_Radius = outer radius - 2.0, i.e. an inset of 0.5.
+  outer_inset_mm: 0.5
 
 element:
   element_diameter: 32.8

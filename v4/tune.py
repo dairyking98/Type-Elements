@@ -456,7 +456,8 @@ LOGO_FIELDS_BLICKPOSTAL = [
     ("text_spacing", ["logo", "text_spacing"], float, "Logo char spacing (deg)", "Angular spacing between logo characters."),
     ("position_offset_deg", ["logo", "position_offset_deg"], float, "Logo position offset (deg)", ""),
     ("text_offset_deg", ["logo", "text_offset_deg"], float, "Logo text offset (deg)", ""),
-    ("radial_offset_mm", ["logo", "radial_offset_mm"], float, "Logo radius offset (mm)", "Placement radius = Logo_Radius + this."),
+    ("outer_inset_mm", ["logo", "outer_inset_mm"], float, "Logo inset from outer radius (mm)",
+     "Placement radius = outer radius - this."),
 ]
 
 # Per-slot draft clipping - offered only for the machines that actually
@@ -697,7 +698,7 @@ ELEMENT_FIELDS_MIGNON = [
 # only engraved-text feature (LabelText - two independent flat whole-
 # string groups cut into the bottom face, not a ring of individually
 # angle-placed characters) has no text_spacing/position_offset_deg/
-# radial_offset_mm concept at all, so it gets its own "Label" tab (not
+# outer_inset_mm concept at all, so it gets its own "Label" tab (not
 # "Logo") matching v2's own Shuttle_Label naming and config/bennett.yaml's
 # `label:` section.
 LABEL_FIELDS_BENNETT = [
@@ -3819,12 +3820,14 @@ class TuneApp(App):
                         yield from compose_fn()
 
             with Vertical(id="buttons"):
-                # short, wide, and OUTSIDE the TabbedContent (unlike the
-                # old per-tab "Render Text" button it replaces) so it
-                # stays visible/clickable no matter which tab is active -
-                # in particular while tuning Font & Alignment, without
-                # needing to flip to the Type Test tab just to re-render
-                yield Button("RENDER TEST TEXT", id="btn-render-test-text", variant="primary")
+                # Lives in the shared button column, but is SHOWN only while
+                # the Type Test tab is active (on_tabbed_content_tab_activated)
+                # - per explicit user direction. It used to stay visible on
+                # every tab so Font & Alignment could re-render without a tab
+                # flip; the user preferred it out of the way elsewhere.
+                test_text_btn = Button("RENDER TEST TEXT", id="btn-render-test-text", variant="primary")
+                test_text_btn.display = False
+                yield test_text_btn
                 with Horizontal(id="primary-buttons"):
                     yield Button("PREVIEW [p]", id="btn-preview", variant="success")
                     yield Button("RENDER [b]", id="btn-render", variant="primary")
@@ -4957,6 +4960,18 @@ class TuneApp(App):
         tab_id = event.option.id
         if tab_id:
             self.query_one("#tabs", TabbedContent).active = tab_id
+
+    def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
+        """RENDER TEST TEXT only belongs to the Type Test tab - see its
+        Button's comment in compose. Fires for the initial pane too, so the
+        button starts correct whichever tab opens first."""
+        if event.tabbed_content.id != "tabs":
+            return
+        try:
+            btn = self.query_one("#btn-render-test-text", Button)
+        except NoMatches:
+            return
+        btn.display = event.pane.id == "tab-type-test"
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         switch_id = event.switch.id or ""

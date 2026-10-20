@@ -36,11 +36,13 @@ logo:
   text_spacing: 7.0
   position_offset_deg: 180.0
   text_offset_deg: 180.0
-  # placement radius = Logo_Radius + this. Real v2 value is 1.5 - at that
-  # value, this exact layout's angular spacing coincidentally puts the
-  # logo text within ~0.4mm of a DHIATENSOR column (see SESSION_LOG.md) -
-  # not an issue at this text/spacing, but re-check if either changes.
-  radial_offset_mm: 1.6
+  # placement radius = outer radius (element_diameter/2) - this. Real v2
+  # value is 0.5 (v2: Logo_Radius+1.5, Logo_Radius = outer radius - 2.0) -
+  # at that value, this exact layout's angular spacing coincidentally puts
+  # the logo text within ~0.4mm of a DHIATENSOR column (see SESSION_LOG.md)
+  # - not an issue at this text/spacing, but re-check if either changes.
+  # 0.4 = the previous radial_offset_mm 1.6, re-expressed.
+  outer_inset_mm: 0.4
 
 element:
   element_diameter: 34.0

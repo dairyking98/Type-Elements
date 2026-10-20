@@ -30,7 +30,7 @@ font:
 # embossed on a curved/chamfered surface) - kept under its own v2-matching
 # `label:` section rather than forced into the other machines' `logo:`
 # schema, since the field shapes don't correspond (no text_spacing/
-# position_offset_deg/radial_offset_mm - see lib/bennett.py's
+# position_offset_deg/outer_inset_mm - see lib/bennett.py's
 # _build_text_string()/LabelText() docstrings for the placement chain).
 label:
   # v2's real value is "Courier New:style=bold", not a file path/not

@@ -52,7 +52,7 @@ logo:
   position_offset_deg: 0.0      # Cylinder_Label_Offset
   # Cylinder_Label_Height_Offset - local radial nudge off the chamfer
   # surface ElementLabel() places the label on (see lib/mignon.py) - NOT
-  # the same concept as Blickensderfer/Postal's radial_offset_mm (their
+  # the same concept as Blickensderfer/Postal's outer_inset_mm (their
   # label sits flat on the top face; Mignon's sits on an angled chamfer
   # surface, a genuinely different placement geometry). 1.0/0.3 (not v2's
   # unmodified .5/.09) - see text_depth_mm below for why: at v2's thin
