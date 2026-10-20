@@ -1,8 +1,15 @@
-title: v4 Type Elements
+title: Type Elements
 description: >-
-  Minkowski-draft type element pipeline for 3D-printed typewriter type
-  elements - real manifold3d booleans, adaptive glyph outline sampling,
-  and a config-driven port of every supported machine.
+  Make 3D-printable typewriter type elements - IBM Selectric balls,
+  Blickensderfer wheels, Hammond shuttles and more - from any font.
+  Pick a machine, choose a typeface, preview the element in 3D and
+  export a print-ready STL.
+# Link previews (Discord, Slack, iMessage, social): jekyll-seo-tag turns
+# `image` into og:image/twitter:image; `twitter.card` makes it the large
+# image card. Size/alt/accent colour are in _includes/head.html.
+image: /assets/og/type-elements-card.png
+twitter:
+  card: summary_large_image
 url: "https://type-elements.leonardchau.com"
 baseurl: ""
 theme: minima
