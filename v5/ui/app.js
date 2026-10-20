@@ -105,7 +105,8 @@ const S = reactive({
   machines: [], machine: localStorage.getItem("te.machine") || null,
   data: null, edits: {}, rows: null, preset: null, group: localStorage.getItem("te.group") || "typeface", search: "",
   glyphs: { status: {}, unused: {} }, sel: null, profiles: [],
-  job: { running: false, label: "", progress: 0, state: "", elapsed: 0, log: [], partial: "", issues: [] },
+  job: { running: false, label: "", progress: 0, state: "", elapsed: 0, log: [], partial: "", issues: [],
+         phase: "", phaseStart: 0, phaseEnd: 1 },
   build: { target: "element", crossSection: false, crossAngle: 0, cutBodies: false, stl: null, last: null },
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, fonts: null, picker: null, toast: null,
@@ -231,17 +232,20 @@ async function runJob(label, start, after) {
   if (S.job.running) return;
   if (!(await save())) return;
   const j = S.job;
-  Object.assign(j, { running: true, label, progress: 0, state: "", log: [], partial: "", issues: [] });
+  Object.assign(j, { running: true, label, progress: 0, state: "", log: [], partial: "", issues: [], phase: "", phaseStart: 0, phaseEnd: 1 });
   if (narrow()) S.view = "build";
   const t0 = Date.now();
   const tick = setInterval(() => (j.elapsed = (Date.now() - t0) / 1000), 250);
   let rc = -1;
   try {
     await start((ev) => {
+      if (ev.phase) { [j.phaseStart, j.phaseEnd, j.phase] = ev.phase; j.progress = Math.max(j.progress, j.phaseStart); }
       const text = ev.line ?? ev.partial;
       if (text !== undefined) {
         const m = text.match(/\[(\d+)\/(\d+)\]/);
-        if (m) j.progress = 0.95 * (+m[1] / Math.max(+m[2], 1));
+        // "[n/total]" counts within the current stage; map it into that
+        // stage's slice so the one bar only ever moves forward
+        if (m) j.progress = Math.max(j.progress, j.phaseStart + (j.phaseEnd - j.phaseStart) * 0.95 * (+m[1] / Math.max(+m[2], 1)));
       }
       if (ev.line !== undefined) {
         j.partial = "";
@@ -705,7 +709,11 @@ const FontPicker = {
       localErr.value = "";
       try {
         const fonts = await window.queryLocalFonts();
-        localFonts.value = fonts.map((f) => ({ ps: f.postscriptName, family: f.family, style: f.style, full: f.fullName, data: f }));
+        // one entry per PostScript name (Windows can report a font twice)
+        const seen = new Set();
+        localFonts.value = fonts.filter((f) => !seen.has(f.postscriptName) && seen.add(f.postscriptName))
+          .map((f) => ({ ps: f.postscriptName, family: f.family, style: f.style, full: f.fullName, data: f }))
+          .sort((a, b) => a.family.localeCompare(b.family) || a.style.localeCompare(b.style));
         if (!localFonts.value.length) localErr.value = "The browser didn't share any fonts.";
       } catch (e) { localErr.value = "The browser didn't allow access to installed fonts (" + (e.message || e) + ")."; }
     }
@@ -725,9 +733,25 @@ const FontPicker = {
     }
     const pickLocal = async (f) => addAndChoose(f.ps + ".ttf", await (await f.data.blob()).arrayBuffer());
     const upload = async (ev) => { const file = ev.target.files[0]; if (file) addAndChoose(file.name, await file.arrayBuffer()); };
-    const localStyle = (f) => ({ fontFamily: `"${f.full}", var(--sans)` });
+    // Installed-font previews: load each by its exact PostScript name with a
+    // local() FontFace, only once its row scrolls into view. (Matching by
+    // full name in CSS fails for most fonts - they fell back to the default.)
+    const localFaces = reactive({});
+    let localSeq = 0;
+    function localFamily(f) {
+      if (!visible["local:" + f.ps]) return null;
+      if (!(f.ps in localFaces)) {
+        localFaces[f.ps] = null;
+        const name = `tel${++localSeq}`;
+        new FontFace(name, `local("${f.ps.replace(/"/g, "")}")`).load()
+          .then((ff) => { document.fonts.add(ff); localFaces[f.ps] = name; })
+          .catch(() => { localFaces[f.ps] = ""; });
+      }
+      return localFaces[f.ps] || null;
+    }
+    watch(localFonts, () => nextTick(observe));
     return { S, q, manual, shown, list, listEl, visible, sample, choose, close,
-             browserMode, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localStyle };
+             browserMode, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localFamily };
   },
   template: `
   <div class="modal-bg" @click.self="close" @keydown.esc="close">
@@ -751,13 +775,14 @@ const FontPicker = {
           <div class="preview"><FontText v-if="visible[f.path]" :path="f.path" :text="sample" /><span v-else style="color:var(--text-3)">{{ sample }}</span></div>
           <div class="fam" :title="f.path">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
         </div>
-      </div>
-      <div v-if="browserMode && localFonts" class="list" style="border-top:0;max-height:45%">
-        <div class="list-label">On this computer · click to add</div>
-        <div v-for="f in shownLocal" :key="f.ps" class="font-row" @click="pickLocal(f)">
-          <div class="preview" :style="localStyle(f)">{{ sample }}</div>
-          <div class="fam">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
-        </div>
+        <template v-if="browserMode && localFonts">
+          <div class="list-label">On this computer · {{ localFonts.length }} fonts · click one to add it</div>
+          <div v-for="f in shownLocal" :key="f.ps" class="font-row" :data-path="'local:' + f.ps" @click="pickLocal(f)">
+            <div class="preview" :style="localFamily(f) ? { fontFamily: localFamily(f) + ', var(--sans)' } : { color: 'var(--text-3)' }">{{ sample }}</div>
+            <div class="fam">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
+          </div>
+          <p v-if="!shownLocal.length" class="help" style="padding:0 18px">No installed font matches "{{ q }}".</p>
+        </template>
       </div>
       <div class="foot" v-if="!browserMode">
         <input class="input" style="flex:1;font-family:var(--mono);font-size:12px;min-width:0" v-model="manual" placeholder="…or paste a font file path">
@@ -974,6 +999,7 @@ const App = {
             <div class="progress" :class="S.job.state"><div :style="{ width: (S.job.progress * 100) + '%' }"></div></div>
             <span class="chip" style="min-width:64px;justify-content:center">{{ S.job.running ? S.job.label + ' ' : '' }}{{ S.job.elapsed ? S.job.elapsed.toFixed(0) + 's' : '—' }}</span>
           </div>
+          <div v-if="S.job.running && S.job.phase" class="help" style="margin-top:-4px">{{ S.job.label }}: {{ S.job.phase }}</div>
           <div class="row" v-if="S.build.stl && !S.job.running">
             <a class="btn small" :href="engine.stlUrl(S.machine)" :download="S.machine + '.stl'">Download STL</a>
             <button class="btn small" @click="saveCopy" title="Timestamped copy + config sidecar in output/saved">Save a copy</button>
