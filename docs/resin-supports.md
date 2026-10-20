@@ -156,6 +156,81 @@ ResinSupports(side):
 
 ---
 
+## Overhang report (every build, 2026-10-19)
+
+`v4/lib/overhang.py`, printed by `generate.py` after every `wrote ...` line
+(after it on purpose, so the hard-gate `mesh_report` line stays last before
+`wrote`). Read-only; never changes geometry. Threshold: `resin.overhang_warn_deg`
+in every config (30 deg default — a conservative MSLA starting point, not a
+measured value), on every machine's Resin tab.
+
+**All machines — mesh check**, on the finished mesh in print orientation:
+
+- Downward-face statistics: downward area, area shallower than the
+  threshold, flat-ceiling area. Informational only — support rods land on
+  exactly these faces, and a mesh can't tell a supported ceiling from an
+  unsupported one.
+- **Island seeds** — the hard signal: downward-facing vertices strictly lower
+  than every neighbour, above the part's base. On a `ResinPrint` mesh
+  (supports unioned in) each one prints in mid-air → `WARNING`. On a
+  `FullElement` mesh they are simply where supports must go.
+
+**Selectric family — per-row special case.** A glyph's draft walls lean
+`draft_angle/2` off the glyph axis (`mink_r = 2·tan(draft/2)` over the 2 mm
+cone), and the axis is tilted by the row latitude, so the downward-facing
+glyph wall rises at **latitude + draft/2** printed upright (teeth down, the
+`ResinPrint` orientation) and **−latitude + draft/2** inverted. At the
+current `draft_angle_deg: 55`:
+
+| Row | Latitude | Upright | Inverted |
+|---|---|---|---|
+| 1 | +32.8 | +60.3 | **−5.3 (islands on every glyph)** |
+| 2 | +16.4 | +43.9 | +11.1 |
+| 3 | 0 | +27.5 | +27.5 |
+| 4 | −16.4 | **+11.1** | +43.9 |
+
+Negative = guaranteed islands; under the threshold = droop and the
+single-pixel islands UVtools found on the 2026-07-25 slice (layers 82–190,
+which is where row 4 sits). Those pixel islands are a rasterization effect
+the mesh check cannot see — the row table is the signal for them. **Print
+Selectric elements upright, never inverted** — and watch PreForm's
+auto-orient, which may pick otherwise.
+
+Verified: real Minkowski `selectric12` build → 0 island seeds (row 4 at
++11.1 is shallow but positive). `--no-minkowski` (draft 0) → row 4 at
+−16.4 → seeds at z 7.6–8.3 mm, exactly where row 4 is.
+
+Other machines' current seeds (all `--no-minkowski`, unexamined — check
+before trusting): Bennett ResinPrint 2 (z 20.2), Mignon ResinPrint 13
+(z 5.2–5.6, a 45° chamfer edge at r≈5.8), Type Slug ResinPrint 8 (z 3.85, the
+bottoms of small support spheres).
+
+---
+
+## Open: a PreForm-compatible support mode (2026-10-19)
+
+The Form Studio 1 (`docs/formlabs-studio-1.md`) slices only in PreForm.
+The user's note: **we may have to rewrite all resin supports with a mode
+compatible with PreForm** (said as "freeform"; read as PreForm). Why the
+current supports may not carry over:
+
+- `ResinPrint` unions supports into the element as one mesh. PreForm imports
+  it as a single model — it can't treat v4's rods as supports, so its own
+  auto-supports/raft must be switched off and the part placed directly on
+  the platform.
+- Raft and tip sizes (`rod_od`, `tip_od`, raft thickness, CutGroove) were
+  tuned for the Anycubic's peel. The Studio 1's Low Force Display peel and
+  the Build Platform Flex may want different sizes.
+- PreForm's own supports can be edited point by point, so a second mode is
+  plausible: export the **bare element, oriented for printing**, and let
+  PreForm support it with touchpoints kept off glyph faces by hand.
+
+Decide after the first Studio 1 prints compare v4-presupported against
+PreForm-supported (planned: Blickensderfer shaft gauge first). Any rewrite
+touches every machine's `ResinPrint`, so it is a fleet-wide change.
+
+---
+
 ## Comparison across machines
 
 | Feature | Blick/Postal | IBM | Hammond |

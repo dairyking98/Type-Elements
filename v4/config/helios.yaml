@@ -241,6 +241,12 @@ build:
 # identical to FullElement() (see its docstring), and the values below are
 # schema parity only, not wired to any geometry.
 resin:
+  # Overhang report threshold (lib/overhang.py, printed after every
+  # generate.py build): downward faces and, on the Selectric family,
+  # glyph rows whose walls rise less than this many degrees above
+  # horizontal are flagged. Printer/resin dependent - 30 is a
+  # conservative MSLA starting point, not a measured value.
+  overhang_warn_deg: 30.0
   resin_support_base_thickness: 2.0
   resin_support_rod_thickness: 0.4
   resin_support_min_height: 1.0

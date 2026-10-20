@@ -87,6 +87,12 @@ quality:
   loop_tube_fn: 32             # v1 ALSO uses $fn=360 for the loop's tube cross-section (same lines) - reduced here, see scad_primitives.torus()'s docstring for the measured 100x facet-count blow-up this avoids
 
 resin:
+  # Overhang report threshold (lib/overhang.py, printed after every
+  # generate.py build): downward faces and, on the Selectric family,
+  # glyph rows whose walls rise less than this many degrees above
+  # horizontal are flagged. Printer/resin dependent - 30 is a
+  # conservative MSLA starting point, not a measured value.
+  overhang_warn_deg: 30.0
   # Unused (build.resin_support is false) - present only because
   # tune.py's Resin tab is shown unconditionally for every machine, same
   # convention lib/helios.py's own always-declared-but-dead resin

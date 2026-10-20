@@ -499,6 +499,11 @@ QUALITY_FIELDS_BLICKPOSTAL = [
     CLIP_TO_CELL_FIELD,
 ]
 
+# Shared by every machine's Resin tab - lib/overhang.py reads the same
+# key for all of them, so one definition rather than nine copies.
+OVERHANG_WARN_FIELD = ("overhang_warn_deg", ["resin", "overhang_warn_deg"], float, "Overhang warning (deg)",
+                       "The build log flags downward faces, and Selectric glyph rows, shallower than this above horizontal.")
+
 RESIN_FIELDS_BLICKPOSTAL = [
     ("resin_fn", ["resin", "resin_fn"], int, "Resin fn", ""),
     ("rod_od", ["resin", "rod_od"], float, "Rod OD (mm)", ""),
@@ -515,6 +520,7 @@ RESIN_FIELDS_BLICKPOSTAL = [
      "plate shared by every rod, reaching the element's center axis."),
     ("bottom_support_inner_angle_offset", ["resin", "bottom_support_inner_angle_offset"], float,
      "Bottom support angle offset (deg)", ""),
+    OVERHANG_WARN_FIELD,
 ]
 
 GAUGE_FIELDS = [
@@ -655,6 +661,7 @@ RESIN_FIELDS_MIGNON = [
      "Number of evenly-spaced rods around the support ring, either print orientation (see the Build "
      "tab's Print orientation). Upside down also adds half this many more, on alternating sectors, at "
      "a second radius near the top boss."),
+    OVERHANG_WARN_FIELD,
 ]
 
 ELEMENT_FIELDS_MIGNON = [
@@ -739,6 +746,7 @@ RESIN_FIELDS_BENNETT = [
      "Also doubles as the per-rod raft frustum's thickness (Resin_Raft_Thickness)."),
     ("cut_groove_diameter", ["resin", "cut_groove_diameter"], float, "Cut groove diameter (mm)", ""),
     ("cut_groove_thickness", ["resin", "cut_groove_thickness"], float, "Cut groove thickness (mm)", ""),
+    OVERHANG_WARN_FIELD,
 ]
 
 # alignment_hole_height (3 values, per-row - like baseline_row/cutout_row)
@@ -822,6 +830,7 @@ RESIN_FIELDS_HELIOS = [
      "Support spacing (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
     ("resin_support_contact_radius", ["resin", "resin_support_contact_radius"], float,
      "Support contact radius (mm)", "Declared but not wired to any geometry - see lib/helios.py's ResinPrint()."),
+    OVERHANG_WARN_FIELD,
 ]
 
 LOGO_FIELDS_HELIOS = [
@@ -1040,6 +1049,7 @@ RESIN_FIELDS_HAMMOND = [
     # _refresh_widgets_from_cfg read/write #build-orientation/
     # #build-horizontal-method directly instead of going through the
     # generic self.FIELDS loop.
+    OVERHANG_WARN_FIELD,
 ]
 
 ELEMENT_FIELDS_HAMMOND = [
@@ -1192,6 +1202,7 @@ RESIN_FIELDS_HAMMOND_SPLIT = [
     # config/hammond_split.yaml directly - same treatment as layout.
     # placement_map/char_legend elsewhere, per this repo's "a list-valued
     # config key needs an explicit decision" rule.
+    OVERHANG_WARN_FIELD,
 ]
 
 ELEMENT_FIELDS_HAMMOND_SPLIT = [
@@ -1332,6 +1343,7 @@ RESIN_FIELDS_SELECTRIC = [
     ("base_h", ["resin", "base_h"], float, "Raft thickness (mm)", "v2 Base_H - mapped to raft_thickness (v2's own base-chamfer ratio isn't replicated, see the resin: section comment)."),
     ("min_rod_h", ["resin", "min_rod_h"], float, "Min rod height (mm)", "v2 Min_Rod_H."),
     ("resin_detent_clock_offset", ["resin", "resin_detent_clock_offset"], float, "Detent support clock offset (deg)", "v2 Resin_Detent_Clock_Offset."),
+    OVERHANG_WARN_FIELD,
 ]
 
 # element: schema is byte-identical across all 3 Selectric machines (same
@@ -1474,11 +1486,13 @@ RESIN_FIELDS_WING_SLUG = [
     ("wire_thickness_mm", ["resin", "wire_thickness_mm"], float, "Wire thickness (mm)", "v1 Wire_Thickness."),
     ("support_height_mm", ["resin", "support_height_mm"], float, "Support height (mm)", "v1 Support_Height."),
     ("support_pitch_mm", ["resin", "support_pitch_mm"], float, "Support pitch (mm)", "v1 Support_Pitch."),
+    OVERHANG_WARN_FIELD,
 ]
 
 RESIN_FIELDS_BOX_SLUG = [
     ("resin_fn", ["resin", "resin_fn"], int, "Resin support facets",
      "Declared but not wired to any geometry - Oliver Slug/Lumi Slug have no resin-support geometry at all, see lib/box_slug.py's ResinSupport()."),
+    OVERHANG_WARN_FIELD,
 ]
 
 QUALITY_FIELDS_WING_SLUG = [

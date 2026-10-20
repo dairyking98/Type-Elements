@@ -7961,3 +7961,46 @@ reference points at a real file. README indexes both.
   than Anycubic" — was asked and never answered.
 - DLP was never priced. It is the strongest fit for small high-fidelity
   parts and was absent from the original research entirely.
+
+## 92. Overhangs, measured on every output (2026-10-19)
+
+Asked for: overhang figures for every generate.py output, with the
+Selectric spheres as a special case — the lowest row's glyphs were
+suspected of causing islands — plus a warning before slicing.
+
+**New `lib/overhang.py`**, called from `generate.py` after `wrote ...` on
+every output path (main build, gauge, calibration, Hammond rib, Hammond
+Split normal; skipped for cross-sections and `--cut-bodies`). Two parts:
+
+- *Mesh check, all machines*: downward-face area/angle statistics, and
+  island seeds = downward-facing vertices strictly lower than all
+  neighbours above the base. First version flagged the floors of
+  upward-facing bowls too (the concave platen-cut faces on Selectric row 1
+  showed as 23 false islands in the real Minkowski build); requiring a
+  downward vertex normal removed them.
+- *Selectric rows*: downward glyph wall angle = latitude + draft/2 upright,
+  −latitude + draft/2 inverted. At draft 55: row 4 upright +11.1 deg
+  (shallow — matches the July UVtools islands' layer range), row 1
+  inverted −5.3 deg (islands on every glyph). Real Minkowski build
+  confirms: 0 island seeds upright.
+
+`build_log.note()`/`warn()` added for diagnostic lines (deliberately not the
+`[n/total]` shape). New key `resin.overhang_warn_deg: 30.0` in all 15
+master configs (running copies get it from tune.py's migration backfill),
+exposed on every Resin tab via one shared `OVERHANG_WARN_FIELD`.
+
+Gate: `--no-minkowski` summary lines byte-identical before/after for
+selectric12, blickensderfer, type_slug, hammond_split, mignon; all other
+configs build and report. `vogue_slug` fails before and after — its font
+(`~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf`) is missing,
+unrelated.
+
+### Resuming later
+
+- Examine the non-Selectric seeds before trusting them: Bennett 2,
+  Mignon 13, Type Slug 8 (`docs/resin-supports.md`).
+- PreForm-compatible support mode — open, fleet-wide; decide after the
+  first Studio 1 prints (`docs/resin-supports.md`).
+- The threshold is a guess; tune it once Studio 1 prints show which wall
+  angles actually droop.
+

@@ -155,6 +155,12 @@ quality:
   gauge_hole_fn: 40
 
 resin:
+  # Overhang report threshold (lib/overhang.py, printed after every
+  # generate.py build): downward faces and, on the Selectric family,
+  # glyph rows whose walls rise less than this many degrees above
+  # horizontal are flagged. Printer/resin dependent - 30 is a
+  # conservative MSLA starting point, not a measured value.
+  overhang_warn_deg: 30.0
   # Unused (element.loop/post/side_hole are all off and build.
   # resin_support is false for this machine) - present only because
   # wing_slug._receive_config picks up every capital-leading global

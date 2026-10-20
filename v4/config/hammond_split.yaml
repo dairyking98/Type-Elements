@@ -286,6 +286,12 @@ build:
 # against each other in a full lattice, only Hammond's own single-purpose
 # ConnectingRod gusset comes close).
 resin:
+  # Overhang report threshold (lib/overhang.py, printed after every
+  # generate.py build): downward faces and, on the Selectric family,
+  # glyph rows whose walls rise less than this many degrees above
+  # horizontal are flagged. Printer/resin dependent - 30 is a
+  # conservative MSLA starting point, not a measured value.
+  overhang_warn_deg: 30.0
   resin_fn: 20                      # Resin_Fn
   rod_od: 0.8                       # Resin_Rod_OD
   tip_od: 0.4                       # Resin_Tip_OD

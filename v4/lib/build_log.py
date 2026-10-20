@@ -99,3 +99,17 @@ def mesh_report(mesh, label):
     print(f"{label}: verts={len(mesh.vertices)} faces={len(mesh.faces)} "
           f"watertight={mesh.is_watertight} winding_consistent={mesh.is_winding_consistent} "
           f"is_volume={mesh.is_volume} volume={mesh.volume:.3f}mm3", flush=True)
+
+
+def note(prefix, detail):
+    """One informational diagnostic line ("prefix: detail") - for
+    read-only analyses like lib/overhang.py that report on a finished
+    mesh. Deliberately NOT the "[n/total]" shape, so tune.py's progress
+    regex never mistakes it for build progress."""
+    print(f"{prefix}: {detail}", flush=True)
+
+
+def warn(prefix, detail):
+    """note() for something the user should act on - a fixed "WARNING:"
+    marker so it can be grepped out of a long build log."""
+    print(f"{prefix}: WARNING: {detail}", flush=True)

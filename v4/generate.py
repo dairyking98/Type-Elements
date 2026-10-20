@@ -22,6 +22,7 @@ import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
 import build_log  # noqa: E402 - needs the lib/ sys.path.insert above first
+import overhang  # noqa: E402
 
 
 def _apply_cross_section(mesh, angle_deg):
@@ -61,6 +62,28 @@ def _load_machine(config_path):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     return importlib.import_module(cfg.get("machine", "blickensderfer"))
+
+
+def _report_overhangs(bd, args, mesh, label, has_supports, rows=False):
+    """lib/overhang.py's print-orientation report, printed AFTER `wrote
+    ...` so the mesh_report line stays the last line before it (the hard-
+    gate convention). Skipped for a cross-section view - half a part's
+    overhangs aren't the part's overhangs. rows=True adds the spherical
+    per-row table (Selectric family only - detected by the machine module
+    re-exporting spherical_machine, the same test generate_supports.py
+    uses)."""
+    if args.cross_section_angle_deg is not None:
+        return
+    with open(args.config) as f:
+        cfg = yaml.safe_load(f)
+    warn_deg = (cfg.get("resin") or {}).get("overhang_warn_deg")
+    sm = getattr(bd, "spherical_machine", None)
+    if rows and sm is not None:
+        mink = sm.DEFAULT_MINKOWSKI_ENABLED if args.minkowski_enabled is None else args.minkowski_enabled
+        draft = sm.Mink_Draft_Angle if args.draft_angle_deg is None else args.draft_angle_deg
+        # No Minkowski sum = no draft: the walls run straight along the glyph axis.
+        overhang.report_spherical_rows(sm.Row_Latitudes, draft if mink else 0.0, warn_deg)
+    overhang.report_mesh(mesh, label, warn_deg, has_supports)
 
 
 def main():
@@ -202,6 +225,7 @@ def main():
         build_log.mesh_report(full, "GaugeTestSet")
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
+        _report_overhangs(bd, args, full, "GaugeTestSet", has_supports=None)
         return
 
     if args.calibrate:
@@ -245,6 +269,7 @@ def main():
         with open(mapping_path, "w") as f:
             f.write("\n".join(mapping_lines) + "\n")
         print(f"wrote {mapping_path}", flush=True)
+        _report_overhangs(bd, args, full, "CalibrationElement", has_supports=None)
         return
 
     if args.hammond_part:
@@ -259,6 +284,7 @@ def main():
         build_log.mesh_report(full, label)
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
+        _report_overhangs(bd, args, full, "RibOnly", has_supports=None)
         return
 
     if args.hammond_split_normal:
@@ -279,6 +305,7 @@ def main():
         build_log.mesh_report(full, "NormalElement")
         build_log.atomic_export(full, out_path)
         print(f"wrote {out_path}", flush=True)
+        _report_overhangs(bd, args, full, "NormalElement", has_supports=None)
         return
 
     if args.cut_bodies:
@@ -308,6 +335,8 @@ def main():
 
     build_log.atomic_export(full, out_path)
     print(f"wrote {out_path}", flush=True)
+    if not args.cut_bodies:
+        _report_overhangs(bd, args, full, label, has_supports=resin_support, rows=True)
 
 
 if __name__ == "__main__":
