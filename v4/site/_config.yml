@@ -40,6 +40,10 @@ license:
 # _includes/header.html. The project story (collaborators, real prints,
 # the machines) lives on the main site; this one is the technical docs.
 external_nav:
+  # v5's web app, published alongside this site at /app/ by the deploy
+  # workflow (copied from v5/ui/, not a Jekyll page - hence listed here).
+  - title: "Open the app"
+    url: "/app/"
   - title: "Project Story ↗"
     url: "https://leonardchau.com/projects/type-elements/"
 

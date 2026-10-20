@@ -25,12 +25,36 @@ Triangle counts differ (different triangulation, same solid).
 - **Preview** has no Minkowski sums, so it should stay quick.
 - **Render** on one thread spends ~85 s in Minkowski for a Selectric ball.
   Slow, but it works.
-- **The big lever is per-character parallelism.** Each character's sum is
+- **Per-character parallelism - measured below, and it works:** Each character's sum is
   independent, so a pool of Web Workers, each with its own WASM instance,
   can run them side by side. Workers don't need cross-origin isolation (no
   SharedArrayBuffer), so this works on plain GitHub Pages. With 8 workers
   the Minkowski stage should drop to roughly 10-20 s. That estimate is
   untested.
+
+## Worker pool (bench_workers.html, same day)
+
+The same 88 sums, spread across Web Workers. Each worker has its own
+manifold WASM instance, and the largest jobs are queued first.
+
+| Workers | Wall time | vs native 30.4 s | Speed-up |
+|---|---|---|---|
+| 1 | 86.9 s | x2.86 | 1.0x |
+| 2 | 45.8 s | x1.51 | 1.9x |
+| 4 | 27.6 s | x0.91 | 3.1x |
+| 8 | 19.1 s | x0.63 | 4.5x |
+| 14 | 16.7 s | x0.55 | 5.2x |
+| 16 | 16.7 s | x0.55 | 5.2x |
+
+**The browser beats native from 4 workers up.** Native manifold
+parallelizes inside each sum. The pool runs whole characters side by side,
+which spreads the work better.
+
+**Same shapes:** volumes match native to within 0.0001% in every run.
+
+**Limits:** gains flatten past about 14 workers, because the slowest single
+character ("@", about 5 s) sets the floor. None of this needs cross-origin
+isolation, so it works on plain GitHub Pages.
 
 ## Next (phase 2)
 

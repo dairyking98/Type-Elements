@@ -249,7 +249,10 @@ def machines():
     for name, keys in tune.MACHINE_CATEGORIES:
         groups.append({"group": name, "machines": [
             {"key": k, "label": tune.MACHINES[k][0],
-             "available": os.path.isfile(os.path.join(CONFIG_DIR, f"{k}.yaml"))}
+             "available": os.path.isfile(os.path.join(CONFIG_DIR, f"{k}.yaml")),
+             # e.g. Selectric III: "UNTESTED - notch/teeth fitment" (tune.py's MACHINE_PICKER_WARNINGS)
+             "warning": (tune.MACHINE_PICKER_WARNINGS[k][0].lstrip("⚠ ").strip()
+                         if k in tune.MACHINE_PICKER_WARNINGS else None)}
             for k in keys if k in tune.MACHINES]})
     return {"groups": groups}
 

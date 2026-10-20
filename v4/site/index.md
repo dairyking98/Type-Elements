@@ -14,6 +14,12 @@ abandoned). Every part of the assembly - characters onto the cylinder,
 the platen cutout, the final `Additive - Subtractive` - is a real
 `manifold3d` boolean too.
 
+> **New: [the Type Elements app](/app/)** - the v5 web interface. Pick a
+> machine, choose a font (shown in the font itself), edit the layout, and
+> build and preview the element in 3D. For now it drives the engine running
+> on your own computer; the page walks you through starting it. A fully
+> in-browser version, with nothing to install, is in progress.
+
 > Want the story behind this — collaborators, real prints, photos of the
 > restored machines? See
 > [leonardchau.com/projects/type-elements](https://leonardchau.com/projects/type-elements/).

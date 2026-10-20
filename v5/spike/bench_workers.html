@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minkowski worker-pool bench</title>
+<style>
+  :root { --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #5b6470; --accent: #2f6fde; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111418; --panel: #181c21; --text: #e7eaee; --muted: #a3abb5; --accent: #6c9cff; color-scheme: dark; } }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px 16px; }
+  main { max-width: 760px; margin: 0 auto; }
+  .card { background: var(--panel); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .muted { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid color-mix(in srgb, var(--muted) 25%, transparent); }
+  .bar { height: 8px; background: var(--accent); border-radius: 4px; }
+  button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Spike: Minkowski sums across parallel Web Workers</h1>
+    <p class="muted">Same 88 Selectric I/II glyph + draft-cone pairs as bench.html, spread over a pool of
+      workers - each its own manifold WASM instance. Wall-clock time for the whole set, per pool size.</p>
+    <p class="muted" id="env"></p>
+    <button id="go">Run all pool sizes</button>
+  </div>
+  <div class="card"><table><thead><tr><th>Workers</th><th>Wall time</th><th>vs native</th><th>Speed-up</th><th style="width:35%"></th></tr></thead><tbody id="rows"></tbody></table>
+    <p class="muted" id="note"></p></div>
+</main>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const cores = navigator.hardwareConcurrency || 4;
+$("env").textContent = `${cores} logical cores · crossOriginIsolated: ${self.crossOriginIsolated} · ${navigator.userAgent.match(/(Chrome|Firefox|Edg)\/[\d.]+/)?.[0] || ""}`;
+
+async function runPool(data, n) {
+  const workers = Array.from({ length: n }, () => new Worker("minkowski_worker.js", { type: "module" }));
+  // largest jobs first so the pool doesn't end waiting on one slow straggler
+  const queue = data.pairs.map((p, id) => ({ id, p })).sort((a, b) => b.p.native_s - a.p.native_s);
+  const results = new Array(data.pairs.length);
+  const t0 = performance.now();
+  await Promise.all(workers.map((w) => new Promise((done) => {
+    const next = () => {
+      const job = queue.shift();
+      if (!job) return done();
+      w.onmessage = ({ data: r }) => { results[r.id] = r; next(); };
+      w.postMessage({ id: job.id, glyph: job.p.glyph, cone: job.p.cone });
+    };
+    next();
+  })));
+  const wall = (performance.now() - t0) / 1000;
+  workers.forEach((w) => w.terminate());
+  const maxDv = Math.max(...results.map((r, i) => Math.abs(r.vol - data.pairs[i].native_vol) / data.pairs[i].native_vol));
+  return { n, wall, maxDv };
+}
+
+async function run() {
+  $("go").disabled = true;
+  const data = await (await fetch("minkowski_inputs.json")).json();
+  const sizes = [...new Set([1, 2, 4, 8, Math.max(1, cores - 2), cores])].filter((s) => s <= cores).sort((a, b) => a - b);
+  const out = [];
+  let base = null;
+  for (const n of sizes) {
+    const r = await runPool(data, n);
+    base ??= r.wall;
+    out.push(r);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${n}</td><td><b>${r.wall.toFixed(1)} s</b></td><td>×${(r.wall / data.native_total_s).toFixed(2)}</td><td>${(base / r.wall).toFixed(1)}×</td><td><div class="bar" style="width:${Math.min(100, 100 * r.wall / base)}%"></div></td>`;
+    $("rows").appendChild(tr);
+  }
+  const best = out.reduce((a, b) => (b.wall < a.wall ? b : a));
+  $("note").textContent = `Native: ${data.native_total_s.toFixed(1)} s. Best: ${best.n} workers, ${best.wall.toFixed(1)} s. Worst volume difference vs native across all runs: ${(Math.max(...out.map((r) => r.maxDv)) * 100).toFixed(4)}%.`;
+  window.benchResult = { native: data.native_total_s, runs: out };
+  $("go").disabled = false;
+}
+$("go").onclick = run;
+if (location.hash === "#auto") run();
+</script>
+</body>
+</html>

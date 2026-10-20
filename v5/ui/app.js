@@ -774,7 +774,7 @@ const App = {
       <div class="brand"><span class="dot">T</span><span class="label">Type Elements</span></div>
       <select class="select" :value="S.machine" @change="loadMachine($event.target.value)" style="width:190px;flex-shrink:1;min-width:120px" aria-label="Machine">
         <optgroup v-for="g in S.machines" :label="g.group">
-          <option v-for="m in g.machines" :value="m.key" :disabled="!m.available">{{ m.label }}</option>
+          <option v-for="m in g.machines" :value="m.key" :disabled="!m.available">{{ m.label }}{{ m.warning ? ' — ⚠ untested' : '' }}</option>
         </optgroup>
       </select>
       <button v-if="S.data" class="chip chip-btn hide-md" :title="'Master: ' + S.data.master_path + ' · running copy: ' + S.data.running_path + ' · click to open a different config'" @click="openConfigs">{{ baseName(S.data.master_path) }} ▾</button>
@@ -822,7 +822,10 @@ const App = {
         </template>
         <template v-else-if="currentGroup">
           <div class="page-head"><h1>{{ currentGroup.label }}</h1><p>{{ currentGroup.blurb }}</p></div>
-          <div v-if="S.data.warning && ['element', 'print'].includes(currentGroup.id)" class="note warn" :title="S.data.warning.long">{{ S.data.warning.short }}</div>
+          <div v-if="S.data.warning" class="note advanced machine-warning">
+            <b>{{ S.data.warning.short }}</b>
+            <details><summary>Why</summary><p style="margin:6px 0 0;font-weight:400">{{ S.data.warning.long }}</p></details>
+          </div>
           <LayoutPage v-if="currentGroup.custom === 'layout' && S.data.cfg.layout && S.data.cfg.layout.rows" />
           <template v-for="name in (currentGroup.custom === 'tools' ? [] : currentGroup.sections)" :key="name">
             <SectionCard :s="section(name)" />
