@@ -46,14 +46,7 @@ WebAssembly geometry engine:
 <figcaption>Minkowski draft sums for one Selectric I/II element - 88 characters, full Render quality (flatness 0.005 mm). Measured 2026-10-19 on Lenovo ThinkPad (model 21MD), AMD Ryzen 7 PRO 8840U - 8 cores / 16 threads, 32 GB RAM, Ubuntu 24.04.4 LTS (kernel 6.17), Google Chrome 152.0.7977.64; manifold-3d 3.5.4 WebAssembly, one instance per Web Worker. Native: manifold3d 3.5.2, Python, its own multithreading. Hover a point for exact numbers.</figcaption>
 </figure>
 
-| Workers | Wall time | vs 1 worker | vs native (30.4 s) |
-|---|---|---|---|
-| 1 | 86.9 s | 1.0x | 2.86x slower |
-| 2 | 45.8 s | 1.9x | 1.51x slower |
-| 4 | 27.6 s | 3.1x | 1.10x faster |
-| 8 | 19.1 s | 4.5x | 1.59x faster |
-| 14 | 16.7 s | 5.2x | 1.82x faster |
-| 16 | 16.7 s | 5.2x | 1.82x faster |
+<table><thead><tr><th>Workers</th><th>Wall time</th><th>vs 1 worker</th><th>vs native (30.4 s)</th></tr></thead><tbody><tr><td>1</td><td>86.9 s</td><td>1.0x</td><td>2.86x slower</td></tr><tr><td>2</td><td>45.8 s</td><td>1.9x</td><td>1.51x slower</td></tr><tr><td>4</td><td>27.6 s</td><td>3.1x</td><td>1.10x faster</td></tr><tr><td>8</td><td>19.1 s</td><td>4.5x</td><td>1.59x faster</td></tr><tr><td>14</td><td>16.7 s</td><td>5.2x</td><td>1.82x faster</td></tr><tr><td>16</td><td>16.7 s</td><td>5.2x</td><td>1.82x faster</td></tr></tbody></table>
 <!-- CHART:END -->
 
 ## What it means
