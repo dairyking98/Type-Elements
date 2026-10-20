@@ -1,6 +1,6 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=1e2cad8521";
-import { Viewer } from "./viewer.js?v=1e2cad8521";
+import { engine } from "./engine.js?v=9f137aaa52";
+import { Viewer } from "./viewer.js?v=9f137aaa52";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
