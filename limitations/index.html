@@ -138,6 +138,20 @@ same formula) is ported from the real
 approximated - flagging here only because an earlier draft of this file
 used a wrong approximation before the real formula was found; the
 current code is correct.</li>
+  <li><strong>Hammond legend ignores the Math row.</strong> The “Universal, Math” preset
+(catalog 135, plus 135B/135C on hammond_split) is the only 4-row layout,
+and the shuttle itself handles it (<code class="language-plaintext highlighter-rouge">Is_Math</code>: taller shuttle, 4th
+baseline). The index card (<code class="language-plaintext highlighter-rouge">lib/hammond_legend.py</code>) only reads
+<code class="language-plaintext highlighter-rouge">rows[0..2]</code> (lowercase / caps / figures), so the 4th (math) character on
+each key never appears on the card, and there are no settings for where
+it would sit. It needs a real Math-shuttle index card (photo or scan) to
+place the 4th label, plus legend fields for its size/offset, exposed only
+when the layout has 4 rows.</li>
+  <li><strong>Hammond split has no Math shuttle.</strong> <code class="language-plaintext highlighter-rouge">lib/hammond_split.py</code> builds 3
+rows only (no 4th baseline or taller Math shuttle like <code class="language-plaintext highlighter-rouge">lib/hammond.py</code>’s
+<code class="language-plaintext highlighter-rouge">Is_Math</code>). Its “Universal, Math (braces/Greek)” presets still load, but
+row 4 is left off; the build says so with a WARNING. Needs the split
+shuttle’s real Math dimensions.</li>
 </ul>
 
   </div>

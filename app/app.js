@@ -1,7 +1,7 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=5cb25e9d3b";
-import { Viewer } from "./viewer.js?v=5cb25e9d3b";
-import { progressTracker } from "./progress.js?v=5cb25e9d3b";
+import { engine } from "./engine.js?v=cc7cc4889e";
+import { Viewer } from "./viewer.js?v=cc7cc4889e";
+import { progressTracker } from "./progress.js?v=cc7cc4889e";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -351,6 +351,16 @@ function setRowText(r, text) { const rows = [...layoutRows.value]; rows[r] = tex
 function applyPreset(name) {
   if (!name) return;
   setRows([...S.data.presets[name]], name);
+  // show the baselines this preset brings (e.g. Hammond's 4-row Math) right
+  // away, as pending edits - not only after Save
+  const seeds = S.data.preset_baselines?.[name];
+  const fields = S.data.schema.flatMap((s) => s.fields);
+  for (const key of ["baseline_row", "cutout_row"]) {
+    const f = fields.find((x) => x.key === key);
+    if (!f) continue;
+    if (seeds && S.rows !== null && JSON.stringify(seeds) !== JSON.stringify(f.value)) S.edits[key] = [...seeds];
+    else delete S.edits[key];
+  }
   S.sel = null;
   toast(`Preset "${name}" applied - Save to keep it`);
 }
