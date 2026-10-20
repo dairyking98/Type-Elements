@@ -14,6 +14,7 @@ import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyod
 import Module from "https://cdn.jsdelivr.net/npm/manifold-3d@3.5.4/manifold.js";
 
 let py, eng, base;
+const STOPPED_FOR_POOL = 99;   // webengine.STOPPED_FOR_POOL: pass 1 stopped after the characters
 const MUTATING = new Set(["put_config", "reset_config", "open_config", "add_font", "profile_save", "profile_rename", "profile_delete"]);
 const status = (text, progress) => postMessage({ type: "status", text, progress });
 
@@ -132,26 +133,29 @@ async function job({ id, kind, machine, body, workers }) {
     if (!usePool) {
       rc = eng.run_job(toPyList(argv));
     } else {
-      // pass 1: build with every Minkowski sum recorded, not computed
-      // One job, three stages - report them as slices of one progress bar
-      // (phase = [start, end, label]) instead of three bars that each refill.
-      eng.pool_record();
-      postMessage({ id, phase: [0, 0.25, "building (1 of 3)"] });
-      postMessage({ id, line: "--- pass 1: building, Minkowski sums recorded for the worker pool" });
+      // Pass 1 builds with each draft-angle (Minkowski) sum taken from the
+      // cache or recorded, and stops once the characters are placed. If
+      // every sum was cached it simply finishes: that IS the render. Else
+      // the recorded sums go to the worker pool and pass 2 builds for real.
+      // One job, up to three stages - slices of one progress bar
+      // (phase = [start, end, label]) rather than bars that each refill.
+      eng.pool_record(spec.result.glyph_loops || 1);
+      postMessage({ id, phase: [0, 0.2, "placing characters (1 of 3)"] });
+      postMessage({ id, line: "--- pass 1: placing characters; draft angles cached or recorded for the worker pool" });
       rc = eng.run_job(toPyList(argv));
-      if (rc === 0) {
-        const recorded = eng.pool_jobs().toJs();
+      const recorded = rc === 0 || rc === STOPPED_FOR_POOL ? eng.pool_jobs().toJs() : [];
+      if (rc === 0 && !recorded.length) {
+        postMessage({ id, line: "--- every draft angle came from the cache: one pass, no rebuild" });
+      } else if (recorded.length) {
         const jobs = recorded.map(([gv, gf, cv, cf]) => ({ gv: gv.buffer, gf: gf.buffer, cv: cv.buffer, cf: cf.buffer, weight: gf.byteLength }));
-        if (jobs.length) {
-          const t = performance.now();
-          postMessage({ id, phase: [0.25, 0.75, `draft angles on ${workers} workers (2 of 3)`] });
-          const results = await minkowskiPool(jobs, workers, id);
-          postMessage({ id, line: `--- ${jobs.length} Minkowski sums on ${workers} workers in ${((performance.now() - t) / 1000).toFixed(1)}s` });
-          eng.pool_replay(py.toPy(results.map((r) => [new Uint8Array(r.v), new Uint8Array(r.f)])));
-          postMessage({ id, phase: [0.75, 1, "assembling (3 of 3)"] });
-          postMessage({ id, line: "--- pass 2: building with the pool's results" });
-          rc = eng.run_job(toPyList(argv));
-        }
+        const t = performance.now();
+        postMessage({ id, phase: [0.2, 0.75, `draft angles on ${workers} workers (2 of 3)`] });
+        const results = await minkowskiPool(jobs, workers, id);
+        postMessage({ id, line: `--- ${jobs.length} Minkowski sums on ${workers} workers in ${((performance.now() - t) / 1000).toFixed(1)}s` });
+        eng.pool_replay(py.toPy(results.map((r) => [new Uint8Array(r.v), new Uint8Array(r.f)])));
+        postMessage({ id, phase: [0.75, 1, "assembling (3 of 3)"] });
+        postMessage({ id, line: "--- pass 2: building with the pool's results" });
+        rc = eng.run_job(toPyList(argv));
       }
       eng.pool_clear();
     }

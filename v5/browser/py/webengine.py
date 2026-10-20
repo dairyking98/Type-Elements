@@ -141,7 +141,11 @@ def job_argv(kind, machine, body):
     (minus the interpreter), plus where its outputs land."""
     cmd = core.build_command(machine, body) if kind == "build" else core.tool_command(machine, body)
     cfg, _t, _m = core.load_running(machine)
-    return {"argv": [os.path.relpath(cmd[1], core.V4)] + cmd[2:],
+    loops = 1
+    if machine == "hammond_split":   # one character loop per rendered half
+        b = cfg.get("build") or {}
+        loops = int(bool(b.get("render_left", True))) + int(bool(b.get("render_right", True))) or 1
+    return {"argv": [os.path.relpath(cmd[1], core.V4)] + cmd[2:], "glyph_loops": loops,
             "stl": core.output_path(cfg), "legend": core.output_path(cfg, "_legend.svg"),
             "report": core.COVERAGE_REPORT}
 
@@ -157,6 +161,8 @@ def run_job(argv):
     try:
         runpy.run_path(os.path.join(core.V4, argv[0]), run_name="__main__")
         return 0
+    except _StopPass1:
+        return STOPPED_FOR_POOL
     except SystemExit as e:
         return e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
     except Exception:
@@ -168,47 +174,104 @@ def run_job(argv):
         sys.stdout.flush()
 
 
-# Minkowski worker pool: pass 1 records every sum instead of computing it
-# (the glyph passes through un-drafted so the build still completes), the
-# page computes them all in parallel, pass 2 answers each sum from those
-# results in the same order.
-_jobs, _results = [], iter(())
+# Minkowski worker pool. A Render's slow part is one Minkowski (draft-taper)
+# sum per character. To run them in parallel:
+#   pass 1  build with each sum *recorded* instead of computed (the glyph
+#           passes through un-drafted). Stops as soon as the character
+#           loop(s) finish - the body, supports and export of this pass would
+#           be thrown away anyway;
+#   pool    the page computes every recorded sum on parallel workers;
+#   pass 2  build again, each sum answered from those results.
+# Results are cached by the exact operand geometry, so a re-render whose
+# glyphs didn't change (supports, body dimensions, quality...) is answered
+# entirely from the cache in pass 1 - one pass, no pool, no rebuild.
+import hashlib  # noqa: E402
+
+_cache = {}        # operand hash -> (vertex bytes, triangle bytes)
+_misses = []       # [(hash, glyph verts, glyph tris, cone verts, cone tris)]
+_CACHE_MAX = 800   # entries - a few full layouts' worth
+STOPPED_FOR_POOL = 99
 
 
-def pool_record():
+class _StopPass1(Exception):
+    """Raised at the end of the character loop(s) in pass 1."""
+
+
+def _key(ma, mb):
+    h = hashlib.blake2b(digest_size=16)
+    for arr in (ma.vert_properties, ma.tri_verts, mb.vert_properties, mb.tri_verts):
+        h.update(arr.tobytes())
+    return h.hexdigest()
+
+
+def _from_cache(key):
+    from manifold3d import Manifold, Mesh
+    import numpy as np
+    v, f = _cache[key]
+    return Manifold(mesh=Mesh(vert_properties=np.frombuffer(v, np.float32), tri_verts=np.frombuffer(f, np.uint32)))
+
+
+def pool_record(glyph_loops=1):
+    """Arm pass 1: cached sums are answered, the rest recorded; after the
+    machine's `glyph_loops` character loops, stop if anything was recorded."""
     import manifold3d
-    _jobs.clear()
+    import build_log
+    _misses.clear()
+    seen = {"loops": 0}
 
     def record(a, b):
         ma, mb = a.to_mesh(), b.to_mesh()
-        _jobs.append((ma.vert_properties.ravel(), ma.tri_verts.ravel(), mb.vert_properties.ravel(), mb.tri_verts.ravel()))
+        key = _key(ma, mb)
+        if key in _cache:
+            return _from_cache(key)
+        _misses.append((key, ma.vert_properties.ravel(), ma.tri_verts.ravel(),
+                        mb.vert_properties.ravel(), mb.tri_verts.ravel()))
         return a
     manifold3d.set_minkowski_hook(record)
+
+    original = getattr(build_log, "_te_original_summary", build_log.progress_summary)
+    build_log._te_original_summary = original
+
+    def summary(*args, **kwargs):
+        original(*args, **kwargs)
+        seen["loops"] += 1
+        if _misses and seen["loops"] >= glyph_loops:
+            raise _StopPass1()
+    build_log.progress_summary = summary
 
 
 def pool_jobs():
     """The recorded sums as flat float32/uint32 buffers (cheap to hand to JS)."""
     return [(gv.astype("float32").tobytes(), gf.astype("uint32").tobytes(),
-             cv.astype("float32").tobytes(), cf.astype("uint32").tobytes()) for gv, gf, cv, cf in _jobs]
+             cv.astype("float32").tobytes(), cf.astype("uint32").tobytes()) for _k, gv, gf, cv, cf in _misses]
 
 
 def pool_replay(results):
-    import numpy as np
+    """Arm pass 2: store the pool's results in the cache, then answer every
+    sum from it (anything not there - recorded after pass 1 stopped - is
+    computed directly, so nothing is ever missed)."""
     import manifold3d
-    from manifold3d import Manifold, Mesh
-    global _results
-    _results = iter([(np.frombuffer(bytes(v), np.float32), np.frombuffer(bytes(f), np.uint32)) for v, f in results])
+    import build_log
+    if hasattr(build_log, "_te_original_summary"):   # pass 2 runs to the end
+        build_log.progress_summary = build_log._te_original_summary
+    if len(_cache) + len(results) > _CACHE_MAX:
+        _cache.clear()
+    for (key, *_rest), (v, f) in zip(_misses, results):
+        _cache[key] = (bytes(v), bytes(f))
 
     def replay(a, b):
-        v, f = next(_results)
-        return Manifold(mesh=Mesh(vert_properties=v, tri_verts=f))
+        key = _key(a.to_mesh(), b.to_mesh())
+        return _from_cache(key) if key in _cache else None
     manifold3d.set_minkowski_hook(replay)
 
 
 def pool_clear():
     import manifold3d
+    import build_log
     manifold3d.set_minkowski_hook(None)
-    _jobs.clear()
+    if hasattr(build_log, "_te_original_summary"):
+        build_log.progress_summary = build_log._te_original_summary
+    _misses.clear()
 
 
 # ------------------------------------------------------------------ dispatch
