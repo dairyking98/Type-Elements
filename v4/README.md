@@ -128,10 +128,11 @@ generate_thumbnails.py      batch thumbnail renders
 config/
   <machine>.yaml             every real machine parameter + build/alignment settings, one per machine
   <machine>.running.yaml     gitignored scratch copy tune.py actually edits/saves (see above)
-                             15 machines: blickensderfer, postal, mignon, bennett, helios,
+                             10 machines: blickensderfer, postal, mignon, bennett, helios,
                              hammond, hammond_split, selectric12, selectric3,
-                             selectric_composer, type_slug, vogue_slug, gauge_slug,
-                             oliver_slug, lumi_slug
+                             selectric_composer
+                             + 5 type slugs (not machines): type_slug, vogue_slug,
+                             gauge_slug, oliver_slug, lumi_slug
 lib/
   glyph_poc.py               single-glyph mesh pipeline (the core technique)
   scad_primitives.py         revolve_polygon/extrude/transform helpers, generic (not machine-specific)
