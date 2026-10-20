@@ -2,7 +2,7 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.1 -->
 <title>Changelog | v4 Type Elements</title>
 <meta name="generator" content="Jekyll v4.4.1" />
 <meta property="og:title" content="Changelog" />
@@ -8172,6 +8172,114 @@ now linked from README's docs index. No code or geometry touched.
 - Pre-2026 resin profiles ("profiles ive used in the past") were wanted
   for cross-reference and never located. Possibly on the Windows desktop
   box (`192.168.4.20`) — searchable there with Everything/`es.exe`.
+
+---
+
+## 91. The printer shortlist that only survived as questions (2026-09-01)
+
+Part 90 recorded that `docs/resin-selection.md` ends with a cross-reference
+to a "printer shortlist" in machine notes, and that no such shortlist
+exists. Called that a dangling pointer. **That was wrong, and the way it
+was wrong is the point.**
+
+The research did happen — 2026-07-26, two sessions, 40 minutes before the
+resin doc was written. It was invisible because **both transcripts have
+been deleted**: the earliest surviving mention of `resin-selection`
+anywhere is 2026-07-29, three days after commit `7e5307f` created the file.
+Searching transcripts found nothing and I reported nothing found.
+
+What survives is `~/.claude/history.jsonl` — the global prompt history,
+which outlives the transcripts it came from. It holds the user's side of
+the conversation verbatim:
+
+    2026-07-22 02:43  "a good resin slicer for ubuntu 24.04? anycubic
+                       mono 4k unless i get a newer nicer one"
+    2026-07-26 12:42  "anycubic photon mono 4k is my printer - is it open
+                       source? any othe ropen source solutions?"
+    2026-07-26 12:50  "i need high detail, not large screen, my parts
+                       arent large. and more open sourcey the better."
+    2026-07-26 16:54  "elegoo mars 5 ultra, how much it cost? anything
+                       close to it in price and capability with finer pixel?"
+    2026-07-26 17:02  "write a document on resin selection..."
+
+**Lesson worth keeping: prompt history is a separate, longer-lived store
+than transcripts.** When a search for prior context comes up empty, that is
+not evidence the work never happened — check `history.jsonl` before saying
+so. The requirements were fully recoverable from questions alone; only the
+answers were lost.
+
+Also corrected a factual assumption raised in conversation — that a finer
+machine would bring square pixels. The Mono 4K's own profile declares
+`xy_pixel` and `xy_pixel_y` both 35.0 um: **already square**. Dividing the
+build area (132.9 x 80.0) by resolution appears to give an anisotropic
+answer only because the build area is a masked subset of the 134.4 x 84.0 mm
+panel span. The gain from a new machine is pitch alone, not squareness —
+though squareness is still worth verifying per candidate.
+
+Written up as new `docs/printer-selection.md`: recovered requirements
+(quoted, marked as settled), the measured case against the current machine
+(the 13 islands at exactly 1 px² are the strongest single datum — glyph
+geometry sitting at the resolution limit), what actually matters
+(pitch dominant, build volume actively working against you, collimation
+unlisted on datasheets, DLP under-considered), and Mars 5 Ultra as an open
+candidate with its price/pitch questions still unanswered. Deliberately
+records **no** vendor specs — that market churns faster than the doc, and
+a remembered number would be worse than none.
+
+Both docs now carry ordered "Next steps", and the resin doc's cross-
+reference points at a real file. README indexes both.
+
+### Genuinely open
+
+- Everything in part 90's open list still stands: exposure test unprinted,
+  no shrinkage baseline, nowhere fleet-wide to apply a measured figure.
+- Requirement 2 from the 2026-07-26 research — "is Elegoo any more open
+  than Anycubic" — was asked and never answered.
+- DLP was never priced. It is the strongest fit for small high-fidelity
+  parts and was absent from the original research entirely.
+
+## 92. Overhangs, measured on every output (2026-10-19)
+
+Asked for: overhang figures for every generate.py output, with the
+Selectric spheres as a special case — the lowest row's glyphs were
+suspected of causing islands — plus a warning before slicing.
+
+**New `lib/overhang.py`**, called from `generate.py` after `wrote ...` on
+every output path (main build, gauge, calibration, Hammond rib, Hammond
+Split normal; skipped for cross-sections and `--cut-bodies`). Two parts:
+
+- *Mesh check, all machines*: downward-face area/angle statistics, and
+  island seeds = downward-facing vertices strictly lower than all
+  neighbours above the base. First version flagged the floors of
+  upward-facing bowls too (the concave platen-cut faces on Selectric row 1
+  showed as 23 false islands in the real Minkowski build); requiring a
+  downward vertex normal removed them.
+- *Selectric rows*: downward glyph wall angle = latitude + draft/2 upright,
+  −latitude + draft/2 inverted. At draft 55: row 4 upright +11.1 deg
+  (shallow — matches the July UVtools islands' layer range), row 1
+  inverted −5.3 deg (islands on every glyph). Real Minkowski build
+  confirms: 0 island seeds upright.
+
+`build_log.note()`/`warn()` added for diagnostic lines (deliberately not the
+`[n/total]` shape). New key `resin.overhang_warn_deg: 30.0` in all 15
+master configs (running copies get it from tune.py's migration backfill),
+exposed on every Resin tab via one shared `OVERHANG_WARN_FIELD`.
+
+Gate: `--no-minkowski` summary lines byte-identical before/after for
+selectric12, blickensderfer, type_slug, hammond_split, mignon; all other
+configs build and report. `vogue_slug` fails before and after — its font
+(`~/Downloads/True_Vogue_final(1)_really_THIS_ONE.ttf`) is missing,
+unrelated.
+
+### Resuming later
+
+- Examine the non-Selectric seeds before trusting them: Bennett 2,
+  Mignon 13, Type Slug 8 (`docs/resin-supports.md`).
+- PreForm-compatible support mode — open, fleet-wide; decide after the
+  first Studio 1 prints (`docs/resin-supports.md`).
+- The threshold is a guess; tune it once Studio 1 prints show which wall
+  angles actually droop.
+
 </name></slug>
 
   </div>
