@@ -269,3 +269,11 @@ textarea.input.textblock { height: auto; min-height: 96px; padding: 8px 10px; fo
 .chip-btn { cursor: pointer; font: inherit; font-size: 12px; }
 .chip-btn:hover { border-color: var(--accent); color: var(--accent); }
 .modal.small { width: min(620px, 100%); height: min(520px, calc(100dvh - 40px)); }
+
+/* engine-not-running screen (hosted copy) */
+.connect { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.connect-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; max-width: 640px; box-shadow: var(--shadow); }
+.connect-card h1 { font-size: 22px; margin: 10px 0 8px; }
+.connect-card p { color: var(--text-2); }
+.connect-card ol { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.connect-card code { font: 12.5px var(--mono); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }

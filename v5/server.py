@@ -56,6 +56,12 @@ FONT_EXTS = (".ttf", ".otf", ".ttc", ".otc")
 TYPE_NAMES = {bool: "bool", int: "int", float: "float", str: "str"}
 
 app = FastAPI(title="Type Elements engine")
+
+# The hosted UI (GitHub Pages) calls this local engine from another origin.
+# Only those origins are allowed, and allow_private_network answers Chrome's
+# Private/Local Network Access preflight for a public page reaching 127.0.0.1.
+HOSTED_UI_ORIGINS = ["https://type-elements.leonardchau.com", "https://dairyking98.github.io"]
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402  (added in main(), with any --allow-origin)
 CONFIG_DIR = os.path.join(V4, "config")
 BUILD = SimpleNamespace(proc=None)
 
@@ -400,7 +406,10 @@ def default_dir():
 def font_file(path: str):
     if not allowed_font(path):
         raise HTTPException(404, "font not available")
-    return FileResponse(os.path.abspath(os.path.expanduser(path)))
+    # Vary: Origin - the same file is fetched same-origin (local UI) and
+    # cross-origin (hosted UI); without it the browser can reuse a cached
+    # copy that lacks the CORS header and the font fails to load.
+    return FileResponse(os.path.abspath(os.path.expanduser(path)), headers={"Vary": "Origin"})
 
 
 @app.post("/api/outlines")
@@ -753,7 +762,12 @@ def main():
     p.add_argument("--ui", default=DEFAULT_UI,
                    help="directory of the front end to serve (default v5/ui). Any static site that "
                         "speaks ENGINE_API.md works - point this at your own to swap the whole UI.")
+    p.add_argument("--allow-origin", action="append", default=[], metavar="URL",
+                   help="also let this origin call the API, e.g. http://localhost:5173 for a UI on a "
+                        "JS dev server (repeatable). The hosted site is always allowed.")
     args = p.parse_args()
+    app.add_middleware(CORSMiddleware, allow_origins=HOSTED_UI_ORIGINS + args.allow_origin, allow_methods=["*"],
+                       allow_headers=["*"], allow_private_network=True)
     if not os.path.isfile(os.path.join(args.ui, "index.html")):
         p.error(f"--ui {args.ui!r} has no index.html")
     app.mount("/app", StaticFiles(directory=os.path.abspath(args.ui), html=True), name="ui")

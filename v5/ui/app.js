@@ -108,6 +108,7 @@ const S = reactive({
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
+  engineDown: false, engineUrl: "",
 });
 
 const fieldsByKey = computed(() => {
@@ -727,6 +728,7 @@ const App = {
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+      if (!(await engine.ping().catch(() => false))) { S.engineDown = true; S.engineUrl = engine.base; return; }
       S.machines = (await engine.machines()).groups;
       const all = S.machines.flatMap((g) => g.machines.filter((m) => m.available).map((m) => m.key));
       await loadMachine(all.includes(S.machine) ? S.machine : all[0], true);
@@ -740,12 +742,31 @@ const App = {
       });
       addEventListener("beforeunload", (e) => { if (dirty.value) e.preventDefault(); });
     });
-    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, loadMachine, runBuild, saveCopy,
+    const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
+    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, loadMachine, runBuild, saveCopy,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName };
   },
   template: `
-  <div class="shell">
+  <div v-if="S.engineDown" class="connect">
+    <div class="connect-card">
+      <div class="brand" style="font-size:20px;margin-bottom:6px"><span class="dot">T</span>Type Elements</div>
+      <h1>Start the engine on your computer</h1>
+      <p>This page is the interface. The geometry engine runs on your own machine - nothing is uploaded and no server does the work. It isn't answering at <code>{{ S.engineUrl }}</code>.</p>
+      <ol>
+        <li>Get the code: <code>git clone https://github.com/dairyking98/Type-Elements</code> (branch <code>web-gui</code>) and set up <code>v4/</code> per its README.</li>
+        <li>Install the server's two extras: <code>v4/.venv/bin/python3 -m pip install fastapi uvicorn</code></li>
+        <li>Run it: <code>v4/.venv/bin/python3 v5/server.py</code> (Windows: <code>v4\\.venv\\Scripts\\python v5\\server.py</code>)</li>
+        <li>Come back and press Retry. Chrome/Edge may ask to let this site reach apps on your device - allow it.</li>
+      </ol>
+      <div class="row" style="display:flex;gap:8px;margin-top:14px">
+        <input class="input" style="flex:1" v-model="S.engineUrl" aria-label="Engine address">
+        <button class="btn primary" @click="retryEngine">Retry</button>
+      </div>
+      <p class="help">A fully in-browser version - no install at all - is the next milestone.</p>
+    </div>
+  </div>
+  <div v-else class="shell">
     <header class="topbar">
       <div class="brand"><span class="dot">T</span><span class="label">Type Elements</span></div>
       <select class="select" :value="S.machine" @change="loadMachine($event.target.value)" style="width:190px;flex-shrink:1;min-width:120px" aria-label="Machine">

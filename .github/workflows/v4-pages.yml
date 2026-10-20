@@ -16,6 +16,7 @@ on:
       - "v4/LIMITATIONS.md"
       - "v4/docs/**"
       - "v4/example_renders/**"
+      - "v5/ui/**"
       - ".github/workflows/v4-pages.yml"
   workflow_dispatch: {}
 
@@ -47,6 +48,14 @@ jobs:
         working-directory: v4/site
         env:
           JEKYLL_ENV: production
+
+      # v5's UI is plain static files - published as-is at /app/. It talks to
+      # an engine on the visitor's own computer (v5/server.py) until the
+      # in-browser engine exists; see v5/ENGINE_API.md.
+      - name: Add the v5 web app at /app/
+        run: |
+          mkdir -p _site/app
+          cp -r v5/ui/. _site/app/
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
