@@ -113,8 +113,11 @@ def get_config(machine):
 
 
 def put_config(machine, body):
-    core.put_config(machine, body)
-    return get_config(machine)
+    """core.put_config, keeping its `changed`/`errors` report (the UI needs
+    both - dropping them made every save in the browser throw in the page,
+    so anything chained after a save, like a build or type test, never ran)."""
+    res = core.put_config(machine, body)
+    return {**get_config(machine), "changed": res["changed"], "errors": res["errors"]}
 
 
 def reset_config(machine):
