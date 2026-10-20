@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.1 -->
+<title>v5: the app | v4 Type Elements</title>
+<meta name="generator" content="Jekyll v4.4.1" />
+<meta property="og:title" content="v5: the app" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<meta name="twitter:description" property="og:description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<link rel="canonical" href="https://type-elements.leonardchau.com/v5/" />
+<meta property="og:url" content="https://type-elements.leonardchau.com/v5/" />
+<meta property="og:site_name" content="v4 Type Elements" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="v5: the app" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.","headline":"v5: the app","url":"https://type-elements.leonardchau.com/v5/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://type-elements.leonardchau.com/feed.xml" title="v4 Type Elements" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">v4 Type Elements</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/v5/">v5: the app</a><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="/app/">Open the app</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">v5: the app</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="type-elements-v5">Type Elements v5</h1>
+
+<p>v5 is the app around v4’s geometry engine: a <strong>swappable web UI</strong> on top of a
+documented <strong>engine API</strong>. v4 (the geometry pipeline) is unchanged; v5 never
+edits it.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>v4/.venv/bin/python3 v5/server.py --open        # Linux   -&gt; http://127.0.0.1:8090
+v4\.venv\Scripts\python v5\server.py --open     # Windows
+</code></pre></div></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Path</th>
+      <th>What it is</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">v5/server.py</code></td>
+      <td>local engine server (FastAPI) - the API below, driving v4</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">v5/ENGINE_API.md</code></td>
+      <td><strong>the contract</strong> - every endpoint, field record, the job stream</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">v5/ui/</code></td>
+      <td>reference UI (static, no build step); <code class="language-plaintext highlighter-rouge">engine.js</code> is its only API client</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Options: <code class="language-plaintext highlighter-rouge">--ui DIR</code> (serve a different front end), <code class="language-plaintext highlighter-rouge">--config-dir DIR</code>
+(scratch config copies for testing), <code class="language-plaintext highlighter-rouge">--port</code>, <code class="language-plaintext highlighter-rouge">--host</code> (default 127.0.0.1 =
+this computer only). First time: <code class="language-plaintext highlighter-rouge">v4/.venv/bin/python3 -m pip install fastapi uvicorn</code>.</p>
+
+<p><strong>Try it:</strong> <a href="https://type-elements.leonardchau.com/app/">type-elements.leonardchau.com/app/</a>
+(the hosted UI - it connects to the engine on your computer until the
+in-browser engine lands).</p>
+
+<h2 id="performance">Performance</h2>
+
+<p>Rendering in the browser is not the slow option: spread across Web Workers,
+the slowest stage of a Selectric Render runs <strong>faster than native Python</strong>
+(16.7 s vs 30.4 s on an 8-core laptop), and two workers already halve it.
+Chart, method and caveats: <a href="/v5-performance/">PERFORMANCE</a>.</p>
+
+<h2 id="writing-your-own-ui">Writing your own UI</h2>
+
+<p>Make a folder with an <code class="language-plaintext highlighter-rouge">index.html</code>, copy <code class="language-plaintext highlighter-rouge">v5/ui/engine.js</code> in, build whatever
+you like against <a href="/v5-engine-api/">ENGINE_API.md</a>, run with <code class="language-plaintext highlighter-rouge">--ui your-folder</code>.
+You can’t break the geometry from there - the engine owns all of it.</p>
+
+<h2 id="why-this-shape">Why this shape</h2>
+
+<p>End goal: publish the UI on GitHub Pages and run everything <strong>in the
+visitor’s browser</strong> - no server. <code class="language-plaintext highlighter-rouge">ui/engine.js</code> is the only file that
+knows where the work happens; today it talks HTTP to <code class="language-plaintext highlighter-rouge">server.py</code>, later it
+talks to an in-browser engine with the same methods:</p>
+
+<ul>
+  <li>Pyodide (Python in WebAssembly) ships numpy, scipy, shapely, pyyaml,
+fontTools.</li>
+  <li>manifold has an official WebAssembly build with <code class="language-plaintext highlighter-rouge">minkowskiSum</code>
+(manifold-3d 3.4+), replacing the manifold3d Python wheel.</li>
+  <li>Three dependencies have no browser build and need small adapter modules:
+freetype-py (-&gt; fontTools), triangle (-&gt; shapely/earcut), python-fcl.</li>
+  <li>Fonts come from the visitor’s own files (browser file picker), never
+uploaded anywhere.</li>
+</ul>
+
+<h2 id="what-the-server-reuses">What the server reuses</h2>
+
+<p><code class="language-plaintext highlighter-rouge">server.py</code> imports v4’s tune.py for its field tables, comment-preserving YAML
+patchers and running-config migration, and runs <code class="language-plaintext highlighter-rouge">generate.py</code>,
+<code class="language-plaintext highlighter-rouge">type_test.py</code>, <code class="language-plaintext highlighter-rouge">generate_legend.py</code> and <code class="language-plaintext highlighter-rouge">font_coverage.py</code> as subprocesses
+with exactly the flags tune.py uses. Both front ends read and write the same
+<code class="language-plaintext highlighter-rouge">config/&lt;machine&gt;.running.yaml</code>, so they can be used side by side.</p>
+
+<h2 id="ui-map">UI map</h2>
+
+<p>Settings regrouped by task instead of tune.py’s 17 tabs:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Page</th>
+      <th>Contains</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Typeface</td>
+      <td>font, font 2 (specimens drawn in the real font), size, alignment, font profiles</td>
+    </tr>
+    <tr>
+      <td>Layout</td>
+      <td>keyboard grid in the real font, missing characters flagged, click a slot to swap (including the font’s unused glyphs), presets (sets hemisphere map / Hammond baselines like tune.py), row baselines/cutouts</td>
+    </tr>
+    <tr>
+      <td>Element</td>
+      <td>Element, Cosmetics, bands, Rib, Ticks</td>
+    </tr>
+    <tr>
+      <td>Logo &amp; label</td>
+      <td>Logo, Label (font specimens show the actual logo/label text)</td>
+    </tr>
+    <tr>
+      <td>Print prep</td>
+      <td>resin supports, orientation, Hammond horizontal method, Hammond Split halves, Resin</td>
+    </tr>
+    <tr>
+      <td>Quality</td>
+      <td>facet counts</td>
+    </tr>
+    <tr>
+      <td>Tests &amp; tools</td>
+      <td>Calibration and Shaft gauge (with build buttons), Type test plate, Legend sheet (preview + download), Font coverage</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Always visible: 3D viewer, build target, Preview / Render / Stop, progress,
+warnings summary, log, Download STL, Save a copy (timestamped STL + config
+sidecar in <code class="language-plaintext highlighter-rouge">output/saved/</code>). Search (<code class="language-plaintext highlighter-rouge">/</code>) across every setting. <code class="language-plaintext highlighter-rouge">Ctrl+S</code>
+saves, <code class="language-plaintext highlighter-rouge">Ctrl+Enter</code> previews. Light/dark. Works down to phone width.</p>
+
+<h2 id="status-and-roadmap">Status and roadmap</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th> </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>done</td>
+      <td>engine API + local server; reference UI covering every v4 parameter; hosted UI at /app/; Minkowski-in-WebAssembly spike (worker pool beats native)</td>
+    </tr>
+    <tr>
+      <td><strong>now - phase 2</strong></td>
+      <td>v4’s Python running in the page (Pyodide) with the worker-pool Minkowski; then an engine switch: <em>in-browser</em> (no install, default) or <em>local engine</em> (desktop)</td>
+    </tr>
+    <tr>
+      <td>later</td>
+      <td>single-file desktop launcher; vendored libraries for offline use</td>
+    </tr>
+  </tbody>
+</table>
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">v4 Type Elements</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">v4 Type Elements</li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
+      </div>
+    </div><p class="footer-license" style="margin-top: 1.5em; font-size: 0.85em; opacity: 0.85;">
+      © 2023-2026 Leonard Chau &middot;
+      Software under <a href="https://github.com/dairyking98/Type-Elements/blob/main/LICENSE">GPL-3.0-or-later</a> &middot;
+      Designs, models and documentation under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.
+      <br />
+      Print these for yourself, freely. Selling prints is reserved to the
+      copyright holder &mdash; <a href="/license/">full terms</a>.
+    </p></div>
+
+</footer>
+</body>
+
+</html>

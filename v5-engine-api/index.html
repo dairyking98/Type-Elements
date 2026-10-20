@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.9.1 -->
+<title>v5 Engine API | v4 Type Elements</title>
+<meta name="generator" content="Jekyll v4.4.1" />
+<meta property="og:title" content="v5 Engine API" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<meta name="twitter:description" property="og:description" content="Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine." />
+<link rel="canonical" href="https://type-elements.leonardchau.com/v5-engine-api/" />
+<meta property="og:url" content="https://type-elements.leonardchau.com/v5-engine-api/" />
+<meta property="og:site_name" content="v4 Type Elements" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="v5 Engine API" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.","headline":"v5 Engine API","url":"https://type-elements.leonardchau.com/v5-engine-api/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://type-elements.leonardchau.com/feed.xml" title="v4 Type Elements" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">v4 Type Elements</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/v5/">v5: the app</a><a class="page-link" href="/how-it-works/">How it works</a><a class="page-link" href="/machines/">Machines</a><a class="page-link" href="/accessories/">Accessories</a><a class="page-link" href="/behind-the-scenes/">Behind the scenes</a><a class="page-link" href="/layout-transcription/">Layout Transcription</a><a class="page-link" href="/catalog-index/">Catalog Index</a><a class="page-link" href="/roadmap/">Roadmap</a><a class="page-link" href="/changelog/">Changelog</a><a class="page-link" href="/readme/">README</a><a class="page-link" href="/license/">License</a><a class="page-link" href="/app/">Open the app</a><a class="page-link" href="https://leonardchau.com/projects/type-elements/">Project Story ↗</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">v5 Engine API</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="v5-engine-api">v5 Engine API</h1>
+
+<p>The contract between a <strong>UI</strong> and the <strong>engine</strong>. A UI is any static web
+page (HTML/CSS/JS) that talks only to these endpoints. The engine is v4’s
+geometry pipeline, which a UI never touches.</p>
+
+<p>Two implementations share this contract:</p>
+
+<ul>
+  <li><strong>Today:</strong> <code class="language-plaintext highlighter-rouge">v5/server.py</code>, a local Python server. Run your own UI with:
+    <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>v4/.venv/bin/python3 v5/server.py --ui path/to/your-ui --open
+</code></pre></div>    </div>
+    <p>The folder must contain an <code class="language-plaintext highlighter-rouge">index.html</code>. It is served at
+<code class="language-plaintext highlighter-rouge">http://127.0.0.1:8090/app/</code>, so use relative URLs for your own assets and
+absolute <code class="language-plaintext highlighter-rouge">/api/...</code> URLs for the engine.</p>
+  </li>
+  <li><strong>Later:</strong> an in-browser engine (Pyodide + manifold WebAssembly) behind the
+same methods, so a UI can be published as a plain static site.</li>
+</ul>
+
+<p>The reference UI (<code class="language-plaintext highlighter-rouge">v5/ui/</code>) keeps every engine call in <code class="language-plaintext highlighter-rouge">engine.js</code>. Copy that
+file into your UI and you have the whole API as JavaScript functions. When the
+in-browser engine lands, only that file changes.</p>
+
+<p>All bodies are JSON. Errors come back as HTTP 4xx with <code class="language-plaintext highlighter-rouge">{"detail": "message"}</code>.</p>
+
+<hr />
+
+<h2 id="concepts">Concepts</h2>
+
+<ul>
+  <li><strong>machine</strong>: a key like <code class="language-plaintext highlighter-rouge">selectric12</code>, <code class="language-plaintext highlighter-rouge">blickensderfer</code>, <code class="language-plaintext highlighter-rouge">hammond</code>
+(see <code class="language-plaintext highlighter-rouge">GET /api/machines</code>).</li>
+  <li><strong>master config</strong>: <code class="language-plaintext highlighter-rouge">v4/config/&lt;machine&gt;.yaml</code>. It is never written.</li>
+  <li><strong>running config</strong>: <code class="language-plaintext highlighter-rouge">&lt;machine&gt;.running.yaml</code> next to the master. All edits
+land here, and every build reads it. It is shared with v4’s <code class="language-plaintext highlighter-rouge">tune.py</code>.</li>
+  <li><strong>field</strong>: one setting. A UI renders fields from records; it never
+hardcodes them. The engine knows which fields each machine has.</li>
+  <li><strong>job</strong>: a build or tool run. Its output streams back line by line. Only one
+job runs at a time.</li>
+</ul>
+
+<h3 id="field-record">Field record</h3>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"size_mm"</span><span class="p">,</span><span class="w">                 </span><span class="err">//</span><span class="w"> </span><span class="err">id</span><span class="w"> </span><span class="err">used</span><span class="w"> </span><span class="err">when</span><span class="w"> </span><span class="err">saving</span><span class="w">
+  </span><span class="nl">"path"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"font"</span><span class="p">,</span><span class="w"> </span><span class="s2">"size_mm"</span><span class="p">],</span><span class="w">      </span><span class="err">//</span><span class="w"> </span><span class="err">where</span><span class="w"> </span><span class="err">it</span><span class="w"> </span><span class="err">lives</span><span class="w"> </span><span class="err">in</span><span class="w"> </span><span class="err">the</span><span class="w"> </span><span class="err">config</span><span class="w">
+  </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"float"</span><span class="p">,</span><span class="w">                  </span><span class="err">//</span><span class="w"> </span><span class="err">bool</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="err">int</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="err">float</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="err">str</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="err">floatlist</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="err">textblock</span><span class="w">
+  </span><span class="nl">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Font size (mm)"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"help"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Em-square size, matches OpenSCAD text(size=)."</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"value"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.7</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"options"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w">                    </span><span class="err">//</span><span class="w"> </span><span class="err">non-empty</span><span class="w"> </span><span class="err">=&gt;</span><span class="w"> </span><span class="err">pick</span><span class="w"> </span><span class="err">one</span><span class="w"> </span><span class="err">of</span><span class="w"> </span><span class="p">{</span><span class="err">label</span><span class="p">,</span><span class="w"> </span><span class="err">value</span><span class="p">}</span><span class="w"> </span><span class="err">(values</span><span class="w"> </span><span class="err">are</span><span class="w"> </span><span class="err">strings)</span><span class="w">
+  </span><span class="nl">"list"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">                    </span><span class="err">//</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="err">=&gt;</span><span class="w"> </span><span class="err">edited</span><span class="w"> </span><span class="err">by</span><span class="w"> </span><span class="err">a</span><span class="w"> </span><span class="err">dedicated</span><span class="w"> </span><span class="err">editor</span><span class="w"> </span><span class="err">(layout</span><span class="w"> </span><span class="err">rows)</span><span class="p">,</span><span class="w"> </span><span class="err">skip</span><span class="w"> </span><span class="err">it</span><span class="w">
+  </span><span class="nl">"extra"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">                     </span><span class="err">//</span><span class="w"> </span><span class="err">present</span><span class="w"> </span><span class="err">on</span><span class="w"> </span><span class="err">controls</span><span class="w"> </span><span class="err">tune.py</span><span class="w"> </span><span class="err">built</span><span class="w"> </span><span class="err">by</span><span class="w"> </span><span class="err">hand;</span><span class="w"> </span><span class="err">render</span><span class="w"> </span><span class="err">like</span><span class="w"> </span><span class="err">any</span><span class="w"> </span><span class="err">other</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>How the reference UI treats these (your UI may differ):</p>
+
+<ul>
+  <li><strong>Font files:</strong> keys <code class="language-plaintext highlighter-rouge">path</code>, <code class="language-plaintext highlighter-rouge">font2_path</code>, <code class="language-plaintext highlighter-rouge">font_path</code>, <code class="language-plaintext highlighter-rouge">label_font_path</code>
+and <code class="language-plaintext highlighter-rouge">legend_font_path</code> are font file paths. The reference UI shows them as
+specimens drawn in the font itself.</li>
+  <li><strong>Number steps:</strong> floats step by 0.1, or finer when the current value
+already has more decimals.</li>
+  <li><strong>Alignment:</strong> options that are all of <code class="language-plaintext highlighter-rouge">left</code> / <code class="language-plaintext highlighter-rouge">center</code> / <code class="language-plaintext highlighter-rouge">right</code> /
+<code class="language-plaintext highlighter-rouge">justify</code> are drawn as paragraph-alignment buttons.</li>
+</ul>
+
+<h3 id="section-record">Section record</h3>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w"> </span><span class="nl">"section"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Font &amp; Alignment"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"intro"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nl">"text"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">"level"</span><span class="p">:</span><span class="w"> </span><span class="s2">"info"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">"advanced"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"fields"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="err">/*</span><span class="w"> </span><span class="err">field</span><span class="w"> </span><span class="err">records</span><span class="w"> </span><span class="err">*/</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">level: "advanced"</code> marks high-risk settings, such as real machine dimensions
+and row baselines. Make those look dangerous.</p>
+
+<hr />
+
+<h2 id="endpoints">Endpoints</h2>
+
+<h3 id="machines-and-config">Machines and config</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method &amp; path</th>
+      <th>Body</th>
+      <th>Returns</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/machines</code></td>
+      <td>—</td>
+      <td><code class="language-plaintext highlighter-rouge">{groups: [{group, machines: [{key, label, available}]}]}</code>. Groups are Cylinders, Shuttles, Spheres and Slugs.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/config/{m}</code></td>
+      <td>—</td>
+      <td>The <strong>machine document</strong> (below). Creates or migrates the running copy if needed.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">PUT /api/config/{m}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{values: {key: value}, rows?: [str], preset?: str}</code></td>
+      <td>Machine document plus <code class="language-plaintext highlighter-rouge">{changed, errors: [str]}</code>. Only changed values are written. Comments in the YAML are preserved.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/config/{m}/reset</code></td>
+      <td>—</td>
+      <td>Machine document, after the running copy is replaced with the master.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/configs/{m}</code></td>
+      <td>—</td>
+      <td><code class="language-plaintext highlighter-rouge">{current, default, configs: [{path, label, kind}]}</code>: other masters for this machine (variants, saved copies).</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/config/{m}/open</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{path}</code></td>
+      <td>Machine document, after switching which master <code class="language-plaintext highlighter-rouge">{m}</code> uses.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Machine document:</strong></p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"machine"</span><span class="p">:</span><span class="w"> </span><span class="s2">"selectric12"</span><span class="p">,</span><span class="w"> </span><span class="nl">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Selectric I/II"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"cfg"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">/*</span><span class="w"> </span><span class="err">the</span><span class="w"> </span><span class="err">whole</span><span class="w"> </span><span class="err">running</span><span class="w"> </span><span class="err">config</span><span class="w"> </span><span class="err">as</span><span class="w"> </span><span class="err">JSON</span><span class="w"> </span><span class="err">*/</span><span class="w"> </span><span class="p">},</span><span class="w">
+  </span><span class="nl">"schema"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="err">/*</span><span class="w"> </span><span class="err">section</span><span class="w"> </span><span class="err">records</span><span class="p">,</span><span class="w"> </span><span class="err">in</span><span class="w"> </span><span class="err">display</span><span class="w"> </span><span class="err">order</span><span class="w"> </span><span class="err">*/</span><span class="w"> </span><span class="p">],</span><span class="w">
+  </span><span class="nl">"presets"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nl">"US"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"row1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"row2"</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">],</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span><span class="w">   </span><span class="err">//</span><span class="w"> </span><span class="err">layout</span><span class="w"> </span><span class="err">presets</span><span class="p">,</span><span class="w"> </span><span class="err">may</span><span class="w"> </span><span class="err">be</span><span class="w"> </span><span class="p">{}</span><span class="w">
+  </span><span class="nl">"current_preset"</span><span class="p">:</span><span class="w"> </span><span class="s2">"US"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">                     </span><span class="err">//</span><span class="w"> </span><span class="err">preset</span><span class="w"> </span><span class="err">whose</span><span class="w"> </span><span class="err">rows</span><span class="w"> </span><span class="err">equal</span><span class="w"> </span><span class="err">cfg.layout.rows</span><span class="w">
+  </span><span class="nl">"layout_help"</span><span class="p">:</span><span class="w"> </span><span class="s2">"str"</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"fixed_row_lengths"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">     </span><span class="err">//</span><span class="w"> </span><span class="err">rows</span><span class="w"> </span><span class="err">must</span><span class="w"> </span><span class="err">keep</span><span class="w"> </span><span class="err">their</span><span class="w"> </span><span class="err">exact</span><span class="w"> </span><span class="err">length</span><span class="w"> </span><span class="err">(Selectrics)</span><span class="w">
+  </span><span class="nl">"row_cap"</span><span class="p">:</span><span class="w"> </span><span class="mi">28</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">          </span><span class="err">//</span><span class="w"> </span><span class="err">max</span><span class="w"> </span><span class="err">chars</span><span class="w"> </span><span class="err">per</span><span class="w"> </span><span class="err">row</span><span class="w"> </span><span class="err">(cylinder/shuttle</span><span class="w"> </span><span class="err">machines)</span><span class="w">
+  </span><span class="nl">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="err">value</span><span class="p">,</span><span class="w"> </span><span class="err">label</span><span class="p">}],</span><span class="w">   </span><span class="err">//</span><span class="w"> </span><span class="err">build</span><span class="w"> </span><span class="err">targets</span><span class="w"> </span><span class="err">this</span><span class="w"> </span><span class="err">machine</span><span class="w"> </span><span class="err">offers</span><span class="w">
+  </span><span class="nl">"target"</span><span class="p">:</span><span class="w"> </span><span class="s2">"element"</span><span class="p">,</span><span class="w">           </span><span class="err">//</span><span class="w"> </span><span class="err">the</span><span class="w"> </span><span class="err">current</span><span class="w"> </span><span class="err">one</span><span class="w">
+  </span><span class="nl">"warning"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">short</span><span class="p">,</span><span class="w"> </span><span class="err">long</span><span class="p">}</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"migrated"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"section.key"</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">],</span><span class="w">   </span><span class="err">//</span><span class="w"> </span><span class="err">settings</span><span class="w"> </span><span class="err">just</span><span class="w"> </span><span class="err">added</span><span class="w"> </span><span class="err">from</span><span class="w"> </span><span class="err">the</span><span class="w"> </span><span class="err">master</span><span class="w">
+  </span><span class="nl">"running_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">"master_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p><strong>Layout rows:</strong> these are <code class="language-plaintext highlighter-rouge">cfg.layout.rows</code>, an array of strings with one per
+keyboard row. To change them, send <code class="language-plaintext highlighter-rouge">rows</code> in the PUT.</p>
+<ul>
+  <li>If the rows are a preset, also send <code class="language-plaintext highlighter-rouge">preset: "&lt;name&gt;"</code>. The engine then sets
+the matching hemisphere map (Selectric) or baselines (Hammond), exactly as
+tune.py does.</li>
+  <li>Rows that break <code class="language-plaintext highlighter-rouge">fixed_row_lengths</code> are refused. The refusal is reported in
+<code class="language-plaintext highlighter-rouge">errors</code>, and every other change in the PUT still saves.</li>
+</ul>
+
+<h3 id="fonts">Fonts</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method &amp; path</th>
+      <th>Body</th>
+      <th>Returns</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/fonts</code></td>
+      <td>—</td>
+      <td><code class="language-plaintext highlighter-rouge">[{path, family, style}]</code>: every installed font (thousands; filter client-side).</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/font?path=</code></td>
+      <td>—</td>
+      <td>The font file itself. Use it with <code class="language-plaintext highlighter-rouge">new FontFace(name, "url(...)")</code>.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/outlines</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{font, chars}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{upem, ascender, descender, glyphs: {char: {d, adv} \| null}}</code>. <code class="language-plaintext highlighter-rouge">d</code> is SVG path data in font units with y pointing up, so flip it when drawing. Use this when the browser refuses a font file (<code class="language-plaintext highlighter-rouge">FontFace.load()</code> rejects); FreeType, and therefore the build, often reads such fonts fine.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/glyphs</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{font, chars, font2?, font2_chars?}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{status: {char: "ok"\|"missing"\|"blank"}, unused: {letters\|digits/numbers\|punctuation\|symbols: [char]}}</code>. <code class="language-plaintext highlighter-rouge">missing</code> and <code class="language-plaintext highlighter-rouge">blank</code> would build as an empty slot or a box. <code class="language-plaintext highlighter-rouge">unused</code> lists glyphs the font has that the character set doesn’t use, as swap candidates.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/default-font-dir</code></td>
+      <td>—</td>
+      <td><code class="language-plaintext highlighter-rouge">{path}</code>: a font folder that exists on this machine.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="jobs-streamed">Jobs (streamed)</h3>
+
+<p>Two endpoints start a job:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">POST /api/build/{m}</code> with body <code class="language-plaintext highlighter-rouge">{fast: bool, target: str, cross_section?: bool, cross_section_angle?: number, cut_bodies?: bool}</code>.
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">fast: true</code> means Preview (no draft angle, seconds). <code class="language-plaintext highlighter-rouge">false</code> means Render (real draft angle, slower).</li>
+      <li><code class="language-plaintext highlighter-rouge">target</code> is one of the machine document’s <code class="language-plaintext highlighter-rouge">targets</code>. It is also saved to the config.</li>
+    </ul>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">POST /api/tool/{m}</code> with body <code class="language-plaintext highlighter-rouge">{tool: "type_test" | "legend" | "coverage" | "coverage_current", chars?, font_dir?, deep?}</code>.</li>
+</ul>
+
+<p><strong>Response:</strong> <code class="language-plaintext highlighter-rouge">application/x-ndjson</code>, one JSON object per line, until the job
+finishes:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{"line": "a complete log line"}
+{"partial": "AssembleMinkowski: [12/88] 'r'..."}   // unterminated progress line, replaced by the next event
+{"done": 0}                                          // exit code: 0 ok, &gt;0 failed, &lt;0 stopped
+</code></pre></div></div>
+
+<ul>
+  <li><strong>Progress:</strong> take it from any <code class="language-plaintext highlighter-rouge">[n/total]</code> in <code class="language-plaintext highlighter-rouge">line</code> or <code class="language-plaintext highlighter-rouge">partial</code>. It covers
+roughly the first 95%.</li>
+  <li><strong>Warnings:</strong> lines containing <code class="language-plaintext highlighter-rouge">WARNING</code> are things the user should see.
+Examples: characters missing from the font, overhang islands, unprintable
+rows.</li>
+  <li><strong>Read it</strong> with <code class="language-plaintext highlighter-rouge">fetch()</code> and <code class="language-plaintext highlighter-rouge">response.body.getReader()</code>, splitting on
+<code class="language-plaintext highlighter-rouge">\n</code>. See <code class="language-plaintext highlighter-rouge">stream()</code> in <code class="language-plaintext highlighter-rouge">v5/ui/engine.js</code>.</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method &amp; path</th>
+      <th>Returns</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/build-cancel</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{cancelled: bool}</code>: stops the running job.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/stl/{m}</code></td>
+      <td>The last built STL, binary. Add <code class="language-plaintext highlighter-rouge">?t=&lt;now&gt;</code> to bypass caching. Z is the build direction.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/legend/{m}</code></td>
+      <td>The last generated legend SVG.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/coverage-report</code></td>
+      <td>Markdown report of the last coverage job.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/save-copy/{m}</code> with body <code class="language-plaintext highlighter-rouge">{last_build?}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{path}</code>: a timestamped STL plus a <code class="language-plaintext highlighter-rouge">.yaml</code> copy of the config, written to <code class="language-plaintext highlighter-rouge">v4/output/saved/</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="font-profiles">Font profiles</h3>
+
+<p>Saved sets of Font &amp; Alignment values, shared across machines.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method &amp; path</th>
+      <th>Body</th>
+      <th>Returns</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/profiles/{m}</code></td>
+      <td>—</td>
+      <td><code class="language-plaintext highlighter-rouge">[{name, values: {"section.key": value}, skipped, unset, active}]</code>. <code class="language-plaintext highlighter-rouge">active</code> means the current settings match the profile.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/profiles/{m}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{name}</code></td>
+      <td>The updated list. Saves the current settings as a profile, so save the config first.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/profiles/{m}/rename</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{old, new}</code></td>
+      <td>The updated list.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/profiles/{m}/delete</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{name}</code></td>
+      <td>The updated list.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>To apply a profile, the UI maps each <code class="language-plaintext highlighter-rouge">values</code> path to the field with that
+<code class="language-plaintext highlighter-rouge">path</code> and saves the result like any other edit. The engine has no “apply”
+call.</p>
+
+<hr />
+
+<h2 id="rules-for-a-ui">Rules for a UI</h2>
+
+<ol>
+  <li><strong>Never hardcode fields.</strong> Render whatever <code class="language-plaintext highlighter-rouge">schema</code> returns. Machines
+differ, and fields get added.</li>
+  <li><strong>Save before you build.</strong> Builds read the running config from disk.</li>
+  <li><strong>Treat <code class="language-plaintext highlighter-rouge">advanced</code> sections as dangerous.</strong> They hold real machine
+measurements.</li>
+  <li><strong>Only one job at a time.</strong> A second start returns 409.</li>
+  <li><strong>Nothing here needs a framework.</strong> The reference UI uses Vue and
+three.js from a CDN, but plain JS, React or Svelte all work. Anything
+that builds to static files is fine.</li>
+</ol>
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">v4 Type Elements</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">v4 Type Elements</li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Minkowski-draft type element pipeline for 3D-printed typewriter type elements - real manifold3d booleans, adaptive glyph outline sampling, and a config-driven port of every supported machine.</p>
+      </div>
+    </div><p class="footer-license" style="margin-top: 1.5em; font-size: 0.85em; opacity: 0.85;">
+      © 2023-2026 Leonard Chau &middot;
+      Software under <a href="https://github.com/dairyking98/Type-Elements/blob/main/LICENSE">GPL-3.0-or-later</a> &middot;
+      Designs, models and documentation under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.
+      <br />
+      Print these for yourself, freely. Selling prints is reserved to the
+      copyright holder &mdash; <a href="/license/">full terms</a>.
+    </p></div>
+
+</footer>
+</body>
+
+</html>
