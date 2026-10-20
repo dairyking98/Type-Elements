@@ -82,3 +82,12 @@ Split out of `README.md` to keep it direct - see
   approximated - flagging here only because an earlier draft of this file
   used a wrong approximation before the real formula was found; the
   current code is correct.
+- **Hammond legend ignores the Math row.** The "Universal, Math" preset
+  (catalog 135, plus 135B/135C on hammond_split) is the only 4-row layout,
+  and the shuttle itself handles it (`Is_Math`: taller shuttle, 4th
+  baseline). The index card (`lib/hammond_legend.py`) only reads
+  `rows[0..2]` (lowercase / caps / figures), so the 4th (math) character on
+  each key never appears on the card, and there are no settings for where
+  it would sit. It needs a real Math-shuttle index card (photo or scan) to
+  place the 4th label, plus legend fields for its size/offset, exposed only
+  when the layout has 4 rows.
