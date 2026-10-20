@@ -1,6 +1,6 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=47d1df6d5d";
-import { Viewer } from "./viewer.js?v=47d1df6d5d";
+import { engine } from "./engine.js?v=1e2cad8521";
+import { Viewer } from "./viewer.js?v=1e2cad8521";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -8,7 +8,7 @@ import { Viewer } from "./viewer.js?v=47d1df6d5d";
 // something in; any section no group claims lands in Element.
 const GROUPS = [
   { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment", "Type test"], custom: "profiles",
-    blurb: "The fonts every struck character is cut from, with sizing and alignment. Save a combination as a profile to reuse it." },
+    blurb: "Everything about the font: which one, size and alignment, a type-test plate to check spacing, saved profiles, and which fonts cover your layout." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
   { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cosmetics", "Bands", "Rib", "Ticks"],
@@ -20,7 +20,7 @@ const GROUPS = [
   { id: "quality", label: "Quality", icon: "◆", sections: ["Quality"],
     blurb: "Facet counts and tessellation. Higher is smoother and slower." },
   { id: "tools", label: "Tests & tools", icon: "⚙", sections: ["Calibration", "Gauge"], custom: "tools",
-    blurb: "Calibration sweeps, the shaft gauge, type-test plates, legend sheets and font coverage." },
+    blurb: "Calibration sweeps, the shaft gauge and legend sheets." },
 ];
 const TOOL_SECTIONS = ["Legend", "Legend output"];   // drawn inside the Tools page's own cards
 const FONT_KEYS = new Set(["path", "font2_path", "font_path", "label_font_path", "legend_font_path"]);
@@ -135,7 +135,7 @@ const groups = computed(() => {
     const secs = [...g.sections, ...(g.id === "element" ? orphans : [])].filter((n) => section(n));
     const n = secs.reduce((a, s) => a + section(s).fields.length, 0)
       + (g.custom === "tools" ? TOOL_SECTIONS.reduce((a, s) => a + (section(s)?.fields.length || 0), 0) : 0);
-    const show = n > 0 || (g.custom === "layout" && layoutRows.value) || g.custom === "tools";
+    const show = n > 0 || (g.custom === "layout" && layoutRows.value);   // Tests & tools only when it has something
     return show ? { ...g, sections: secs, count: n } : null;
   }).filter(Boolean);
 });
@@ -632,32 +632,7 @@ const ToolsPage = {
       <a class="btn small" :href="legendUrl" download>Download SVG</a>
     </div>
   </SectionCard>
-  <section class="card">
-    <div class="card-head"><h2>Font coverage</h2><span class="sub">which fonts have every character you need</span></div>
-    <div class="card-body">
-      <div class="fields">
-        <div class="field wide">
-          <label>Characters</label>
-          <select class="select" @change="seedCoverage($event.target.value)" style="margin-bottom:6px">
-            <option value="">Fill from…</option>
-            <option v-if="layoutRows" value="__current__">Current layout</option>
-            <option v-for="n in presetNames" :value="n">Preset: {{ n }}</option>
-          </select>
-          <textarea class="input textblock" v-model="S.coverage.chars" style="min-height:70px"></textarea>
-        </div>
-        <div class="field wide"><label>Font folder to search</label>
-          <input class="input" v-model="S.coverage.dir" placeholder="e.g. /home/you/fonts or C:\\Windows\\Fonts"></div>
-        <div class="field"><label class="switch"><input type="checkbox" v-model="S.coverage.deep"><span>Deep check (slow)</span></label>
-          <div class="help">Also runs every glyph through the real outline pipeline.</div></div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn primary" :disabled="S.job.running || !S.coverage.chars || !S.coverage.dir" @click="runCoverage(true)">Check current font</button>
-        <button class="btn" :disabled="S.job.running || !S.coverage.chars || !S.coverage.dir" @click="runCoverage(false)">Scan the whole folder</button>
-        <a v-if="S.coverage.report" class="btn ghost" :href="engine.reportUrl()" target="_blank">Open report</a>
-      </div>
-      <p class="help">Results stream into the build log. "Check current font" lists what the font is missing, the glyphs it has that you could swap in, and other fonts that cover the gap.</p>
-    </div>
-  </section>`,
+`,
 };
 
 // Type test plate on the Typeface page: render a flat plate of text in the
@@ -687,6 +662,46 @@ const TypeTestCard = {
       <label class="switch" style="margin-bottom:10px"><input type="checkbox" :checked="S.typeTestAuto" @change="toggleAuto($event.target.checked)"><span>Re-render after every change</span></label></template>
     <template #actions><button class="btn small primary" :disabled="S.job.running" @click="runTypeTest">Render type test</button></template>
   </section-card>`,
+};
+
+// Font coverage, on the Typeface page with the rest of the font tools:
+// which fonts have every character a layout needs.
+const FontCoverageCard = {
+  setup() {
+    const presetNames = computed(() => Object.keys(S.data.presets || {}));
+    const seedCoverage = (v) => {
+      if (v === "__current__") S.coverage.chars = (layoutRows.value || []).join("");
+      else if (S.data.presets[v]) S.coverage.chars = S.data.presets[v].join("");
+    };
+    return { S, runCoverage, presetNames, seedCoverage, engine, layoutRows };
+  },
+  template: `
+  <section class="card">
+    <div class="card-head"><h2>Font coverage</h2><span class="sub">which fonts have every character you need</span></div>
+    <div class="card-body">
+      <div class="fields">
+        <div class="field wide">
+          <label>Characters</label>
+          <select class="select" @change="seedCoverage($event.target.value)" style="margin-bottom:6px">
+            <option value="">Fill from…</option>
+            <option v-if="layoutRows" value="__current__">Current layout</option>
+            <option v-for="n in presetNames" :value="n">Preset: {{ n }}</option>
+          </select>
+          <textarea class="input textblock" v-model="S.coverage.chars" style="min-height:70px"></textarea>
+        </div>
+        <div class="field wide"><label>Font folder to search</label>
+          <input class="input" v-model="S.coverage.dir" placeholder="e.g. /home/you/fonts or C:\\Windows\\Fonts"></div>
+        <div class="field"><label class="switch"><input type="checkbox" v-model="S.coverage.deep"><span>Deep check (slow)</span></label>
+          <div class="help">Also runs every glyph through the real outline pipeline.</div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn primary" :disabled="S.job.running || !S.coverage.chars || !S.coverage.dir" @click="runCoverage(true)">Check current font</button>
+        <button class="btn" :disabled="S.job.running || !S.coverage.chars || !S.coverage.dir" @click="runCoverage(false)">Scan the whole folder</button>
+        <a v-if="S.coverage.report" class="btn ghost" :href="engine.reportUrl()" target="_blank">Open report</a>
+      </div>
+      <p class="help">Results stream into the build log. "Check current font" lists what the font is missing, the glyphs it has that you could swap in, and other fonts that cover the gap.</p>
+    </div>
+  </section>`,
 };
 
 const FontPicker = {
@@ -819,7 +834,7 @@ const FontPicker = {
 };
 
 const App = {
-  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontPicker, TypeTestCard },
+  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontPicker, TypeTestCard, FontCoverageCard },
   setup() {
     const viewerEl = ref(null);
     const logRef = ref(null);
@@ -876,7 +891,9 @@ const App = {
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
     return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
-             cancel: () => engine.cancel(), baseName, location };
+             cancel: () => engine.cancel(), baseName, location,
+             // the site's home page: same origin on the hosted site, the public site otherwise
+             homeUrl: location.protocol === "https:" ? "/" : "https://type-elements.leonardchau.com/" };
   },
   template: `
   <div v-if="S.phoneLanding" class="connect">
@@ -924,7 +941,7 @@ const App = {
   </div>
   <div v-else class="shell">
     <header class="topbar">
-      <div class="brand"><span class="dot">T</span><span class="label">Type Elements</span></div>
+      <a class="brand brand-link" :href="homeUrl" title="Type Elements home"><span class="dot">T</span><span class="label">Type Elements</span></a>
       <select class="select" :value="S.machine" @change="loadMachine($event.target.value)" style="width:190px;flex-shrink:1;min-width:120px" aria-label="Machine">
         <optgroup v-for="g in S.machines" :label="g.group">
           <option v-for="m in g.machines" :value="m.key" :disabled="!m.available">{{ m.label }}{{ m.warning ? ' — ⚠ untested' : '' }}</option>
@@ -988,6 +1005,7 @@ const App = {
             <SectionCard v-else :s="section(name)" />
             <ProfilesCard v-if="name === 'Font & Alignment'" />
           </template>
+          <FontCoverageCard v-if="currentGroup.id === 'typeface'" />
           <ToolsPage v-if="currentGroup.custom === 'tools'" />
         </template>
       </main>
