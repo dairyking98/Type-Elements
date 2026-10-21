@@ -671,11 +671,18 @@ def coverage_scan(body, font_list=None):
     out = []
     for e in entries:
         try:
-            cmap = TTFont(e["path"], lazy=True, fontNumber=0).getBestCmap() or {}
+            mtime = os.path.getmtime(e["path"])
+            hit = _CMAP_CACHE.get(e["path"])
+            if not hit or hit[0] != mtime:          # read once per file version
+                hit = _CMAP_CACHE[e["path"]] = (mtime, frozenset((TTFont(e["path"], lazy=True, fontNumber=0).getBestCmap() or {}).keys()))
+            cmap = hit[1]
         except Exception:
             continue
         out.append({**e, "missing": "".join(c for c in chars if ord(c) not in cmap)})
     return out
+
+
+_CMAP_CACHE = {}   # font path -> (mtime, codepoints) for coverage_scan
 
 
 def default_dir():
