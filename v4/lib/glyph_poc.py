@@ -133,6 +133,21 @@ def load_font_face(font_path):
             f"font2_path/char_mod_font_path/etc.) setting in your config YAML")
     return freetype.Face(font_path)
 
+
+def font_display_name(font_path):
+    """A font's own name, read from the file - family, plus the style when
+    it isn't plain Regular ("Antikor Mono Hairline", "FreeMono"). For
+    labels that name the typeface; None if the file can't be read."""
+    try:
+        face = load_font_face(font_path)
+        family = face.family_name.decode("utf-8", "replace").strip() if face.family_name else ""
+        style = face.style_name.decode("utf-8", "replace").strip() if face.style_name else ""
+    except Exception:
+        return None
+    if not family:
+        return None
+    return family if style.lower() in ("", "regular", "normal", "book", "roman") or style.lower() in family.lower() else f"{family} {style}"
+
 # Default separation used by the CLI/build_glyph is intentionally LONGER than
 # the real 0.5mm Char_Protrusion: on a steeply curved element surface a thin
 # root gets clipped by the curvature at the mounting stage, so extra depth

@@ -51,7 +51,11 @@ def configure(config_path):
     # Composer's cap-height sizing convention, NOT Selectric I/II & III's
     # direct point size.
     g["Font_Size"] = font["composer_cap_height"] / 2.834
-    g["FONT_NAME"] = font["name"]
+    # the typeface label's text when label_text_override is blank: the
+    # struck font's own name, read from its file (font.name is only a
+    # fallback - it was v2's font family string and goes stale the moment
+    # the font changes)
+    g["FONT_NAME"] = glyph_poc.font_display_name(font["path"]) or font.get("name", "")
 
     font2 = cfg["font2"]
     g["FONT2_PATH"] = font2["font2_path"]
