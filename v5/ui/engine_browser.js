@@ -101,6 +101,7 @@ export const browserEngine = {
   addFont: (name, buffer) => call("add_font", name, buffer),
   addSyncedFont: (name, buffer) => call("add_synced_font", name, buffer),
   resolveFont: (path) => call("resolve_font", path),
+  coverageScan: (body) => call("coverage_scan", body),
   settingsFile: (m, body) => call("settings_file", m, body),
   importSettings: (text) => call("import_settings", { text }),
   mappingUrl: (m) => urls.mapping[m] || null,

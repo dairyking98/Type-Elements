@@ -130,6 +130,8 @@ def _f(key, path, typ, label, help_text="", options=None):
 
 
 EXTRA_INTROS = {
+    "Per-row and per-half values": {"level": "advanced", "text":
+        "ADVANCED - real machine measurements, one value per row or per shuttle half. Rarely need changing."},
     "Row baselines": {"level": "advanced", "text":
         "ADVANCED - measured per machine. A wrong value shifts a whole row of characters off the platen "
         "line. Find the right numbers with the Calibration element, not by guessing."},
@@ -650,6 +652,30 @@ def reset_config(machine):
 def fonts():
     from lib.system_fonts import list_system_fonts
     return [{"path": e.path, "family": e.family, "style": e.style} for e in list_system_fonts()]
+
+
+def coverage_scan(body, font_list=None):
+    """Which characters each of this engine's fonts has - the same fonts
+    the font picker lists (font_list, else fonts()), or just body["paths"].
+    Reads each font's character map only (fontTools, lazy), so a whole
+    library is quick. -> [{path, family, style, missing}], missing being
+    the characters of body["chars"] (whitespace ignored) the font lacks;
+    unreadable files are left out."""
+    from fontTools.ttLib import TTFont
+    chars = [c for c in dict.fromkeys(body.get("chars") or "") if not c.isspace()]
+    entries = font_list if font_list is not None else fonts()
+    if body.get("paths"):
+        want = set(body["paths"])
+        entries = [e for e in entries if e["path"] in want] + \
+                  [{"path": p, "family": os.path.basename(p), "style": ""} for p in want if p not in {e["path"] for e in entries}]
+    out = []
+    for e in entries:
+        try:
+            cmap = TTFont(e["path"], lazy=True, fontNumber=0).getBestCmap() or {}
+        except Exception:
+            continue
+        out.append({**e, "missing": "".join(c for c in chars if ord(c) not in cmap)})
+    return out
 
 
 def default_dir():

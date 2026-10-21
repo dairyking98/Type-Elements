@@ -92,6 +92,11 @@ def fonts():
     return core.fonts()
 
 
+@app.post("/api/coverage-scan")
+def coverage_scan(body: dict = Body(...)):
+    return core.coverage_scan(body)
+
+
 @app.get("/api/default-font-dir")
 def default_dir():
     return core.default_dir()

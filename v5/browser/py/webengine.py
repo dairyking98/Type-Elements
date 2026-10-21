@@ -61,6 +61,11 @@ def fonts():
     return out
 
 
+def coverage_scan(body):
+    """core.coverage_scan over this browser's fonts (bundled + added)."""
+    return core.coverage_scan(body, fonts())
+
+
 def add_synced_font(name, data):
     """A font file from the user's synced folder, for this session."""
     os.makedirs(SYNCED, exist_ok=True)
