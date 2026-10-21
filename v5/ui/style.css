@@ -341,3 +341,5 @@ details.adv > summary:hover { color: var(--text); }
 .key.shifted::before { content: ""; position: absolute; top: 3px; left: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--text-2); }
 .seg.show { display: inline-flex; flex-wrap: wrap; }
 .seg.show button { height: 28px; font-size: 13px; }
+.gauge-steps { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; }
+.gauge-steps ol { margin: 0 0 8px; padding-left: 22px; } .gauge-steps li { margin-bottom: 4px; }

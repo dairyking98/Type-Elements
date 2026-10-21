@@ -924,8 +924,20 @@ const ToolsPage = {
     const calib = computed(() => section("Calibration"));
     const gauge = computed(() => section("Gauge"));
     const buildAs = (target) => { S.build.target = target; runBuild(true); };
+    // shaft gauge: the bore is the shaft (core_id_in, inches) + clearance (core_id_offset, mm)
+    const gaugeFit = computed(() => {
+      const shaft = (Number(val("core_id_in")) || 0) * 25.4;
+      return { shaft, current: shaft + (Number(val("core_id_offset")) || 0) };
+    });
+    const bestPocket = ref(null);
+    const useBestPocket = () => {
+      if (!bestPocket.value) return;
+      const c = Math.round((bestPocket.value - gaugeFit.value.shaft) * 1000) / 1000;
+      setVal("core_id_offset", c);
+      toast(`Shaft clearance set to ${c.toFixed(3)} mm (hole ${Number(bestPocket.value).toFixed(3)} mm) - Save to keep it`, "ok");
+    };
     return { S, setVal, tt, legend, legendOut, legendUrl, runTypeTest, runLegend, runCoverage, presetNames, seedCoverage,
-             calib, gauge, buildAs, engine, layoutRows, downloadLegend };
+             calib, gauge, buildAs, engine, layoutRows, downloadLegend, gaugeFit, bestPocket, useBestPocket };
   },
   template: `
   <SectionCard v-if="calib" :s="calib">
@@ -933,6 +945,19 @@ const ToolsPage = {
   </SectionCard>
   <SectionCard v-if="gauge" :s="gauge" title="Shaft gauge">
     <template #actions><button class="btn small" :disabled="S.job.running" @click="buildAs('gauge')">Build shaft gauge</button></template>
+    <div class="gauge-steps">
+      <ol>
+        <li>Build the shaft gauge, download it and print it.</li>
+        <li>Slide each pocket onto the machine's real shaft. The unlabeled centre hole is your current fit ({{ gaugeFit.current.toFixed(3) }} mm); every outer pocket is engraved with its own hole diameter in mm.</li>
+        <li>Pick the pocket that slides on smoothly without wobble and enter its number:</li>
+      </ol>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:22px">
+        <input class="input" type="number" step="0.005" style="width:110px" v-model.number="bestPocket" placeholder="e.g. 3.340" @keyup.enter="useBestPocket">
+        <button class="btn small primary" :disabled="!bestPocket" @click="useBestPocket">Set shaft clearance</button>
+        <span v-if="bestPocket" class="help">= {{ bestPocket }} − {{ gaugeFit.shaft.toFixed(3) }} mm shaft → clearance {{ (bestPocket - gaugeFit.shaft).toFixed(3) }} mm</span>
+      </div>
+      <p class="help" style="margin:8px 0 0 22px">4. Save. Every element for this machine then uses that hole size. If the best pocket is at either end, shift the first pocket offset and print again.</p>
+    </div>
   </SectionCard>
   <SectionCard v-if="legend" :s="legend" title="Legend sheet">
     <template #actions><button class="btn small primary" :disabled="S.job.running" @click="runLegend">Generate legend</button></template>

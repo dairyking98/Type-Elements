@@ -1461,11 +1461,10 @@ SECTION_INTROS = {
     "Rib print": ("How the Rib-only part (Build target Rib, usually an FDM print) sits on the build plate.",
                   "picker-help"),
     "Gauge": (
-        "A small test print for the shaft fit, not the real element. The "
-        "unlabeled centre hole is your current fit; each outer pocket is "
-        "engraved with its own hole diameter. Test-fit them on the real "
-        "shaft, then set the shaft clearance to the best pocket's number "
-        "minus the bare shaft (3.175 mm for a 1/8 inch shaft).",
+        "A small test print to find the shaft clearance, not the real "
+        "element. Every outer pocket is engraved with its hole diameter in "
+        "mm (shaft + clearance); the steps below turn the best one into "
+        "the Shaft clearance setting.",
         "picker-help"),
     "Calibration": (
         "A real element where every position strikes the same test "
