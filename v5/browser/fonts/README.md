@@ -1,6 +1,6 @@
 # Bundled fonts
 
-GNU FreeFont (FreeMono, FreeSans, FreeSerif - FreeSerif is the Selectric Composer's default), copied from Debian/Ubuntu's
+GNU FreeFont (FreeMono, FreeSans, FreeSerif), copied from Debian/Ubuntu's
 `fonts-freefont-ttf` package (FreeSerif: the same release, from the font library). https://savannah.gnu.org/projects/freefont/
 
 Copyright 2002-2012 GNU FreeFont contributors. Licensed GPL-3.0-or-later

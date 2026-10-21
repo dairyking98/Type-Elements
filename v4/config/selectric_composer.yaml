@@ -17,9 +17,10 @@
 machine: selectric_composer
 
 font:
-  # Default face: FreeSerif (GNU FreeFont, bundled in v5/browser/fonts) - the Composer
-  # is proportional, so it keeps its own defaults, not the fixed-pitch machines' FreeMono.
-  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeSerif.ttf"
+  # Default face (2026-10-20): FreeMono ExtraLight (bundled, GPL font exception) at 3.0 mm, 10 CPI
+  # - before that Antikor Mono Hairline, which replaced Glass Antiqua.ttf;
+  # the notes below are about the original face.
+  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf"
   # Composer sizes type by CAP HEIGHT (in points), not direct point size -
   # v2: Font_Size_Selected = Composer_Cap_Height/2.834 (ibm.scad:186,190).
   # This is a fixed numeric conversion (matches v2 exactly), not a real
@@ -53,7 +54,7 @@ alignment:
   # character set sharing one offset (and is inert here - custom_v_chars
   # is empty), this is two independently-valued groups. Neither subsumes
   # the other, so both are kept.
-  caret_auto_drop: false
+  caret_auto_drop: true
   caret_drop_mm: 0.0
   underscore_lift_mm: 0.0
 
@@ -117,8 +118,8 @@ label:
   show_number: false            # v2: `if (Render_Mode!=0)` (ibm.scad:988) - FALSE for Composer (Render_Mode==0)
   label_no: "10"
   label_text_override: ""
-  label_no_font_override: ""
-  label_font_override: ""
+  label_no_font_override: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
+  label_font_override: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   no_label_size: 2.0
   no_label_offset: 0.0
   font_label_size: 2.0
@@ -132,7 +133,7 @@ build:
   # draft skirt cannot bleed into the neighbouring character. See
   # cylinder_machine._clip_to_cell. Off = the historical behavior.
   clip_to_cell: false
-  draft_angle_deg: 55.0
+  draft_angle_deg: 75.0
   minkowski_enabled: true
   # Height of the extruded glyph block before the Minkowski sum - the same
   # key the cylinder family uses. On this machine it is a construction
@@ -333,14 +334,9 @@ type_test:
     - ["æ", 3]
     - [" ", 3]
   text: |-
-    MmlmMMWlWMMMlMMMwlwMM%l%MM&l&MM–l–MM@l@M
-    MQlQMMRlRMMYlYMMUlUMMOlOMM¾l¾MMAlAMMDlDM
-    MGlGMMHlHMMKlKMM¼l¼MM½l½MMXlXMMVlVMMNlNM
-    MElEMMTlTMMFlFMMLlLMMZlZMMClCMMBlBMM1l1M
-    M2l2MM3l3MM4l4MM5l5MM6l6MM7l7MM8l8MM9l9M
-    M0l0MM=l=MMqlqMMylyMMuluMMoloMMplpMMdldM
-    MhlhMMklkMM]l]MMxlxMMblbMMnlnMM†l†MM+l+M
-    M$l$MM*l*MMPlPMMSlSMMeleMM?l?MMalaMMglgM
-    M[l[MMzlzMMclcMMvlvMMJlJMMrlrMMtltMMslsM
-    MflfMM!l!MM/l/MM(l(MM)l)MMIlIMM:l:MM-l-M
-    MiliMMjljMMlllMM,l,MM.l.MM;l;MM‘l‘MM’l’M
+    Hamburgefonstiv  WWW mmm iii lll 111
+    Hello World! iTiZ4n1c3d4y2d4y qpdb
+    Stop. Consider, then ACT! Yes? 6,789
+    (a, b. c; d: e! f?) #1 - $3 25% (S&N)
+    "say" 'hi' x^2 _abc_ ** 1/2 0123456789
+    Pack my box with five dozen liquor jugs.
