@@ -3,7 +3,8 @@
 # given path simply skips it when this profile is applied.
 name: FreeMono Thin 10CPI
 values:
-  alignment.caret_drop_mm: 1.5
+  alignment.caret_auto_raise: false
+  alignment.caret_raise_mm: -1.5
   alignment.center_offset_mm: 0.0
   alignment.left_offset_mm: 0.0
   alignment.mode: center

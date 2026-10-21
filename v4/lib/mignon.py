@@ -39,6 +39,7 @@ Test... omitted" - confirmed, Blickensderfer/Postal-only)."""
 import numpy as np
 import trimesh
 
+import glyph_poc
 from glyph_poc import (
     build_flat_text,
     build_flat_text_drafted,
@@ -217,9 +218,9 @@ def configure(config_path):
         "modified_right_chars": align["modified_right_chars"],
         "modified_right_offset_mm": align["modified_right_offset_mm"],
         # per-character baseline overrides (both default 0.0) - see
-        # glyph_poc.ALIGN_CARET_DROP_MM. .get() so a config predating
+        # glyph_poc.ALIGN_CARET_RAISE_MM. .get() so a config predating
         # these keys still loads.
-        "caret_drop_mm": align.get("caret_drop_mm", 0.0),
+        "caret_raise_mm": glyph_poc.effective_caret_raise_mm(cfg),
         "underscore_lift_mm": align.get("underscore_lift_mm", 0.0),
     }
 

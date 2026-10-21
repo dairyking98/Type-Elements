@@ -590,10 +590,13 @@ def type_test_command(machine, cfg):
            "--font-path", str(v.get("path")), "--font-size-mm", str(size)]
     flags = {"mode": "--align-mode", "center_offset_mm": "--center-offset-mm", "left_offset_mm": "--left-offset-mm",
              "modified_left_offset_mm": "--modified-left-offset-mm", "modified_right_offset_mm": "--modified-right-offset-mm",
-             "caret_drop_mm": "--caret-drop-mm", "underscore_lift_mm": "--underscore-lift-mm"}
+             "underscore_lift_mm": "--underscore-lift-mm"}
     for key, flag in flags.items():
         if v.get(key) is not None:
             cmd += [flag, str(v[key])]
+    if "caret_raise_mm" in v:   # the total, auto-raise included - same as the element gets
+        import glyph_poc
+        cmd += ["--caret-raise-mm", f"{glyph_poc.effective_caret_raise_mm(cfg):.4f}"]
     for key, flag in (("modified_left_chars", "--modified-left-chars"), ("modified_right_chars", "--modified-right-chars")):
         if v.get(key) is not None:
             cmd.append(f"{flag}={v[key]}")

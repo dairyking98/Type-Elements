@@ -121,6 +121,13 @@ MACHINE_PICKER_WARNINGS = {
 # does not support hot-swapping to a config of a DIFFERENT machine mid-
 # session, since the Element tab's widget set would need to be rebuilt,
 # not just repopulated - see _switch_master_config's guard).
+# Draft angle sits with the font, not under Quality: how steep a character's
+# walls can be depends on the face (a hairline needs a different draft
+# than a heavy one), so it travels with a font profile.
+DRAFT_ANGLE_FIELD = ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
+                     "Half-angle of the Minkowski draft cone each character is swept with. Only takes effect on "
+                     "Render - Quick Preview always skips the draft sweep.")
+
 SECTIONS_COMMON = {
     "Font & Alignment": [
         ("path", ["font", "path"], str, "Font path", "TrueType font for the struck characters."),
@@ -132,8 +139,11 @@ SECTIONS_COMMON = {
         ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
         ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
         ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
-        ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
-         "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
+        ("caret_auto_raise", ["alignment", "caret_auto_raise"], bool, "Auto-raise caret",
+         "Puts the top of \"^\" on the average top of every character in the layout - the raised caret typewriters had, whatever the font. Caret raise below adds to it."),
+        ("caret_raise_mm", ["alignment", "caret_raise_mm"], float, "Caret raise (mm)",
+         "Moves \"^\" up (negative = down), on top of auto-raise if that is on. Fonts draw U+005E wherever their circumflex accent sits, which rarely matches a typewriter face; a Blickensderfer caret on the baseline is about -0.6 x the font size."),
+        DRAFT_ANGLE_FIELD,
         ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
          "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
     ],
@@ -869,8 +879,11 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     ("modified_left_offset_mm", ["alignment", "modified_left_offset_mm"], float, "Modified-left offset (mm)", ""),
     ("modified_right_chars", ["alignment", "modified_right_chars"], str, "Modified-right chars", "Chars getting an extra right shift."),
     ("modified_right_offset_mm", ["alignment", "modified_right_offset_mm"], float, "Modified-right offset (mm)", ""),
-    ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
-     "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent; the Blickensderfer caret sits low. 0 = use the font's own position."),
+    ("caret_auto_raise", ["alignment", "caret_auto_raise"], bool, "Auto-raise caret",
+     "Puts the top of \"^\" on the average top of every character in the layout - the raised caret typewriters had, whatever the font. Caret raise below adds to it."),
+    ("caret_raise_mm", ["alignment", "caret_raise_mm"], float, "Caret raise (mm)",
+     "Moves \"^\" up (negative = down), on top of auto-raise if that is on. Fonts draw U+005E wherever their circumflex accent sits, which rarely matches a typewriter face; a Blickensderfer caret on the baseline is about -0.6 x the font size."),
+    DRAFT_ANGLE_FIELD,
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
 ]
@@ -987,8 +1000,11 @@ FONT_FIELDS_SELECTRIC12 = [
     ("custom_h_offset", ["alignment", "custom_h_offset"], float, "Custom H-align offset (mm)", ""),
     ("custom_v_chars", ["alignment", "custom_v_chars"], str, "Custom V-align chars", "Get an extra vertical offset (below)."),
     ("custom_v_offset", ["alignment", "custom_v_offset"], float, "Custom V-align offset (mm)", ""),
-    ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
-     "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent. 0 = use the font's own position."),
+    ("caret_auto_raise", ["alignment", "caret_auto_raise"], bool, "Auto-raise caret",
+     "Puts the top of \"^\" on the average top of every character in the layout - the raised caret typewriters had, whatever the font. Caret raise below adds to it."),
+    ("caret_raise_mm", ["alignment", "caret_raise_mm"], float, "Caret raise (mm)",
+     "Moves \"^\" up (negative = down), on top of auto-raise if that is on. Fonts draw U+005E wherever their circumflex accent sits, which rarely matches a typewriter face; a Blickensderfer caret on the baseline is about -0.6 x the font size."),
+    DRAFT_ANGLE_FIELD,
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
 ]
@@ -1014,8 +1030,11 @@ FONT_FIELDS_SELECTRIC_COMPOSER = [
     ("custom_h_offset", ["alignment", "custom_h_offset"], float, "Custom H-align offset (mm)", ""),
     ("custom_v_chars", ["alignment", "custom_v_chars"], str, "Custom V-align chars", "Get an extra vertical offset (below)."),
     ("custom_v_offset", ["alignment", "custom_v_offset"], float, "Custom V-align offset (mm)", ""),
-    ("caret_drop_mm", ["alignment", "caret_drop_mm"], float, "Caret drop (mm)",
-     "Shifts \"^\" down onto the baseline. Fonts draw U+005E at cap height because there it doubles as the spacing circumflex accent. 0 = use the font's own position."),
+    ("caret_auto_raise", ["alignment", "caret_auto_raise"], bool, "Auto-raise caret",
+     "Puts the top of \"^\" on the average top of every character in the layout - the raised caret typewriters had, whatever the font. Caret raise below adds to it."),
+    ("caret_raise_mm", ["alignment", "caret_raise_mm"], float, "Caret raise (mm)",
+     "Moves \"^\" up (negative = down), on top of auto-raise if that is on. Fonts draw U+005E wherever their circumflex accent sits, which rarely matches a typewriter face; a Blickensderfer caret on the baseline is about -0.6 x the font size."),
+    DRAFT_ANGLE_FIELD,
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
 ]
@@ -1283,9 +1302,6 @@ QUALITY_CORE_FIELDS = [
      "Minkowski cone height (mm)",
      "Height of the draft cone. It has to reach far enough into the body that a wide character's roots "
      "mesh into the surface instead of cutting off abruptly - taller is the safer direction."),
-    ("draft_angle_deg", ["build", "draft_angle_deg"], float, "Draft angle (deg)",
-     "Half-angle of the Minkowski draft cone each character is swept with. Only takes effect on "
-     "Render - Quick Preview always skips the draft sweep."),
 ]
 
 
@@ -1665,6 +1681,26 @@ def migrate_running_config(master_config_path, config_path):
         running_text = f.read()
     running_cfg = yaml.safe_load(running_text) or {}
     migrated = []
+
+    # Renamed keys, converted in place before anything is backfilled.
+    # alignment.caret_drop_mm (positive = down) became caret_raise_mm
+    # (positive = up) plus caret_auto_raise (2026-10-20): a copy that never
+    # touched it (0) takes the new auto default, one that dialled a drop
+    # in keeps exactly that position.
+    align = running_cfg.get("alignment")
+    if isinstance(align, dict) and "caret_drop_mm" in align and "caret_raise_mm" not in align:
+        m = re.search(r'^([ \t]+)caret_drop_mm:[ \t]*([^\s#]+)[^\n]*$', running_text, re.MULTILINE)
+        if m:
+            try:
+                drop = float(m.group(2))
+            except ValueError:
+                drop = 0.0
+            ind = m.group(1)
+            auto = "true" if drop == 0 else "false"
+            running_text = (running_text[:m.start()] + f"{ind}caret_auto_raise: {auto}\n"
+                            f"{ind}caret_raise_mm: {-drop + 0.0}" + running_text[m.end():])
+            running_cfg = yaml.safe_load(running_text) or {}
+            migrated.append("alignment.caret_drop_mm -> caret_raise_mm")
 
     for key in master_cfg:
         if key in running_cfg:

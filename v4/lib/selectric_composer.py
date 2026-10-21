@@ -27,6 +27,8 @@ values despite sharing the same physical ball class.
 
 import yaml
 
+import glyph_poc
+
 import spherical_machine
 from spherical_machine import FullElement, ResinPrint, Additive  # re-exported for callers
 from layouts.selectric_composer_layout import longitude_latitude
@@ -65,11 +67,11 @@ def configure(config_path):
     g["CUSTOMVALIGNCHARS"] = align["custom_v_chars"]
     g["CUSTOMVALIGNOFFSET"] = align["custom_v_offset"]
     # v4-only per-character baseline overrides, both default 0.0 (see
-    # glyph_poc.ALIGN_CARET_DROP_MM). Distinct from CUSTOMVALIGN* above,
+    # glyph_poc.ALIGN_CARET_RAISE_MM). Distinct from CUSTOMVALIGN* above,
     # which is v2-faithful and a different shape - see
     # spherical_machine._text2d_contours's docstring. .get() so a config
     # predating these keys still loads.
-    g["Align_Caret_Drop_Mm"] = align.get("caret_drop_mm", 0.0)
+    g["Align_Caret_Raise_Mm"] = glyph_poc.effective_caret_raise_mm(cfg)
     g["Align_Underscore_Lift_Mm"] = align.get("underscore_lift_mm", 0.0)
 
     e = cfg["element"]

@@ -21,16 +21,16 @@ alignment:
   modified_right_offset_mm: 0.0
   # Per-character baseline overrides, y-axis counterparts to the
   # modified_left/right_chars nudges above (see glyph_poc.alignment_offset).
-  # caret_drop_mm shifts "^" DOWN - the Blickensderfer's caret sits on the
-  # baseline, but digital fonts draw U+005E up at cap height because there
-  # it doubles as the spacing circumflex accent. underscore_lift_mm shifts
+  # caret_auto_raise puts the top of "^" on the average top of the
+  # layout's characters (the raised typewriter caret, in any font);
+  # caret_raise_mm moves it further, up positive. underscore_lift_mm shifts
   # "_" UP - many TTFs sink U+005F well below the baseline to clear
   # descenders in running text, which drops it out of the character cell on
-  # a struck element. Both 0.0 = use the font's own glyph position, i.e. the
-  # behavior every config had before these keys existed. Idea/problem
+  # a struck element. Idea/problem
   # statement from RobertG's OpenSCAD Blickensderfer generator
   # (badonoer.blogspot.com, CC BY-SA 4.0) caretDrop/uScoreLift.
-  caret_drop_mm: 0.0
+  caret_auto_raise: true
+  caret_raise_mm: 0.0
   underscore_lift_mm: 0.0
 
 character:

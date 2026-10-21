@@ -2961,8 +2961,19 @@ class TuneApp(App):
             cmd += ["--modified-right-chars=" + self.inputs["modified_right_chars"].value]
         if "modified_right_offset_mm" in self.inputs:
             cmd += ["--modified-right-offset-mm", self.inputs["modified_right_offset_mm"].value]
-        if "caret_drop_mm" in self.inputs:
-            cmd += ["--caret-drop-mm", self.inputs["caret_drop_mm"].value]
+        if "caret_raise_mm" in self.inputs:
+            # the caret's total raise, auto-raise included (glyph_poc.
+            # effective_caret_raise_mm) - computed from the saved config
+            # with this tab's current manual value, so the plate matches
+            # what the element would build
+            import glyph_poc
+            align = dict(self.cfg.get("alignment") or {})
+            try:
+                align["caret_raise_mm"] = float(self.inputs["caret_raise_mm"].value or 0)
+            except ValueError:
+                pass
+            raise_mm = glyph_poc.effective_caret_raise_mm({**self.cfg, "alignment": align})
+            cmd += ["--caret-raise-mm", f"{raise_mm:.4f}"]
         if "underscore_lift_mm" in self.inputs:
             cmd += ["--underscore-lift-mm", self.inputs["underscore_lift_mm"].value]
         # Secondary font ("font 2") - characters that use a different font
