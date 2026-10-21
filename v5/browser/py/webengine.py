@@ -154,7 +154,11 @@ def job_argv(kind, machine, body):
     if machine == "hammond_split":   # one character loop per rendered half
         b = cfg.get("build") or {}
         loops = int(bool(b.get("render_left", True))) + int(bool(b.get("render_right", True))) or 1
-    return {"argv": [os.path.relpath(cmd[1], core.V4)] + cmd[2:], "glyph_loops": loops,
+    # The worker pool helps any build that draws real draft angles - decided
+    # here from the actual flags, not from target names in the page (Hammond's
+    # "shuttle_with_rib" is the plain element plus a groove, and was missed).
+    pool = kind == "build" and "--minkowski" in cmd and "--cut-bodies" not in cmd
+    return {"argv": [os.path.relpath(cmd[1], core.V4)] + cmd[2:], "glyph_loops": loops, "pool": pool,
             "stl": core.output_path(cfg), "legend": core.output_path(cfg, "_legend.svg"),
             "report": core.COVERAGE_REPORT}
 
