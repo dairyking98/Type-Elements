@@ -332,6 +332,14 @@ def layout_views(machine, cfg):
             inv_m = [14, 17, 20, 23, 26, 1, 4, 7, 10, 13, 15, 18, 21, 24, 27, 2, 5, 8, 11,
                      16, 19, 22, 25, 0, 3, 6, 9, 12]
             views.insert(0, keyboard([10, 9, 9], lambda k: inv_m[k]))
+        elif machine == "helios" and width == 21:
+            # two staggered rows (Leonard, 2026-10-20): read in a zigzag,
+            # top, bottom, top, ... from the top-left w - "waesr...mp" - the
+            # top row is element slots 0-10 (w ... p), the bottom row, half a
+            # key in, slots 11-20 (a ... m)
+            views.insert(0, {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "align": "stagger",
+                             "offset_row": 1, "levels": ["lowercase", "UPPERCASE", "level 3", "level 4"][:n_rows],
+                             "rows": [[key(i) for i in range(0, 11)], [key(i) for i in range(11, 21)]]})
         elif machine == "bennett" and width == 28:
             # a grid of 10 x 3; the top row has the space bar in the two
             # places between R and U (None = no key)

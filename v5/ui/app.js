@@ -843,7 +843,7 @@ const LayoutPage = {
           <template v-if="view.kind === 'keys'">
             <div v-for="(krow, kr) in view.rows" class="kb-row keyrow" :class="view.align ? 'align-' + view.align : ''"
                  :style="{ '--n': Math.max(...view.rows.map(r => r.length)) + (view.align === 'stagger' ? 0.5 : 0),
-                          paddingLeft: view.align === 'stagger' ? (kr === 0 ? 'calc(var(--kw) * 0.66)' : 0) : view.align ? 0 : (kr * 14) + 'px' }">
+                          paddingLeft: view.align === 'stagger' ? (kr === (view.offset_row ?? 0) ? 'calc(var(--kw) * 0.66)' : 0) : view.align ? 0 : (kr * 14) + 'px' }">
               <div class="kb-keys">
                 <template v-for="(k, ki) in krow">
                 <div v-if="!k" class="keycap gap" :title="view.align === 'grid' ? 'Space bar' : 'No key'"></div>
