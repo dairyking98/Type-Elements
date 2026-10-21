@@ -5,8 +5,8 @@
 name: Antikor Mono Hairline 3.0mm 10CPI (Selectric I/II)
 machine: selectric12
 values:
-  alignment.caret_auto_raise: true
-  alignment.caret_raise_mm: 0.0
+  alignment.caret_auto_drop: true
+  alignment.caret_drop_mm: 0.0
   alignment.custom_h_chars: ''
   alignment.custom_h_offset: 0.2
   alignment.custom_v_chars: ''

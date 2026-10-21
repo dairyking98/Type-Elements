@@ -148,7 +148,7 @@ def _align_kwargs():
                 modified_left_offset_mm=Align_Modified_Left_Offset_Mm,
                 modified_right_chars=Align_Modified_Right_Chars,
                 modified_right_offset_mm=Align_Modified_Right_Offset_Mm,
-                caret_raise_mm=Align_Caret_Raise_Mm,
+                caret_drop_mm=Align_Caret_Drop_Mm,
                 underscore_lift_mm=Align_Underscore_Lift_Mm)
 
 

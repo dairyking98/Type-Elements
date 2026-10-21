@@ -148,16 +148,16 @@ alignment:
   modified_right_offset_mm: 0.0
   # Per-character baseline overrides, y-axis counterparts to the
   # modified_left/right_chars nudges above (see glyph_poc.alignment_offset).
-  # caret_auto_raise puts the top of "^" on the font\'s cap height (from
-  # the font\'s own data: the raised typewriter caret, in any font);
-  # caret_raise_mm moves it further, up positive. underscore_lift_mm shifts
+  # caret_auto_drop puts the bottom of "^" on the font's descender (the
+  # low caret of a struck typewriter face - digital fonts draw it high, as
+  # the circumflex accent); caret_drop_mm moves it further, down positive. underscore_lift_mm shifts
   # "_" UP - many TTFs sink U+005F well below the baseline to clear
   # descenders in running text, which drops it out of the character cell on
   # a struck element. Idea/problem statement
   # from RobertG's OpenSCAD Blickensderfer generator
   # (badonoer.blogspot.com, CC BY-SA 4.0) caretDrop/uScoreLift.
-  caret_auto_raise: true
-  caret_raise_mm: 0.0
+  caret_auto_drop: true
+  caret_drop_mm: 0.0
   underscore_lift_mm: 0.0
 
 # mesh-pipeline build settings (v4-specific, not from v2/blickensderfer.scad)

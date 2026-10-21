@@ -3,8 +3,8 @@
 # given path simply skips it when this profile is applied.
 name: Alma Mono Thin 10CPI
 values:
-  alignment.caret_auto_raise: false
-  alignment.caret_raise_mm: -2.4
+  alignment.caret_auto_drop: false
+  alignment.caret_drop_mm: 2.4
   alignment.center_offset_mm: 0.0
   alignment.left_offset_mm: 0.0
   alignment.mode: center

@@ -5,8 +5,8 @@
 name: Antikor Mono Hairline 3.0mm 10CPI (Oliver slug)
 machine: oliver_slug
 values:
-  alignment.caret_auto_raise: true
-  alignment.caret_raise_mm: 0.0
+  alignment.caret_auto_drop: true
+  alignment.caret_drop_mm: 0.0
   alignment.center_offset_mm: 0.0
   alignment.left_offset_mm: 0.0
   alignment.mode: center

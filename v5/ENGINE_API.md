@@ -191,7 +191,7 @@ call.
 Every download carries the settings it was built from. A settings file is
 the running config YAML exactly as saved, under a comment header whose
 `# te-settings: {...}` line is JSON: machine, time, what was built, the
-caret's total raise, and each font's file name and a short SHA-256.
+caret's total drop, and each font's file name and a short SHA-256.
 
 | Method & path | Body | Returns |
 |---|---|---|

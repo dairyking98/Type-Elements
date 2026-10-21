@@ -418,19 +418,19 @@ ALIGN_MODIFIED_RIGHT_OFFSET_MM = 0.0
 # someone dials one in - the digital font's own glyph position is used
 # as-is, which is what every config did before these existed.
 #
-# caret_raise_mm: a signed shift of "^" (U+005E), positive = UP. Digital
-# fonts draw the ASCII caret wherever their circumflex accent sits - near
-# cap height in some, lower in others - so it rarely lines up with the
-# rest of a typewriter face. Two ways to place it, combinable:
-#   * alignment.caret_auto_raise (effective_caret_raise_mm() below): move the caret so
-#     its top sits on the font's topline (its declared cap height) - the
-#     raised caret typewriters usually had, whatever font;
-#   * caret_raise_mm: a manual nudge on top of that (or the whole shift
-#     with auto off). A Blickensderfer-style caret on the baseline is a
-#     negative raise of about 0.6-0.65 x the font size.
-# Was caret_drop_mm (positive = DOWN) until 2026-10-20 - running configs
-# and profiles carrying the old key are converted (raise = -drop, auto
-# off) by tune_tables.migrate_running_config / font_profiles.load_profile.
+# caret_drop_mm: a signed shift of "^" (U+005E), positive = DOWN. A
+# struck typewriter caret sits low, but digital fonts draw U+005E up near
+# cap height, because there it doubles as the spacing circumflex accent.
+# Two ways to place it, combinable:
+#   * alignment.caret_auto_drop (effective_caret_drop_mm() below): move the
+#     caret so its BOTTOM sits on the font's descender line - measured on the
+#     descending lowercase (p q g j y), since fonts' own descender metrics
+#     are often padded or wrong (Comic Mono declares -386 units, its p
+#     reaches -609);
+#   * caret_drop_mm: a manual nudge on top of that (or the whole shift with
+#     auto off).
+# (Briefly caret_raise_mm, positive = up, on 2026-10-20 - converted back on
+# load by tune_tables.migrate_running_config / font_profiles.upgrade_values.)
 # Idea and the characterization of the problem come from RobertG's
 # OpenSCAD Blickensderfer wheel generator (badonoer.blogspot.com, CC BY-SA
 # 4.0) `caretDrop`; the implementation here is our own.
@@ -438,8 +438,8 @@ ALIGN_MODIFIED_RIGHT_OFFSET_MM = 0.0
 # underscore_lift_mm: many TTFs place U+005F well below the baseline so
 # it clears descenders in running text. On a struck type element that
 # puts it off the bottom of the character cell, so it needs raising.
-# Positive lifts UP. Same provenance as caret_raise_mm (`uScoreLift`).
-ALIGN_CARET_RAISE_MM = 0.0
+# Positive lifts UP. Same provenance as caret_drop_mm (`uScoreLift`).
+ALIGN_CARET_DROP_MM = 0.0
 ALIGN_UNDERSCORE_LIFT_MM = 0.0
 ALIGN_CARET_CHARS = "^"
 ALIGN_UNDERSCORE_CHARS = "_"
@@ -494,7 +494,7 @@ def alignment_offset(char, advance_mm,
                      modified_left_offset_mm=ALIGN_MODIFIED_LEFT_OFFSET_MM,
                      modified_right_chars=ALIGN_MODIFIED_RIGHT_CHARS,
                      modified_right_offset_mm=ALIGN_MODIFIED_RIGHT_OFFSET_MM,
-                     caret_raise_mm=ALIGN_CARET_RAISE_MM,
+                     caret_drop_mm=ALIGN_CARET_DROP_MM,
                      underscore_lift_mm=ALIGN_UNDERSCORE_LIFT_MM,
                      caret_chars=ALIGN_CARET_CHARS,
                      underscore_chars=ALIGN_UNDERSCORE_CHARS):
@@ -504,8 +504,8 @@ def alignment_offset(char, advance_mm,
 
     x follows alignment_x_offset()'s docstring above. y is 0.0 for every
     character except the two per-character baseline overrides described
-    at ALIGN_CARET_RAISE_MM: characters in caret_chars shift UP by
-    caret_raise_mm, characters in underscore_chars shift UP by
+    at ALIGN_CARET_DROP_MM: characters in caret_chars shift DOWN by
+    caret_drop_mm, characters in underscore_chars shift UP by
     underscore_lift_mm. Both default to 0.0, so this returns y=0 for
     every character unless a config dials one in.
 
@@ -513,8 +513,8 @@ def alignment_offset(char, advance_mm,
     apply one and silently forget the other - the reason build_glyph()/
     build_flat_text()/the slug family all call this rather than adding
     their own y term. Sign convention matches the x offsets: the value
-    is a plain signed mm shift in the NAME'S direction (raise = up,
-    lift = up), so a negative caret_raise_mm lowers the caret."""
+    is a plain signed mm shift in the NAME'S direction (drop = down,
+    lift = up), so a negative caret_drop_mm raises the caret."""
     if mode == "center":
         dx = -advance_mm / 2.0 + center_offset_mm
     elif mode == "left":
@@ -529,57 +529,47 @@ def alignment_offset(char, advance_mm,
 
     dy = 0.0
     if caret_chars and char in caret_chars:
-        dy += caret_raise_mm
+        dy -= caret_drop_mm
     elif underscore_chars and char in underscore_chars:
         dy += underscore_lift_mm
     return dx, dy
 
 
 
-def _ink_top_mm(face, char, scale, font_path):
-    """Top of a character's ink above the baseline in mm, or None for a
-    character the font lacks or draws empty. Measured on the same flattened
-    contours the build uses (works with the browser's FreeType shim too)."""
+# the descending lowercase whose bottoms make the descender line
+_DESCENDER_CHARS = "pqgjy"
+
+
+def _ink_bottom_mm(face, char, scale, font_path):
+    """Bottom of a character's ink relative to the baseline in mm (negative
+    = below), or None for a character the font lacks or draws empty."""
     if face.get_char_index(ord(char)) == 0:
         return None
     contours, _adv = get_glyph_contours_and_advance(char, 0.01, scale, font_path=font_path)
-    tops = [float(c[:, 1].max()) for c in contours if len(c)]
-    return max(tops) if tops else None
+    bottoms = [float(c[:, 1].min()) for c in contours if len(c)]
+    return min(bottoms) if bottoms else None
 
 
-# tall glyphs whose tops make the topline when a font doesn't record one
-_TOPLINE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-
-def font_cap_height_mm(font_path, size_mm):
-    """The font's own topline - its declared cap height (OS/2 sCapHeight) in
-    mm at size_mm - or, for a font that doesn't declare one, the average ink
-    top of its capitals and digits (tall glyphs only: lowercase would drag
-    it down to the x-height). None if neither can be had."""
+def font_descender_mm(font_path, size_mm):
+    """The font's descender line at size_mm (mm, negative): the average
+    bottom of its descending lowercase p q g j y. Measured rather than read
+    from the font's metrics, which are often padded for line spacing."""
     face = load_font_face(font_path)
     scale = em_to_mm_scale(size_mm, face.units_per_EM)
-    try:
-        from fontTools.ttLib import TTFont
-        os2 = TTFont(font_path, fontNumber=0, lazy=True)["OS/2"]
-        cap = getattr(os2, "sCapHeight", 0) or 0
-        if cap > 0:
-            return cap * scale
-    except Exception:
-        pass
-    tops = [t for t in (_ink_top_mm(face, c, scale, font_path) for c in _TOPLINE_CHARS) if t is not None]
-    return sum(tops) / len(tops) if tops else None
+    bottoms = [b for b in (_ink_bottom_mm(face, c, scale, font_path) for c in _DESCENDER_CHARS) if b is not None and b < 0]
+    return sum(bottoms) / len(bottoms) if bottoms else None
 
 
-def effective_caret_raise_mm(cfg, chars=None):
-    """The caret's total upward shift (mm) for a config: alignment.
-    caret_raise_mm, plus - with alignment.caret_auto_raise on - the shift
-    that puts the caret's top on the topline of the font it is struck in
-    (font_cap_height_mm: the font's declared cap height). 0.0 for a config
-    with neither key. `chars` is accepted for older callers and unused."""
+def effective_caret_drop_mm(cfg, chars=None):
+    """The caret's total downward shift (mm) for a config: alignment.
+    caret_drop_mm, plus - with alignment.caret_auto_drop on - the shift that
+    puts the caret's bottom on the descender line of the font it is struck
+    in (font_descender_mm). 0.0 for a config with neither key. `chars` is
+    accepted for older callers and unused."""
     align = cfg.get("alignment") or {}
-    raise_mm = float(align.get("caret_raise_mm", 0.0) or 0.0)
-    if not align.get("caret_auto_raise"):
-        return raise_mm
+    drop_mm = float(align.get("caret_drop_mm", 0.0) or 0.0)
+    if not align.get("caret_auto_drop"):
+        return drop_mm
     font = cfg.get("font") or {}
     font2 = cfg.get("font2") or {}
 
@@ -595,16 +585,16 @@ def effective_caret_raise_mm(cfg, chars=None):
         path = font2.get("font2_path") or path
         size = size_of(font2, "font2_size_mm", "font2_composer_cap_height") or size
     if not path or not size:
-        return raise_mm
+        return drop_mm
     try:
         face = load_font_face(path)
-        caret = _ink_top_mm(face, ALIGN_CARET_CHARS[0], em_to_mm_scale(size, face.units_per_EM), path)
-        top = font_cap_height_mm(path, size)
+        caret = _ink_bottom_mm(face, ALIGN_CARET_CHARS[0], em_to_mm_scale(size, face.units_per_EM), path)
+        line = font_descender_mm(path, size)
     except Exception:
-        return raise_mm
-    if caret is None or top is None:
-        return raise_mm
-    return raise_mm + top - caret
+        return drop_mm
+    if caret is None or line is None:
+        return drop_mm
+    return drop_mm + caret - line
 
 # Anything smaller than this (mm^2) is floating-point noise from boolean-op
 # cleanup (buffer(0)/difference() on self-intersecting input can leave

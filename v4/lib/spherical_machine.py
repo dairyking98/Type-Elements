@@ -152,20 +152,20 @@ def FullBody(flatness_tolerance_mm=None, minkowski_enabled=None, draft_angle_deg
 
 def _text2d_contours(char, font_path, font_size_mm, flatness_tolerance_mm, halign,
                       x_pos_offset, y_pos_offset, custom_h_offset, custom_v_offset,
-                      caret_raise_mm=0.0, underscore_lift_mm=0.0):
+                      caret_drop_mm=0.0, underscore_lift_mm=0.0):
     """Text() (v2/ibm.scad:497-507) - 2D glyph outline in mm, with v2's
     exact halign -> mirror -> translate order (NOT build_glyph's own
     shift-then-mirror convention - see module docstring). Weight
     adjustment (Font_Weight_Offset/X_Weight_Adjustment/Y_Weight_Adjustment)
     not implemented - see module docstring.
 
-    caret_raise_mm/underscore_lift_mm are v4's own per-character baseline
-    overrides (glyph_poc.ALIGN_CARET_RAISE_MM), not from v2/ibm.scad -
+    caret_drop_mm/underscore_lift_mm are v4's own per-character baseline
+    overrides (glyph_poc.ALIGN_CARET_DROP_MM), not from v2/ibm.scad -
     both default to 0.0, so v2-faithful output is unchanged. They are
     DISTINCT from, and do not replace, this family's own custom_v_chars/
     custom_v_offset: that is one arbitrary character set sharing one
     offset, this is two independently-valued groups, and neither
-    subsumes the other (you cannot raise "^" and lift "_" by different
+    subsumes the other (you cannot drop "^" and lift "_" by different
     amounts with a single custom_v group). Applied here with the halign
     shift rather than in the translate below purely for symmetry with
     the cylinder family's shift-then-mirror order; mirror([1,0,0]) only
@@ -180,7 +180,7 @@ def _text2d_contours(char, font_path, font_size_mm, flatness_tolerance_mm, halig
     # offset params reproduces exactly this (center: -advance/2, left: 0).
     halign_shift, y_shift = alignment_offset(
         char, advance_mm, mode=halign,
-        caret_raise_mm=caret_raise_mm, underscore_lift_mm=underscore_lift_mm)
+        caret_drop_mm=caret_drop_mm, underscore_lift_mm=underscore_lift_mm)
     contours_mm = [c + np.array([halign_shift, y_shift]) for c in contours_mm]
     # mirror([1, 0, 0])
     contours_mm = [c * np.array([-1.0, 1.0]) for c in contours_mm]
@@ -206,7 +206,7 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
     contours_mm = _text2d_contours(char, font_path, font_size_mm, flatness_tolerance_mm,
                                     H_Alignment, X_Pos_Offset, Y_Pos_Offset,
                                     custom_h_offset, custom_v_offset,
-                                    caret_raise_mm=Align_Caret_Raise_Mm,
+                                    caret_drop_mm=Align_Caret_Drop_Mm,
                                     underscore_lift_mm=Align_Underscore_Lift_Mm)
     flat = classify_and_triangulate(contours_mm)
     if flat is None:

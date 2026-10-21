@@ -594,9 +594,9 @@ def type_test_command(machine, cfg):
     for key, flag in flags.items():
         if v.get(key) is not None:
             cmd += [flag, str(v[key])]
-    if "caret_raise_mm" in v:   # the total, auto-raise included - same as the element gets
+    if "caret_drop_mm" in v:   # the total, auto-drop included - same as the element gets
         import glyph_poc
-        cmd += ["--caret-raise-mm", f"{glyph_poc.effective_caret_raise_mm(cfg):.4f}"]
+        cmd += ["--caret-drop-mm", f"{glyph_poc.effective_caret_drop_mm(cfg):.4f}"]
     for key, flag in (("modified_left_chars", "--modified-left-chars"), ("modified_right_chars", "--modified-right-chars")):
         if v.get(key) is not None:
             cmd.append(f"{flag}={v[key]}")
@@ -673,7 +673,7 @@ def settings_file(machine, body=None):
                 fonts[f["key"]] = {"file": os.path.basename(str(f["value"])), "sha256_16": _font_fingerprint(str(f["value"]))}
     meta = {"machine": machine, "saved": datetime.now().isoformat(timespec="seconds"),
             "build": body.get("last_build"), "engine": body.get("engine"), "app": body.get("app"),
-            "caret_raise_total_mm": round(glyph_poc.effective_caret_raise_mm(cfg), 4), "fonts": fonts}
+            "caret_drop_total_mm": round(glyph_poc.effective_caret_drop_mm(cfg), 4), "fonts": fonts}
     if body.get("font_stand_ins"):     # browser: which of these fonts stand in for one the user doesn't have here
         meta["font_stand_ins"] = body["font_stand_ins"]
     head = ("# Type Elements settings - load this file back with Open config > Load a settings file\n"

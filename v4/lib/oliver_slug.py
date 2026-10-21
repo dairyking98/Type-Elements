@@ -41,9 +41,9 @@ def configure(config_path):
     g["Align_Modified_Right_Chars"] = align["modified_right_chars"]
     g["Align_Modified_Right_Offset_Mm"] = align["modified_right_offset_mm"]
     # per-character baseline overrides (both default 0.0) - see
-    # glyph_poc.ALIGN_CARET_RAISE_MM. .get() so a config predating
+    # glyph_poc.ALIGN_CARET_DROP_MM. .get() so a config predating
     # these keys still loads.
-    g["Align_Caret_Raise_Mm"] = glyph_poc.effective_caret_raise_mm(cfg)
+    g["Align_Caret_Drop_Mm"] = glyph_poc.effective_caret_drop_mm(cfg)
     g["Align_Underscore_Lift_Mm"] = align.get("underscore_lift_mm", 0.0)
 
     char = cfg["character"]

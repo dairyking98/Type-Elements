@@ -283,9 +283,9 @@ def configure(config_path):
         "modified_right_chars": align["modified_right_chars"],
         "modified_right_offset_mm": align["modified_right_offset_mm"],
         # per-character baseline overrides (both default 0.0) - see
-        # glyph_poc.ALIGN_CARET_RAISE_MM. .get() so a config predating
+        # glyph_poc.ALIGN_CARET_DROP_MM. .get() so a config predating
         # these keys still loads.
-        "caret_raise_mm": glyph_poc.effective_caret_raise_mm(cfg),
+        "caret_drop_mm": glyph_poc.effective_caret_drop_mm(cfg),
         "underscore_lift_mm": align.get("underscore_lift_mm", 0.0),
     }
 

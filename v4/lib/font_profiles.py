@@ -2,7 +2,7 @@
 Named, machine-independent "Font & Alignment" profiles.
 
 A profile is the Font & Alignment tab's values saved under a name, so the
-same typeface setup (font file, size, alignment nudges, caret raise, draft
+same typeface setup (font file, size, alignment nudges, caret drop, draft
 angle, ...) can be recalled later and - the actual point - carried ACROSS
 machines: dial a font in on Blickensderfer, then apply the same profile to
 Hammond or a Selectric without re-typing it.
@@ -38,7 +38,7 @@ omission (see apply_to()):
 Nothing is coerced or guessed. A Selectric has no `alignment.
 center_offset_mm` and a Blickensderfer has no `alignment.x_pos_offset`;
 each simply ignores the other's, while the genuinely shared core (font
-path, mode, caret raise, underscore lift, draft angle, and font size for
+path, mode, caret drop, underscore lift, draft angle, and font size for
 everything except the Composer, which sizes by cap height) transfers.
 """
 
@@ -109,15 +109,22 @@ def load_profile(path):
 
 
 def upgrade_values(values):
-    """A profile saved before a key was renamed, read as the new key.
-    alignment.caret_drop_mm (positive = down) is now caret_raise_mm
-    (positive = up) plus caret_auto_raise - a saved drop keeps exactly its
-    position (auto off), an untouched 0 takes auto-raise."""
-    if "alignment.caret_drop_mm" in values and "alignment.caret_raise_mm" not in values:
-        values = dict(values)
-        drop = float(values.pop("alignment.caret_drop_mm") or 0.0)
-        values["alignment.caret_raise_mm"] = -drop + 0.0
-        values.setdefault("alignment.caret_auto_raise", drop == 0)
+    """A profile saved before a key was renamed, read as the current key.
+    The caret is alignment.caret_drop_mm (positive = down) plus
+    caret_auto_drop. A profile from the brief caret_raise_mm /
+    caret_auto_raise days (2026-10-20) is converted back, sign flipped; an
+    older one with only caret_drop_mm keeps its drop, taking auto-drop when
+    the drop was 0."""
+    if "alignment.caret_auto_drop" in values:
+        return values
+    values = dict(values)
+    if "alignment.caret_raise_mm" in values:
+        drop = -float(values.pop("alignment.caret_raise_mm") or 0.0) + 0.0
+        auto = values.pop("alignment.caret_auto_raise", drop == 0)
+        values["alignment.caret_drop_mm"] = drop
+        values["alignment.caret_auto_drop"] = bool(auto)
+    elif "alignment.caret_drop_mm" in values:
+        values["alignment.caret_auto_drop"] = float(values["alignment.caret_drop_mm"] or 0.0) == 0
     return values
 
 
@@ -217,7 +224,7 @@ def delete_profile(config_dir, name):
 #     not mm (Font_Size_Selected = cap_height/2.834), so equating it with
 #     a mm size would be a unit error, not a rename.
 #   alignment.custom_v_chars/custom_v_offset - a generic per-character
-#     VERTICAL group with no cylinder counterpart; caret_raise_mm/
+#     VERTICAL group with no cylinder counterpart; caret_drop_mm/
 #     underscore_lift_mm are two fixed-character specialisations of the
 #     same idea, not the same knob.
 #   alignment.modified_right_* - the spherical family has only one
