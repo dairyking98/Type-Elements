@@ -120,7 +120,9 @@ const S = reactive({
   typeTestAuto: (() => { try { return !!localStorage.getItem("te.typeTestAuto"); } catch { return false; } })(),
   sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
   local: { status: "unknown", count: 0, error: "" },            // this computer's fonts (localfonts.js)
-  access: false, previewText: "",                               // the font-access popup; the picker's own preview text
+  access: false, previewText: "",
+  helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
+  helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
   fontAdvanced: (() => { try { return !!localStorage.getItem("te.fontAdvanced"); } catch { return false; } })(),
   booting: false, engineStatus: null, bootedBefore: (() => { try { return !!localStorage.getItem("te.engineBooted"); } catch { return false; } })(), engineError: "", phoneLanding: false,
 });
@@ -210,6 +212,22 @@ async function resolveFont(path) {
   if (!path || engine.kind !== "browser") return { path, kind: "same" };
   return (await provideFont(path)) || engine.resolveFont(path);
 }
+
+// Help text: every setting can show its help under it - all at once (the
+// topbar's Help button, remembered) or one at a time (its ⓘ button). It is
+// always available as a hover tooltip too.
+const helpShown = (key) => (S.helpAll ? !S.helpClosed[key] : !!S.helpOpen[key]);
+const toggleHelp = (key) => { const m = S.helpAll ? S.helpClosed : S.helpOpen; m[key] = !m[key]; };
+function setHelpAll(on) {
+  S.helpAll = on; S.helpOpen = {}; S.helpClosed = {};
+  try { localStorage.setItem("te.helpAll", on ? "1" : ""); } catch {}
+}
+const HelpButton = {
+  props: ["k", "help"],
+  setup: () => ({ helpShown, toggleHelp }),
+  template: `<button v-if="help" type="button" class="help-btn" :class="{ on: helpShown(k) }" :aria-expanded="helpShown(k)"
+    :title="helpShown(k) ? 'Hide help' : help" @click.prevent.stop="toggleHelp(k)">i</button>`,
+};
 
 function setVal(key, v) {
   const orig = fieldsByKey.value[key]?.value;
@@ -483,16 +501,17 @@ const FieldInput = {
     const alignBars = (a) => ({ left: [[2, 16], [2, 10], [2, 14], [2, 8]], center: [[2, 16], [5, 10], [3, 14], [6, 8]],
       right: [[2, 16], [8, 10], [4, 14], [10, 8]], justify: [[2, 16], [2, 16], [2, 16], [2, 16]] }[a]);
     const step = computed(() => (props.f.type === "int" ? 1 : stepOf(v.value)));
-    return { v, changed, setVal, setItem, textFam, famStyle, rowLabel, isAlign, alignBars, step, stepOf };
+    return { v, changed, setVal, setItem, textFam, famStyle, rowLabel, isAlign, alignBars, step, stepOf, helpShown };
   },
+  components: { HelpButton },
   template: `
   <div class="field" :class="{ wide: f.type === 'floatlist' || f.type === 'textblock' }" :id="'f-' + f.key" :title="f.help || ''">
     <template v-if="f.type === 'bool'">
-      <label class="switch"><input type="checkbox" :checked="!!v" @change="setVal(f.key, $event.target.checked)">
-        <span>{{ f.label }}</span><span v-if="changed" class="changed"></span></label>
+      <div class="switch-row"><label class="switch"><input type="checkbox" :checked="!!v" @change="setVal(f.key, $event.target.checked)">
+        <span>{{ f.label }}</span><span v-if="changed" class="changed"></span></label><HelpButton :k="f.key" :help="f.help" /></div>
     </template>
     <template v-else>
-      <label :for="'i-' + f.key">{{ f.label }}<span v-if="changed" class="changed"></span></label>
+      <label :for="'i-' + f.key">{{ f.label }}<span v-if="changed" class="changed"></span><HelpButton :k="f.key" :help="f.help" /></label>
       <div v-if="isAlign" class="seg-icons" role="radiogroup" :aria-label="f.label">
         <button v-for="o in f.options" :class="{ on: String(v) === o.value }" :title="o.label" :aria-label="o.label" role="radio" :aria-checked="String(v) === o.value" @click="setVal(f.key, o.value)">
           <svg viewBox="0 0 20 20" fill="currentColor"><rect v-for="(w, i) in alignBars(o.value)" :x="w[0]" :y="3 + i * 4" :width="w[1]" height="2" rx="1"/></svg>
@@ -513,24 +532,24 @@ const FieldInput = {
              :id="'i-' + f.key" :value="v" @input="setVal(f.key, $event.target.value === '' ? '' : Number($event.target.value))">
       <input v-else class="input" :id="'i-' + f.key" :value="v ?? ''" @input="setVal(f.key, $event.target.value)">
     </template>
-    <div v-if="f.help && f.help.length < 160" class="help">{{ f.help }}</div>
+    <div v-if="f.help && helpShown(f.key)" class="help">{{ f.help }}</div>
   </div>`,
 };
 
 const FontField = {
   props: ["f", "sample"],
-  components: { FontText },
+  components: { FontText, HelpButton },
   setup(props) {
     const path = computed(() => val(props.f.key) || "");
     const fam = computed(() => fontFamily(path.value));
     const changed = computed(() => props.f.key in S.edits);
     const pick = () => { S.picker = { key: props.f.key, label: props.f.label, current: path.value, sample: props.sample }; };
     const substituted = computed(() => (S.data.font_substitutions || []).find((s) => s.key === props.f.key && s.to === path.value));
-    return { S, path, fam, changed, pick, fontLabel, setVal, famStyle, substituted, baseName };
+    return { S, path, fam, changed, pick, fontLabel, setVal, famStyle, substituted, baseName, helpShown };
   },
   template: `
   <div class="field wide" :id="'f-' + f.key">
-    <label>{{ f.label }}<span v-if="changed" class="changed"></span></label>
+    <label>{{ f.label }}<span v-if="changed" class="changed"></span><HelpButton :k="f.key" :help="f.help" /></label>
     <div class="font-field">
       <div v-if="substituted" class="note" :class="substituted.kind === 'stand-in' ? 'warn' : 'info'" style="margin:10px 12px 0">
         <template v-if="substituted.kind === 'yours'">Using your copy of {{ fontLabel(substituted.from) }}{{ S.sync.name && substituted.to.startsWith('/fonts/synced/') ? ' from the ' + S.sync.name + ' folder' : '' }}.</template>
@@ -545,11 +564,11 @@ const FontField = {
       </div>
       <div class="meta">
         <span class="path" :title="path">{{ path || '—' }}</span>
-        <button class="btn small" @click="pick">Choose…</button>
+        <button class="btn small" @click="pick" title="Pick a font: the app's own, this computer's, your fonts folder, or a file">Choose…</button>
         <button v-if="path && f.key !== 'path'" class="btn small ghost" @click="setVal(f.key, '')">Clear</button>
       </div>
     </div>
-    <div v-if="f.help" class="help">{{ f.help }}</div>
+    <div v-if="f.help && helpShown(f.key)" class="help">{{ f.help }}</div>
   </div>`,
 };
 
@@ -654,7 +673,7 @@ const WorkflowStrip = {
     return { steps, go };
   },
   template: `<ol class="flow">
-    <li v-for="st in steps" :class="{ done: st.done }" @click="go(st)"><span class="n">{{ st.done ? '✓' : st.n }}</span>{{ st.t }}</li>
+    <li v-for="st in steps" :class="{ done: st.done }" :title="st.done ? 'Done' : 'Next: ' + st.t" @click="go(st)"><span class="n">{{ st.done ? '✓' : st.n }}</span>{{ st.t }}</li>
   </ol>`,
 };
 
@@ -709,7 +728,7 @@ const ProfilesCard = {
     <div class="card-body">
       <p class="help" style="margin-top:0">A profile is a font plus everything on the Font card. Click one to switch to it; save one when you find a setting you like, and it's there for every machine.</p>
       <div class="profile-list">
-        <div v-for="p in [...mine, ...builtin]" :key="p.name" class="profile" :class="{ on: p.active }" @click="!p.active && renaming !== p.name && apply(p)">
+        <div v-for="p in [...mine, ...builtin]" :key="p.name" class="profile" :class="{ on: p.active }" :title="p.active ? 'The current settings' : 'Switch to this profile'" @click="!p.active && renaming !== p.name && apply(p)">
           <template v-if="renaming === p.name">
             <input id="rename-input" class="input" style="flex:1" v-model="renameTo" @click.stop @keyup.enter="finishRename" @keyup.esc="renaming = null" @blur="finishRename">
           </template>
@@ -1358,7 +1377,7 @@ const App = {
     }
     const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
+    return { S, setHelpAll, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
@@ -1411,7 +1430,7 @@ const App = {
   <div v-else class="shell">
     <header class="topbar">
       <a class="brand brand-link" :href="homeUrl" title="Type Elements home"><span class="dot">T</span><span class="label">Type Elements</span></a>
-      <select class="select" :value="S.machine" @change="loadMachine($event.target.value)" style="width:190px;flex-shrink:1;min-width:120px" aria-label="Machine">
+      <select class="select" :value="S.machine" @change="loadMachine($event.target.value)" style="width:190px;flex-shrink:1;min-width:120px" aria-label="Machine" title="Which typewriter the element is for - each keeps its own settings">
         <optgroup v-for="g in S.machines" :label="g.group">
           <option v-for="m in g.machines" :value="m.key" :disabled="!m.available">{{ m.label }}{{ m.warning ? ' — ⚠ untested' : '' }}</option>
         </optgroup>
@@ -1425,7 +1444,9 @@ const App = {
       </div>
       <span class="spacer"></span>
       <div class="search"><input id="search" class="input" v-model="S.search" placeholder="Search settings   /" @focus="S.view = 'settings'"></div>
-      <button class="btn hide-sm" :disabled="!dirty" @click="discard">Discard</button>
+      <button class="btn hide-sm help-all" :class="{ on: S.helpAll }" @click="setHelpAll(!S.helpAll)" :aria-pressed="S.helpAll"
+              :title="S.helpAll ? 'Hide the help under every setting (each ⓘ still shows its own)' : 'Show the help under every setting'">{{ S.helpAll ? 'Hide help' : 'Show help' }}</button>
+      <button class="btn hide-sm" :disabled="!dirty" @click="discard" title="Throw away unsaved changes">Discard</button>
       <button class="btn primary" :disabled="!dirty" @click="save" title="Ctrl+S">Save</button>
       <select class="select hide-md" v-model="S.theme" @change="applyTheme" style="width:88px" aria-label="Theme" title="Theme">
         <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option><option value="night" title="Every color inverted">Night</option>
@@ -1434,19 +1455,19 @@ const App = {
 
     <div class="body" :class="'view-' + S.view">
       <div class="pills" v-if="S.view === 'settings'">
-        <button v-for="g in groups" :class="{ on: currentGroup && g.id === currentGroup.id && !S.search }" @click="openGroup(g.id)">{{ g.label }}{{ g.id === 'layout' && badGlyphs.length ? ' ●' : '' }}</button>
+        <button v-for="g in groups" :class="{ on: currentGroup && g.id === currentGroup.id && !S.search }" :title="g.blurb" @click="openGroup(g.id)">{{ g.label }}{{ g.id === 'layout' && badGlyphs.length ? ' ●' : '' }}</button>
       </div>
       <nav class="nav">
         <div class="nav-label">{{ S.data ? S.data.label : '' }}</div>
-        <button v-for="g in groups" class="nav-item" :class="{ active: currentGroup && g.id === currentGroup.id && !S.search }" @click="openGroup(g.id)">
+        <button v-for="g in groups" class="nav-item" :class="{ active: currentGroup && g.id === currentGroup.id && !S.search }" :title="g.blurb" @click="openGroup(g.id)">
           <span class="ico">{{ g.icon }}</span>{{ g.label }}
           <span v-if="g.id === 'layout' && badGlyphs.length" class="flag" title="Characters missing from the font"></span>
           <span v-else-if="g.count" class="count">{{ g.count }}</span>
         </button>
         <div class="nav-label">Machine</div>
-        <button class="nav-item" @click="openConfigs"><span class="ico">⇪</span>Open config…</button>
-        <button class="nav-item" @click="resetToMaster"><span class="ico">↺</span>Reset to defaults</button>
-        <button v-if="engine.kind === 'browser'" class="nav-item" @click="S.access = true"><span class="ico">A</span>Your fonts…</button>
+        <button class="nav-item" @click="openConfigs" title="Load a settings file from a download, or open another config for this machine"><span class="ico">⇪</span>Open config…</button>
+        <button class="nav-item" @click="resetToMaster" title="Put every setting for this machine back to the app's defaults"><span class="ico">↺</span>Reset to defaults</button>
+        <button v-if="engine.kind === 'browser'" class="nav-item" @click="S.access = true" title="Let the app use this computer's fonts or a fonts folder"><span class="ico">A</span>Your fonts…</button>
         <div class="nav-label">Engine</div>
         <button class="nav-item" :class="{ active: engine.mode === 'browser' }" @click="engine.mode !== 'browser' && engine.setMode('browser')" title="Runs entirely in this tab - nothing to install"><span class="ico">◍</span>In this browser</button>
         <button class="nav-item" :class="{ active: engine.mode === 'local' }" @click="engine.mode !== 'local' && engine.setMode('local')" title="v5/server.py running on this computer"><span class="ico">⌁</span>Local engine</button>
@@ -1505,7 +1526,7 @@ const App = {
         </div>
         <div class="buildbar">
           <div class="row">
-            <select class="select" v-model="S.build.target" style="flex:1;min-width:140px" aria-label="Build target" v-if="S.data">
+            <select class="select" v-model="S.build.target" style="flex:1;min-width:140px" aria-label="Build target" v-if="S.data" title="What to build: the element itself, or a test or helper part">
               <option v-for="t in S.data.targets" :value="t.value">{{ t.label }}</option>
             </select>
             <button class="btn" :disabled="S.job.running" @click="runBuild(true)" title="Quick, no draft angle (Ctrl+Enter)">Preview</button>

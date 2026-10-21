@@ -316,3 +316,9 @@ details.adv > summary:hover { color: var(--text); }
 /* Night: the light theme with every color inverted - page, previews, the 3D
    view and images alike (hue-rotate keeps blue blue and red red) */
 :root[data-theme="night"] { filter: invert(1) hue-rotate(180deg); background: #fff; }
+/* help: an (i) per setting, plus Show/Hide help for all */
+.help-btn { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text-3);
+  font: italic 600 10px/14px Georgia, serif; padding: 0; cursor: pointer; flex: none; margin-left: 2px; }
+.help-btn:hover, .help-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.switch-row { display: flex; align-items: center; gap: 4px; }
+.btn.help-all.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }

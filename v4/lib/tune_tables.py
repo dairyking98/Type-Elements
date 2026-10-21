@@ -1406,6 +1406,27 @@ SECTIONS_BY_MACHINE = {
                   "Resin": RESIN_FIELDS_BOX_SLUG, "Element": ELEMENT_FIELDS_BOX_SLUG},
 }
 
+
+def _apply_field_text():
+    """Labels and help come from lib/field_help.py where it has them -
+    written for people printing elements, not for whoever ported the v1/v2
+    source - so the tables above stay about WHAT each field is and the
+    wording lives in one place. Each machine gets its own copy of its
+    field lists, worded with its family's text (FIELD_TEXT_BY_FAMILY) where
+    a key means something different there, else the shared FIELD_TEXT."""
+    from .field_help import FAMILY_OF, FIELD_TEXT, FIELD_TEXT_BY_FAMILY
+    for machine, sections in SECTIONS_BY_MACHINE.items():
+        own = FIELD_TEXT_BY_FAMILY.get(FAMILY_OF.get(machine), {})
+        for name, fields in sections.items():
+            out = []
+            for f in fields:
+                t = own.get(f[0]) or FIELD_TEXT.get(f[0])
+                out.append((f[0], f[1], f[2], t["label"], t["help"]) if t else f)
+            sections[name] = out
+
+
+_apply_field_text()
+
 # Static intro banner shown above a section tab's fields, keyed by section
 # name - (text, css class). Only sections that need one appear here.
 SECTION_INTROS = {

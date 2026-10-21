@@ -145,42 +145,53 @@ def extra_sections(machine, cfg):
     build = [_f("resin_support", ["build", "resin_support"], "bool", "Resin supports",
                 "Add the support rods/raft to Element builds." + tune.RESIN_SUPPORT_UNAVAILABLE_NOTE.get(machine, ""))]
     if machine == "hammond":
-        build += [_f("orientation", ["resin", "orientation"], "select", "Print orientation", "",
+        build += [_f("orientation", ["resin", "orientation"], "select", "Print orientation",
+                     "How the shuttle sits on the build plate: vertical stands it on one end; horizontal prints it flat, held up by the method below.",
                      [("Vertical", "vertical"), ("Horizontal", "horizontal")]),
-                  _f("horizontal_method", ["resin", "horizontal_method"], "select", "Horizontal support method", "",
+                  _f("horizontal_method", ["resin", "horizontal_method"], "select", "Horizontal support method",
+                     "For a flat-printed shuttle: support its outer wall with a breakaway cut-groove ring, or with resin rods.",
                      [("Cut groove", "cut_groove"), ("Resin rod", "resin_rod")])]
     if machine == "mignon":
-        build += [_f("orientation", ["resin", "orientation"], "select", "Print orientation", "",
+        build += [_f("orientation", ["resin", "orientation"], "select", "Print orientation",
+                     "Which end of the Mignon element sits on the build plate: upside down puts the label end down, right side up the shaft end.",
                      [("Upside down", "upside_down"), ("Right side up", "right_side_up")])]
     if machine == "hammond_split":
-        build += [_f("render_left", ["build", "render_left"], "bool", "Render left half"),
-                  _f("render_right", ["build", "render_right"], "bool", "Render right half")]
+        build += [_f("render_left", ["build", "render_left"], "bool", "Render left half",
+                     "Include the left half of the split shuttle in the build. Turn one half off to print or check them separately."),
+                  _f("render_right", ["build", "render_right"], "bool", "Render right half",
+                     "Include the right half of the split shuttle in the build.")]
     secs["Build"] = build
     lay = cfg.get("layout") or {}
     if "baseline_row" in lay:
         secs["Row baselines"] = [
             _f("baseline_row", ["layout", "baseline_row"], "floatlist", "Baseline per row (mm)",
-               "Vertical position of each row's text baseline, top row first."),
+               "Height of each row's text baseline on the element, top row first. Find the right numbers with a calibration print rather than guessing."),
             _f("cutout_row", ["layout", "cutout_row"], "floatlist", "Platen cutout per row (mm)",
-               "Where each row's platen scallop is centred.")]
+               "Height where each row's curved platen cutout is centred, top row first. It shapes the character faces to match the platen.")]
     cos = cfg.get("cosmetics") or {}
     if "band_z_offsets" in cos:
         secs["Bands"] = [
-            _f("band_z_offsets", ["cosmetics", "band_z_offsets"], "floatlist", "Band offsets (mm)"),
-            _f("band_heights", ["cosmetics", "band_heights"], "floatlist", "Band heights (mm)")]
+            _f("band_z_offsets", ["cosmetics", "band_z_offsets"], "floatlist", "Band offsets (mm)",
+               "Height of each decorative band on the element body."),
+            _f("band_heights", ["cosmetics", "band_heights"], "floatlist", "Band heights (mm)",
+               "How tall each decorative band is.")]
     if "Legend" in tune.SECTIONS_BY_MACHINE.get(machine, {}) and get_path(cfg, ["legend", "background"]) is not None:
-        secs["Legend output"] = [_f("background", ["legend", "background"], "select", "Legend background", "",
+        secs["Legend output"] = [_f("background", ["legend", "background"], "select", "Legend background",
+                                    "Leave the legend sheet transparent, or give it a white background for printing on coloured card.",
                                     [("Transparent", "transparent"), ("White", "white")])]
     tt = cfg.get("type_test") or {}
     if tt:
         f = [_f("type_test_text", ["type_test", "text"], "textblock", "Test text",
-                "Rendered flat as a type-test plate, to check spacing and alignment.")]
+                "The text printed on the flat type-test plate - use it to check spacing, alignment and size before cutting a whole element.")]
         if machine == "selectric_composer" and "units_per_inch" in tt:
-            f.append(_f("units_per_inch", ["type_test", "units_per_inch"], "float", "Units per inch"))
+            f.append(_f("units_per_inch", ["type_test", "units_per_inch"], "float", "Units per inch",
+                              "Composer escapement units per inch for the type-test plate; each character advances by its own unit count."))
         elif "cpi" in tt:
-            f.append(_f("cpi", ["type_test", "cpi"], "float", "Characters per inch"))
+            f.append(_f("cpi", ["type_test", "cpi"], "float", "Characters per inch",
+                              "Character spacing on the type-test plate. 10 = pica, 12 = elite."))
         if "lpi" in tt:
-            f.append(_f("lpi", ["type_test", "lpi"], "float", "Lines per inch"))
+            f.append(_f("lpi", ["type_test", "lpi"], "float", "Lines per inch",
+                              "Line spacing on the type-test plate. 6 is standard single spacing."))
         secs["Type test"] = f
     return {name: [x for x in fields if get_path(cfg, x[1]) is not None] for name, fields in secs.items()}
 
