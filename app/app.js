@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=72c1cdf800";
-import { Viewer } from "./viewer.js?v=72c1cdf800";
-import { progressTracker } from "./progress.js?v=72c1cdf800";
-import * as fontsync from "./fontsync.js?v=72c1cdf800";
-import * as localfonts from "./localfonts.js?v=72c1cdf800";
-import { missingIn } from "./coverage.js?v=72c1cdf800";
-import { zip, readZipText } from "./zip.js?v=72c1cdf800";
+import { engine } from "./engine.js?v=d6fd7c4e55";
+import { Viewer } from "./viewer.js?v=d6fd7c4e55";
+import { progressTracker } from "./progress.js?v=d6fd7c4e55";
+import * as fontsync from "./fontsync.js?v=d6fd7c4e55";
+import * as localfonts from "./localfonts.js?v=d6fd7c4e55";
+import { missingIn } from "./coverage.js?v=d6fd7c4e55";
+import { zip, readZipText } from "./zip.js?v=d6fd7c4e55";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -121,6 +121,7 @@ const S = reactive({
   sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
   local: { status: "unknown", count: 0, error: "" },            // this computer's fonts (localfonts.js)
   access: false, previewText: "",
+  fontQuery: (() => { try { return localStorage.getItem("te.fontQuery") || ""; } catch { return ""; } })(),
   helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
   helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
   fontAdvanced: (() => { try { return !!localStorage.getItem("te.fontAdvanced"); } catch { return false; } })(),
@@ -1253,7 +1254,10 @@ const AccessPrompt = {
 const FontPicker = {
   components: { FontText },
   setup() {
-    const q = ref("");
+    // the search survives closing the picker (S.fontQuery); on reopening it
+    // is pre-selected, so typing replaces it
+    const q = ref(S.fontQuery || "");
+    watch(q, (v) => { S.fontQuery = v; try { localStorage.setItem("te.fontQuery", v); } catch {} });
     const manual = ref(S.picker.current || "");
     const list = ref(null);
     const listEl = ref(null);
@@ -1269,7 +1273,10 @@ const FontPicker = {
       if (!S.fonts) S.fonts = await engine.fonts();
       list.value = S.fonts;
       await nextTick();
-      document.getElementById("font-q")?.focus();
+      const box = document.getElementById("font-q");
+      box?.focus();
+      box?.select();
+      listEl.value?.querySelector(".font-row.sel")?.scrollIntoView({ block: "center" });   // the font in use
       observe();
     });
     const shown = computed(() => {
