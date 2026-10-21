@@ -118,7 +118,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=5acbd6e897", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=67426e4a9e", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;
@@ -150,8 +150,7 @@ async function job({ id, kind, machine, body, workers }) {
     const { argv, stl, legend, report } = spec.result;
     postMessage({ id, line: "$ " + argv.join(" ") });
     const toPyList = (a) => py.toPy(a);
-    const usePool = kind === "build" && !body.fast && workers > 1 && ["element", "calibration", "normal"].includes(body.target || "element")
-      && !body.cut_bodies;
+    const usePool = spec.result.pool && workers > 1;   // webengine.job_argv: a build with real draft angles
     if (!usePool) {
       rc = eng.run_job(toPyList(argv));
     } else {
@@ -160,9 +159,10 @@ async function job({ id, kind, machine, body, workers }) {
       // every sum was cached it simply finishes: that IS the render. Else
       // the recorded sums go to the worker pool and pass 2 builds for real.
       // One job, up to three stages - slices of one progress bar
-      // (phase = [start, end, label]) rather than bars that each refill.
+      // (phase = [start, end, label, share]) rather than bars that each
+      // refill; share = how much of the slice its [n/N] loop is (progress.js).
       eng.pool_record(spec.result.glyph_loops || 1);
-      postMessage({ id, phase: [0, 0.2, "placing characters (1 of 3)"] });
+      postMessage({ id, phase: [0, 0.15, "placing characters (1 of 3)", 1] });
       postMessage({ id, line: "--- pass 1: placing characters; draft angles cached or recorded for the worker pool" });
       rc = eng.run_job(toPyList(argv));
       const recorded = rc === 0 || rc === STOPPED_FOR_POOL ? eng.pool_jobs().toJs() : [];
@@ -171,11 +171,11 @@ async function job({ id, kind, machine, body, workers }) {
       } else if (recorded.length) {
         const jobs = recorded.map(([gv, gf, cv, cf]) => ({ gv: gv.buffer, gf: gf.buffer, cv: cv.buffer, cf: cf.buffer, weight: gf.byteLength }));
         const t = performance.now();
-        postMessage({ id, phase: [0.2, 0.75, `draft angles on ${workers} workers (2 of 3)`] });
+        postMessage({ id, phase: [0.15, 0.55, `draft angles on ${workers} workers (2 of 3)`, 1] });
         const results = await minkowskiPool(jobs, workers, id);
         postMessage({ id, line: `--- ${jobs.length} Minkowski sums on ${workers} workers in ${((performance.now() - t) / 1000).toFixed(1)}s` });
         eng.pool_replay(py.toPy(results.map((r) => [new Uint8Array(r.v), new Uint8Array(r.f)])));
-        postMessage({ id, phase: [0.75, 1, "assembling (3 of 3)"] });
+        postMessage({ id, phase: [0.55, 1, "assembling (3 of 3)", 0.3] });
         postMessage({ id, line: "--- pass 2: building with the pool's results" });
         rc = eng.run_job(toPyList(argv));
       }
