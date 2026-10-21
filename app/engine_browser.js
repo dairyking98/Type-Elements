@@ -19,7 +19,7 @@ let lastStatus = { text: "Engine not started", progress: 0 };
 
 function boot() {
   if (ready) return ready;
-  worker = new Worker(new URL("engine_worker.js?v=7fece5d81c", import.meta.url), { type: "module" });
+  worker = new Worker(new URL("engine_worker.js?v=8f5c204ddc", import.meta.url), { type: "module" });
   ready = new Promise((resolve, reject) => {
     worker.onmessage = ({ data }) => {
       if (data.type === "status") { lastStatus = data; statusListeners.forEach((fn) => fn(data)); return; }

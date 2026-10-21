@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=7fece5d81c";
-import { Viewer } from "./viewer.js?v=7fece5d81c";
-import { progressTracker } from "./progress.js?v=7fece5d81c";
-import * as fontsync from "./fontsync.js?v=7fece5d81c";
-import * as localfonts from "./localfonts.js?v=7fece5d81c";
-import { missingIn } from "./coverage.js?v=7fece5d81c";
-import { zip, readZipText } from "./zip.js?v=7fece5d81c";
+import { engine } from "./engine.js?v=8f5c204ddc";
+import { Viewer } from "./viewer.js?v=8f5c204ddc";
+import { progressTracker } from "./progress.js?v=8f5c204ddc";
+import * as fontsync from "./fontsync.js?v=8f5c204ddc";
+import * as localfonts from "./localfonts.js?v=8f5c204ddc";
+import { missingIn } from "./coverage.js?v=8f5c204ddc";
+import { zip, readZipText } from "./zip.js?v=8f5c204ddc";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -116,7 +116,7 @@ const S = reactive({
   build: { target: "element", crossSection: false, crossAngle: 0, cutBodies: false, stl: null, last: null },
   coverage: { chars: "", dir: "", deep: false, report: false },
   legendStamp: 0, legendSettings: null, fonts: null, picker: null, toast: null,
-  theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
+  theme: (localStorage.getItem("te.themePicked") && localStorage.getItem("te.theme")) || "dark", view: "settings",  configs: null,   // theme: dark unless the visitor picked one
   engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
   typeTestAuto: (() => { try { return !!localStorage.getItem("te.typeTestAuto"); } catch { return false; } })(),
   sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
@@ -461,6 +461,10 @@ function setViewModel(c) {
   viewer?.setModelColor?.(c);
 }
 
+function pickTheme() {
+  try { localStorage.setItem("te.themePicked", "1"); } catch {}
+  applyTheme();
+}
 function applyTheme() {
   const t = S.theme;
   if (t === "auto") delete document.documentElement.dataset.theme;
@@ -1525,7 +1529,7 @@ const App = {
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
     const resetView = () => viewer?.resetView?.();
     return { S, setHelpAll, setViewBg, setViewModel, setLight, resetView, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
-             viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
+             viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, pickTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
              homeUrl: location.protocol === "https:" ? "/" : "https://type-elements.leonardchau.com/" };
@@ -1595,7 +1599,7 @@ const App = {
               :title="S.helpAll ? 'Hide the help under every setting (each ⓘ still shows its own)' : 'Show the help under every setting'">{{ S.helpAll ? 'Hide help' : 'Show help' }}</button>
       <button class="btn hide-sm" :disabled="!dirty" @click="discard" title="Throw away unsaved changes">Discard</button>
       <button class="btn primary" :disabled="!dirty" @click="save" title="Ctrl+S">Save</button>
-      <select class="select hide-md" v-model="S.theme" @change="applyTheme" style="width:88px" aria-label="Theme" title="Theme">
+      <select class="select hide-md" v-model="S.theme" @change="pickTheme" style="width:88px" aria-label="Theme" title="Theme">
         <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option><option value="night" title="Every color inverted">Night</option>
       </select>
     </header>
