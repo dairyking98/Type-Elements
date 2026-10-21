@@ -30,9 +30,9 @@ font2:
   # font2_-prefixed keys - avoids colliding with font:'s own key text
   # (tune.py's patch_yaml_value matches by bare key across the whole
   # file, not by section - same reasoning as config/selectric12.yaml).
-  font2_path: "/home/lchau/fonts/Library/Serif Text/FreeSerif.ttf"  # substitute for v2's "Times New Roman"
+  font2_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeSerif.ttf"  # substitute for v2's "Times New Roman"
   font2_composer_cap_height: 5.0   # v2 Composer2_Cap_Height (ibm.scad:198)
-  font2_chars: ""                  # v2 Font2_Chars (ibm.scad:205)
+  font2_chars: "¼½¾"               # fractions from the second font (Glass Antiqua lacks them); v2 Font2_Chars (ibm.scad:205) was ""
 
 alignment:
   # "mode" (not h_alignment) - matches tune.py's generic center/left

@@ -16,6 +16,6 @@ values:
   build.draft_angle_deg: 75.0
   font.composer_cap_height: 7.0
   font.path: /home/lchau/github/Type-Elements/v5/browser/fonts/Glass Antiqua.ttf
-  font2.font2_chars: ''
+  font2.font2_chars: ¼½¾
   font2.font2_composer_cap_height: 5.0
-  font2.font2_path: /home/lchau/fonts/Library/Serif Text/FreeSerif.ttf
+  font2.font2_path: /home/lchau/github/Type-Elements/v5/browser/fonts/FreeSerif.ttf
