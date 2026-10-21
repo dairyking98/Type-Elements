@@ -99,6 +99,10 @@ def build_type_test_line(text, cpi, font_path, font_size_mm, flatness_tolerance_
     proportional = composer_pitch_list is not None
     unit_dist_mm = 25.4 / composer_units_per_inch if proportional else None
     parts = []
+    # one [n/total] line per character (build_log), so a progress bar can
+    # step through the plate the way it steps through an element's glyphs
+    total_chars = sum(1 for ch in text if not ch.isspace())
+    done = 0
     for j, line in enumerate(text.split("\n")):
         n = len(line)
         y = -j * line_spacing_mm
@@ -116,6 +120,8 @@ def build_type_test_line(text, cpi, font_path, font_size_mm, flatness_tolerance_
             is_mod = bool(mod_chars) and ch in mod_chars and mod_font_path and mod_font_size_mm
             ch_font_path = mod_font_path if is_mod else font_path
             ch_font_size_mm = mod_font_size_mm if is_mod else font_size_mm
+            done += 1
+            build_log.progress_line("TypeTest", done, total_chars, repr(ch))
             try:
                 mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=ch_font_size_mm, font_path=ch_font_path,
                                         align_kwargs=align_kwargs)
@@ -140,6 +146,7 @@ def build_type_test_line(text, cpi, font_path, font_size_mm, flatness_tolerance_
             parts.append(mesh)
     if not parts:
         raise ValueError("nothing to render - text was empty or all spaces/blank lines")
+    build_log.note("Joining the plate", f"{len(parts)} characters")
     return sp.union_all(parts)
 
 
