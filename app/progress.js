@@ -1,28 +1,23 @@
-// Job progress that is smooth and roughly honest about time.
+// Job progress in steps, driven only by what the job reports - never by
+// the clock, so it behaves the same on a fast or a slow computer.
 //
-// The engine's log only counts inside loops ("[12/88]"), so a bar driven by
-// counters alone races through the characters, then sits still through the
-// body, supports and export. Instead, every finished job leaves a timeline:
-// the fraction of its run at which each kind of log line first appeared
-// (keyed by the line's leading words, e.g. "TextRing", "ResinPrint"). The
-// next run of the same job (machine + job + target + engine) uses it:
+// The engine's log counts inside loops ("[12/88]"), and every finished job
+// leaves a timeline: the fraction of its run at which each kind of log
+// line first appeared (keyed by the line's leading words, e.g. "TextRing",
+// "ResinPrint"). The next run of the same job (machine + job + target +
+// engine) uses it:
 //   * reaching a known line jumps to its fraction;
-//   * between lines, elapsed time fills in, at the pace this run is going
-//     (a run half as fast as last time moves half as fast), easing off near
-//     the next line rather than passing it;
-//   * a loop counter in the current stretch can push it further.
+//   * a loop counter moves the bar through the stretch to the next line,
+//     one increment per item.
 // A job can take differently shaped routes (a browser Render that finds all
 // its draft angles cached skips two stages), so up to 3 timelines are kept
 // per job and the one matching the lines seen so far is used.
-// With no history yet (or when a run leaves every saved route - a stage the
-// timeline never had), it falls back to a model: within each stage slice the
-// [n/N] loop fills `share` of it (0.65 unless the stage says), then the rest
-// fills over a time guessed from how long the loop took, easing so that a
-// longer tail keeps creeping instead of parking at 95%. The tail itself is
-// learned across routes: lines after the characters (Additive, ResinSupport,
-// ResinPrint...) are the same whichever route a render took, so each job
-// also keeps how many seconds were left when each line appeared, and a run
-// on a route with no timeline yet times its tail from those.
+// With no history yet (or a route no timeline has), each stage slice is
+// filled the same way: its [n/N] loop takes `share` of the slice (0.65
+// unless the stage says), and each new kind of line after the loop takes a
+// quarter of what's left of the slice.
+// Only the time-left estimate uses the clock (this run's pace, or the
+// seconds-left-per-line ("tails") learned across routes).
 //
 //   const p = progressTracker(key);   p.event(ev) for each job event;
 //   p.value() -> 0..1 (never goes back);  p.remaining() -> seconds | null;
@@ -40,10 +35,8 @@ export function signature(text) {
   return m ? m[0].trim() : null;
 }
 
-// slope-1 ramp that eases into 1 instead of reaching it
-const ease = (x) => (x <= 0.8 ? Math.max(0, x) : 0.8 + 0.2 * (1 - Math.exp(-(x - 0.8) / 0.2)));
-// the same, easing off more slowly: for a guessed duration, which may well
-// run long - it keeps visibly moving (87% at 1x, 95% at 1.5x, 98% at 2x)
+// slope-1 ramp that eases off instead of reaching 1: for a guessed
+// duration, which may well run long (87% at 1x, 95% at 1.5x, 98% at 2x)
 const creep = (x) => (x <= 0.8 ? Math.max(0, x) : 0.8 + 0.2 * (1 - Math.exp(-(x - 0.8) / 0.5)));
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
@@ -59,8 +52,18 @@ export function progressTracker(key) {
   let counter = null;                // latest [n/total] since the anchor
   let best = 0;
   // fallback model, kept up to date even while a timeline is in use
-  const fb = { lo: 0, hi: 1, share: 0.65, t0: 0, n: null, loopT0: null, loopEnd: null, known: null };
-  function stage(p) { Object.assign(fb, { lo: p[0], hi: p[1], share: p[3] ?? 0.65, t0: now(), n: null, loopT0: null, loopEnd: null, known: null }); }
+  const fb = { lo: 0, hi: 1, share: 0.65, t0: 0, n: null, loopT0: null, loopEnd: null, known: null, steps: 0 };
+  function stage(p) { Object.assign(fb, { lo: p[0], hi: p[1], share: p[3] ?? 0.65, t0: now(), n: null, loopT0: null, loopEnd: null, known: null, steps: 0 }); }
+  // the fallback model's position, from events alone
+  function stepValue() {
+    const span = fb.hi - fb.lo;
+    const share = Math.max(0, fb.share);
+    const tail = (base, k) => base + (fb.lo + span - base) * (1 - Math.pow(0.75, k));
+    if (share <= 0) return tail(fb.lo, fb.steps);                         // no loop: every new line is a step
+    if (fb.n === null) return fb.lo + span * 0.04 * (1 - Math.pow(0.5, fb.steps));   // before the loop
+    if (fb.loopEnd === null) return fb.lo + span * (0.04 + (share - 0.04) * fb.n);    // in the loop: per item
+    return share >= 1 ? fb.hi : tail(fb.lo + span * share, fb.steps);     // after it
+  }
   // -> [fraction, seconds left | null]
   function fallback() {
     const t = now(), span = fb.hi - fb.lo, last = fb.hi >= 1;
@@ -107,6 +110,7 @@ export function progressTracker(key) {
       const s = signature(text);
       if (s && !seen.has(s)) {
         seen.set(s, now());
+        if (!ev.phase && !m) fb.steps++;
         if (hist && hist.marks[s] === undefined) {          // off this timeline: is there one that has it?
           const other = shapes.find((h) => h.marks[s] !== undefined);
           if (other) { hist = other; reanchor(); counter = null; }
@@ -121,25 +125,23 @@ export function progressTracker(key) {
       if (m) {
         counter = +m[1] / Math.max(+m[2], 1);
         if (fb.n !== null && counter < fb.n - 0.5) {        // a second loop in this stage (Hammond split: one per half)
-          fb.lo = fallback()[0]; fb.n = null; fb.loopT0 = null; fb.loopEnd = null;
+          fb.lo = stepValue(); fb.n = null; fb.loopT0 = null; fb.loopEnd = null; fb.steps = 0;
         }
         if (fb.loopT0 === null) fb.loopT0 = now();
         fb.n = counter;
         if (counter < 1) fb.loopEnd = null;                 // still looping (a stray line in between isn't the end)
-        else if (fb.loopEnd === null) fb.loopEnd = now();
+        else if (fb.loopEnd === null) { fb.loopEnd = now(); fb.steps = 0; }
       } else if (fb.n !== null && fb.loopEnd === null && ev.line !== undefined) {
-        fb.loopEnd = now();                                 // a plain line after the loop: it's over
+        fb.loopEnd = now(); fb.steps = 1;                   // a plain line after the loop: it's over (and is the first step after it)
       }
     },
     value() {
       let est;
       if (hist) {
         const next = nextMark();
-        const span = pace() * (next - anchorF) * hist.total;
-        const x = Math.max(span > 0 ? (now() - anchorT) / span : 0, counter !== null ? counter * 0.98 : 0);
-        est = anchorF + (next - anchorF) * ease(x);
+        est = anchorF + (next - anchorF) * (counter !== null ? counter * 0.98 : 0);
       } else {
-        est = fallback()[0];
+        est = stepValue();
       }
       best = Math.max(best, Math.min(est, 0.995));
       return best;
