@@ -967,6 +967,9 @@ def type_test_command(machine, cfg):
     if "caret_drop_mm" in v:   # the total, auto-drop included - same as the element gets
         import glyph_poc
         cmd += ["--caret-drop-mm", f"{glyph_poc.effective_caret_drop_mm(cfg):.4f}"]
+    if "per_auto_baseline" in v or "per_raise_mm" in v:   # the per sign, as the element places it
+        import glyph_poc
+        cmd += ["--per-raise-mm", f"{glyph_poc.effective_per_raise_mm(cfg):.4f}"]
     for key, flag in (("modified_left_chars", "--modified-left-chars"), ("modified_right_chars", "--modified-right-chars")):
         if v.get(key) is not None:
             cmd.append(f"{flag}={v[key]}")

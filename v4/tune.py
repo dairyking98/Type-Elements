@@ -2977,6 +2977,9 @@ class TuneApp(App):
                 pass
             drop_mm = glyph_poc.effective_caret_drop_mm({**self.cfg, "alignment": align})
             cmd += ["--caret-drop-mm", f"{drop_mm:.4f}"]
+        if "per_auto_baseline" in self.inputs or "per_raise_mm" in self.inputs:
+            import glyph_poc
+            cmd += ["--per-raise-mm", f"{glyph_poc.effective_per_raise_mm(self.cfg):.4f}"]
         if "underscore_lift_mm" in self.inputs:
             cmd += ["--underscore-lift-mm", self.inputs["underscore_lift_mm"].value]
         # Secondary font ("font 2") - characters that use a different font

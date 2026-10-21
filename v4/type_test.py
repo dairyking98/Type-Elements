@@ -165,6 +165,9 @@ if __name__ == "__main__":
     parser.add_argument("--modified-left-offset-mm", type=float, default=ALIGN_MODIFIED_LEFT_OFFSET_MM)
     parser.add_argument("--modified-right-chars", default=ALIGN_MODIFIED_RIGHT_CHARS)
     parser.add_argument("--modified-right-offset-mm", type=float, default=ALIGN_MODIFIED_RIGHT_OFFSET_MM)
+    parser.add_argument("--per-raise-mm", type=float, default=0.0,
+                         help="total upward shift of the per sign (U+214C) in mm (callers resolve auto-align "
+                              "first: glyph_poc.effective_per_raise_mm)")
     parser.add_argument("--caret-drop-mm", type=float, default=ALIGN_CARET_DROP_MM,
                          help="total downward shift of \"^\" in mm (callers resolve auto-drop first: glyph_poc.effective_caret_drop_mm)")
     parser.add_argument("--underscore-lift-mm", type=float, default=ALIGN_UNDERSCORE_LIFT_MM)
@@ -191,6 +194,7 @@ if __name__ == "__main__":
         modified_right_offset_mm=args.modified_right_offset_mm,
         caret_drop_mm=args.caret_drop_mm,
         underscore_lift_mm=args.underscore_lift_mm,
+        per_raise_mm=args.per_raise_mm,
     )
     composer_pitch_list = composer_units_per_inch = None
     composer_default_units = 9
