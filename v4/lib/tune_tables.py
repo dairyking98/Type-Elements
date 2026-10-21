@@ -387,6 +387,8 @@ RESIN_FIELDS_MIGNON = [
      "tab's Print orientation). Upside down also adds half this many more, on alternating sectors, at "
      "a second radius near the top boss."),
     OVERHANG_WARN_FIELD,
+    ("notch_gap_deg", ["resin", "notch_gap_deg"], float, "Keyway clearance (deg)",
+     "Half-angle around the alignment keyway kept clear of support rods. Only used when printing right side up."),
 ]
 
 ELEMENT_FIELDS_MIGNON = [
@@ -798,6 +800,8 @@ ELEMENT_FIELDS_HAMMOND = [
     ("shuttle_square_hole_length", ["element", "shuttle_square_hole_length"], float, "Square hole length (mm)", ""),
     ("shuttle_square_hole_radius", ["element", "shuttle_square_hole_radius"], float, "Square hole radius (mm)", ""),
     ("shuttle_pin_support_height", ["element", "shuttle_pin_support_height"], float, "Pin support height (mm)", ""),
+    ("shuttle_pin_support_height2", ["element", "shuttle_pin_support_height2"], float, "Under-pinhole support height (mm)",
+     "Height of the resin support tier under the pinhole when the shuttle prints horizontally."),
     ("shuttle_pin_support_base_width", ["element", "shuttle_pin_support_base_width"], float, "Pin support base width (mm)", ""),
     ("shuttle_pin_support_base_length", ["element", "shuttle_pin_support_base_length"], float, "Pin support base length (mm)", ""),
     ("shuttle_pin_support_height_offset", ["element", "shuttle_pin_support_height_offset"], float, "Pin support height offset (mm)", ""),
@@ -1068,6 +1072,7 @@ LABEL_FIELDS_SELECTRIC = [
 ]
 
 QUALITY_FIELDS_SELECTRIC = [
+    CLIP_TO_CELL_FIELD,
     ("flatness_tolerance_mm", ["build", "flatness_tolerance_mm"], float, "Flatness tolerance (mm)", "Max allowed deviation between the flattened glyph outline and the true curve - smaller = more points/slower, larger = fewer points/faster."),
     ("minkowski_enabled", ["build", "minkowski_enabled"], bool, "Minkowski draft", "Off: fast undrafted preview (correct platen curve/placement, no taper)."),
     ("surface_fn", ["quality", "surface_fn"], int, "Surface fn", "Sphere/skirt/roof/boss facet count."),
@@ -1139,6 +1144,8 @@ CHARACTER_FIELDS_WING_SLUG = [
      "Off for Gauge Slug - no struck character exists in that real v1 source at all."),
     ("lower_char", ["character", "lower_char"], str, "Lower character", ""),
     ("upper_char", ["character", "upper_char"], str, "Upper character", ""),
+    ("engraving_depth_mm", ["build", "engraving_depth_mm"], float, "Character relief (mm)",
+     "How far the characters stand up from the slug face (the cut around them is this deep). The draft cone keeps its own height."),
 ]
 
 # character.chars (oliver_slug/lumi_slug) is a list (3 items for Oliver,
@@ -1151,6 +1158,8 @@ CHARACTER_FIELDS_BOX_SLUG = [
     ("baseline_mm", ["character", "baseline_mm"], float, "Baseline (mm)", ""),
     ("baselines_shift_motion_mm", ["character", "baselines_shift_motion_mm"], float,
      "Baseline shift per character (mm)", ""),
+    ("engraving_depth_mm", ["build", "engraving_depth_mm"], float, "Character relief (mm)",
+     "How far the characters stand up from the slug face (the cut around them is this deep). The draft cone keeps its own height."),
 ]
 
 LOGO_FIELDS_SLUG = [

@@ -53,6 +53,8 @@ export class Viewer {
     this.scene.add(this.grid);
     this.material = new THREE.MeshStandardMaterial({ color: 0xd9dde3, roughness: 0.55, metalness: 0.05 });
     this.modelColor = null;      // user's part colour (null = the theme's)
+    // viewer lighting switches (setLighting); type tests ignore them
+    this.lighting = { shadows: true, floor: true, rim: true, grid: true, brightness: 1 };
     // the floor only shows the part's shadow
     this.floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.22 }));
     this.floor.receiveShadow = true;
@@ -114,6 +116,22 @@ export class Viewer {
     this.el.style.background = this.flat ? "#ffffff" : (this.background || "");
   }
 
+  setLighting(opts) {
+    Object.assign(this.lighting, opts || {});
+    this.applyLighting();
+  }
+  // light levels and switches for the current view (flat type tests have their own fixed setup)
+  applyLighting() {
+    const L = this.lighting, top = this.flat, b = L.brightness;
+    this.key.intensity = (top ? 0.5 : 2.2) * (top ? 1 : b);
+    this.rim.intensity = top ? 0 : (L.rim ? 0.6 * b : 0);
+    if (this.hemi) this.hemi.intensity = top ? 0.9 : 1.2 * b;
+    this.key.castShadow = !top && L.shadows;
+    if (this.mesh) this.mesh.castShadow = this.mesh.receiveShadow = !top && L.shadows;
+    this.floor.visible = !top && L.shadows && L.floor && !!this.mesh;
+    this.grid.visible = !top && L.grid;
+  }
+
   setModelColor(color) {
     this.modelColor = color || null;
     this.material.color.set(this.modelColor || (this.dark ? 0xc7ccd4 : 0xd9dde3));
@@ -131,18 +149,13 @@ export class Viewer {
     geom.computeBoundingBox();
     if (this.mesh) { this.scene.remove(this.mesh); this.mesh.geometry.dispose(); }
     this.mesh = new THREE.Mesh(geom, top ? this.inkMaterial : this.material);
-    this.mesh.castShadow = this.mesh.receiveShadow = !top;
     this.scene.add(this.mesh);
     const box = geom.boundingBox;
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     const r = Math.max(size.x, size.y, size.z) || 10;
     this.controls.target.copy(center);
-    this.grid.visible = !top;
     this.rake.intensity = top ? 2.6 : 0;
-    this.key.intensity = top ? 0.5 : 2.2;
-    this.rim.intensity = top ? 0 : 0.6;
-    if (this.hemi) this.hemi.intensity = top ? 0.9 : 1.2;
     this.setFlat(top);
     this.applyBackground();
     if (top) {
@@ -169,8 +182,8 @@ export class Viewer {
       this.floor.scale.set(r * 8, r * 8, 1);
       this.floor.position.set(center.x, center.y, box.min.z - 0.01);
     }
-    this.floor.visible = !top;
     this.camera.updateProjectionMatrix();
+    this.applyLighting();
     this.controls.update();
     this.grid.position.set(center.x, center.y, box.min.z);
     return { size, triangles: geom.attributes.position.count / 3 };

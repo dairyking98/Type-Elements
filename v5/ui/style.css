@@ -350,3 +350,10 @@ details.adv > summary:hover { color: var(--text); }
 .bg-pick { position: absolute; right: 10px; top: 8px; z-index: 2; display: flex; align-items: center; gap: 8px; }
 .bg-pick label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-3); cursor: pointer; }
 .bg-pick input[type=color] { width: 26px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 6px; background: none; cursor: pointer; }
+.light-menu { position: relative; font-size: 11px; }
+.light-menu > summary { list-style: none; cursor: pointer; color: var(--text-3); padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); }
+.light-menu > summary::-webkit-details-marker { display: none; }
+.light-pop { position: absolute; right: 0; top: 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
+.light-pop .switch { height: 28px; font-size: 12.5px; color: var(--text); }
+.light-pop .bright { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-2); margin-top: 4px; }

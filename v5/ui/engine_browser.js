@@ -45,6 +45,9 @@ function boot() {
 async function call(method, ...args) {
   await boot();
   const id = nextId++;
+  // plain copies of objects: the page's reactive (Vue proxy) values can't be
+  // posted to a worker; font bytes (ArrayBuffers) go across as they are
+  args = args.map((a) => (a && typeof a === "object" && !(a instanceof ArrayBuffer) ? JSON.parse(JSON.stringify(a)) : a));
   const transfer = args.filter((a) => a instanceof ArrayBuffer);
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });

@@ -168,6 +168,29 @@ def extra_sections(machine, cfg):
                "Height of each row's text baseline on the element, top row first. Find the right numbers with a calibration print rather than guessing."),
             _f("cutout_row", ["layout", "cutout_row"], "floatlist", "Platen cutout per row (mm)",
                "Height where each row's curved platen cutout is centred, top row first. It shapes the character faces to match the platen.")]
+    if "row_latitudes" in lay:          # the Selectric balls: their own per-row placement, in degrees
+        secs["Row baselines"] = [
+            _f("row_latitudes", ["layout", "row_latitudes"], "floatlist", "Row latitude (deg)",
+               "Where each row of characters sits on the ball, in degrees above (+) or below (-) the equator, top row first."),
+            _f("baseline_longitude_offsets", ["layout", "baseline_longitude_offsets"], "floatlist", "Baseline offset per row (deg)",
+               "Nudges each row's characters up (+) or down (-) on the ball - the per-row baseline, like the other machines' row baselines."),
+            _f("platen_longitude_offsets", ["layout", "platen_longitude_offsets"], "floatlist", "Platen cutout offset per row (deg)",
+               "Moves each row's platen-shaped face curve up or down relative to its characters - the per-row platen cutout."),
+            _f("minkowski_longitudinal_offsets", ["layout", "minkowski_longitudinal_offsets"], "floatlist", "Draft offset per row (deg)",
+               "Tilts each row's draft taper up or down. 0 keeps the taper square to the ball.")]
+    el = cfg.get("element") or {}
+    lists = []
+    if "alignment_hole_height" in el:
+        lists.append(_f("alignment_hole_height", ["element", "alignment_hole_height"], "floatlist", "Alignment hole height (mm)",
+                        "Height of the alignment hole for each row (lowercase, uppercase, figures). Real machine measurements."))
+    if "pin_theta" in el:
+        lists.append(_f("pin_theta", ["element", "pin_theta"], "floatlist", "Pin hole angle (deg)",
+                        "Angle of the pin hole on the left and right halves. Real machine measurements."))
+    if "tube_od_mm" in el:
+        lists.append(_f("tube_od_mm", ["element", "tube_od_mm"], "floatlist", "Tube diameter (mm)",
+                        "Outer diameter of the hub tube on the left and right halves. Real machine measurements."))
+    if lists:
+        secs["Per-row and per-half values"] = lists
     cos = cfg.get("cosmetics") or {}
     if "band_z_offsets" in cos:
         secs["Bands"] = [

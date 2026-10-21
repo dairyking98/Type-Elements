@@ -16,7 +16,7 @@ const GROUPS = [
     blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
-  { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cut groove & rib fit", "Cosmetics", "Bands", "Ticks"],
+  { id: "element", label: "Element", icon: "◎", sections: ["Element", "Per-row and per-half values", "Cut groove & rib fit", "Cosmetics", "Bands", "Ticks"],
     blurb: "Physical dimensions of the element body - mostly real machine measurements." },
   { id: "branding", label: "Logo & label", icon: "✎", sections: ["Logo", "Label"],
     blurb: "Text and marks engraved on the element itself." },
@@ -28,6 +28,7 @@ const GROUPS = [
     blurb: "Calibration sweeps, the shaft gauge and legend sheets." },
 ];
 const TOOL_SECTIONS = ["Legend", "Legend output"];   // drawn inside the Tools page's own cards
+const HALF_KEYS = new Set(["pin_theta", "tube_od_mm"]);   // [left, right] lists, not per-row
 const FONT_KEYS = new Set(["path", "font2_path", "font_path", "label_font_path", "legend_font_path", "label_font_override", "label_no_font_override"]);
 
 // ---------------------------------------------------------------- fonts
@@ -123,6 +124,8 @@ const S = reactive({
   access: false, previewText: "",
   viewBg: (() => { try { return localStorage.getItem("te.viewBg") || null; } catch { return null; } })(),
   viewModel: (() => { try { return localStorage.getItem("te.viewModel") || null; } catch { return null; } })(),
+  light: (() => { const d = { shadows: true, floor: true, rim: true, grid: true, brightness: 1 };
+    try { return { ...d, ...JSON.parse(localStorage.getItem("te.light") || "{}") }; } catch { return d; } })(),
   fontQuery: (() => { try { return localStorage.getItem("te.fontQuery") || ""; } catch { return ""; } })(),
   helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
   helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
@@ -247,8 +250,9 @@ function setVal(key, v) {
 
 async function save() {
   if (!dirty.value) return true;
-  const body = { values: { ...S.edits } };
-  if (S.rows !== null) { body.rows = S.rows; body.preset = S.preset; }
+  // a plain copy: edited lists/rows are reactive proxies, which the
+  // in-browser engine's worker can't receive (DataCloneError)
+  const body = JSON.parse(JSON.stringify({ values: S.edits, ...(S.rows !== null ? { rows: S.rows, preset: S.preset } : {}) }));
   let res;
   try { res = await engine.save(S.machine, body); } catch (e) { toast(String(e), "bad"); return false; }
   S.data = await withSyncedFonts(S.machine, res); S.edits = {}; S.rows = null; S.preset = null;
@@ -443,6 +447,12 @@ function setViewBg(c) {
   viewer?.setBackground?.(c);
 }
 
+function setLight(o) {
+  Object.assign(S.light, o);
+  try { localStorage.setItem("te.light", JSON.stringify(S.light)); } catch {}
+  viewer?.setLighting?.(S.light);
+}
+
 function setViewModel(c) {
   S.viewModel = c;
   try { c ? localStorage.setItem("te.viewModel", c) : localStorage.removeItem("te.viewModel"); } catch {}
@@ -522,7 +532,7 @@ const FieldInput = {
     const alignBars = (a) => ({ left: [[2, 16], [2, 10], [2, 14], [2, 8]], center: [[2, 16], [5, 10], [3, 14], [6, 8]],
       right: [[2, 16], [8, 10], [4, 14], [10, 8]], justify: [[2, 16], [2, 16], [2, 16], [2, 16]] }[a]);
     const step = computed(() => (props.f.type === "int" ? 1 : stepOf(v.value)));
-    return { v, changed, setVal, setItem, textFam, famStyle, rowLabel, isAlign, alignBars, step, stepOf, helpShown };
+    return { v, changed, setVal, setItem, textFam, famStyle, rowLabel, isAlign, alignBars, step, stepOf, helpShown, HALF_KEYS };
   },
   components: { HelpButton },
   template: `
@@ -543,7 +553,7 @@ const FieldInput = {
       </select>
       <div v-else-if="f.type === 'floatlist'" class="listrow">
         <div v-for="(x, i) in (v || [])" class="listitem">
-          <span class="help">{{ f.key.startsWith('band') ? 'Band ' + (i + 1) : rowLabel(i) }}</span>
+          <span class="help">{{ f.key.startsWith('band') ? 'Band ' + (i + 1) : HALF_KEYS.has(f.key) ? ['Left', 'Right'][i] : rowLabel(i) }}</span>
           <input class="input" type="number" :step="stepOf(x)" :value="x" @input="setItem(i, $event.target.value)">
         </div>
       </div>
@@ -1466,6 +1476,7 @@ const App = {
       viewer = new Viewer(viewerEl.value);
       viewer.setBackground?.(S.viewBg);
       viewer.setModelColor?.(S.viewModel);
+      viewer.setLighting?.(S.light);
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
@@ -1518,7 +1529,7 @@ const App = {
     }
     const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, setHelpAll, setViewBg, setViewModel, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
+    return { S, setHelpAll, setViewBg, setViewModel, setLight, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
@@ -1663,6 +1674,16 @@ const App = {
             <label title="Colour of the part (type tests always show black on white)"><input type="color" :value="S.viewModel || '#d9dde3'" @input="setViewModel($event.target.value)"><span>Part</span></label>
             <label title="Background behind the part (type tests always show on white)"><input type="color" :value="S.viewBg || '#eef0f3'" @input="setViewBg($event.target.value)"><span>Back</span></label>
             <button v-if="S.viewBg || S.viewModel" class="btn small ghost" @click="setViewBg(null); setViewModel(null)" title="Back to the theme's colours">↺</button>
+            <details class="light-menu">
+              <summary title="Lighting">Lighting</summary>
+              <div class="light-pop">
+                <label class="switch"><input type="checkbox" :checked="S.light.shadows" @change="setLight({ shadows: $event.target.checked })"><span>Shadows</span></label>
+                <label class="switch"><input type="checkbox" :checked="S.light.floor" :disabled="!S.light.shadows" @change="setLight({ floor: $event.target.checked })"><span>Floor shadow</span></label>
+                <label class="switch"><input type="checkbox" :checked="S.light.rim" @change="setLight({ rim: $event.target.checked })"><span>Rim light</span></label>
+                <label class="switch"><input type="checkbox" :checked="S.light.grid" @change="setLight({ grid: $event.target.checked })"><span>Grid</span></label>
+                <label class="bright">Brightness <input type="range" min="0.4" max="1.8" step="0.05" :value="S.light.brightness" @input="setLight({ brightness: +$event.target.value })"></label>
+              </div>
+            </details>
           </div>
           <div class="overlay">
             <span v-if="S.build.stl" class="chip">{{ S.build.stl.size.x.toFixed(1) }} × {{ S.build.stl.size.y.toFixed(1) }} × {{ S.build.stl.size.z.toFixed(1) }} mm</span>
