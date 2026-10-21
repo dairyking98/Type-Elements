@@ -144,7 +144,7 @@ build:
   # draft skirt cannot bleed into the neighbouring character. See
   # cylinder_machine._clip_to_cell. Off = the historical behavior.
   clip_to_cell: false
-  draft_angle_deg: 55.0
+  draft_angle_deg: 75.0
   minkowski_enabled: true
   # Height of the extruded glyph block before the Minkowski sum - the same
   # key the cylinder family uses. On this machine it is a construction

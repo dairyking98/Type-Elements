@@ -275,7 +275,7 @@ build:
   # from-scratch Minkowski helper rather than reusing either shared
   # function directly - see lib/hammond_split.py's _letter_text_drafted().
   minkowski_enabled: false          # Mink_On default (v2:66)
-  draft_angle_deg: 60.0             # Mink_Draft_Angle
+  draft_angle_deg: 75.0             # Mink_Draft_Angle
   # v4 convention, shared with every other machine: the glyph's own
   # extrusion depth. Replaces this machine's implicit Glyph_Height + 1.
   # NOTE its cone still differs from the cylinder family's - v2 trims

@@ -127,7 +127,7 @@ element:
 build:
   flatness_tolerance_mm: 0.01
   minkowski_enabled: true          # v1 !Debug_No_Minkowski ("True_Vogue" preset: false)
-  draft_angle_deg: 60.0            # v1 Draft_Angle
+  draft_angle_deg: 75.0            # v1 Draft_Angle
   engraving_depth_mm: 0.5          # v1 Engraving_Depth
   # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
   # engraving_depth; stored directly here so it reads the same as every

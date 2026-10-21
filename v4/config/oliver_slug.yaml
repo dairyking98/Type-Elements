@@ -81,7 +81,7 @@ build:
   # divergence (v1's literal default is still reachable via
   # --no-minkowski).
   minkowski_enabled: true
-  draft_angle_deg: 60.0            # v1 Draft_Angle (:16)
+  draft_angle_deg: 75.0            # v1 Draft_Angle (:16)
   engraving_depth_mm: 0.7          # v1 Engraving_Depth (:18)
   # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
   # engraving_depth; stored directly here so it reads the same as every

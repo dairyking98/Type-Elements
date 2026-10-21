@@ -123,7 +123,7 @@ element:
 build:
   flatness_tolerance_mm: 0.01
   minkowski_enabled: true          # v1 !Debug_No_Minkowski ("CMU Typewriter Text" preset: false)
-  draft_angle_deg: 60.0            # v1 Draft_Angle (:12)
+  draft_angle_deg: 75.0            # v1 Draft_Angle (:12)
   engraving_depth_mm: 0.5          # v1 Engraving_Depth (:14)
   # Draft cone height, absolute. v1 expressed this as a MULTIPLIER of
   # engraving_depth; stored directly here so it reads the same as every

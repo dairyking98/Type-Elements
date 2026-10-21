@@ -214,7 +214,7 @@ build:
   resin_support: false          # Generate_Support
   target: "element"
   minkowski_enabled: true
-  draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated
+  draft_angle_deg: 75.0        # Mink_Draft_Angle - v2 comment: never a calibrated
                                 # dimension, uses the shared angle-derived formula
 
 # lib/resin_rod.scad (Resin_Rod_Raft left at the lib's own is_undef->true

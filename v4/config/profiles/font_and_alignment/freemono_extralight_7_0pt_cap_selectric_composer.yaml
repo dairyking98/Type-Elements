@@ -14,7 +14,7 @@ values:
   alignment.underscore_lift_mm: 0.0
   alignment.x_pos_offset: 1.2
   alignment.y_pos_offset: -1.3
-  build.draft_angle_deg: 55.0
+  build.draft_angle_deg: 75.0
   font.composer_cap_height: 7.0
   font.path: /home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf
   font2.font2_chars: ''

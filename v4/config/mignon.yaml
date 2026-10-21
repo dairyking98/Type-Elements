@@ -229,7 +229,7 @@ build:
   resin_support: false
   target: "element"
   minkowski_enabled: true
-  draft_angle_deg: 55.0
+  draft_angle_deg: 75.0
   placement_protrusion: 0.0
   angle_half_step: 0.0
 

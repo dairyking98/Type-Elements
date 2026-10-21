@@ -14,7 +14,7 @@ values:
   alignment.underscore_lift_mm: 0.0
   alignment.x_pos_offset: 0.0
   alignment.y_pos_offset: -1.5
-  build.draft_angle_deg: 55.0
+  build.draft_angle_deg: 75.0
   font.path: /home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf
   font.size_mm: 3.0
   font2.font2_chars: ''

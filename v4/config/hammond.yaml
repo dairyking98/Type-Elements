@@ -297,7 +297,7 @@ build:
   resin_support: false               # Resin_Support (v2:298)
   target: "element"
   minkowski_enabled: false           # Mink_On default (v2:102)
-  draft_angle_deg: 55.0              # Mink_Draft_Angle (v2:106)
+  draft_angle_deg: 75.0              # Mink_Draft_Angle (v2:106)
 
 # Resin support: individual rod SHAPE reuses cylinder_machine._resin_rod()
 # (same shared primitive Mignon/Bennett already reuse - NOT Hammond's own
