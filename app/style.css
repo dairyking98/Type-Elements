@@ -23,7 +23,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="night"]) {
     --bg: #111418; --panel: #181c21; --panel-2: #1d2228; --line: #2a3038; --line-strong: #39414b;
     --text: #e7eaee; --text-2: #a3abb5; --text-3: #737c87; --ink: #fff;
     --accent: #6c9cff; --accent-soft: #1d2a44; --ok: #4cc685; --ok-soft: #15291f;
@@ -312,3 +312,7 @@ details.adv > summary:hover { color: var(--text); }
 .access-row > div { flex: 1; min-width: 0; }
 .cov-list { max-height: 360px; overflow-y: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; }
 .modal.fit { height: auto; max-height: calc(100dvh - 40px); }
+
+/* Night: the light theme with every color inverted - page, previews, the 3D
+   view and images alike (hue-rotate keeps blue blue and red red) */
+:root[data-theme="night"] { filter: invert(1) hue-rotate(180deg); background: #fff; }

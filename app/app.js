@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=f73bfea4c1";
-import { Viewer } from "./viewer.js?v=f73bfea4c1";
-import { progressTracker } from "./progress.js?v=f73bfea4c1";
-import * as fontsync from "./fontsync.js?v=f73bfea4c1";
-import * as localfonts from "./localfonts.js?v=f73bfea4c1";
-import { missingIn } from "./coverage.js?v=f73bfea4c1";
-import { zip, readZipText } from "./zip.js?v=f73bfea4c1";
+import { engine } from "./engine.js?v=fd46ca766c";
+import { Viewer } from "./viewer.js?v=fd46ca766c";
+import { progressTracker } from "./progress.js?v=fd46ca766c";
+import * as fontsync from "./fontsync.js?v=fd46ca766c";
+import * as localfonts from "./localfonts.js?v=fd46ca766c";
+import { missingIn } from "./coverage.js?v=fd46ca766c";
+import { zip, readZipText } from "./zip.js?v=fd46ca766c";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -417,6 +417,7 @@ function applyTheme() {
   if (t === "auto") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
   localStorage.setItem("te.theme", t);
+  // night inverts the light theme as a whole (style.css), the viewer included
   viewer?.setTheme(t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches));
 }
 
@@ -1427,7 +1428,7 @@ const App = {
       <button class="btn hide-sm" :disabled="!dirty" @click="discard">Discard</button>
       <button class="btn primary" :disabled="!dirty" @click="save" title="Ctrl+S">Save</button>
       <select class="select hide-md" v-model="S.theme" @change="applyTheme" style="width:88px" aria-label="Theme" title="Theme">
-        <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
+        <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option><option value="night" title="Every color inverted">Night</option>
       </select>
     </header>
 
