@@ -378,16 +378,12 @@ type_test:
   cpi: 10.0                         # Test_CPI
   lpi: 6.0
   text: |-
-    Hamburgefonstiv
-    Hello World! iTiZ4n1c3d4y2d4y
-    Stop. Consider, then ACT! Yes?
-    (a, b. c; d: e! f?) 6,789
-    #1 - $3 25% (S&N) ^4 **
-    "say" 'hi' x^2 _abc_
-    0123456789 &$%/-
-    WWW mmm iii lll 111 qpdb
-    Pack my box with five
-    dozen liquor jugs.
+    Hamburgefonstiv  WWW mmm iii lll 111
+    Hello World! iTiZ4n1c3d4y2d4y qpdb
+    Stop. Consider, then ACT! Yes? 6,789
+    (a, b. c; d: e! f?) #1 - $3 25% (S&N)
+    "say" 'hi' x^2 _abc_ ** 1/2 0123456789
+    Pack my box with five dozen liquor jugs.
 # Calibration - v2 has no Cutout_Test/Baseline_Test defaults active
 # (Cutout_Test=false at v2:110, Baseline_Test=false at v2:115), same as
 # Bennett's real defaults.
