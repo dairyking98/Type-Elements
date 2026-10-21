@@ -18,7 +18,11 @@
 // timeline never had), it falls back to a model: within each stage slice the
 // [n/N] loop fills `share` of it (0.65 unless the stage says), then the rest
 // fills over a time guessed from how long the loop took, easing so that a
-// longer tail keeps creeping instead of parking at 95%.
+// longer tail keeps creeping instead of parking at 95%. The tail itself is
+// learned across routes: lines after the characters (Additive, ResinSupport,
+// ResinPrint...) are the same whichever route a render took, so each job
+// also keeps how many seconds were left when each line appeared, and a run
+// on a route with no timeline yet times its tail from those.
 //
 //   const p = progressTracker(key);   p.event(ev) for each job event;
 //   p.value() -> 0..1 (never goes back);  p.remaining() -> seconds | null;
@@ -44,7 +48,9 @@ const creep = (x) => (x <= 0.8 ? Math.max(0, x) : 0.8 + 0.2 * (1 - Math.exp(-(x 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
 export function progressTracker(key) {
-  const shapes = loadAll()[key]?.shapes || [];
+  const saved = loadAll()[key] || {};
+  const shapes = saved.shapes || [];
+  const tails = saved.tails || {};   // signature -> seconds left when it appeared (any route)
   const t0 = performance.now();
   const now = () => (performance.now() - t0) / 1000;
   const seen = new Map();            // signature -> seconds into this run
@@ -53,8 +59,8 @@ export function progressTracker(key) {
   let counter = null;                // latest [n/total] since the anchor
   let best = 0;
   // fallback model, kept up to date even while a timeline is in use
-  const fb = { lo: 0, hi: 1, share: 0.65, t0: 0, n: null, loopT0: null, loopEnd: null };
-  function stage(p) { Object.assign(fb, { lo: p[0], hi: p[1], share: p[3] ?? 0.65, t0: now(), n: null, loopT0: null, loopEnd: null }); }
+  const fb = { lo: 0, hi: 1, share: 0.65, t0: 0, n: null, loopT0: null, loopEnd: null, known: null };
+  function stage(p) { Object.assign(fb, { lo: p[0], hi: p[1], share: p[3] ?? 0.65, t0: now(), n: null, loopT0: null, loopEnd: null, known: null }); }
   // -> [fraction, seconds left | null]
   function fallback() {
     const t = now(), span = fb.hi - fb.lo, last = fb.hi >= 1;
@@ -62,6 +68,10 @@ export function progressTracker(key) {
       const v = fb.lo + span * (fb.share + (1 - fb.share) * creep((t - start) / tail));
       return [v, last && start + tail > t ? start + tail - t : null];
     };
+    if (fb.known) {                                        // a line whose time-to-finish we've measured before
+      const k = fb.known, left = k.rem - (t - k.t);
+      return [k.v0 + (1 - k.v0) * creep((t - k.t) / k.rem), left > 0 ? left : null];
+    }
     if (fb.share <= 0) {                                   // no loop: the rest at the pace the bar has gone so far
       const tail = Math.max(2, (fb.t0 * span) / Math.max(fb.lo, 0.05));
       return tailFrom(fb.t0, tail);
@@ -103,6 +113,11 @@ export function progressTracker(key) {
           else if (ev.phase) hist = null;                   // a stage no saved route has: this run's shape is new
         } else if (hist && hist.marks[s] >= anchorF) { anchorF = hist.marks[s]; anchorT = now(); counter = null; }
       }
+      // past this stage's loop, a line with a measured time-to-finish times the rest
+      if (s && !m && !ev.phase && fb.hi >= 1 && (fb.loopEnd !== null || fb.share <= 0) && tails[s] > 0
+          && !(fb.known && fb.known.sig === s)) {
+        fb.known = { sig: s, t: now(), rem: tails[s], v0: best };
+      }
       if (m) {
         counter = +m[1] / Math.max(+m[2], 1);
         if (fb.n !== null && counter < fb.n - 0.5) {        // a second loop in this stage (Hammond split: one per half)
@@ -138,13 +153,14 @@ export function progressTracker(key) {
     finish(ok) {
       const total = now();
       if (!ok || total < 0.5) return;
-      const marks = {};
-      for (const [s, t] of seen) marks[s] = +(t / total).toFixed(4);
+      const marks = {}, left = {};
+      for (const [s, t] of seen) { marks[s] = +(t / total).toFixed(4); left[s] = +(total - t).toFixed(2); }
       const shape = Object.keys(marks).sort().join("\n");
       const all = loadAll();
       const prev = (all[key]?.shapes || []).filter((h) => Object.keys(h.marks).sort().join("\n") !== shape);
+      const oldTails = all[key]?.tails || {};
       delete all[key];                                      // re-insert: newest last, oldest dropped first
-      all[key] = { shapes: [{ total, marks }, ...prev].slice(0, MAX_SHAPES) };
+      all[key] = { shapes: [{ total, marks }, ...prev].slice(0, MAX_SHAPES), tails: { ...oldTails, ...left } };
       const keys = Object.keys(all);
       for (const k of keys.slice(0, Math.max(0, keys.length - MAX_JOBS))) delete all[k];
       saveAll(all);
