@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=be2908e359";
-import { Viewer } from "./viewer.js?v=be2908e359";
-import { progressTracker } from "./progress.js?v=be2908e359";
-import * as fontsync from "./fontsync.js?v=be2908e359";
-import * as localfonts from "./localfonts.js?v=be2908e359";
-import { missingIn } from "./coverage.js?v=be2908e359";
-import { zip, readZipText } from "./zip.js?v=be2908e359";
+import { engine } from "./engine.js?v=70b71a03c4";
+import { Viewer } from "./viewer.js?v=70b71a03c4";
+import { progressTracker } from "./progress.js?v=70b71a03c4";
+import * as fontsync from "./fontsync.js?v=70b71a03c4";
+import * as localfonts from "./localfonts.js?v=70b71a03c4";
+import { missingIn } from "./coverage.js?v=70b71a03c4";
+import { zip, readZipText } from "./zip.js?v=70b71a03c4";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
