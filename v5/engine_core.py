@@ -278,6 +278,20 @@ def _blick_keyboard(lay, rows, key):
                     + (" Picked from the layout - set Keyboard below to change it." if (lay.get("keyboard") or "auto") == "auto" else "")}
 
 
+def _hammond_keyboard(element_order, key, n_rows):
+    """The Hammond's two staggered key rows (Leonard, 2026-10-20): the keys
+    follow the shuttle's element order from its Q end, alternating bottom
+    row, top row, bottom, ... - with Cap (top), the space bar (bottom),
+    Fig (top) and a gap in the middle, between the two halves of the
+    shuttle. Items are slot keys, {"label"} for the shift keys/space bar,
+    or None for the gap; the top row sits half a key to the right."""
+    seq = [key(i) for i in element_order[:15]] + [{"label": "Cap"}, {"label": "Space"}, {"label": "Fig"}, None] \
+        + [key(i) for i in element_order[15:]]
+    return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "align": "stagger",
+            "rows": [seq[1::2], seq[0::2]], "levels": _LEVELS[:n_rows],
+            "note": "Two staggered rows in element order from the Q end: bottom, top, bottom, ..."}
+
+
 def layout_views(machine, cfg):
     lay = cfg.get("layout") or {}
     rows = [list(r) for r in (lay.get("rows") or []) if isinstance(r, str)]
@@ -331,12 +345,11 @@ def layout_views(machine, cfg):
         order = sorted(range(width), key=lambda i: -pm[i])          # +angle first, like the catalog
         views.append(element(order, note="Across the shuttle from the Q end; rows top to bottom."))
         if width == 30:
-            views.insert(0, {**keyboard([], None), "rows": [[key(29 - (3 * c + kr)) for c in range(10)] for kr in range(3)]})
+            views.insert(0, _hammond_keyboard(order, key, n_rows))
     elif machine == "hammond_split":
         views.append(element(list(range(width)), note="Across the shuttle from the Q end; rows top to bottom."))
         if width == 30:
-            views.insert(0, {**keyboard([], None), "rows": [[key(3 * c + kr) for c in range(10)] for kr in range(3)],
-                             "note": "Same 3 x 10 key grid as the Hammond (checked against the Universal catalog)."})
+            views.insert(0, _hammond_keyboard(list(range(width)), key, n_rows))
     elif machine == "mignon":
         fill = (cfg.get("legend") or {}).get("circle_fill") or []
         shifted = [[bool(fill[r][i]) if r < len(fill) and i < len(fill[r]) else False for i in range(width)]
