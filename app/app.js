@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=041952ef47";
-import { Viewer } from "./viewer.js?v=041952ef47";
-import { progressTracker } from "./progress.js?v=041952ef47";
-import * as fontsync from "./fontsync.js?v=041952ef47";
-import * as localfonts from "./localfonts.js?v=041952ef47";
-import { missingIn } from "./coverage.js?v=041952ef47";
-import { zip, readZipText } from "./zip.js?v=041952ef47";
+import { engine } from "./engine.js?v=b64dfc1784";
+import { Viewer } from "./viewer.js?v=b64dfc1784";
+import { progressTracker } from "./progress.js?v=b64dfc1784";
+import * as fontsync from "./fontsync.js?v=b64dfc1784";
+import * as localfonts from "./localfonts.js?v=b64dfc1784";
+import { missingIn } from "./coverage.js?v=b64dfc1784";
+import { zip, readZipText } from "./zip.js?v=b64dfc1784";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -121,6 +121,7 @@ const S = reactive({
   sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
   local: { status: "unknown", count: 0, error: "" },            // this computer's fonts (localfonts.js)
   access: false, previewText: "",
+  viewBg: (() => { try { return localStorage.getItem("te.viewBg") || null; } catch { return null; } })(),
   fontQuery: (() => { try { return localStorage.getItem("te.fontQuery") || ""; } catch { return ""; } })(),
   helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
   helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
@@ -434,6 +435,12 @@ async function saveCopy() {
 
 let logEl = null;
 function logScroll() { nextTick(() => { if (logEl) logEl.scrollTop = logEl.scrollHeight; }); }
+
+function setViewBg(c) {
+  S.viewBg = c;
+  try { c ? localStorage.setItem("te.viewBg", c) : localStorage.removeItem("te.viewBg"); } catch {}
+  viewer?.setBackground?.(c);
+}
 
 function applyTheme() {
   const t = S.theme;
@@ -806,7 +813,8 @@ const LayoutPage = {
     const view = computed(() => {
       const v = views.value.find((x) => x.id === viewId.value) || null;
       if (!v || !v.variants) return v;
-      return { ...v, rows: v.variants[variantOf(v)], note: v.variant_labels[variantOf(v)] };
+      const which = variantOf(v), vv = v.variants[which];
+      return { ...v, ...(Array.isArray(vv) ? { rows: vv } : vv), note: v.variant_labels[which] };
     });
     const setView = (id) => { viewId.value = id; showText.value = false; try { localStorage.setItem(viewKey.value, id); } catch {} };
     const level = ref("all");                    // keys view: every level on each key, or one
@@ -1449,6 +1457,7 @@ const App = {
     };
     onMounted(async () => {
       viewer = new Viewer(viewerEl.value);
+      viewer.setBackground?.(S.viewBg);
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
@@ -1501,7 +1510,7 @@ const App = {
     }
     const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, setHelpAll, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
+    return { S, setHelpAll, setViewBg, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
@@ -1642,6 +1651,10 @@ const App = {
 
       <aside class="side">
         <div class="viewer" ref="viewerEl">
+          <label class="bg-pick" title="Background colour behind element builds (type tests always show on white)">
+            <input type="color" :value="S.viewBg || '#eef0f3'" @input="setViewBg($event.target.value)">
+            <button v-if="S.viewBg" class="btn small ghost" @click.prevent="setViewBg(null)" title="Back to the theme's background">↺</button>
+          </label>
           <div class="overlay">
             <span v-if="S.build.stl" class="chip">{{ S.build.stl.size.x.toFixed(1) }} × {{ S.build.stl.size.y.toFixed(1) }} × {{ S.build.stl.size.z.toFixed(1) }} mm</span>
             <span v-if="S.build.stl" class="chip">{{ Math.round(S.build.stl.triangles).toLocaleString() }} triangles</span>
