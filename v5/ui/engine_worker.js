@@ -63,12 +63,10 @@ async function init(b) {
   py.FS.mkdirTree("/persist");
   py.FS.mount(py.FS.filesystems.IDBFS, {}, "/persist");
   await syncfs(true);
-  // first visit: seed the font profiles that ship with v4
+  // (the built-in font profiles are read from /v4/config/profiles in place)
   py.runPython(`
-import os, shutil, sys
+import sys
 sys.path[:0] = ["/shim", "/v5", "/v4/lib", "/v4"]
-if not os.path.isdir("/persist/profiles") and os.path.isdir("/persist-seed/profiles"):
-    shutil.copytree("/persist-seed/profiles", "/persist/profiles")
 `);
   status("Starting Type Elements…", 0.6);
   eng = py.pyimport("webengine");

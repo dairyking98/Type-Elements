@@ -86,36 +86,82 @@ STAND_INS = {
 }
 
 
+def _font_key(name):
+    """'Antikor Mono-Hairline.ttf' and 'AntikorMono-Hairline.otf' (the name a
+    font added from this computer's installed fonts gets) -> one key."""
+    return re.sub(r"[^a-z0-9]", "", os.path.splitext(os.path.basename(name))[0].lower())
+
+
 def _replacement(path):
-    stand_in = STAND_INS.get(os.path.basename(path).lower())
-    if stand_in:
-        return os.path.join(BUNDLED, stand_in)
+    """Where a config's font that isn't in this browser comes from: the same
+    font among the user's own (added or synced from a fonts folder, matched
+    by file name), the same file shipped with the app, a stand-in we ship,
+    else FreeMono."""
+    want = _font_key(path)
+    if os.path.isdir(USER_FONTS):
+        for fn in sorted(os.listdir(USER_FONTS)):
+            if fn.lower().endswith(FONT_EXTS) and _font_key(fn) == want:
+                return os.path.join(USER_FONTS, fn)
     same = os.path.join(BUNDLED, os.path.basename(path))
     if os.path.isfile(same):
         return same
+    stand_in = STAND_INS.get(os.path.basename(path).lower())
+    if stand_in:
+        return os.path.join(BUNDLED, stand_in)
     return os.path.join(BUNDLED, "FreeMono.ttf")
+
+
+def _wanted_path(machine):
+    return os.path.join(core.RUNNING_DIR or "/persist/running", f"{machine}.fonts_wanted.json")
 
 
 def get_config(machine):
     """core.get_config, after swapping any font file that doesn't exist in
-    this browser for a bundled one (patched into the running copy so builds
-    use it) - the swaps are listed in the result as `font_substitutions`."""
+    this browser for one that does (_replacement), patched into the running
+    copy so builds use it. The font the config really asked for is
+    remembered (<machine>.fonts_wanted.json), so once the user adds or
+    syncs it, the stand-in is replaced by the real thing. Every swap still
+    in place is listed in the result as `font_substitutions`, with `kind`:
+    "yours" (the user's own copy of that font), "bundled" (the same font
+    shipped with the app) or "stand-in" (a different font)."""
     doc = core.get_config(machine)
     _master, running = core.paths(machine)
-    subs = []
+    try:
+        with open(_wanted_path(machine), encoding="utf-8") as fh:
+            wanted = json.load(fh)
+    except (OSError, ValueError):
+        wanted = {}
+    before = json.dumps(wanted, sort_keys=True)
+    subs, patches = [], {}
     for s in doc["schema"]:
         for f in s["fields"]:
-            v = f["value"]
-            if f["key"] in FONT_KEYS and isinstance(v, str) and v and not os.path.isfile(os.path.expanduser(v)):
-                subs.append({"key": f["key"], "label": f["label"], "from": v, "to": _replacement(v)})
-    if subs:
+            key, v = f["key"], f["value"]
+            if key not in FONT_KEYS or not isinstance(v, str) or not v:
+                continue
+            w = wanted.get(key)
+            if not os.path.isfile(os.path.expanduser(v)):
+                w = wanted[key] = {"from": v, "to": None}
+            elif not w or w.get("to") != v:
+                wanted.pop(key, None)                    # the user chose this font themselves
+                continue
+            to = _replacement(w["from"])
+            if to != v:
+                patches[key] = to
+            w["to"] = to
+            kind = ("yours" if to.startswith(USER_FONTS + "/") else
+                    "bundled" if os.path.basename(to) == os.path.basename(w["from"]) else "stand-in")
+            subs.append({"key": key, "label": f["label"], "from": w["from"], "to": to, "kind": kind})
+    if patches:
         with open(running, encoding="utf-8") as fh:
             text = fh.read()
-        for sub in subs:
-            text = core.tune.patch_yaml_value(text, sub["key"], sub["to"])
+        for key, to in patches.items():
+            text = core.tune.patch_yaml_value(text, key, to)
         with open(running, "w", encoding="utf-8") as fh:
             fh.write(text)
         doc = core.get_config(machine)
+    if json.dumps(wanted, sort_keys=True) != before:
+        with open(_wanted_path(machine), "w", encoding="utf-8") as fh:
+            json.dump(wanted, fh)
     doc["font_substitutions"] = subs
     doc["engine"] = "browser"
     return doc

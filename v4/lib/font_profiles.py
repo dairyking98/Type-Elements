@@ -66,10 +66,13 @@ def slugify(name):
     return slug or "profile"
 
 
-def list_profiles(config_dir):
+def list_profiles(config_dir, machine=None):
     """[(display_name, path), ...] sorted by display name, case-insensitive.
     Silently skips unreadable/malformed files rather than breaking the
-    picker for every profile because one is bad."""
+    picker for every profile because one is bad. A profile can name the
+    one machine it was tuned for (`machine: hammond`, the built-in
+    per-machine defaults do); given `machine`, profiles for a different
+    one are left out. Names stay unique across machines either way."""
     d = profiles_dir(config_dir)
     if not os.path.isdir(d):
         return []
@@ -82,6 +85,8 @@ def list_profiles(config_dir):
             with open(path, encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
             name = data.get("name") or os.path.splitext(fn)[0]
+            if machine and data.get("machine") and data["machine"] != machine:
+                continue
             if isinstance(data.get("values"), dict):
                 out.append((str(name), path))
         except Exception:

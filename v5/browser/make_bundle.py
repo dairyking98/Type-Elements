@@ -36,7 +36,9 @@ for src in glob.glob(os.path.join(V4, "config", "*.yaml")):
     if not src.endswith(".running.yaml"):
         files["/v4/" + os.path.relpath(src, V4)] = src
 for src in glob.glob(os.path.join(V4, "config", "profiles", "**", "*.yaml"), recursive=True):
-    files["/persist-seed/profiles/" + os.path.relpath(src, os.path.join(V4, "config", "profiles"))] = src
+    # built-in profiles, read in place (engine_core lists them beside the
+    # user's own in /persist/profiles), so a new one reaches every visitor
+    files["/v4/" + os.path.relpath(src, V4)] = src
 for src in glob.glob(os.path.join(V4, "assets", "svg", "*.svg")):
     files["/v4/" + os.path.relpath(src, V4)] = src
 files["/v5/engine_core.py"] = os.path.join(ROOT, "v5", "engine_core.py")

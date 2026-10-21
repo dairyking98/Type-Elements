@@ -35,10 +35,12 @@
 machine: helios
 
 font:
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced Kurinto Type.ttf at 2.7 mm;
+  # the notes below are about that earlier face.
   # v2's real value is the font family name "Kurinto Type" (Type_Size=2.7),
   # not a file path - this is that font's real regular-weight file.
-  path: "/home/lchau/fonts/Library/Sans Text/Kurinto Type.ttf"
-  size_mm: 2.7
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0
 
 # Secondary font - characters listed in font2_chars are struck in this
 # font/size instead of the main one. Same feature the Selectric family and

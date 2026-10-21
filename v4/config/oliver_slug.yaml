@@ -7,8 +7,10 @@
 machine: oliver_slug
 
 font:
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Erica Type.ttf"
-  size_mm: 3.05           # v1 Type_Size (OliverSlug.scad:25)
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced Erica Type.ttf at 3.05 mm;
+  # the notes below are about that earlier face.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0           # was 3.05: v1 Type_Size (OliverSlug.scad:25)
   name: "Erica Type"
 
 alignment:

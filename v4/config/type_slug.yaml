@@ -10,8 +10,10 @@
 machine: type_slug
 
 font:
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/CMU Typewriter Text.ttf"
-  size_mm: 3.3           # v1 Type_Size ("CMU Typewriter Text" preset)
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced CMU Typewriter Text.ttf at 3.3 mm;
+  # the notes below are about that earlier face.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0           # was 3.3: v1 Type_Size ("CMU Typewriter Text" preset)
   name: "CMU Typewriter Text"
 
 alignment:

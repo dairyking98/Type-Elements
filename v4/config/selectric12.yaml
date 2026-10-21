@@ -11,11 +11,13 @@
 machine: selectric12
 
 font:
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced FreeSans.ttf at 2.4 mm;
+  # the notes below are about that earlier face.
   # FreeSans is the standard metric-compatible substitute for v2's real
   # value "Arial" (a system font name, not a file path) - same convention
   # as config/postal.yaml's FreeMono substitution for "FreeMono:style=Bold".
-  path: "/home/lchau/fonts/Library/Sans Text/FreeSans.ttf"
-  size_mm: 2.4          # v2 Font_Size (ibm.scad:184) - S12 uses direct point size, not Composer's cap-height convention
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0          # was 2.4: v2 Font_Size (ibm.scad:184) - S12 uses direct point size, not Composer's cap-height convention
   name: "Arial"         # v2 Font - used ONLY as the literal engraved typeface-label text (FontName()), not for glyph rendering
 
 font2:

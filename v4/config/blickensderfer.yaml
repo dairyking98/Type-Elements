@@ -12,8 +12,10 @@
 machine: blickensderfer
 
 font:
-  path: "/home/lchau/fonts/Custom & Modified/FreeMono - Thin Weight (Leonard Chau).ttf"
-  size_mm: 3.7
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced FreeMono - Thin Weight (Leonard Chau).ttf at 3.7 mm;
+  # the notes below are about that earlier face.
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0
 
 # Secondary font - characters listed in font2_chars are struck in this
 # font/size instead of the main one. Same feature the Selectric family and

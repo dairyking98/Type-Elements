@@ -48,10 +48,12 @@
 machine: hammond
 
 font:
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced Iosevka Term Slab.ttf at 3.10 mm;
+  # the notes below are about that earlier face.
   # v2's real value is the font family name "Iosevka Fixed Slab"
   # (Font_Size=3.10) - not installed here; nearest real file on disk.
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Iosevka Term Slab.ttf"
-  size_mm: 3.10
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0
 
 label:
   # v2's real value is "OCR\\-A II" (a real installed font here, unlike

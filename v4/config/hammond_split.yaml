@@ -39,10 +39,12 @@
 machine: hammond_split
 
 font:
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced AverageMono.otf at 2.95 mm;
+  # the notes below are about that earlier face.
   # v2's real value is the font family name "Average Mono" - actually
   # installed on disk here (unlike hammond.yaml's Iosevka substitution).
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/AverageMono.otf"
-  size_mm: 2.95                    # Type_Size
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  size_mm: 3.0                    # was 2.95: Type_Size
 
 # Char_Mod ("⅌", the per-unit sign) uses a separate font/size from every
 # other character - v2:94-99. v4 has no per-character font override in the

@@ -1193,7 +1193,7 @@ class TuneApp(App):
         current typeface setup under a name and recall it later, including
         on a DIFFERENT machine (see lib/font_profiles.py). Sits at the top
         of the tab because it acts on everything below it."""
-        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir(), self.machine)]
         options = [(n, n) for n in names]
         current = self._current_font_profile()
         with Vertical(classes="field-row"):
@@ -1232,7 +1232,7 @@ class TuneApp(App):
         saves/renames/deletes one, which invalidates explicitly."""
         if getattr(self, "_profile_cache", None) is None:
             out = []
-            for name, path in font_profiles.list_profiles(self._config_dir()):
+            for name, path in font_profiles.list_profiles(self._config_dir(), self.machine):
                 try:
                     out.append((name, font_profiles.load_profile(path)[1]))
                 except Exception:
@@ -1352,7 +1352,7 @@ class TuneApp(App):
         except NoMatches:
             return
         current = self._current_font_profile()
-        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir(), self.machine)]
         self._set_profile_select(select, None, current if current in names else Select.NULL)
 
     async def _rename_font_profile(self):
@@ -1382,7 +1382,7 @@ class TuneApp(App):
         moved = "" if old_path == new_path else f" ({os.path.basename(new_path)})"
         self._invalidate_profile_cache()
         self.log_line(f"[green]renamed {name!r} -> {new_name!r}[/green]{moved}")
-        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir(), self.machine)]
         self._set_profile_select(select, [(n, n) for n in names],
                                   new_name if new_name in names else Select.NULL)
         self._refresh_font_profile_status()
@@ -1411,7 +1411,7 @@ class TuneApp(App):
         removed = font_profiles.delete_profile(self._config_dir(), name)
         self._invalidate_profile_cache()
         self.log_line(f"[green]deleted profile {name!r}[/green] - {removed}")
-        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir(), self.machine)]
         self._set_profile_select(select, [(n, n) for n in names], Select.NULL)
         self._refresh_font_profile_status()
 
@@ -1452,7 +1452,7 @@ class TuneApp(App):
         self._invalidate_profile_cache()
         self.log_line(f"[green]saved profile {name!r}[/green] ({len(payload)} values) -> {path}")
         select = self.query_one("#font-profile-select", Select)
-        names = [n for n, _p in font_profiles.list_profiles(self._config_dir())]
+        names = [n for n, _p in font_profiles.list_profiles(self._config_dir(), self.machine)]
         self._set_profile_select(select, [(n, n) for n in names],
                                   name if name in names else Select.NULL)
         self._refresh_font_profile_status()

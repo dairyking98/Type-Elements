@@ -20,11 +20,13 @@
 machine: gauge_slug
 
 font:
+  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced CMU Typewriter Text.ttf at 3.0 mm;
+  # the notes below are about that earlier face.
   # Unused (character.enabled/logo.enabled are both false) - present
   # only because wing_slug._receive_config picks up every capital-
   # leading global unconditionally, and configure()/Type Test both
   # still read font.path/size_mm.
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/CMU Typewriter Text.ttf"
+  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
   size_mm: 3.0
   name: "CMU Typewriter Text"
 

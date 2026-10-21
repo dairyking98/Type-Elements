@@ -651,18 +651,37 @@ def profile_field_paths(machine):
     return [list(f[1]) for f in tune.SECTIONS_BY_MACHINE.get(machine, {}).get("Font & Alignment", [])]
 
 
+def _profile_entries(machine):
+    """[(name, path, builtin)]: the user's profiles, then the built-in ones
+    that ship in v4/config (read-only, and only listed separately when the
+    user's profiles live elsewhere - the browser keeps them in /persist).
+    A user profile with a built-in's name replaces it."""
+    mine = [(n, p, False) for n, p in font_profiles.list_profiles(_profiles_root(), machine)]
+    if _profiles_root() == CONFIG_DIR:
+        return mine
+    have = {n for n, _p, _b in mine}
+    builtin = [(n, p, True) for n, p in font_profiles.list_profiles(CONFIG_DIR, machine) if n not in have]
+    return sorted(mine + builtin, key=lambda e: e[0].lower())
+
+
 def profiles(machine):
     cfg, _t, _m = load_running(machine)
     paths_ = profile_field_paths(machine)
     current = font_profiles.collect_from_config(cfg, paths_)
     out = []
-    for name, path in font_profiles.list_profiles(_profiles_root()):
+    for name, path, builtin in _profile_entries(machine):
         _n, values = font_profiles.load_profile(path)
         applied, aliased, skipped, unset = font_profiles.apply_to(values, paths_)
         merged = {**applied, **{k: v for k, (v, _src) in aliased.items()}}
         active = bool(merged) and all(current.get(k) == v for k, v in merged.items())
-        out.append({"name": name, "values": merged, "skipped": skipped, "unset": unset, "active": active})
+        out.append({"name": name, "values": merged, "skipped": skipped, "unset": unset, "active": active,
+                    "builtin": builtin})
     return out
+
+
+def _not_builtin(machine, name):
+    if any(n == name and b for n, _p, b in _profile_entries(machine)):
+        raise EngineError(400, f'"{name}" ships with the app and can\'t be changed - save your settings under a new name instead')
 
 
 def profile_save(machine, body):
@@ -676,6 +695,7 @@ def profile_save(machine, body):
 
 
 def profile_rename(machine, body):
+    _not_builtin(machine, body.get("old", ""))
     try:
         font_profiles.rename_profile(_profiles_root(), body["old"], body["new"])
     except (KeyError, ValueError, FileExistsError, FileNotFoundError) as e:
@@ -684,6 +704,7 @@ def profile_rename(machine, body):
 
 
 def profile_delete(machine, body):
+    _not_builtin(machine, body.get("name", ""))
     font_profiles.delete_profile(_profiles_root(), body.get("name", ""))
     return profiles(machine)
 
