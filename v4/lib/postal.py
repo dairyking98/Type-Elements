@@ -220,6 +220,7 @@ def configure(config_path):
     gauge = cfg.get("gauge", {})
     g["Gauge_Offset_Start"] = gauge.get("offset_start", 0.0)
     g["Gauge_Offset_Int"] = gauge.get("offset_int", 0.025)
+    g["Gauge_Label_Size"] = gauge.get("gauge_label_size_mm", 3.0)
 
     # Calibration - see blickensderfer.configure()'s matching comment /
     # cylinder_machine.CalibrationTextRing's docstring.

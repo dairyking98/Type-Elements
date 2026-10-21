@@ -300,13 +300,16 @@ type_test:
     Pack my box with five dozen liquor jugs.
 # lib/gauge (v2's [Shaft Gauge Test] section, blickensderfer.scad:265-267/
 # 517-589) - a 6-pocket "revolver" test print for calibrating
-# element.core_id_offset: each pocket bores the shaft passage at
-# offset_start + n*offset_int (n=0..5), engraved with its own offset value.
-# Print it, test-fit each numbered pocket on the real machine's shaft, and
-# set element.core_id_offset to whichever number fits best.
+# element.core_id_offset. The centre bores the current fit (shaft +
+# core_id_offset); each outer pocket bores it plus offset_start +
+# n*offset_int (n=0..5) and is engraved with its actual hole diameter.
+# Print it, test-fit each pocket on the real machine's shaft, and set
+# core_id_offset = best pocket's number - the bare shaft (core_id_in x 25.4).
+# offset_start -0.05 brackets the current fit from below and above.
 gauge:
-  offset_start: 0.0
+  offset_start: -0.05
   offset_int: 0.025
+  gauge_label_size_mm: 3.0
 
 # Calibration (v2's Cutout_Test/Baseline_Test/Test_Layout mechanism,
 # lib/testing.scad + lib/glyph_pipeline.scad's TextRing/TextRingDebug) -

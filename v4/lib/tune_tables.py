@@ -254,6 +254,8 @@ GAUGE_FIELDS = [
      "First pocket's core_id_offset value - usually 0."),
     ("offset_int", ["gauge", "offset_int"], float, "Offset increment (mm)",
      "Added per pocket - pocket n tests offset_start + n*offset_int."),
+    ("gauge_label_size_mm", ["gauge", "gauge_label_size_mm"], float, "Label size (mm)",
+     "Size of the hole diameters engraved on the pockets."),
 ]
 
 # Mignon-specific tabs - see lib/mignon.py's module docstring for why
@@ -1459,11 +1461,11 @@ SECTION_INTROS = {
     "Rib print": ("How the Rib-only part (Build target Rib, usually an FDM print) sits on the build plate.",
                   "picker-help"),
     "Gauge": (
-        "Small 6-pocket calibration print, not the real element. Each "
-        "pocket bores its shaft passage at offset_start + n*offset_int. "
-        "Test-fit each pocket on the real shaft, then set Element > Core "
-        "ID offset to the best-fitting number. Select \"Shaft Gauge\" on "
-        "the Build tab to build it.",
+        "A small test print for the shaft fit, not the real element. The "
+        "unlabeled centre hole is your current fit; each outer pocket is "
+        "engraved with its own hole diameter. Test-fit them on the real "
+        "shaft, then set the shaft clearance to the best pocket's number "
+        "minus the bare shaft (3.175 mm for a 1/8 inch shaft).",
         "picker-help"),
     "Calibration": (
         "A real element where every position strikes the same test "

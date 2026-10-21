@@ -1094,18 +1094,17 @@ def RevolverSolid():
 
 
 def GaugeText(offset):
-    """GaugeText(Offset) - blickensderfer.scad:558-564. Engraves the
-    pocket's calibration offset (e.g. "0.025") on its outer wall, using
-    natural (advance-based) character spacing, not the fixed-pitch CPI
-    convention type_test.py uses - this is a plain label, not simulating
-    struck type. Reuses the logo's engraved font (v2 uses "Consolas"
-    specifically for this, which isn't a font v4 has a config slot for -
-    the logo font serves the same "small engraved label" role). Skipped
-    entirely for Offset==0, matching v2's `if (Offset!=0)`."""
-    if offset == 0:
-        return None
-    label = f"{round(offset, 4):g}"
-    size_mm = 3.0
+    """Engraves a pocket's actual bore diameter (e.g. "3.340" - the shaft
+    plus this config's clearance plus the pocket's offset) on its outer
+    wall, so the number read off the best-fitting pocket IS the hole size
+    to aim for: core_id_offset = that number - the bare shaft (core_id_in
+    x 25.4). v2
+    (blickensderfer.scad:558-564) engraved the bare offset and skipped
+    offset 0, which left a pocket unlabeled. Natural (advance-based)
+    character spacing in the logo's engraved font, at gauge.
+    gauge_label_size_mm."""
+    label = f"{Shaft_Diameter + offset:.3f}"
+    size_mm = Gauge_Label_Size
     depth = 4.0
     face = load_font_face(LOGO_FONT_PATH)
     scale = em_to_mm_scale(size_mm, face.units_per_EM)
@@ -1139,14 +1138,13 @@ def GaugeText(offset):
     )
 
 
-def GaugeTestSubtractive(offset, render_core_groove=None):
+def GaugeTestSubtractive(offset, render_core_groove=None, label=True):
     render_core_groove = DEFAULT_RENDER_CORE_GROOVE if render_core_groove is None else render_core_groove
     parts = [Core(offset), CoreChamfer(offset), SecondaryCore(offset), sp.rotate_z(CoreEllipses(), 180)]
     if render_core_groove:
         parts.append(CoreGrooves(offset))
-    text = GaugeText(offset)
-    if text is not None:
-        parts.append(text)
+    if label:                            # the centre pocket has no outer wall to engrave
+        parts.append(GaugeText(offset))
     return sp.union_all(parts)
 
 
@@ -1156,7 +1154,8 @@ def GaugeTestSet(render_core_groove=None, gauge_offset_start=None, gauge_offset_
     gauge_offset_int = Gauge_Offset_Int if gauge_offset_int is None else gauge_offset_int
     radius = Shaft_Diameter + Wall_Min_Thickness * 2 - Wall_Min_Thickness / 2
 
-    subtractive_parts = [GaugeTestSubtractive(0, render_core_groove)]
+    # centre: the current fit (shaft + core_id_offset), unlabeled
+    subtractive_parts = [GaugeTestSubtractive(0, render_core_groove, label=False)]
     for n in range(6):
         offset = gauge_offset_start + n * gauge_offset_int
         pocket = sp.translate(GaugeTestSubtractive(offset, render_core_groove), [radius, 0, 0])
@@ -1168,7 +1167,9 @@ def GaugeTestSet(render_core_groove=None, gauge_offset_start=None, gauge_offset_
 
     support_parts = []
     for n in range(6):
-        offset = gauge_offset_start + (n + 1) * gauge_offset_int
+        # v2 sized each pocket's support ring for the NEXT pocket's offset
+        # ((n+1), blickensderfer.scad:584) - an off-by-one, fixed here
+        offset = gauge_offset_start + n * gauge_offset_int
         support = sp.translate(GaugeResinSupport(offset), [radius, 0, 0])
         support_parts.append(sp.rotate_z(support, n * 360.0 / 6))
     support_parts.append(GaugeResinSupportsRaft())

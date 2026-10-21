@@ -247,6 +247,7 @@ output:
 gauge:
   offset_start: 0.2
   offset_int: 0.02
+  gauge_label_size_mm: 3.0
 
 # Calibration - see config/blickensderfer.yaml's matching comment.
 calibration:

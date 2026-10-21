@@ -32,7 +32,9 @@ FAMILY_OF = {'blickensderfer': 'cylinder',
  'oliver_slug': 'slugs',
  'lumi_slug': 'slugs'}
 
-FIELD_TEXT = {'a_colon_length_mm': {'label': 'A-to-: span (mm)',
+FIELD_TEXT = {
+ 'gauge_label_size_mm': {'label': 'Label size (mm)',
+                         'help': 'Height of the hole diameters engraved on the gauge pockets. Larger is easier to read.'},'a_colon_length_mm': {'label': 'A-to-: span (mm)',
                        'help': 'Distance from the A key to the : key on the middle row, measured on a real card. '
                                'Change only if your keyboard differs.'},
  'aligning_cut_mm': {'label': 'Platen curve position (mm)',
@@ -636,12 +638,12 @@ FIELD_TEXT = {'a_colon_length_mm': {'label': 'A-to-: span (mm)',
  'notch_fn': {'label': 'Notch facets',
               'help': 'Facets on each notch groove (Notched style only). A tiny groove needs few; raise it only if '
                       'notches look polygonal.'},
- 'offset_int': {'label': 'Clearance step (mm)',
-                'help': 'Clearance added for each pocket after the first. Test-fit them on your shaft and use the best '
-                        'number as Shaft clearance.'},
- 'offset_start': {'label': 'First pocket clearance (mm)',
-                  'help': "The shaft gauge prints pockets with rising shaft clearance. This is the first pocket's "
-                          'clearance, usually 0.'},
+ 'offset_int': {'label': 'Pocket step (mm)',
+                'help': 'How much each outer pocket grows over the one before. Every pocket is engraved with its '
+                        'actual hole diameter.'},
+ 'offset_start': {'label': 'First pocket offset (mm)',
+                  'help': 'How much bigger than the current fit (shaft + clearance, the unlabeled centre hole) the '
+                          'first outer pocket bores. Negative starts below it, so the pockets bracket the current fit.'},
  'outer_inset_mm': {'label': 'Logo inset from edge (mm)',
                     'help': 'How far in from the outer edge the logo sits. Larger = closer to the center.'},
  'overhang_warn_deg': {'label': 'Overhang warning (deg)',
