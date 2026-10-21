@@ -34,6 +34,7 @@ import engine_core as core  # noqa: E402
 
 core.configure(v4_dir="/v4", running_dir="/persist/running", profiles_dir="/persist/profiles")
 os.makedirs(USER_FONTS, exist_ok=True)
+core.fix_collections(USER_FONTS)   # fonts added before collections were split (see core.fix_collections)
 os.makedirs("/v4/output", exist_ok=True)
 
 
@@ -78,18 +79,31 @@ def add_synced_font(name, data):
 
 def add_font(name, data):
     """Store a font the user picked (installed font via the Local Font Access
-    API, or an uploaded file). Returns its font-list entry."""
-    base = re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("_") or "font"
-    if not base.lower().endswith(FONT_EXTS):
-        base += ".ttf"
-    path = os.path.join(USER_FONTS, base)
-    with open(path, "wb") as f:
-        f.write(bytes(data))
-    e = _font_entry(path)
-    if e is None:
-        os.remove(path)
+    API, or an uploaded file). A collection (.ttc - e.g. Windows' cambria.ttc,
+    which holds Cambria Math) is split into its faces, each stored as its own
+    font, and the one asked for is returned (core.pick_face). Returns its
+    font-list entry."""
+    try:
+        faces, want = core.pick_face(name, bytes(data))
+    except Exception:
         raise core.EngineError(400, f"{name} isn't a font file this engine can read")
-    return e
+    chosen = None
+    for fname, fdata, _ps in faces:
+        base = re.sub(r"[^A-Za-z0-9._-]+", "_", fname).strip("_") or "font"
+        if not base.lower().endswith(FONT_EXTS):
+            base += ".ttf"
+        path = os.path.join(USER_FONTS, base)
+        with open(path, "wb") as f:
+            f.write(fdata)
+        e = _font_entry(path)
+        if e is None:
+            os.remove(path)
+            continue
+        if fname == want[0]:
+            chosen = e
+    if chosen is None:
+        raise core.EngineError(400, f"{name} isn't a font file this engine can read")
+    return chosen
 
 
 def font_bytes(path):

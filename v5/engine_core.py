@@ -660,6 +660,7 @@ def fonts():
     out = [{"path": e.path, "family": e.family, "style": e.style} for e in list_system_fonts()]
     d = _added_fonts_dir()
     if os.path.isdir(d):
+        fix_collections(d)
         have = {e["path"] for e in out}
         for fn in sorted(os.listdir(d)):
             p = os.path.join(d, fn)
@@ -677,26 +678,94 @@ def _font_names(path):
         return {"family": os.path.splitext(os.path.basename(path))[0], "style": ""}
 
 
+def split_collection(name, data):
+    """A font collection (.ttc/.otc - Windows ships Cambria Math inside
+    cambria.ttc, beside Cambria) split into its faces: [(file name, bytes,
+    PostScript name)]. Anything else comes back as the one file it is.
+    Saving a whole collection would leave every reader on its FIRST face -
+    picking 'Cambria Math' would quietly build in plain Cambria."""
+    import io
+    if data[:4] != b"ttcf":
+        return [(name, data, None)]
+    from fontTools.ttLib import TTCollection
+    out = []
+    for face in TTCollection(io.BytesIO(data)).fonts:
+        ps = face["name"].getDebugName(6) or face["name"].getBestFullName() or f"face{len(out)}"
+        buf = io.BytesIO()
+        face.save(buf)
+        out.append((ps + ".ttf", buf.getvalue(), ps))
+    return out
+
+
+def pick_face(name, data):
+    """The faces split_collection() finds, and the one `name` asks for (its
+    stem matched to a face's PostScript name, e.g. 'CambriaMath.ttf' - the
+    name a browser's installed font arrives with), else the first."""
+    faces = split_collection(name, data)
+    stem = re.sub(r"[^a-z0-9]", "", os.path.splitext(os.path.basename(name or ""))[0].lower())
+    want = next((f for f in faces if f[2] and re.sub(r"[^a-z0-9]", "", f[2].lower()) == stem), faces[0])
+    return faces, want
+
+
+def fix_collections(folder):
+    """Repair fonts saved before collections were split: any whole .ttc kept
+    under a single-font name (e.g. 'CambriaMath.ttf' holding all of
+    cambria.ttc) becomes just the face its name asks for - same file name,
+    so configs pointing at it keep working - and the other faces are added
+    beside it. Returns how many were fixed."""
+    fixed = 0
+    if not os.path.isdir(folder):
+        return 0
+    for fn in sorted(os.listdir(folder)):
+        path = os.path.join(folder, fn)
+        try:
+            with open(path, "rb") as f:
+                if f.read(4) != b"ttcf":
+                    continue
+            with open(path, "rb") as f:
+                faces, want = pick_face(fn, f.read())
+        except Exception:
+            continue
+        for fname, fdata, _ps in faces:
+            other = os.path.join(folder, re.sub(r"[^A-Za-z0-9._ -]+", "_", fname))
+            if fname != want[0] and not os.path.exists(other):
+                with open(other, "wb") as f:
+                    f.write(fdata)
+        with open(path, "wb") as f:
+            f.write(want[1])
+        fixed += 1
+    return fixed
+
+
 def add_font_file(name, data):
     """A font file sent from the page (uploaded, or one of the browser
     computer's installed fonts) - kept with this engine so builds can use it.
     Returns its font-list entry."""
-    import re as _re
-    base = _re.sub(r"[^A-Za-z0-9._ -]+", "_", os.path.basename(name or "")).strip(" ._") or "font"
-    if not base.lower().endswith(FONT_EXTS):
-        base += ".ttf"
     d = _added_fonts_dir()
     os.makedirs(d, exist_ok=True)
-    path = os.path.join(d, base)
-    with open(path, "wb") as f:
-        f.write(data)
     try:
-        from fontTools.ttLib import TTFont
-        TTFont(path, lazy=True, fontNumber=0)["cmap"]
+        faces, want = pick_face(name, data)
     except Exception:
-        os.remove(path)
         raise EngineError(400, f"{name} isn't a font file this engine can read")
-    return {"path": path, **_font_names(path), "source": "yours"}
+    chosen = None
+    for fname, fdata, _ps in faces:          # a collection adds every face; the one asked for is chosen
+        base = re.sub(r"[^A-Za-z0-9._ -]+", "_", os.path.basename(fname or "")).strip(" ._") or "font"
+        if not base.lower().endswith(FONT_EXTS):
+            base += ".ttf"
+        path = os.path.join(d, base)
+        with open(path, "wb") as f:
+            f.write(fdata)
+        try:
+            from fontTools.ttLib import TTFont
+            TTFont(path, lazy=True, fontNumber=0)["cmap"]
+        except Exception:
+            os.remove(path)
+            continue
+        if fname == want[0]:
+            chosen = path
+    if not chosen:
+        raise EngineError(400, f"{name} isn't a font file this engine can read")
+    return {"path": chosen, **_font_names(chosen), "source": "yours"}
 
 
 def coverage_scan(body, font_list=None):
