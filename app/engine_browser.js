@@ -19,7 +19,7 @@ let lastStatus = { text: "Engine not started", progress: 0 };
 
 function boot() {
   if (ready) return ready;
-  worker = new Worker(new URL("engine_worker.js?v=4e916e0aef", import.meta.url), { type: "module" });
+  worker = new Worker(new URL("engine_worker.js?v=8d8a011749", import.meta.url), { type: "module" });
   ready = new Promise((resolve, reject) => {
     worker.onmessage = ({ data }) => {
       if (data.type === "status") { lastStatus = data; statusListeners.forEach((fn) => fn(data)); return; }
@@ -101,6 +101,7 @@ export const browserEngine = {
   addFont: (name, buffer) => call("add_font", name, buffer),
   addSyncedFont: (name, buffer) => call("add_synced_font", name, buffer),
   resolveFont: (path) => call("resolve_font", path),
+  coverageScan: (body) => call("coverage_scan", body),
   settingsFile: (m, body) => call("settings_file", m, body),
   importSettings: (text) => call("import_settings", { text }),
   mappingUrl: (m) => urls.mapping[m] || null,

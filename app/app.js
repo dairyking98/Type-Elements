@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=4e916e0aef";
-import { Viewer } from "./viewer.js?v=4e916e0aef";
-import { progressTracker } from "./progress.js?v=4e916e0aef";
-import * as fontsync from "./fontsync.js?v=4e916e0aef";
-import * as localfonts from "./localfonts.js?v=4e916e0aef";
-import { missingIn } from "./coverage.js?v=4e916e0aef";
-import { zip, readZipText } from "./zip.js?v=4e916e0aef";
+import { engine } from "./engine.js?v=8d8a011749";
+import { Viewer } from "./viewer.js?v=8d8a011749";
+import { progressTracker } from "./progress.js?v=8d8a011749";
+import * as fontsync from "./fontsync.js?v=8d8a011749";
+import * as localfonts from "./localfonts.js?v=8d8a011749";
+import { missingIn } from "./coverage.js?v=8d8a011749";
+import { zip, readZipText } from "./zip.js?v=8d8a011749";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -16,7 +16,7 @@ const GROUPS = [
     blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
-  { id: "element", label: "Element", icon: "◎", sections: ["Element", "Per-row and per-half values", "Cut groove & rib fit", "Cosmetics", "Bands", "Ticks"],
+  { id: "element", label: "Element", icon: "◎", sections: ["Cosmetics", "Bands", "Ticks", "Cut groove & rib fit", "Element", "Per-row and per-half values"],
     blurb: "Physical dimensions of the element body - mostly real machine measurements." },
   { id: "branding", label: "Logo & label", icon: "✎", sections: ["Logo", "Label"],
     blurb: "Text and marks engraved on the element itself." },
@@ -128,7 +128,8 @@ const S = reactive({
     try { return { ...d, ...JSON.parse(localStorage.getItem("te.light") || "{}") }; } catch { return d; } })(),
   fontQuery: (() => { try { return localStorage.getItem("te.fontQuery") || ""; } catch { return ""; } })(),
   helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
-  helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
+  helpOpen: {}, helpClosed: {},
+  openSections: (() => { try { return JSON.parse(localStorage.getItem("te.openSections") || "{}"); } catch { return {}; } })(),                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
   fontAdvanced: (() => { try { return !!localStorage.getItem("te.fontAdvanced"); } catch { return false; } })(),
   booting: false, engineStatus: null, bootedBefore: (() => { try { return !!localStorage.getItem("te.engineBooted"); } catch { return false; } })(), engineError: "", phoneLanding: false,
 });
@@ -228,6 +229,7 @@ async function resolveFont(path) {
 // Help text: every setting can show its help under it - all at once (the
 // topbar's Help button, remembered) or one at a time (its ⓘ button). It is
 // always available as a hover tooltip too.
+function saveOpenSections() { try { localStorage.setItem("te.openSections", JSON.stringify(S.openSections)); } catch {} }
 const helpShown = (key) => (S.helpAll ? !S.helpClosed[key] : !!S.helpOpen[key]);
 const toggleHelp = (key) => { const m = S.helpAll ? S.helpClosed : S.helpOpen; m[key] = !m[key]; };
 function setHelpAll(on) {
@@ -473,6 +475,8 @@ function openGroup(id) { S.group = id; S.search = ""; S.view = "settings"; local
 function jumpTo(f) {
   const g = groups.value.find((g) => g.sections.includes(f.section)) || (TOOL_SECTIONS.includes(f.section) && groups.value.find((g) => g.id === "tools"));
   if (g) openGroup(g.id);
+  if (!S.openSections[f.section]) { S.openSections[f.section] = true; saveOpenSections(); }
+  if (f.section === "Font & Alignment") { S.fontAdvanced = true; }
   nextTick(() => {
     const el = document.getElementById(`f-${f.key}`);
     if (!el) return;
@@ -618,12 +622,22 @@ const SectionCard = {
       if (key === "label_font_path") return [c.label?.label1, c.label?.label2, c.label?.text].filter(Boolean).join("  ") || null;
       return null;
     };
-    return { fonts, plain, lists, sampleFor };
+    // ADVANCED sections (real machine measurements) fold away behind an
+    // arrow, closed until opened; remembered per section
+    const advanced = computed(() => props.s.intro?.level === "advanced");
+    const open = computed(() => !advanced.value || !!S.openSections[props.s.section]);
+    const toggle = () => { S.openSections[props.s.section] = !open.value; saveOpenSections(); };
+    const changedHere = computed(() => props.s.fields.filter((f) => f.key in S.edits).length);
+    return { fonts, plain, lists, sampleFor, advanced, open, toggle, changedHere };
   },
   template: `
-  <section class="card" :class="{ advanced: s.intro && s.intro.level === 'advanced' }">
-    <div class="card-head"><h2>{{ title || s.section }}</h2><span class="sub">{{ s.fields.length }} setting{{ s.fields.length === 1 ? '' : 's' }}</span><span class="spacer"></span><slot name="actions"></slot></div>
-    <div class="card-body">
+  <section class="card" :class="{ advanced, folded: !open }">
+    <div class="card-head" :class="{ fold: advanced }" @click="advanced && toggle()" :title="advanced ? (open ? 'Hide' : 'Show') + ' these settings' : ''">
+      <span v-if="advanced" class="fold-arrow">{{ open ? '▾' : '▸' }}</span>
+      <h2>{{ title || s.section }}</h2><span class="sub">{{ s.fields.length }} setting{{ s.fields.length === 1 ? '' : 's' }}</span>
+      <span v-if="changedHere && !open" class="chip dirty">{{ changedHere }} changed</span>
+      <span class="spacer"></span><span @click.stop><slot name="actions"></slot></span></div>
+    <div class="card-body" v-if="open">
       <div v-if="s.intro" class="note" :class="s.intro.level">{{ s.intro.text }}</div>
       <slot name="top"></slot>
       <div class="fields">
@@ -640,7 +654,7 @@ const SectionCard = {
 // size, so those are all it shows; everything else that shapes the
 // characters (alignment nudges, caret and underscore, the second font,
 // draft angle) is one click away under Advanced.
-const SIMPLE_FONT_KEYS = ["path", "size_mm", "composer_cap_height"];
+const SIMPLE_FONT_KEYS = ["path", "size_mm", "composer_cap_height", "draft_angle_deg"];
 const FontCard = {
   props: ["s"],
   components: { FieldInput, FontField },
@@ -670,13 +684,19 @@ const FontCard = {
           <FieldInput v-else :f="f" />
         </template>
       </div>
-      <details class="adv" :open="S.fontAdvanced" @toggle="toggle($event.target.open)">
-        <summary>Advanced: alignment, caret, second font, draft angle<span v-if="advChanged" class="chip dirty" style="margin-left:8px">{{ advChanged }} changed</span></summary>
-        <div class="fields" style="margin-top:12px">
-          <FontField v-for="f in advFonts" :key="f.key" :f="f" />
-          <FieldInput v-for="f in advPlain" :key="f.key" :f="f" />
-        </div>
-      </details>
+    </div>
+  </section>
+  <section class="card advanced" :class="{ folded: !S.fontAdvanced }">
+    <div class="card-head fold" @click="toggle(!S.fontAdvanced)" :title="(S.fontAdvanced ? 'Hide' : 'Show') + ' these settings'">
+      <span class="fold-arrow">{{ S.fontAdvanced ? '▾' : '▸' }}</span>
+      <h2>Advanced font settings</h2><span class="sub">alignment, caret and underscore, second font</span>
+      <span v-if="advChanged && !S.fontAdvanced" class="chip dirty">{{ advChanged }} changed</span>
+    </div>
+    <div class="card-body" v-if="S.fontAdvanced">
+      <div class="fields">
+        <FontField v-for="f in advFonts" :key="f.key" :f="f" />
+        <FieldInput v-for="f in advPlain" :key="f.key" :f="f" />
+      </div>
     </div>
   </section>`,
 };
@@ -1053,46 +1073,6 @@ const TypeTestCard = {
   </section-card>`,
 };
 
-// Font coverage, on the Typeface page with the rest of the font tools:
-// which fonts have every character a layout needs.
-const FontCoverageCard = {
-  setup() {
-    const presetNames = computed(() => Object.keys(S.data.presets || {}));
-    const seedCoverage = (v) => {
-      if (v === "__current__") S.coverage.chars = (layoutRows.value || []).join("");
-      else if (S.data.presets[v]) S.coverage.chars = S.data.presets[v].join("");
-    };
-    return { S, runCoverage, presetNames, seedCoverage, engine, layoutRows };
-  },
-  template: `
-  <section class="card">
-    <div class="card-head"><h2>Font coverage</h2><span class="sub">which fonts have every character you need</span></div>
-    <div class="card-body">
-      <div class="fields">
-        <div class="field wide">
-          <label>Characters</label>
-          <select class="select" @change="seedCoverage($event.target.value)" style="margin-bottom:6px">
-            <option value="">Fill from…</option>
-            <option v-if="layoutRows" value="__current__">Current layout</option>
-            <option v-for="n in presetNames" :value="n">Preset: {{ n }}</option>
-          </select>
-          <textarea class="input textblock" v-model="S.coverage.chars" style="min-height:70px"></textarea>
-        </div>
-        <div class="field wide"><label>Font folder to search</label>
-          <input class="input" v-model="S.coverage.dir" placeholder="e.g. /home/you/fonts or C:\\Windows\\Fonts"></div>
-        <div class="field"><label class="switch"><input type="checkbox" v-model="S.coverage.deep"><span>Deep check (slow)</span></label>
-          <div class="help">Also runs every glyph through the real outline pipeline.</div></div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn primary" :disabled="S.job.running || !S.coverage.chars || !S.coverage.dir" @click="runCoverage(true)">Check current font</button>
-        <button class="btn" :disabled="S.job.running || !S.coverage.chars || !S.coverage.dir" @click="runCoverage(false)">Scan the whole folder</button>
-        <a v-if="S.coverage.report" class="btn ghost" :href="engine.reportUrl()" target="_blank">Open report</a>
-      </div>
-      <p class="help">Results stream into the build log. "Check current font" lists what the font is missing, the glyphs it has that you could swap in, and other fonts that cover the gap.</p>
-    </div>
-  </section>`,
-};
-
 // In the browser engine the check runs here in the page: each font's
 // character map is read straight from the file (coverage.js), across the
 // app's own fonts, this computer's installed fonts and the synced folder -
@@ -1106,59 +1086,60 @@ const BrowserCoverageCard = {
       if (v === "__current__") S.coverage.chars = (layoutRows.value || []).join("");
       else if (S.data.presets[v]) S.coverage.chars = S.data.presets[v].join("");
     };
+    const browser = engine.kind === "browser";
     const use = reactive({ app: true, local: true, folder: true });
     const busy = ref(""), result = ref(null);
-    // every font to look at: {label, key, bytes(), choose()}
-    async function sources() {
-      const out = [];
-      if (use.app) {
-        if (!S.fonts) S.fonts = await engine.fonts();
-        for (const f of S.fonts) out.push({ label: `${f.family} ${f.style}`.trim(), src: "app", path: f.path,
-          bytes: () => engine.fontData(f.path), choose: async () => f.path });
-      }
-      if (use.local && S.local.status === "granted") for (const f of localfonts.state.fonts)
-        out.push({ label: f.full || `${f.family} ${f.style}`, src: "computer", ps: f.ps, bytes: () => localfonts.bytes(f),
-          choose: async () => (await engine.addFont(f.ps + ".ttf", await localfonts.bytes(f))).path });
-      if (use.folder && S.sync.status === "ready") for (const f of fontsync.state.files)
-        out.push({ label: f.name.replace(/\.(ttf|otf|ttc|otc)$/i, ""), src: "folder", rel: f.rel, bytes: () => fontsync.bytes(f),
-          choose: () => fontsync.provide(engine, f) });
-      return out;
-    }
+    const appBytes = (path) => (browser ? engine.fontData(path) : fetch(engine.fontUrl(path)).then((r) => r.arrayBuffer()));
     const chars = computed(() => [...new Set([...S.coverage.chars].filter((c) => !/\s/.test(c)))].join(""));
     // The current font: what it lacks (font-2 characters are checked against font 2)
     async function checkCurrent() {
-      busy.value = "Reading the current font…"; result.value = null;
+      busy.value = "Checking the current font…"; result.value = null;
       try {
         const f2 = String(val("font2_chars") || "");
         const main = [...chars.value].filter((c) => !f2.includes(c)).join(""), second = [...chars.value].filter((c) => f2.includes(c)).join("");
         const miss = [];
         for (const [path, cs] of [[val("path"), main], [val("font2_path") || val("path"), second]]) {
           if (!cs || !path) continue;
-          const m = missingIn(await engine.fontData(path), cs);
-          if (m === null) throw new Error(`can't read ${fontLabel(path)}`);
-          miss.push(...m);
+          const [r] = await engine.coverageScan({ chars: cs, paths: [path] });
+          if (!r) throw new Error(`can't read ${fontLabel(path)}`);
+          miss.push(...r.missing);
         }
         result.value = { kind: "current", missing: miss, font: fontLabel(val("path")) };
         if (miss.length) await scan(miss.join(""), true);
       } catch (e) { result.value = { kind: "error", text: String(e.message || e) }; }
       busy.value = "";
     }
-    // Every font that has all of `need` (default: the whole character list)
+    // Every font that has all of `need` (default: the whole character list):
+    // the engine's own fonts in one call, this computer's / the folder's read here
     async function scan(need = chars.value, partial = false) {
-      const list = await sources();
       const hits = [];
-      let unreadable = 0;
-      for (let k = 0; k < list.length; k++) {
+      let checked = 0, unreadable = 0;
+      if (use.app) {
+        busy.value = browser ? "Checking the app's fonts…" : "Checking the engine computer's fonts…";
+        const res = await engine.coverageScan({ chars: need });
+        checked += res.length;
+        for (const f of res) if (!f.missing.length)
+          hits.push({ label: `${f.family} ${f.style}`.trim(), src: browser ? "app" : "engine", path: f.path,
+                      bytes: () => appBytes(f.path), choose: async () => f.path });
+      }
+      const list = [];
+      if (browser && use.local && S.local.status === "granted") for (const f of localfonts.state.fonts)
+        list.push({ label: f.full || `${f.family} ${f.style}`, src: "computer", ps: f.ps, bytes: () => localfonts.bytes(f),
+                    choose: async () => (await engine.addFont(f.ps + ".ttf", await localfonts.bytes(f))).path });
+      if (browser && use.folder && S.sync.status === "ready") for (const f of fontsync.state.files)
+        list.push({ label: f.name.replace(/\.(ttf|otf|ttc|otc)$/i, ""), src: "folder", rel: f.rel, bytes: () => fontsync.bytes(f),
+                    choose: () => fontsync.provide(engine, f) });
+      for (let k = 0; k < list.length && hits.length < COVERAGE_LIMIT; k++) {
         if (k % 25 === 0) { busy.value = `Checking fonts… ${k} / ${list.length}`; await new Promise((r) => setTimeout(r)); }
         let m;
         try { m = missingIn(await list[k].bytes(), need); } catch { m = null; }
+        checked++;
         if (m === null) { unreadable++; continue; }
         if (!m.length) hits.push(list[k]);
-        if (hits.length >= COVERAGE_LIMIT) break;
       }
       hits.sort((a, b) => a.label.localeCompare(b.label));
-      if (partial) result.value = { ...result.value, fixes: hits, checked: list.length };
-      else result.value = { kind: "scan", hits, checked: list.length, unreadable, need };
+      if (partial) result.value = { ...result.value, fixes: hits.slice(0, COVERAGE_LIMIT), checked };
+      else result.value = { kind: "scan", hits: hits.slice(0, COVERAGE_LIMIT), checked, unreadable, need };
       busy.value = "";
     }
     const findAll = async () => { busy.value = "Gathering fonts…"; result.value = null; try { await scan(); } catch (e) { result.value = { kind: "error", text: String(e.message || e) }; busy.value = ""; } };
@@ -1181,7 +1162,8 @@ const BrowserCoverageCard = {
       return faces[key] || null;
     };
     const sample = computed(() => S.previewText.trim() || chars.value.slice(0, 40) || "AaBbCc 0123");
-    return { S, presetNames, seedCoverage, layoutRows, use, busy, result, checkCurrent, findAll, pick, faceOf, sample, chars,
+    const clear = () => { result.value = null; };
+    return { S, presetNames, seedCoverage, layoutRows, use, busy, result, checkCurrent, findAll, pick, faceOf, sample, chars, browser, clear,
              localOk: computed(() => S.local.status === "granted"), folderOk: computed(() => S.sync.status === "ready"),
              openAccess: () => (S.access = true) };
   },
@@ -1201,16 +1183,19 @@ const BrowserCoverageCard = {
         </div>
         <div class="field wide"><label>Look in</label>
           <div style="display:flex;gap:16px;flex-wrap:wrap">
-            <label class="switch"><input type="checkbox" v-model="use.app"><span>Fonts in the app</span></label>
+            <label class="switch"><input type="checkbox" v-model="use.app"><span>{{ browser ? 'Fonts in the app' : "The engine computer's fonts" }}</span></label>
+            <template v-if="browser">
             <label class="switch" :title="localOk ? '' : 'Allow access to this computer’s fonts first'"><input type="checkbox" v-model="use.local" :disabled="!localOk"><span>This computer's fonts{{ localOk ? ' (' + S.local.count + ')' : '' }}</span></label>
             <label class="switch" :title="folderOk ? '' : 'Sync a fonts folder first'"><input type="checkbox" v-model="use.folder" :disabled="!folderOk"><span>Fonts folder{{ folderOk ? ' · ' + S.sync.name + ' (' + S.sync.count + ')' : '' }}</span></label>
+            </template>
           </div>
-          <div v-if="!localOk || !folderOk" class="help">More fonts to search: <a href="#" @click.prevent="openAccess">allow this computer's fonts or sync a folder</a>.</div>
+          <div v-if="browser && (!localOk || !folderOk)" class="help">More fonts to search: <a href="#" @click.prevent="openAccess">allow this computer's fonts or sync a folder</a>.</div>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
         <button class="btn primary" :disabled="!!busy || !chars" @click="checkCurrent">Check current font</button>
         <button class="btn" :disabled="!!busy || !chars" @click="findAll">Find fonts with all of these</button>
+        <button v-if="result && !busy" class="btn ghost" @click="clear" title="Clear these results">Clear</button>
         <span v-if="busy" class="help">{{ busy }}</span>
       </div>
       <template v-if="result">
@@ -1449,7 +1434,7 @@ const FontPicker = {
 };
 
 const App = {
-  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, FontCoverageCard, BrowserCoverageCard, AccessPrompt },
+  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, BrowserCoverageCard, AccessPrompt },
   setup() {
     const viewerEl = ref(null);
     const logRef = ref(null);
@@ -1529,7 +1514,8 @@ const App = {
     }
     const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, setHelpAll, setViewBg, setViewModel, setLight, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
+    const resetView = () => viewer?.resetView?.();
+    return { S, setHelpAll, setViewBg, setViewModel, setLight, resetView, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
@@ -1649,7 +1635,7 @@ const App = {
             <template v-else-if="name === 'Font & Alignment'"><FontCard :s="section(name)" /><ProfilesCard /></template>
             <SectionCard v-else :s="section(name)" />
           </template>
-          <template v-if="currentGroup.id === 'typeface'"><BrowserCoverageCard v-if="engine.kind === 'browser'" /><FontCoverageCard v-else /></template>
+          <BrowserCoverageCard v-if="currentGroup.id === 'typeface'" />
           <ToolsPage v-if="currentGroup.custom === 'tools'" />
         </template>
       </main>
@@ -1674,6 +1660,7 @@ const App = {
             <label title="Colour of the part (type tests always show black on white)"><input type="color" :value="S.viewModel || '#d9dde3'" @input="setViewModel($event.target.value)"><span>Part</span></label>
             <label title="Background behind the part (type tests always show on white)"><input type="color" :value="S.viewBg || '#eef0f3'" @input="setViewBg($event.target.value)"><span>Back</span></label>
             <button v-if="S.viewBg || S.viewModel" class="btn small ghost" @click="setViewBg(null); setViewModel(null)" title="Back to the theme's colours">↺</button>
+            <button class="btn small ghost view-reset" @click="resetView" title="Put the camera back where it started">Reset view</button>
             <details class="light-menu">
               <summary title="Lighting">Lighting</summary>
               <div class="light-pop">

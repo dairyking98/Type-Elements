@@ -357,3 +357,8 @@ details.adv > summary:hover { color: var(--text); }
   padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
 .light-pop .switch { height: 28px; font-size: 12.5px; color: var(--text); }
 .light-pop .bright { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-2); margin-top: 4px; }
+/* foldable ADVANCED cards */
+.card-head.fold { cursor: pointer; user-select: none; }
+.card-head.fold:hover h2 { color: var(--accent); }
+.fold-arrow { width: 14px; color: var(--text-3); font-size: 13px; }
+.card.folded .card-head { border-bottom: 0; }

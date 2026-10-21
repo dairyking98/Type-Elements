@@ -158,6 +158,16 @@ export class Viewer {
     this.rake.intensity = top ? 2.6 : 0;
     this.setFlat(top);
     this.applyBackground();
+    this.fit = { box, size, center, r, top };
+    this.frame();
+    return { size, triangles: geom.attributes.position.count / 3 };
+  }
+
+  // the starting camera for the loaded part (load() and Reset view)
+  frame() {
+    if (!this.fit) return;
+    const { box, size, center, r, top } = this.fit;
+    this.controls.target.copy(center);
     if (top) {
       // flat type-test plate: orthographic, straight down, the plate filling the view
       this.flatSize = { x: size.x, y: size.y };
@@ -186,7 +196,11 @@ export class Viewer {
     this.applyLighting();
     this.controls.update();
     this.grid.position.set(center.x, center.y, box.min.z);
-    return { size, triangles: geom.attributes.position.count / 3 };
+  }
+
+  resetView() {
+    if (this.flat && this.fit) this.ortho.zoom = 1;
+    this.frame();
   }
 
   clear() {
