@@ -417,6 +417,7 @@ function applyTheme() {
   if (t === "auto") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
   localStorage.setItem("te.theme", t);
+  // night inverts the light theme as a whole (style.css), the viewer included
   viewer?.setTheme(t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches));
 }
 
@@ -1427,7 +1428,7 @@ const App = {
       <button class="btn hide-sm" :disabled="!dirty" @click="discard">Discard</button>
       <button class="btn primary" :disabled="!dirty" @click="save" title="Ctrl+S">Save</button>
       <select class="select hide-md" v-model="S.theme" @change="applyTheme" style="width:88px" aria-label="Theme" title="Theme">
-        <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
+        <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option><option value="night" title="Every color inverted">Night</option>
       </select>
     </header>
 
