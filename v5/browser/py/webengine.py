@@ -248,8 +248,12 @@ def pool_record(glyph_loops=1):
     def summary(*args, **kwargs):
         original(*args, **kwargs)
         seen["loops"] += 1
-        if _misses and seen["loops"] >= glyph_loops:
-            raise _StopPass1()
+        if seen["loops"] == glyph_loops:
+            if _misses:
+                raise _StopPass1()
+            # said now, not after the run: the worker turns it into the
+            # progress bar's "one pass" stage (engine_worker.js ONE_PASS)
+            print("--- every draft angle came from the cache: one pass, no rebuild", flush=True)
     build_log.progress_summary = summary
 
 
