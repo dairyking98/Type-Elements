@@ -179,6 +179,12 @@ def stl(machine):
     return FileResponse(path, media_type="model/stl", filename=os.path.basename(path))
 
 
+@app.get("/api/mapping/{machine}")
+def mapping(machine):
+    path = core.mapping_path(machine)
+    return FileResponse(path, media_type="text/plain", filename=os.path.basename(path))
+
+
 @app.get("/api/legend/{machine}")
 def legend_svg(machine):
     path = core.legend_path(machine)
@@ -195,6 +201,17 @@ def coverage_report():
 @app.post("/api/save-copy/{machine}")
 def save_copy(machine, body: dict = Body(default={})):
     return core.save_copy(machine, body)
+
+
+
+@app.post("/api/settings-file/{machine}")
+def settings_file(machine, body: dict = Body(default={})):
+    return core.settings_file(machine, body)
+
+
+@app.post("/api/import-settings")
+def import_settings(body: dict = Body(...)):
+    return core.import_settings(body)
 
 
 # ------------------------------------------------------------------ font profiles

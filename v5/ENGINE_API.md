@@ -177,7 +177,7 @@ Saved sets of Font & Alignment values, shared across machines.
 
 | Method & path | Body | Returns |
 |---|---|---|
-| `GET /api/profiles/{m}` | — | `[{name, values: {"section.key": value}, skipped, unset, active}]`. `active` means the current settings match the profile. |
+| `GET /api/profiles/{m}` | — | `[{name, values: {"section.key": value}, skipped, unset, active, builtin}]`. `active` means the current settings match the profile. `builtin` profiles ship with the app (`v4/config/profiles/`) and can't be renamed or deleted; a profile may name the one machine it's for (`machine:` in its file), and only that machine lists it. |
 | `POST /api/profiles/{m}` | `{name}` | The updated list. Saves the current settings as a profile, so save the config first. |
 | `POST /api/profiles/{m}/rename` | `{old, new}` | The updated list. |
 | `POST /api/profiles/{m}/delete` | `{name}` | The updated list. |
@@ -185,6 +185,24 @@ Saved sets of Font & Alignment values, shared across machines.
 To apply a profile, the UI maps each `values` path to the field with that
 `path` and saves the result like any other edit. The engine has no "apply"
 call.
+
+### Settings files
+
+Every download carries the settings it was built from. A settings file is
+the running config YAML exactly as saved, under a comment header whose
+`# te-settings: {...}` line is JSON: machine, time, what was built, the
+caret's total raise, and each font's file name and a short SHA-256.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `POST /api/settings-file/{m}` | `{last_build?, engine?, app?}` | `{name, text}` - the current running config as a settings file. |
+| `POST /api/import-settings` | `{text}` | `{machine}` - the file (or any config YAML with a `machine:` key) became that machine's running copy; load that machine. |
+| `GET /api/mapping/{m}` | — | A calibration build's position -> tested-value mapping (404 otherwise). |
+
+The in-browser engine adds `addSyncedFont(name, bytes)` (a font from a
+synced folder, session only) and `resolveFont(path)` -> `{path, kind}` (this
+browser's copy of a font path from elsewhere: `same`, `yours`, `bundled` or
+`missing`), and its config's `font_substitutions` entries carry `kind`.
 
 ---
 

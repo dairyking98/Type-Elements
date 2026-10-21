@@ -640,6 +640,67 @@ def save_copy(machine, body=None):
     return {"path": dst}
 
 
+
+# ------------------------------------------------------------------ settings files
+# Every download carries the settings it was built from: the running config
+# exactly as saved (so the file loads straight back in, here or in tune.py)
+# under a header of what a reader can't see in the YAML itself - when, what
+# was built, the caret's total raise, and a fingerprint of each font file so
+# a rebuild can tell it has the same font, not just one with the same name.
+
+SETTINGS_TAG = "# te-settings: "
+
+
+def _font_fingerprint(path):
+    import hashlib
+    try:
+        with open(os.path.expanduser(path), "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()[:16]
+    except OSError:
+        return None
+
+
+def settings_file(machine, body=None):
+    """{name, text}: the running config as a self-describing settings file."""
+    import json
+    import glyph_poc
+    body = body or {}
+    cfg, text, _m = load_running(machine)
+    fonts = {}
+    for s in schema(machine, cfg):
+        for f in s["fields"]:
+            if f["key"] in ("path", "font2_path", "font_path", "label_font_path", "legend_font_path") and f["value"]:
+                fonts[f["key"]] = {"file": os.path.basename(str(f["value"])), "sha256_16": _font_fingerprint(str(f["value"]))}
+    meta = {"machine": machine, "saved": datetime.now().isoformat(timespec="seconds"),
+            "build": body.get("last_build"), "engine": body.get("engine"), "app": body.get("app"),
+            "caret_raise_total_mm": round(glyph_poc.effective_caret_raise_mm(cfg), 4), "fonts": fonts}
+    if body.get("font_stand_ins"):     # browser: which of these fonts stand in for one the user doesn't have here
+        meta["font_stand_ins"] = body["font_stand_ins"]
+    head = ("# Type Elements settings - load this file back with Open config > Load a settings file\n"
+            "# (or as a config in tune.py) to rebuild exactly this element.\n"
+            + SETTINGS_TAG + json.dumps(meta, ensure_ascii=False) + "\n")
+    name = (body.get("last_build") or {}).get("name") or export_name(machine, cfg)
+    return {"name": f"{name}.settings.yaml", "text": head + text}
+
+
+def import_settings(body):
+    """Makes a settings file (or any config YAML for a known machine) that
+    machine's running copy. {machine} - the caller loads that machine."""
+    text = body.get("text") or ""
+    try:
+        cfg = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        raise EngineError(400, f"not a readable settings file: {e}")
+    machine = (cfg or {}).get("machine") if isinstance(cfg, dict) else None
+    if machine not in tune.MACHINES:
+        raise EngineError(400, "this file doesn't say which machine it's for (no machine: key)")
+    _master, running = paths(machine)
+    with open(running, "w", encoding="utf-8") as f:
+        f.write(text)
+    load_running(machine)          # back-fill / convert anything older than this engine
+    return {"machine": machine}
+
+
 # ------------------------------------------------------------------ font profiles
 
 def _profiles_root():
@@ -664,10 +725,15 @@ def _profile_entries(machine):
     return sorted(mine + builtin, key=lambda e: e[0].lower())
 
 
-def profiles(machine):
+def profiles(machine, font_aliases=None):
+    """font_aliases {path in the config: path it stands in for} - the browser
+    engine's font stand-ins, so a profile still reads as active when the
+    config holds this browser's copy of the profile's font."""
     cfg, _t, _m = load_running(machine)
     paths_ = profile_field_paths(machine)
     current = font_profiles.collect_from_config(cfg, paths_)
+    if font_aliases:
+        current = {k: font_aliases.get(v, v) if isinstance(v, str) else v for k, v in current.items()}
     out = []
     for name, path, builtin in _profile_entries(machine):
         _n, values = font_profiles.load_profile(path)
@@ -684,13 +750,15 @@ def _not_builtin(machine, name):
         raise EngineError(400, f'"{name}" ships with the app and can\'t be changed - save your settings under a new name instead')
 
 
-def profile_save(machine, body):
+def profile_save(machine, body, font_aliases=None):
     cfg, _t, _m = load_running(machine)
     name = (body.get("name") or "").strip()
     if not name:
         raise EngineError(400, "profile needs a name")
-    font_profiles.save_profile(_profiles_root(), name, font_profiles.collect_from_config(cfg, profile_field_paths(machine)),
-                               saved_from=machine)
+    values = font_profiles.collect_from_config(cfg, profile_field_paths(machine))
+    if font_aliases:
+        values = {k: font_aliases.get(v, v) if isinstance(v, str) else v for k, v in values.items()}
+    font_profiles.save_profile(_profiles_root(), name, values, saved_from=machine)
     return profiles(machine)
 
 
@@ -747,6 +815,15 @@ def stl_path(machine):
     path = output_path(cfg)
     if not os.path.isfile(path):
         raise EngineError(404, "not built yet")
+    return path
+
+
+def mapping_path(machine):
+    """A calibration build's position -> tested value sidecar."""
+    cfg, _t, _m = load_running(machine)
+    path = output_path(cfg, "_mapping.txt")
+    if not os.path.isfile(path):
+        raise EngineError(404, "no calibration mapping yet")
     return path
 
 

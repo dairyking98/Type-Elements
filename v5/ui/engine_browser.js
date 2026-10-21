@@ -13,7 +13,7 @@
 const BUNDLE = new URL("_engine/", import.meta.url);
 let worker, ready, nextId = 1;
 const pending = new Map();      // id -> {resolve, reject} for calls, {onEvent, resolve} for jobs
-const urls = { stl: {}, legend: {}, report: null };
+const urls = { stl: {}, legend: {}, report: null, mapping: {} };
 const statusListeners = new Set();
 let lastStatus = { text: "Engine not started", progress: 0 };
 
@@ -68,6 +68,11 @@ async function job(kind, machine, body, onEvent) {
   };
   keep("stl", machine, res.files?.stl, "model/stl");
   keep("legend", machine, res.files?.legend, "image/svg+xml");
+  if (kind === "build") {                    // a calibration's position -> value mapping, else none
+    if (urls.mapping[machine]) URL.revokeObjectURL(urls.mapping[machine]);
+    urls.mapping[machine] = null;
+    keep("mapping", machine, res.files?.mapping, "text/plain");
+  }
   if (res.files?.report) keep("report", null, res.files.report, "text/markdown");
   onEvent({ done: res.done });
 }
@@ -91,6 +96,11 @@ export const browserEngine = {
   fontData: (path) => call("font_bytes", path).then((u8) => u8.buffer),
   fontUrl: () => null,
   addFont: (name, buffer) => call("add_font", name, buffer),
+  addSyncedFont: (name, buffer) => call("add_synced_font", name, buffer),
+  resolveFont: (path) => call("resolve_font", path),
+  settingsFile: (m, body) => call("settings_file", m, body),
+  importSettings: (text) => call("import_settings", { text }),
+  mappingUrl: (m) => urls.mapping[m] || null,
   outlines: (font, chars) => call("outlines", { font, chars }),
   glyphs: (body) => call("glyphs", body),
   defaultFontDir: () => call("default_dir").then((r) => r.path),

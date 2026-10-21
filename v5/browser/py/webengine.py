@@ -22,6 +22,10 @@ import sys
 
 BUNDLED = "/fonts/bundled"
 USER_FONTS = "/persist/fonts"
+# fonts from a folder the user synced (v5/ui/fontsync.js): copied in for this
+# session only, as they're needed - a whole font library is too big to keep
+# in browser storage, and the folder itself is re-read on every visit
+SYNCED = "/fonts/synced"
 FONT_KEYS = ("path", "font2_path", "font_path", "label_font_path", "legend_font_path")
 FONT_EXTS = (".ttf", ".otf", ".ttc", ".otc")
 
@@ -55,6 +59,16 @@ def fonts():
                     if e:
                         out.append(e)
     return out
+
+
+def add_synced_font(name, data):
+    """A font file from the user's synced folder, for this session."""
+    os.makedirs(SYNCED, exist_ok=True)
+    base = os.path.basename(name).replace("/", "_") or "font.ttf"
+    path = os.path.join(SYNCED, base)
+    with open(path, "wb") as f:
+        f.write(bytes(data))
+    return {"path": path}
 
 
 def add_font(name, data):
@@ -98,10 +112,11 @@ def _replacement(path):
     by file name), the same file shipped with the app, a stand-in we ship,
     else FreeMono."""
     want = _font_key(path)
-    if os.path.isdir(USER_FONTS):
-        for fn in sorted(os.listdir(USER_FONTS)):
-            if fn.lower().endswith(FONT_EXTS) and _font_key(fn) == want:
-                return os.path.join(USER_FONTS, fn)
+    for d in (SYNCED, USER_FONTS):
+        if os.path.isdir(d):
+            for fn in sorted(os.listdir(d)):
+                if fn.lower().endswith(FONT_EXTS) and _font_key(fn) == want:
+                    return os.path.join(d, fn)
     same = os.path.join(BUNDLED, os.path.basename(path))
     if os.path.isfile(same):
         return same
@@ -113,6 +128,88 @@ def _replacement(path):
 
 def _wanted_path(machine):
     return os.path.join(core.RUNNING_DIR or "/persist/running", f"{machine}.fonts_wanted.json")
+
+
+def _font_aliases(machine):
+    """{stand-in path in the config: the font path it stands in for}."""
+    try:
+        with open(_wanted_path(machine), encoding="utf-8") as fh:
+            wanted = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return {w["to"]: w["from"] for w in wanted.values() if w.get("to")}
+
+
+def profiles(machine):
+    """core.profiles, comparing each font as the one the config asked for
+    (so a profile using a font this browser stands in for still shows active)."""
+    return core.profiles(machine, _font_aliases(machine))
+
+
+def profile_save(machine, body):
+    """Saved with the fonts the config asked for, not this browser's
+    stand-ins, so the profile means the same thing everywhere."""
+    core.profile_save(machine, body, _font_aliases(machine))
+    return profiles(machine)
+
+
+def settings_file(machine, body=None):
+    """core.settings_file, noting any font that is this browser's stand-in
+    for the one the config asked for."""
+    body = dict(body or {})
+    aliases = _font_aliases(machine)
+    if aliases:
+        body["font_stand_ins"] = {os.path.basename(k): v for k, v in aliases.items()}
+    return core.settings_file(machine, body)
+
+
+def import_settings(body):
+    """core.import_settings, first putting back the fonts a browser stood in
+    for (te-settings font_stand_ins) - the file then asks for the real font
+    again, and this browser substitutes or finds it as for any config."""
+    text = body.get("text") or ""
+    for line in text.splitlines()[:5]:
+        if line.startswith(core.SETTINGS_TAG):
+            try:
+                stand_ins = json.loads(line[len(core.SETTINGS_TAG):]).get("font_stand_ins") or {}
+            except ValueError:
+                stand_ins = {}
+            import yaml
+            cfg = yaml.safe_load(text) or {}
+            for sec in cfg.values():
+                if not isinstance(sec, dict):
+                    continue
+                for key in FONT_KEYS:
+                    v = sec.get(key)
+                    if isinstance(v, str) and os.path.basename(v) in stand_ins:
+                        text = core.tune.patch_yaml_value(text, key, stand_ins[os.path.basename(v)])
+            break
+    return core.import_settings({"text": text})
+
+
+def profile_rename(machine, body):
+    core.profile_rename(machine, body)
+    return profiles(machine)
+
+
+def profile_delete(machine, body):
+    core.profile_delete(machine, body)
+    return profiles(machine)
+
+
+def resolve_font(path):
+    """{path, kind} for a font path from somewhere else (a profile, another
+    computer's config): the file itself if it's here ("same"), else this
+    browser's copy of the same font ("yours"/"bundled"), else the path
+    unchanged with kind "missing"."""
+    if path and os.path.isfile(path):
+        return {"path": path, "kind": "same"}
+    to = _replacement(path or "")
+    if to.startswith((USER_FONTS + "/", SYNCED + "/")):
+        return {"path": to, "kind": "yours"}
+    if os.path.basename(to) == os.path.basename(path or ""):
+        return {"path": to, "kind": "bundled"}
+    return {"path": path, "kind": "missing"}
 
 
 def get_config(machine):
@@ -148,7 +245,7 @@ def get_config(machine):
             if to != v:
                 patches[key] = to
             w["to"] = to
-            kind = ("yours" if to.startswith(USER_FONTS + "/") else
+            kind = ("yours" if to.startswith((USER_FONTS + "/", SYNCED + "/")) else
                     "bundled" if os.path.basename(to) == os.path.basename(w["from"]) else "stand-in")
             subs.append({"key": key, "label": f["label"], "from": w["from"], "to": to, "kind": kind})
     if patches:
@@ -339,8 +436,7 @@ def pool_clear():
 
 # ------------------------------------------------------------------ dispatch
 
-_CORE = {"machines", "list_configs", "outlines", "glyphs", "profiles", "profile_save",
-         "profile_rename", "profile_delete", "stl_path", "legend_path"}
+_CORE = {"machines", "list_configs", "outlines", "glyphs", "stl_path", "legend_path"}
 
 
 def call(method, args_json):

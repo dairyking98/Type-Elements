@@ -83,8 +83,8 @@ async function call({ id, method, args }) {
       return postMessage({ id, result: data }, [data.buffer]);
     }
     let raw;
-    if (method === "add_font") {
-      raw = eng.add_font(args[0], py.toPy(new Uint8Array(args[1])));
+    if (method === "add_font" || method === "add_synced_font") {
+      raw = eng[method](args[0], py.toPy(new Uint8Array(args[1])));
       raw = JSON.stringify({ result: raw.toJs({ dict_converter: Object.fromEntries }) });
     } else {
       raw = eng.call(method, JSON.stringify(args || []));
@@ -198,6 +198,7 @@ async function job({ id, kind, machine, body, workers }) {
     if (rc === 0) {
       if (kind === "build" || body.tool === "type_test") take("stl", stl);
       if (body.tool === "legend") take("legend", legend);
+      if (kind === "build" && body.target === "calibration") take("mapping", stl.replace(/\.stl$/i, "") + "_mapping.txt");
       if (String(body.tool).startsWith("coverage")) take("report", report);
     }
     postMessage({ id, done: rc, files }, Object.values(files));

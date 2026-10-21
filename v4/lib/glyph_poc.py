@@ -536,15 +536,15 @@ def alignment_offset(char, advance_mm,
 
 
 
-def _ink_top_mm(face, char, scale):
+def _ink_top_mm(face, char, scale, font_path):
     """Top of a character's ink above the baseline in mm, or None for a
-    character the font lacks or draws empty."""
+    character the font lacks or draws empty. Measured on the same flattened
+    contours the build uses (works with the browser's FreeType shim too)."""
     if face.get_char_index(ord(char)) == 0:
         return None
-    face.load_char(char, freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING)
-    if face.glyph.outline.n_contours == 0:
-        return None
-    return face.glyph.outline.get_bbox().yMax * scale
+    contours, _adv = get_glyph_contours_and_advance(char, 0.01, scale, font_path=font_path)
+    tops = [float(c[:, 1].max()) for c in contours if len(c)]
+    return max(tops) if tops else None
 
 
 # characters averaged when a layout gives nothing to go on (a slug strikes one)
@@ -592,7 +592,7 @@ def effective_caret_raise_mm(cfg, chars=None):
                 fc = None
             faces[path] = fc
         fc = faces[path]
-        return None if fc is None else _ink_top_mm(fc, c, em_to_mm_scale(size, fc.units_per_EM))
+        return None if fc is None else _ink_top_mm(fc, c, em_to_mm_scale(size, fc.units_per_EM), path)
 
     used = [c for c in dict.fromkeys(chars) if not c.isspace() and c not in ALIGN_CARET_CHARS + ALIGN_UNDERSCORE_CHARS]
     tops = [t for t in map(top, used) if t is not None]

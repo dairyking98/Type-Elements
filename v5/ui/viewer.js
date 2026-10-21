@@ -1,5 +1,9 @@
 // 3D STL viewer (three.js). Z-up like the build frame (+Z = away from the
 // build plate), camera auto-fit to each new part, orbit/zoom/pan.
+// A flat part (type-test plate, load(url, {top: true})) is shown as a 2D
+// sheet instead: orthographic, looking straight down, pan and zoom only -
+// read like a printed page, with no perspective to skew the spacing. The
+// next element build switches back to the 3D orbit view.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
@@ -14,8 +18,12 @@ export class Viewer {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     el.appendChild(this.renderer.domElement);
+    this.ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.01, 5000);
+    this.ortho.up.set(0, 1, 0);
+    this.persp = this.camera;
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
+    this.flat = false;
 
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 1.6));
     const key = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -48,8 +56,33 @@ export class Viewer {
   resize() {
     const w = this.el.clientWidth || 1, h = this.el.clientHeight || 1;
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    this.persp.aspect = w / h;
+    this.persp.updateProjectionMatrix();
+    if (this.flatSize) this.fitOrtho();
+  }
+
+  // the orthographic frustum that fits this.flatSize (mm) with a margin, at the view's aspect
+  fitOrtho() {
+    const aspect = (this.el.clientWidth || 1) / (this.el.clientHeight || 1);
+    const { x, y } = this.flatSize;
+    const halfH = Math.max(y, x / aspect) * 0.56;
+    Object.assign(this.ortho, { left: -halfH * aspect, right: halfH * aspect, top: halfH, bottom: -halfH });
+    this.ortho.updateProjectionMatrix();
+  }
+
+  setFlat(flat) {
+    if (flat === this.flat) return;
+    this.flat = flat;
+    this.camera = flat ? this.ortho : this.persp;
+    const c = this.controls;
+    c.object = this.camera;
+    c.enableRotate = !flat;
+    c.screenSpacePanning = true;
+    // flat: drag pans (either button), wheel/pinch zooms; 3D: the orbit defaults
+    c.mouseButtons = flat ? { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
+      : { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    c.touches = flat ? { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN } : { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+    if (!flat) this.flatSize = null;
   }
 
   setTheme(dark) {
@@ -74,17 +107,23 @@ export class Viewer {
     this.key.intensity = top ? 0.5 : 1.6;
     this.rim.intensity = top ? 0 : 0.6;
     if (this.hemi) this.hemi.intensity = top ? 0.9 : 1.6;
+    this.setFlat(top);
     if (top) {
-      // flat type-test plate: straight down, zoomed so the plate fills the view
-      const fov = (this.camera.fov * Math.PI) / 180;
-      const fit = Math.max(size.x / this.camera.aspect, size.y) / (2 * Math.tan(fov / 2));
-      this.camera.position.set(center.x, center.y - 0.001, center.z + fit * 1.12 + size.z);
+      // flat type-test plate: orthographic, straight down, the plate filling the view
+      this.flatSize = { x: size.x, y: size.y };
+      this.ortho.zoom = 1;
+      this.fitOrtho();
+      this.camera.position.set(center.x, center.y, box.max.z + r);
+      this.camera.near = 0.01; this.camera.far = r * 4 + size.z;
       this.rake.position.set(center.x - size.x, center.y + size.y * 4, center.z + Math.max(size.x, size.y) * 0.35);
       this.rake.target.position.copy(center);
       this.rake.target.updateMatrixWorld();
-    } else this.camera.position.set(center.x + r * 0.9, center.y - r * 1.6, center.z + r * 1.1);
-    this.camera.near = r / 100; this.camera.far = r * 100;
+    } else {
+      this.camera.position.set(center.x + r * 0.9, center.y - r * 1.6, center.z + r * 1.1);
+      this.camera.near = r / 100; this.camera.far = r * 100;
+    }
     this.camera.updateProjectionMatrix();
+    this.controls.update();
     this.grid.position.set(center.x, center.y, box.min.z);
     return { size, triangles: geom.attributes.position.count / 3 };
   }
