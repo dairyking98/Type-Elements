@@ -278,11 +278,12 @@ def _blick_keyboard(lay, rows, key):
 def _hammond_keyboard(element_order, key, n_rows):
     """The Hammond's two staggered key rows (Leonard, 2026-10-20): the keys
     follow the shuttle's element order from its Q end, alternating bottom
-    row, top row, bottom, ... - with Cap (top), the space bar (bottom),
-    Fig (top) and a gap in the middle, between the two halves of the
-    shuttle. Items are slot keys, {"label"} for the shift keys/space bar,
-    or None for the gap; the top row sits half a key to the right."""
-    seq = [key(i) for i in element_order[:15]] + [{"label": "Cap"}, {"label": "Space"}, {"label": "Fig"}, None] \
+    row, top, bottom, ... - with Cap (top), the space bar (bottom) and
+    Fig (top) in the middle, between the two halves of the shuttle; the
+    second half carries straight on after Fig with no gap (its first key,
+    the Universal's Y, is bottom row). Items are slot keys or {"label"}
+    for the shift keys/space bar; the top row sits half a key to the right."""
+    seq = [key(i) for i in element_order[:15]] + [{"label": "Cap"}, {"label": "Space"}, {"label": "Fig"}] \
         + [key(i) for i in element_order[15:]]
     return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "align": "stagger",
             "rows": [seq[1::2], seq[0::2]], "levels": _LEVELS[:n_rows],
