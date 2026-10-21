@@ -642,10 +642,29 @@ def effective_per_raise_mm(cfg):
         return raise_mm
     try:
         face = load_font_face(path)
-        bottom = _ink_bottom_mm(face, ALIGN_PER_CHARS[0], em_to_mm_scale(float(size), face.units_per_EM), path)
-    except Exception:
+        missing = face.get_char_index(ord(ALIGN_PER_CHARS[0])) == 0
+        bottom = None if missing else _ink_bottom_mm(face, ALIGN_PER_CHARS[0], em_to_mm_scale(float(size), face.units_per_EM), path)
+    except Exception as e:
+        _align_note(f"auto-align of the per sign skipped - couldn't read {os.path.basename(path)} ({e})")
         return raise_mm
-    return raise_mm if bottom is None else raise_mm - bottom
+    if bottom is None:
+        # say so: otherwise the element strikes the font's placeholder glyph
+        # and the checkbox looks like it does nothing
+        _align_note(f"{os.path.basename(path)} has no per sign (U+214C) - auto-align has nothing to measure, and the "
+                    f"element strikes the font's placeholder. Pick a second font that has it.")
+        return raise_mm
+    _align_note(f"per sign raised {-bottom:+.3f} mm to sit on the baseline ({os.path.basename(path)})")
+    return raise_mm - bottom
+
+
+def _align_note(text):
+    """One build-log line about an automatic alignment (lazy import: build_log
+    is only needed when a build is running)."""
+    try:
+        import build_log
+        (build_log.warn if "has no" in text or "skipped" in text else build_log.note)("Alignment", text)
+    except Exception:
+        pass
 
 # Anything smaller than this (mm^2) is floating-point noise from boolean-op
 # cleanup (buffer(0)/difference() on self-intersecting input can leave

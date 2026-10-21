@@ -18,6 +18,12 @@ thinning in FontForge, `~/fonts/tools/make-freemono-weight.py`, weight 200
 "ExtraLight"), so it is GNU FreeFont too: GPL-3.0-or-later with the font
 exception, the same as above.
 
+## Noto Sans Mono.ttf
+
+Hammond Split's second font, for the per sign (U+214C) - one of the few
+free fonts that has it. Copyright 2022 The Noto Project Authors, SIL Open
+Font License 1.1.
+
 ## OCRA-TE.ttf
 
 Stand-in for Monotype's **OCR-A II** (used by several logos and labels),

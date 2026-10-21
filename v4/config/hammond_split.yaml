@@ -59,7 +59,7 @@ font2:
   # anywhere in the file (not scoped by section), so a leaf name shared
   # with font.path/label.font_path or font.size_mm would silently patch
   # whichever occurrence comes first in the file instead of this one.
-  font2_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Noto Sans Mono.ttf"
+  font2_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/Noto Sans Mono.ttf"
   font2_size_mm: 2.7            # Char_Mod_Size
 
 label:
