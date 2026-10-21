@@ -266,8 +266,13 @@ type_test:
   cpi: 10.0                    # Test_CPI
   lpi: 6.0
   text: |-
-    The quick brown fox jumps over the lazy dog 1234567890
-
+    Hamburgefonstiv
+    mmm iii WWW lll 111
+    (a, b. c; d: e! f?)
+    "say" 'hi' x^2 y_z
+    0123456789 &$%/-
+    Pack my box with five
+    dozen liquor jugs.
 # Calibration (v2's Testing_Baseline/Testing_Cutout/Testing_Layout +
 # Testing_Offsets=[-.5,-.4,...,.6], wired to the same Cutout_Test/
 # Baseline_Test/Test_Layout mechanism every other machine uses) - see

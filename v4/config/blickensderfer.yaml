@@ -292,12 +292,13 @@ type_test:
   cpi: 10.0
   lpi: 6.0
   text: |-
-    to do: stop.
-    wait! uh... no,
-    (parentheses)
-    excitement!
-    ^_
-
+    Hamburgefonstiv
+    mmm iii WWW lll 111
+    (a, b. c; d: e! f?)
+    "say" 'hi' x^2 y_z
+    0123456789 &$%/-
+    Pack my box with five
+    dozen liquor jugs.
 # lib/gauge (v2's [Shaft Gauge Test] section, blickensderfer.scad:265-267/
 # 517-589) - a 6-pocket "revolver" test print for calibrating
 # element.core_id_offset: each pocket bores the shaft passage at

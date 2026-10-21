@@ -204,4 +204,10 @@ type_test:
   cpi: 10.0                                              # v2 Test_CPI (ibm.scad:259)
   lpi: 6.0                                               # tune.py's generic Type Test tab convention (not a v2/real-element concept - see config/blickensderfer.yaml's matching comment)
   text: |-
-    Sphinx of black quartz, judge my vow
+    Hamburgefonstiv
+    mmm iii WWW lll 111
+    (a, b. c; d: e! f?)
+    "say" 'hi' x^2 y_z
+    0123456789 &$%/-
+    Pack my box with five
+    dozen liquor jugs.

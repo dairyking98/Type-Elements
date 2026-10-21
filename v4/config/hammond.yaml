@@ -378,8 +378,13 @@ type_test:
   cpi: 10.0                         # Test_CPI
   lpi: 6.0
   text: |-
-    The quick brown fox jumps over the lazy dog 1234567890
-
+    Hamburgefonstiv
+    mmm iii WWW lll 111
+    (a, b. c; d: e! f?)
+    "say" 'hi' x^2 y_z
+    0123456789 &$%/-
+    Pack my box with five
+    dozen liquor jugs.
 # Calibration - v2 has no Cutout_Test/Baseline_Test defaults active
 # (Cutout_Test=false at v2:110, Baseline_Test=false at v2:115), same as
 # Bennett's real defaults.

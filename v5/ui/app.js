@@ -3,6 +3,8 @@ import { engine } from "./engine.js";
 import { Viewer } from "./viewer.js";
 import { progressTracker } from "./progress.js";
 import * as fontsync from "./fontsync.js";
+import * as localfonts from "./localfonts.js";
+import { missingIn } from "./coverage.js";
 import { zip, readZipText } from "./zip.js";
 
 // ---------------------------------------------------------------- grouping
@@ -117,6 +119,8 @@ const S = reactive({
   engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
   typeTestAuto: (() => { try { return !!localStorage.getItem("te.typeTestAuto"); } catch { return false; } })(),
   sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
+  local: { status: "unknown", count: 0, error: "" },            // this computer's fonts (localfonts.js)
+  access: false, previewText: "",                               // the font-access popup; the picker's own preview text
   fontAdvanced: (() => { try { return !!localStorage.getItem("te.fontAdvanced"); } catch { return false; } })(),
   booting: false, engineStatus: null, bootedBefore: (() => { try { return !!localStorage.getItem("te.engineBooted"); } catch { return false; } })(), engineError: "", phoneLanding: false,
 });
@@ -173,23 +177,38 @@ async function loadMachine(m, force = false) {
 }
 
 // In the browser: a config font this browser doesn't have, but the synced
-// fonts folder does, is handed to the engine and the config re-read - the
-// engine then swaps its stand-in for the real font (webengine.get_config).
+// folder or this computer's installed fonts do, is handed to the engine and
+// the config re-read - the engine then swaps its stand-in for the real
+// font (webengine.get_config). Matched by name: "Antikor Mono-Hairline.ttf"
+// finds the installed AntikorMono-Hairline.
+const localMatch = (path) => {
+  if (S.local.status !== "granted") return null;
+  const k = fontsync.fontKey(path);
+  return localfonts.state.fonts.find((f) => fontsync.fontKey(f.ps) === k || fontsync.fontKey(f.full || "") === k) || null;
+};
+async function provideFont(path) {
+  const f = fontsync.state.status === "ready" ? fontsync.match(path) : null;
+  if (f) return { path: await fontsync.provide(engine, f), kind: "yours" };
+  const l = localMatch(path);
+  if (l) return { path: (await engine.addFont(l.ps + ".ttf", await localfonts.bytes(l))).path, kind: "yours" };
+  return null;
+}
 async function withSyncedFonts(m, doc) {
-  if (engine.kind !== "browser" || fontsync.state.status !== "ready") return doc;
+  if (engine.kind !== "browser") return doc;
+  let n = 0;
   try {
-    if (await fontsync.provideMissing(engine, doc.font_substitutions)) return await engine.config(m);
-  } catch (e) { toast(`Fonts folder: ${e.message || e}`, "bad"); }
+    for (const sub of doc.font_substitutions || []) if (sub.kind === "stand-in" && (await provideFont(sub.from))) n++;
+    if (n) return await engine.config(m);
+  } catch (e) { toast(`Your fonts: ${e.message || e}`, "bad"); }
   return doc;
 }
 
 // A font path from somewhere else (a profile, a settings file) -> this
-// browser's copy of it: the synced folder's, else the engine's own lookup.
+// browser's copy of it: the synced folder's or this computer's, else the
+// engine's own lookup.
 async function resolveFont(path) {
   if (!path || engine.kind !== "browser") return { path, kind: "same" };
-  const f = fontsync.state.status === "ready" ? fontsync.match(path) : null;
-  if (f) return { path: await fontsync.provide(engine, f), kind: "yours" };
-  return engine.resolveFont(path);
+  return (await provideFont(path)) || engine.resolveFont(path);
 }
 
 function setVal(key, v) {
@@ -911,6 +930,187 @@ const FontCoverageCard = {
   </section>`,
 };
 
+// In the browser engine the check runs here in the page: each font's
+// character map is read straight from the file (coverage.js), across the
+// app's own fonts, this computer's installed fonts and the synced folder -
+// whichever the user ticks. The local engine keeps its folder scan.
+const COVERAGE_LIMIT = 400;
+const BrowserCoverageCard = {
+  components: { FontText },
+  setup() {
+    const presetNames = computed(() => Object.keys(S.data.presets || {}));
+    const seedCoverage = (v) => {
+      if (v === "__current__") S.coverage.chars = (layoutRows.value || []).join("");
+      else if (S.data.presets[v]) S.coverage.chars = S.data.presets[v].join("");
+    };
+    const use = reactive({ app: true, local: true, folder: true });
+    const busy = ref(""), result = ref(null);
+    // every font to look at: {label, key, bytes(), choose()}
+    async function sources() {
+      const out = [];
+      if (use.app) {
+        if (!S.fonts) S.fonts = await engine.fonts();
+        for (const f of S.fonts) out.push({ label: `${f.family} ${f.style}`.trim(), src: "app", path: f.path,
+          bytes: () => engine.fontData(f.path), choose: async () => f.path });
+      }
+      if (use.local && S.local.status === "granted") for (const f of localfonts.state.fonts)
+        out.push({ label: f.full || `${f.family} ${f.style}`, src: "computer", ps: f.ps, bytes: () => localfonts.bytes(f),
+          choose: async () => (await engine.addFont(f.ps + ".ttf", await localfonts.bytes(f))).path });
+      if (use.folder && S.sync.status === "ready") for (const f of fontsync.state.files)
+        out.push({ label: f.name.replace(/\.(ttf|otf|ttc|otc)$/i, ""), src: "folder", rel: f.rel, bytes: () => fontsync.bytes(f),
+          choose: () => fontsync.provide(engine, f) });
+      return out;
+    }
+    const chars = computed(() => [...new Set([...S.coverage.chars].filter((c) => !/\s/.test(c)))].join(""));
+    // The current font: what it lacks (font-2 characters are checked against font 2)
+    async function checkCurrent() {
+      busy.value = "Reading the current font…"; result.value = null;
+      try {
+        const f2 = String(val("font2_chars") || "");
+        const main = [...chars.value].filter((c) => !f2.includes(c)).join(""), second = [...chars.value].filter((c) => f2.includes(c)).join("");
+        const miss = [];
+        for (const [path, cs] of [[val("path"), main], [val("font2_path") || val("path"), second]]) {
+          if (!cs || !path) continue;
+          const m = missingIn(await engine.fontData(path), cs);
+          if (m === null) throw new Error(`can't read ${fontLabel(path)}`);
+          miss.push(...m);
+        }
+        result.value = { kind: "current", missing: miss, font: fontLabel(val("path")) };
+        if (miss.length) await scan(miss.join(""), true);
+      } catch (e) { result.value = { kind: "error", text: String(e.message || e) }; }
+      busy.value = "";
+    }
+    // Every font that has all of `need` (default: the whole character list)
+    async function scan(need = chars.value, partial = false) {
+      const list = await sources();
+      const hits = [];
+      let unreadable = 0;
+      for (let k = 0; k < list.length; k++) {
+        if (k % 25 === 0) { busy.value = `Checking fonts… ${k} / ${list.length}`; await new Promise((r) => setTimeout(r)); }
+        let m;
+        try { m = missingIn(await list[k].bytes(), need); } catch { m = null; }
+        if (m === null) { unreadable++; continue; }
+        if (!m.length) hits.push(list[k]);
+        if (hits.length >= COVERAGE_LIMIT) break;
+      }
+      hits.sort((a, b) => a.label.localeCompare(b.label));
+      if (partial) result.value = { ...result.value, fixes: hits, checked: list.length };
+      else result.value = { kind: "scan", hits, checked: list.length, unreadable, need };
+      busy.value = "";
+    }
+    const findAll = async () => { busy.value = "Gathering fonts…"; result.value = null; try { await scan(); } catch (e) { result.value = { kind: "error", text: String(e.message || e) }; busy.value = ""; } };
+    const pick = async (hit) => {
+      busy.value = `Loading ${hit.label}…`;
+      try { setVal("path", await hit.choose()); toast(`Font set to ${hit.label} - Save to keep it`); }
+      catch (e) { toast(String(e.message || e), "bad"); }
+      busy.value = "";
+    };
+    // a preview face for each hit, loaded from its own bytes
+    const faces = reactive({});
+    let seq = 0;
+    const faceOf = (hit) => {
+      const key = hit.path || hit.ps || hit.rel;
+      if (!(key in faces)) {
+        faces[key] = null;
+        const nm = `tec${++seq}`;
+        Promise.resolve(hit.bytes()).then((b) => new FontFace(nm, b).load()).then((ff) => { document.fonts.add(ff); faces[key] = nm; }).catch(() => { faces[key] = ""; });
+      }
+      return faces[key] || null;
+    };
+    const sample = computed(() => S.previewText.trim() || chars.value.slice(0, 40) || "AaBbCc 0123");
+    return { S, presetNames, seedCoverage, layoutRows, use, busy, result, checkCurrent, findAll, pick, faceOf, sample, chars,
+             localOk: computed(() => S.local.status === "granted"), folderOk: computed(() => S.sync.status === "ready"),
+             openAccess: () => (S.access = true) };
+  },
+  template: `
+  <section class="card">
+    <div class="card-head"><h2>Font coverage</h2><span class="sub">which fonts have every character you need</span></div>
+    <div class="card-body">
+      <div class="fields">
+        <div class="field wide">
+          <label>Characters</label>
+          <select class="select" @change="seedCoverage($event.target.value)" style="margin-bottom:6px">
+            <option value="">Fill from…</option>
+            <option v-if="layoutRows" value="__current__">Current layout</option>
+            <option v-for="n in presetNames" :value="n">Preset: {{ n }}</option>
+          </select>
+          <textarea class="input textblock" v-model="S.coverage.chars" style="min-height:70px"></textarea>
+        </div>
+        <div class="field wide"><label>Look in</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <label class="switch"><input type="checkbox" v-model="use.app"><span>Fonts in the app</span></label>
+            <label class="switch" :title="localOk ? '' : 'Allow access to this computer’s fonts first'"><input type="checkbox" v-model="use.local" :disabled="!localOk"><span>This computer's fonts{{ localOk ? ' (' + S.local.count + ')' : '' }}</span></label>
+            <label class="switch" :title="folderOk ? '' : 'Sync a fonts folder first'"><input type="checkbox" v-model="use.folder" :disabled="!folderOk"><span>Fonts folder{{ folderOk ? ' · ' + S.sync.name + ' (' + S.sync.count + ')' : '' }}</span></label>
+          </div>
+          <div v-if="!localOk || !folderOk" class="help">More fonts to search: <a href="#" @click.prevent="openAccess">allow this computer's fonts or sync a folder</a>.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+        <button class="btn primary" :disabled="!!busy || !chars" @click="checkCurrent">Check current font</button>
+        <button class="btn" :disabled="!!busy || !chars" @click="findAll">Find fonts with all of these</button>
+        <span v-if="busy" class="help">{{ busy }}</span>
+      </div>
+      <template v-if="result">
+        <div v-if="result.kind === 'error'" class="note bad" style="margin-top:12px">{{ result.text }}</div>
+        <template v-else-if="result.kind === 'current'">
+          <div v-if="!result.missing.length" class="note ok" style="margin-top:12px">{{ result.font }} has every character.</div>
+          <div v-else class="note warn" style="margin-top:12px">{{ result.font }} is missing <b style="font-size:16px">{{ result.missing.join(' ') }}</b>.
+            <template v-if="result.fixes"> {{ result.fixes.length ? result.fixes.length + (result.fixes.length >= 400 ? '+' : '') + ' fonts have them - below.' : 'None of the ' + result.checked + ' fonts searched has them all.' }}</template></div>
+        </template>
+        <div v-else class="help" style="margin-top:12px">{{ result.hits.length }}{{ result.hits.length >= 400 ? '+' : '' }} of {{ result.checked }} fonts have all {{ result.need.length }} characters{{ result.unreadable ? ' (' + result.unreadable + ' couldn’t be read)' : '' }}.</div>
+        <div v-if="(result.hits || result.fixes || []).length" class="list cov-list">
+          <div v-for="h in (result.hits || result.fixes)" :key="h.path || h.ps || h.rel" class="font-row" @click="pick(h)" title="Use this font">
+            <div class="preview" :style="faceOf(h) ? { fontFamily: faceOf(h) + ', var(--sans)' } : {}">{{ sample }}</div>
+            <div class="fam">{{ h.label }} <span class="chip">{{ h.src }}</span></div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>`,
+};
+
+// Shown when the app opens (in-browser engine): two ways to bring the
+// user's own fonts in, each needing the browser's OK - this computer's
+// installed fonts, and a synced fonts folder. Both feed every font
+// setting, the font picker and font coverage.
+const ACCESS_SKIP = "te.accessSkip";
+const AccessPrompt = {
+  setup() {
+    const err = ref("");
+    const never = ref(false);
+    const run = async (fn) => { err.value = ""; try { await fn(); } catch (e) { if (e.name !== "AbortError") err.value = String(e.message || e); } };
+    const close = () => { if (never.value) { try { localStorage.setItem(ACCESS_SKIP, "1"); } catch {} } S.access = false; };
+    return { S, err, never, run, close, localfonts, fontsync };
+  },
+  template: `
+  <div class="modal-bg" @click.self="close">
+    <div class="modal small fit" role="dialog" aria-modal="true" aria-labelledby="access-h">
+      <div class="head"><h2 id="access-h">Use your own fonts?</h2><span class="spacer"></span><button class="btn small ghost" @click="close" aria-label="Close">✕</button></div>
+      <div class="access-body">
+        <p class="help" style="margin-top:0">The app ships with a few free fonts. Let it see yours and every font setting, the font picker and font coverage can use them. Nothing is uploaded - it all stays in this browser.</p>
+        <div class="access-row">
+          <div><b>Fonts installed on this computer</b><div class="help">The browser asks once.</div></div>
+          <span v-if="S.local.status === 'granted'" class="chip ok">✓ {{ S.local.count }} fonts</span>
+          <span v-else-if="S.local.status === 'unsupported'" class="help">Chrome or Edge only</span>
+          <span v-else-if="S.local.status === 'loading'" class="help">Loading…</span>
+          <button v-else class="btn small primary" @click="run(localfonts.request)">Allow</button>
+        </div>
+        <div class="access-row">
+          <div><b>A fonts folder</b><div class="help">Pick it once; it's re-read every visit.</div></div>
+          <span v-if="S.sync.status === 'ready'" class="chip ok">✓ {{ S.sync.name }} · {{ S.sync.count }}</span>
+          <span v-else-if="!fontsync.supported" class="help">Chrome or Edge only</span>
+          <span v-else-if="S.sync.status === 'scanning'" class="help">Reading…</span>
+          <button v-else-if="S.sync.status === 'needs-permission'" class="btn small primary" @click="run(fontsync.reconnect)">Reconnect {{ S.sync.name }}</button>
+          <button v-else class="btn small primary" @click="run(fontsync.choose)">Choose folder…</button>
+        </div>
+        <p v-if="err" class="help" style="color:var(--bad)">{{ err }}</p>
+      </div>
+      <div class="foot"><label class="help" style="display:flex;gap:6px;align-items:center;margin-right:auto"><input type="checkbox" v-model="never"> Don't ask when the app opens</label>
+        <button class="btn primary" @click="close">{{ S.local.status === 'granted' || S.sync.status === 'ready' ? 'Done' : 'Not now' }}</button></div>
+    </div>
+  </div>`,
+};
+
 const FontPicker = {
   components: { FontText },
   setup() {
@@ -941,7 +1141,8 @@ const FontPicker = {
     });
     watch(shown, () => nextTick(observe));
     const famOf = (p) => (visible[p] ? fontFamily(p) : null);
-    const sample = (S.picker.sample || "AaBbCc 0123 &?!").split("\n")[0];
+    // the previews show the user's own text when they've typed some
+    const sample = computed(() => S.previewText.trim() || (S.picker.sample || "AaBbCc 0123 &?!").split("\n")[0]);
     const choose = (p) => { setVal(S.picker.key, p); S.picker = null; };
     const close = () => (S.picker = null);
     // In-browser engine: the page can't see the disk, so fonts are added -
@@ -949,22 +1150,12 @@ const FontPicker = {
     // Access, asks permission once) or as uploaded files. Both are kept in
     // browser storage for next time.
     const browserMode = engine.kind === "browser";
-    const localFonts = ref(null);
+    // this computer's fonts: one shared list (localfonts.js), loaded once allowed
+    const localFonts = computed(() => (S.local.status === "granted" ? localfonts.state.fonts : null));
     const localErr = ref("");
     const busy = ref("");
-    const canLocal = typeof window.queryLocalFonts === "function";
-    async function loadLocal() {
-      localErr.value = "";
-      try {
-        const fonts = await window.queryLocalFonts();
-        // one entry per PostScript name (Windows can report a font twice)
-        const seen = new Set();
-        localFonts.value = fonts.filter((f) => !seen.has(f.postscriptName) && seen.add(f.postscriptName))
-          .map((f) => ({ ps: f.postscriptName, family: f.family, style: f.style, full: f.fullName, data: f }))
-          .sort((a, b) => a.family.localeCompare(b.family) || a.style.localeCompare(b.style));
-        if (!localFonts.value.length) localErr.value = "The browser didn't share any fonts.";
-      } catch (e) { localErr.value = "The browser didn't allow access to installed fonts (" + (e.message || e) + ")."; }
-    }
+    const canLocal = localfonts.supported;
+    async function loadLocal() { localErr.value = ""; await localfonts.request(); if (S.local.status !== "granted") localErr.value = localfonts.state.error; }
     const shownLocal = computed(() => {
       if (!localFonts.value) return [];
       const toks = q.value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -979,7 +1170,7 @@ const FontPicker = {
       } catch (e) { localErr.value = String(e.message || e); }
       busy.value = "";
     }
-    const pickLocal = async (f) => addAndChoose(f.ps + ".ttf", await (await f.data.blob()).arrayBuffer());
+    const pickLocal = async (f) => addAndChoose(f.ps + ".ttf", await localfonts.bytes(f));
     const upload = async (ev) => { const file = ev.target.files[0]; if (file) addAndChoose(file.name, await file.arrayBuffer()); };
     // Installed-font previews: load each by its exact PostScript name with a
     // local() FontFace, only once its row scrolls into view. (Matching by
@@ -1037,8 +1228,9 @@ const FontPicker = {
   <div class="modal-bg" @click.self="close" @keydown.esc="close">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="head"><h2>{{ S.picker.label }}</h2><span class="spacer"></span><button class="btn small ghost" @click="close" aria-label="Close">✕</button></div>
-      <div class="tools">
-        <div class="search" style="flex:1"><input id="font-q" class="input" style="width:100%" v-model="q" :placeholder="browserMode ? 'Search fonts…' : 'Search installed fonts…'" @keydown.esc="close"></div>
+      <div class="tools" style="flex-wrap:wrap">
+        <div class="search" style="flex:1;min-width:180px"><input id="font-q" class="input" style="width:100%" v-model="q" :placeholder="browserMode ? 'Search fonts…' : 'Search installed fonts…'" @keydown.esc="close"></div>
+        <input class="input" style="flex:1;min-width:180px" v-model="S.previewText" placeholder="Preview your own text…" title="Every preview shows this text while it isn't empty" @keydown.esc="close">
         <span class="chip" v-if="list && !browserMode">{{ shown.length }}{{ shown.length === 800 ? '+' : '' }} / {{ list.length }}</span>
       </div>
       <div v-if="browserMode" class="tools" style="flex-wrap:wrap">
@@ -1060,20 +1252,20 @@ const FontPicker = {
         <div v-if="!list" style="padding:20px;color:var(--text-3)">Loading fonts…</div>
         <div v-if="browserMode && list" class="list-label">In the app{{ list.some(f => f.source === 'yours') ? ' (bundled + yours)' : ' (bundled)' }}</div>
         <div v-for="f in shown" :key="f.path" class="font-row" :data-path="f.path" :class="{ sel: f.path === S.picker.current }" @click="choose(f.path)">
-          <div class="preview"><FontText v-if="visible[f.path]" :path="f.path" :text="sample" /><span v-else style="color:var(--text-3)">{{ sample }}</span></div>
+          <div class="preview"><FontText v-if="visible[f.path]" :path="f.path" :text="sample" /><span v-else>{{ sample }}</span></div>
           <div class="fam" :title="f.path">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
         </div>
         <template v-if="browserMode && S.sync.status === 'ready'">
           <div class="list-label">Your fonts folder · {{ S.sync.name }} · {{ shownSync.length }}{{ shownSync.length === 600 ? '+' : '' }} of {{ S.sync.count }}</div>
           <div v-for="f in shownSync" :key="f.rel" class="font-row" :data-path="'sync:' + f.rel" @click="pickSync(f)">
-            <div class="preview" :style="syncFamily(f) ? { fontFamily: syncFamily(f) + ', var(--sans)' } : { color: 'var(--text-3)' }">{{ sample }}</div>
+            <div class="preview" :style="syncFamily(f) ? { fontFamily: syncFamily(f) + ', var(--sans)' } : {}">{{ sample }}</div>
             <div class="fam" :title="f.rel">{{ fontLabelOf(f) }}</div>
           </div>
         </template>
         <template v-if="browserMode && localFonts">
-          <div class="list-label">On this computer · {{ localFonts.length }} fonts · click one to add it</div>
+          <div class="list-label">On this computer · {{ localFonts.length }} fonts · click one to use it</div>
           <div v-for="f in shownLocal" :key="f.ps" class="font-row" :data-path="'local:' + f.ps" @click="pickLocal(f)">
-            <div class="preview" :style="localFamily(f) ? { fontFamily: localFamily(f) + ', var(--sans)' } : { color: 'var(--text-3)' }">{{ sample }}</div>
+            <div class="preview" :style="localFamily(f) ? { fontFamily: localFamily(f) + ', var(--sans)' } : {}">{{ sample }}</div>
             <div class="fam">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
           </div>
           <p v-if="!shownLocal.length" class="help" style="padding:0 18px">No installed font matches "{{ q }}".</p>
@@ -1088,7 +1280,7 @@ const FontPicker = {
 };
 
 const App = {
-  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, FontCoverageCard },
+  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, FontCoverageCard, BrowserCoverageCard, AccessPrompt },
   setup() {
     const viewerEl = ref(null);
     const logRef = ref(null);
@@ -1136,7 +1328,19 @@ const App = {
           // a folder that just became readable may hold this config's fonts
           if (!wasReady && st.status === "ready" && S.machine && S.data && !dirty.value) loadMachine(S.machine, true);
         });
-        fontsync.restore();
+        localfonts.onChange((st) => {
+          const was = S.local.status;
+          Object.assign(S.local, { status: st.status, count: st.fonts.length, error: st.error });
+          if (was !== "granted" && st.status === "granted" && S.machine && S.data && !dirty.value) loadMachine(S.machine, true);
+        });
+        // ask on open unless both are in place (or the user said not to)
+        Promise.all([fontsync.restore(), localfonts.restore()]).then(() => {
+          let skip = false;
+          try { skip = !!localStorage.getItem(ACCESS_SKIP); } catch {}
+          const localDone = S.local.status === "granted" || !localfonts.supported;
+          const folderDone = S.sync.status === "ready" || !fontsync.supported;
+          if (!skip && !(localDone && folderDone)) S.access = true;
+        });
       }
       S.machines = (await engine.machines()).groups;
       const all = S.machines.flatMap((g) => g.machines.filter((m) => m.available).map((m) => m.key));
@@ -1241,6 +1445,7 @@ const App = {
         <div class="nav-label">Machine</div>
         <button class="nav-item" @click="openConfigs"><span class="ico">⇪</span>Open config…</button>
         <button class="nav-item" @click="resetToMaster"><span class="ico">↺</span>Reset to defaults</button>
+        <button v-if="engine.kind === 'browser'" class="nav-item" @click="S.access = true"><span class="ico">A</span>Your fonts…</button>
         <div class="nav-label">Engine</div>
         <button class="nav-item" :class="{ active: engine.mode === 'browser' }" @click="engine.mode !== 'browser' && engine.setMode('browser')" title="Runs entirely in this tab - nothing to install"><span class="ico">◍</span>In this browser</button>
         <button class="nav-item" :class="{ active: engine.mode === 'local' }" @click="engine.mode !== 'local' && engine.setMode('local')" title="v5/server.py running on this computer"><span class="ico">⌁</span>Local engine</button>
@@ -1270,7 +1475,7 @@ const App = {
             <template v-else-if="name === 'Font & Alignment'"><FontCard :s="section(name)" /><ProfilesCard /></template>
             <SectionCard v-else :s="section(name)" />
           </template>
-          <FontCoverageCard v-if="currentGroup.id === 'typeface'" />
+          <template v-if="currentGroup.id === 'typeface'"><BrowserCoverageCard v-if="engine.kind === 'browser'" /><FontCoverageCard v-else /></template>
           <ToolsPage v-if="currentGroup.custom === 'tools'" />
         </template>
       </main>
@@ -1334,6 +1539,7 @@ const App = {
     </div>
 
     <FontPicker v-if="S.picker" />
+    <AccessPrompt v-if="S.access && !S.picker" />
     <div v-if="S.configs" class="modal-bg" @click.self="S.configs = null">
       <div class="modal small" role="dialog" aria-modal="true">
         <div class="head"><h2>Open a config for {{ S.data.label }}</h2><span class="spacer"></span><button class="btn small ghost" @click="S.configs = null">✕</button></div>
