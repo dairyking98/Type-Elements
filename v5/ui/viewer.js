@@ -43,7 +43,11 @@ export class Viewer {
     this.grid.rotation.x = Math.PI / 2;
     this.scene.add(this.grid);
     this.material = new THREE.MeshStandardMaterial({ color: 0xd9dde3, roughness: 0.55, metalness: 0.05 });
+    // type-test plates read like a printed page: near-black type on white,
+    // whatever the theme or the chosen background
+    this.inkMaterial = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.9, metalness: 0 });
     this.mesh = null;
+    this.background = null;      // user's backdrop for element views (null = the theme's)
 
     new ResizeObserver(() => this.resize()).observe(el);
     this.resize();
@@ -85,6 +89,16 @@ export class Viewer {
     if (!flat) this.flatSize = null;
   }
 
+  // the backdrop behind element builds (a CSS colour, or null for the
+  // theme's own); type tests always sit on white
+  setBackground(color) {
+    this.background = color || null;
+    this.applyBackground();
+  }
+  applyBackground() {
+    this.el.style.background = this.flat ? "#ffffff" : (this.background || "");
+  }
+
   setTheme(dark) {
     this.material.color.set(dark ? 0xc7ccd4 : 0xd9dde3);
     this.grid.material.color?.set?.(dark ? 0x3a4049 : 0xc9ced6);
@@ -95,7 +109,7 @@ export class Viewer {
     geom.computeVertexNormals();
     geom.computeBoundingBox();
     if (this.mesh) { this.scene.remove(this.mesh); this.mesh.geometry.dispose(); }
-    this.mesh = new THREE.Mesh(geom, this.material);
+    this.mesh = new THREE.Mesh(geom, top ? this.inkMaterial : this.material);
     this.scene.add(this.mesh);
     const box = geom.boundingBox;
     const size = box.getSize(new THREE.Vector3());
@@ -108,6 +122,7 @@ export class Viewer {
     this.rim.intensity = top ? 0 : 0.6;
     if (this.hemi) this.hemi.intensity = top ? 0.9 : 1.6;
     this.setFlat(top);
+    this.applyBackground();
     if (top) {
       // flat type-test plate: orthographic, straight down, the plate filling the view
       this.flatSize = { x: size.x, y: size.y };

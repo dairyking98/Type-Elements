@@ -275,19 +275,32 @@ def _blick_keyboard(lay, rows, key):
             "levels": _LEVELS[:len(rows)], "note": None}
 
 
-def _hammond_keyboard(element_order, key, n_rows):
-    """The Hammond's two staggered key rows (Leonard, 2026-10-20): the keys
-    follow the shuttle's element order from its Q end, alternating bottom
-    row, top, bottom, ... - with Cap (top), the space bar (bottom) and
-    Fig (top) in the middle, between the two halves of the shuttle; the
-    second half carries straight on after Fig with no gap (its first key,
-    the Universal's Y, is bottom row). Items are slot keys or {"label"}
-    for the shift keys/space bar; the top row sits half a key to the right."""
+def _hammond_keyboard(element_order, key, n_rows, grid_slot):
+    """The Hammond's keyboard depends on the shuttle's keyboard (Leonard,
+    2026-10-20), so both are sent as variants, picked by the layout's preset:
+      Universal - a regular 3-row QWERTY keyboard, 10 keys a row: key n
+                  (row n % 3, column n // 3, the legend's grid) strikes
+                  grid_slot(n);
+      Ideal     - the curved two-row staggered keyboard: the keys follow
+                  the shuttle's element order from its Q end, alternating
+                  bottom, top, bottom, ... with Cap (top), the space bar
+                  (bottom) and Fig (top) between the two halves, the second
+                  half carrying straight on after Fig.
+    Items are slot keys or {"label"} for the shift keys/space bar."""
     seq = [key(i) for i in element_order[:15]] + [{"label": "Cap"}, {"label": "Space"}, {"label": "Fig"}] \
         + [key(i) for i in element_order[15:]]
-    return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "align": "stagger",
-            "rows": [seq[1::2], seq[0::2]], "levels": _LEVELS[:n_rows],
-            "note": "Two staggered rows in element order from the Q end: bottom, top, bottom, ..."}
+    variants = {
+        "universal": {"rows": [[key(grid_slot(3 * c + kr)) for c in range(10)] for kr in range(3)], "align": None},
+        "ideal": {"rows": [seq[1::2], seq[0::2]], "align": "stagger"},
+    }
+    presets = LAYOUT_PRESETS_BY_MACHINE.get("hammond", {})
+    return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "levels": _LEVELS[:n_rows],
+            "variants": variants, "variant": "universal", "rows": variants["universal"]["rows"],
+            "variant_labels": {"universal": "Universal keyboard: three QWERTY rows.",
+                               "ideal": "Ideal keyboard: two curved, staggered rows in shuttle order from the Q end."},
+            "variant_of_preset": {n: ("ideal" if n.startswith("Ideal") else "universal")
+                                  for n in list(presets) + list(LAYOUT_PRESETS_BY_MACHINE.get("hammond_split", {}))},
+            "note": None}
 
 
 def layout_views(machine, cfg):
@@ -350,11 +363,11 @@ def layout_views(machine, cfg):
         order = sorted(range(width), key=lambda i: -pm[i])          # +angle first, like the catalog
         views.append(element(order, note="Across the shuttle from the Q end; rows top to bottom."))
         if width == 30:
-            views.insert(0, _hammond_keyboard(order, key, n_rows))
+            views.insert(0, _hammond_keyboard(order, key, n_rows, lambda n: 29 - n))
     elif machine == "hammond_split":
         views.append(element(list(range(width)), note="Across the shuttle from the Q end; rows top to bottom."))
         if width == 30:
-            views.insert(0, _hammond_keyboard(list(range(width)), key, n_rows))
+            views.insert(0, _hammond_keyboard(list(range(width)), key, n_rows, lambda n: n))
     elif machine == "mignon":
         fill = (cfg.get("legend") or {}).get("circle_fill") or []
         shifted = [[bool(fill[r][i]) if r < len(fill) and i < len(fill[r]) else False for i in range(width)]

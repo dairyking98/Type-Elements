@@ -347,3 +347,5 @@ details.adv > summary:hover { color: var(--text); }
 .keycap.gap { border-style: dashed; background: none; opacity: .5; }
 .keycap.special { place-items: center; display: grid; font-size: 11px; color: var(--text-2); background: var(--panel-2); }
 .keyrow.offset .kb-keys { margin-left: calc(var(--kw) * 0.66); }   /* staggered keyboards: this row sits half a key in */
+.bg-pick { position: absolute; right: 10px; top: 8px; z-index: 2; display: flex; align-items: center; gap: 2px; }
+.bg-pick input[type=color] { width: 26px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 6px; background: none; cursor: pointer; }
