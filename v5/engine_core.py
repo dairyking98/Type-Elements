@@ -649,9 +649,54 @@ def reset_config(machine):
     return get_config(machine)
 
 
+def _added_fonts_dir():
+    return os.path.join(V4, "output", "added_fonts")
+
+
 def fonts():
+    """The fonts this engine can build with: the computer's installed fonts,
+    plus any added through the page (add_font_file)."""
     from lib.system_fonts import list_system_fonts
-    return [{"path": e.path, "family": e.family, "style": e.style} for e in list_system_fonts()]
+    out = [{"path": e.path, "family": e.family, "style": e.style} for e in list_system_fonts()]
+    d = _added_fonts_dir()
+    if os.path.isdir(d):
+        have = {e["path"] for e in out}
+        for fn in sorted(os.listdir(d)):
+            p = os.path.join(d, fn)
+            if fn.lower().endswith(FONT_EXTS) and p not in have:
+                out.append({"path": p, **_font_names(p), "source": "yours"})
+    return out
+
+
+def _font_names(path):
+    try:
+        from fontTools.ttLib import TTFont
+        n = TTFont(path, lazy=True, fontNumber=0)["name"]
+        return {"family": n.getBestFamilyName() or os.path.basename(path), "style": n.getBestSubFamilyName() or ""}
+    except Exception:
+        return {"family": os.path.splitext(os.path.basename(path))[0], "style": ""}
+
+
+def add_font_file(name, data):
+    """A font file sent from the page (uploaded, or one of the browser
+    computer's installed fonts) - kept with this engine so builds can use it.
+    Returns its font-list entry."""
+    import re as _re
+    base = _re.sub(r"[^A-Za-z0-9._ -]+", "_", os.path.basename(name or "")).strip(" ._") or "font"
+    if not base.lower().endswith(FONT_EXTS):
+        base += ".ttf"
+    d = _added_fonts_dir()
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, base)
+    with open(path, "wb") as f:
+        f.write(data)
+    try:
+        from fontTools.ttLib import TTFont
+        TTFont(path, lazy=True, fontNumber=0)["cmap"]
+    except Exception:
+        os.remove(path)
+        raise EngineError(400, f"{name} isn't a font file this engine can read")
+    return {"path": path, **_font_names(path), "source": "yours"}
 
 
 def coverage_scan(body, font_list=None):

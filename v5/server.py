@@ -92,6 +92,11 @@ def fonts():
     return core.fonts()
 
 
+@app.post("/api/add-font")
+async def add_font(name: str, request: Request):
+    return core.add_font_file(name, await request.body())
+
+
 @app.post("/api/coverage-scan")
 def coverage_scan(body: dict = Body(...)):
     return core.coverage_scan(body)
