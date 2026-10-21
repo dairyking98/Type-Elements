@@ -512,7 +512,112 @@ def export_name(machine, cfg, target=None):
     return "_".join(parts)
 
 
+# ------------------------------------------------------------------ missing fonts (local engine)
+# A config can name a font this computer doesn't have (a master written on
+# another machine, a Windows-only font like Cambria Math). Rather than fail
+# the build, the local engine swaps in the same font installed under any
+# path (matched by name, like the browser engine), else a stand-in that
+# ships with the app - and remembers the font asked for, so it comes back
+# by itself once installed. The browser engine does its own version of this
+# (webengine.get_config) and turns this off.
+SUBSTITUTE_MISSING_FONTS = True
+BUNDLED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "browser", "fonts")
+# fonts configs name that nobody can ship -> a free stand-in in BUNDLED_DIR
+FONT_STAND_INS = {
+    "ocraiiregular": "OCRA-TE.ttf",          # Monotype OCR-A II -> public-domain OCR-A, rescaled
+    "cambriamath": "Noto Sans Mono.ttf",     # Microsoft Cambria Math -> a free font with the per sign
+}
+_FONT_KEYS_CACHE = None
+
+
+def font_key(name):
+    return re.sub(r"[^a-z0-9]", "", os.path.splitext(os.path.basename(name or ""))[0].lower())
+
+
+def _local_font_replacement(path):
+    """(replacement path, kind) for a missing font: 'yours' = the same font
+    found installed elsewhere, 'stand-in' = a shipped substitute; None if
+    neither."""
+    global _FONT_KEYS_CACHE
+    want = font_key(path)
+    if _FONT_KEYS_CACHE is None:
+        _FONT_KEYS_CACHE = {}
+        for e in fonts():
+            _FONT_KEYS_CACHE.setdefault(font_key(e["path"]), e["path"])
+            fam = font_key((e.get("family") or "") + (e.get("style") or "").replace("Regular", ""))
+            _FONT_KEYS_CACHE.setdefault(fam, e["path"])
+        if os.path.isdir(BUNDLED_DIR):
+            for fn in os.listdir(BUNDLED_DIR):
+                _FONT_KEYS_CACHE.setdefault(font_key(fn), os.path.join(BUNDLED_DIR, fn))
+    if want in _FONT_KEYS_CACHE and os.path.isfile(_FONT_KEYS_CACHE[want]):
+        return _FONT_KEYS_CACHE[want], "yours"
+    stand_in = FONT_STAND_INS.get(want)
+    if stand_in and os.path.isfile(os.path.join(BUNDLED_DIR, stand_in)):
+        return os.path.join(BUNDLED_DIR, stand_in), "stand-in"
+    return None
+
+
+def _substitute_local_fonts(machine, cfg):
+    """Patch missing fonts in the running copy (see above). Returns the
+    swaps still in place: [{key, label, from, to, kind}]."""
+    import json as _json
+    _master, running = paths(machine)
+    wanted_path = os.path.splitext(running)[0] + ".fonts_wanted.json"
+    try:
+        with open(wanted_path, encoding="utf-8") as fh:
+            wanted = _json.load(fh)
+    except (OSError, ValueError):
+        wanted = {}
+    before = _json.dumps(wanted, sort_keys=True)
+    subs, patches = [], {}
+    for s in schema(machine, cfg):
+        for f in s["fields"]:
+            key, v = f["key"], f["value"]
+            if key not in FONT_FIELD_KEYS or not isinstance(v, str) or not v:
+                continue
+            w = wanted.get(key)
+            if not os.path.isfile(os.path.expanduser(v)):
+                w = {"from": v, "to": None}
+            elif not w or w.get("to") != v:
+                wanted.pop(key, None)                    # chosen on purpose
+                continue
+            if os.path.isfile(os.path.expanduser(w["from"])):
+                to, kind = w["from"], None               # the real font is back
+            else:
+                r = _local_font_replacement(w["from"])
+                if not r:
+                    continue                             # nothing to offer: the build will say which file is missing
+                to, kind = r
+            if to != v:
+                patches[key] = to
+            if kind is None:
+                wanted.pop(key, None)
+                continue
+            w["to"] = to
+            wanted[key] = w
+            subs.append({"key": key, "label": f["label"], "from": w["from"], "to": to, "kind": kind})
+    if patches:
+        with open(running, encoding="utf-8") as fh:
+            text = fh.read()
+        for key, to in patches.items():
+            text = tune.patch_yaml_value(text, key, to)
+        with open(running, "w", encoding="utf-8") as fh:
+            fh.write(text)
+    if _json.dumps(wanted, sort_keys=True) != before:
+        with open(wanted_path, "w", encoding="utf-8") as fh:
+            _json.dump(wanted, fh)
+    return subs
+
+
+FONT_FIELD_KEYS = ("path", "font2_path", "font_path", "label_font_path", "legend_font_path",
+                   "label_font_override", "label_no_font_override")
+
+
 def get_config(machine):
+    subs = []
+    if SUBSTITUTE_MISSING_FONTS:
+        cfg0, _t0, _m0 = load_running(machine)
+        subs = _substitute_local_fonts(machine, cfg0)
     cfg, _text, migrated = load_running(machine)
     master, running = paths(machine)
     targets, target = build_targets(machine, cfg)
@@ -534,7 +639,8 @@ def get_config(machine):
             "row_cap": len(lay["placement_map"]) if "placement_map" in lay else None,
             "targets": targets, "target": target,
             "export_name": export_name(machine, cfg, target),
-            "warning": {"short": warning[0], "long": warning[1]} if isinstance(warning, tuple) else warning}
+            "warning": {"short": warning[0], "long": warning[1]} if isinstance(warning, tuple) else warning,
+            "font_substitutions": subs}
 
 
 def put_config(machine, body):

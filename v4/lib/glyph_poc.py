@@ -118,6 +118,26 @@ def em_to_mm_scale(font_size_mm, units_per_em):
     return font_size_mm * OPENSCAD_TEXT_DPI_FACTOR / units_per_em
 
 
+# Fonts a config may name that nobody can ship (a Windows-only Cambria
+# Math, Monotype's OCR-A II) -> the free stand-in shipped in v5/browser/fonts
+# (/fonts/bundled in the browser), used when the named file is missing.
+_STAND_INS = {"cambriamath": "Noto Sans Mono.ttf", "ocraiiregular": "OCRA-TE.ttf"}
+_STAND_IN_DIRS = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "v5", "browser", "fonts"),
+                  "/fonts/bundled"]
+_STAND_IN_WARNED = set()
+
+
+def _stand_in_for(font_path):
+    import re
+    key = re.sub(r"[^a-z0-9]", "", os.path.splitext(os.path.basename(font_path or ""))[0].lower())
+    name = _STAND_INS.get(key)
+    for d in _STAND_IN_DIRS if name else ():
+        p = os.path.join(d, name)
+        if os.path.isfile(p):
+            return os.path.normpath(p)
+    return None
+
+
 def load_font_face(font_path):
     """freetype.Face(font_path) wrapper - a missing/unreadable font file
     otherwise surfaces as FreeType's own opaque 'FT_Exception: cannot
@@ -128,6 +148,13 @@ def load_font_face(font_path):
     the path so that's obvious immediately instead of needing a
     traceback dive."""
     if not os.path.isfile(font_path):
+        stand_in = _stand_in_for(font_path)
+        if stand_in:
+            if font_path not in _STAND_IN_WARNED:
+                _STAND_IN_WARNED.add(font_path)
+                print(f"Fonts: WARNING: {os.path.basename(font_path)} isn't on this computer - using "
+                      f"{os.path.basename(stand_in)} instead", flush=True)
+            return freetype.Face(stand_in)
         raise FileNotFoundError(
             f"font file not found: {font_path!r} - check the font_path (or "
             f"font2_path/char_mod_font_path/etc.) setting in your config YAML")

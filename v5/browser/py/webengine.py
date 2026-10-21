@@ -33,6 +33,7 @@ sys.path[:0] = ["/shim", "/v5", "/v4/lib", "/v4"]
 import engine_core as core  # noqa: E402
 
 core.configure(v4_dir="/v4", running_dir="/persist/running", profiles_dir="/persist/profiles")
+core.SUBSTITUTE_MISSING_FONTS = False   # this engine substitutes its own way (get_config below)
 os.makedirs(USER_FONTS, exist_ok=True)
 core.fix_collections(USER_FONTS)   # fonts added before collections were split (see core.fix_collections)
 os.makedirs("/v4/output", exist_ok=True)
@@ -116,6 +117,7 @@ def font_bytes(path):
 # Fonts configs name that we can't ship, mapped to a free look-alike we do.
 STAND_INS = {
     "ocr-a ii regular.ttf": "OCRA-TE.ttf",   # Monotype's OCR-A II -> public-domain OCR-A, rescaled to match
+    "cambriamath.ttf": "Noto Sans Mono.ttf", # Microsoft's Cambria Math -> a free font with the per sign
 }
 
 
