@@ -221,6 +221,8 @@ def configure(config_path):
         # these keys still loads.
         "caret_drop_mm": glyph_poc.effective_caret_drop_mm(cfg),
         "underscore_lift_mm": align.get("underscore_lift_mm", 0.0),
+        # the per sign onto the baseline (glyph_poc.effective_per_raise_mm)
+        "per_raise_mm": glyph_poc.effective_per_raise_mm(cfg),
     }
 
     e = cfg["element"]

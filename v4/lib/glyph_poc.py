@@ -457,6 +457,12 @@ ALIGN_MODIFIED_RIGHT_OFFSET_MM = 0.0
 ALIGN_CARET_DROP_MM = 0.0
 ALIGN_UNDERSCORE_LIFT_MM = 0.0
 ALIGN_CARET_CHARS = "^"
+# The per sign (U+214C) - struck on Hammond shuttles, usually from a second
+# font whose glyph sits wherever that font puts it. alignment.per_auto_
+# baseline puts its bottom on the baseline (effective_per_raise_mm());
+# per_raise_mm nudges it further, up positive.
+ALIGN_PER_RAISE_MM = 0.0
+ALIGN_PER_CHARS = "\u214c"
 ALIGN_UNDERSCORE_CHARS = "_"
 
 
@@ -512,6 +518,8 @@ def alignment_offset(char, advance_mm,
                      caret_drop_mm=ALIGN_CARET_DROP_MM,
                      underscore_lift_mm=ALIGN_UNDERSCORE_LIFT_MM,
                      caret_chars=ALIGN_CARET_CHARS,
+                     per_raise_mm=ALIGN_PER_RAISE_MM,
+                     per_chars=ALIGN_PER_CHARS,
                      underscore_chars=ALIGN_UNDERSCORE_CHARS):
     """Returns the total (x, y) shift in mm to add to a glyph's raw
     FreeType contour coordinates (pen origin at the left-side bearing on
@@ -543,7 +551,9 @@ def alignment_offset(char, advance_mm,
         dx += modified_right_offset_mm
 
     dy = 0.0
-    if caret_chars and char in caret_chars:
+    if per_chars and char in per_chars:
+        dy += per_raise_mm
+    elif caret_chars and char in caret_chars:
         dy -= caret_drop_mm
     elif underscore_chars and char in underscore_chars:
         dy += underscore_lift_mm
@@ -610,6 +620,32 @@ def effective_caret_drop_mm(cfg, chars=None):
     if caret is None or line is None:
         return drop_mm
     return drop_mm + caret - line
+
+
+def effective_per_raise_mm(cfg):
+    """The per sign's total upward shift (mm): alignment.per_raise_mm, plus -
+    with alignment.per_auto_baseline on - the shift that puts the bottom of
+    its glyph on the baseline, measured in the font and size it is struck
+    in (font 2 when it's one of font2_chars). 0.0 for a config with neither
+    key."""
+    align = cfg.get("alignment") or {}
+    raise_mm = float(align.get("per_raise_mm", 0.0) or 0.0)
+    if not align.get("per_auto_baseline"):
+        return raise_mm
+    font = cfg.get("font") or {}
+    font2 = cfg.get("font2") or {}
+    path, size = font.get("path"), font.get("size_mm")
+    if ALIGN_PER_CHARS[0] in (font2.get("font2_chars") or ""):
+        path = font2.get("font2_path") or path
+        size = font2.get("font2_size_mm") or size
+    if not path or not size:
+        return raise_mm
+    try:
+        face = load_font_face(path)
+        bottom = _ink_bottom_mm(face, ALIGN_PER_CHARS[0], em_to_mm_scale(float(size), face.units_per_EM), path)
+    except Exception:
+        return raise_mm
+    return raise_mm if bottom is None else raise_mm - bottom
 
 # Anything smaller than this (mm^2) is floating-point noise from boolean-op
 # cleanup (buffer(0)/difference() on self-intersecting input can leave

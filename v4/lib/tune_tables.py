@@ -902,6 +902,10 @@ FONT_FIELDS_HAMMOND_SPLIT = [
     DRAFT_ANGLE_FIELD,
     ("underscore_lift_mm", ["alignment", "underscore_lift_mm"], float, "Underscore lift (mm)",
      "Shifts \"_\" up. Many TTFs sink U+005F below the baseline to clear descenders, which drops it out of the struck character cell. 0 = use the font's own position."),
+    ("per_auto_baseline", ["alignment", "per_auto_baseline"], bool, "Auto-align \u214c to baseline",
+     "Sits the bottom of the per sign on the baseline, whatever font and size it is struck in. \u214c raise below adds to it."),
+    ("per_raise_mm", ["alignment", "per_raise_mm"], float, "\u214c raise (mm)",
+     "Moves the per sign up (negative = down), on top of auto-align if that is on."),
 ]
 
 # Logo (v2's real name) is a whole-string engraved label (two lines, read

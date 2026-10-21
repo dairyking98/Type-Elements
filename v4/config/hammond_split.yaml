@@ -157,6 +157,10 @@ alignment:
   caret_auto_drop: true
   caret_drop_mm: 0.0
   underscore_lift_mm: 0.0
+  # The per sign (U+214C, usually struck in font 2): per_auto_baseline sits
+  # its bottom on the baseline; per_raise_mm moves it further, up positive.
+  per_auto_baseline: true
+  per_raise_mm: 0.0
 
 # Element Dimensions - v2:101-167.
 element:
