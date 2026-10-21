@@ -343,3 +343,5 @@ details.adv > summary:hover { color: var(--text); }
 .seg.show button { height: 28px; font-size: 13px; }
 .gauge-steps { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; }
 .gauge-steps ol { margin: 0 0 8px; padding-left: 22px; } .gauge-steps li { margin-bottom: 4px; }
+.keyrow.align-center .kb-keys { justify-content: center; width: 100%; }
+.keycap.gap { border-style: dashed; background: none; opacity: .5; }

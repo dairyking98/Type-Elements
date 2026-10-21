@@ -5,10 +5,10 @@
 //   local   - v5/server.py on this computer. Needs the repo + Python; the
 //             default when the page is served by that server.
 // The choice is remembered per browser; setMode() switches and reloads.
-import { httpEngine } from "./engine_http.js?v=e6f0c339dd";
-import { browserEngine } from "./engine_browser.js?v=e6f0c339dd";
+import { httpEngine } from "./engine_http.js?v=6e3783418a";
+import { browserEngine } from "./engine_browser.js?v=6e3783418a";
 
-export { DEFAULT_ENGINE } from "./engine_http.js?v=e6f0c339dd";
+export { DEFAULT_ENGINE } from "./engine_http.js?v=6e3783418a";
 
 function stored() { try { return localStorage.getItem("te.engineMode"); } catch { return null; } }
 const servedByLocalEngine = location.protocol === "http:" && !location.pathname.includes("/_engine");

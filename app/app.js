@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=e6f0c339dd";
-import { Viewer } from "./viewer.js?v=e6f0c339dd";
-import { progressTracker } from "./progress.js?v=e6f0c339dd";
-import * as fontsync from "./fontsync.js?v=e6f0c339dd";
-import * as localfonts from "./localfonts.js?v=e6f0c339dd";
-import { missingIn } from "./coverage.js?v=e6f0c339dd";
-import { zip, readZipText } from "./zip.js?v=e6f0c339dd";
+import { engine } from "./engine.js?v=6e3783418a";
+import { Viewer } from "./viewer.js?v=6e3783418a";
+import { progressTracker } from "./progress.js?v=6e3783418a";
+import * as fontsync from "./fontsync.js?v=6e3783418a";
+import * as localfonts from "./localfonts.js?v=6e3783418a";
+import { missingIn } from "./coverage.js?v=6e3783418a";
+import { zip, readZipText } from "./zip.js?v=6e3783418a";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -14,7 +14,7 @@ import { zip, readZipText } from "./zip.js?v=e6f0c339dd";
 const GROUPS = [
   { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment", "Type test"], custom: "profiles",
     blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
-  { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
+  { id: "layout", label: "Layout", icon: "⌨", sections: ["Keyboard", "Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
   { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cut groove & rib fit", "Cosmetics", "Bands", "Ticks"],
     blurb: "Physical dimensions of the element body - mostly real machine measurements." },
@@ -841,9 +841,12 @@ const LayoutPage = {
         <div v-if="view.note" class="help" style="margin:0 0 8px">{{ view.note }}</div>
         <div class="kb-scroll"><div class="kb">
           <template v-if="view.kind === 'keys'">
-            <div v-for="(krow, kr) in view.rows" class="kb-row keyrow" :style="{ '--n': krow.length, paddingLeft: (kr * 14) + 'px' }">
+            <div v-for="(krow, kr) in view.rows" class="kb-row keyrow" :class="view.align ? 'align-' + view.align : ''"
+                 :style="{ '--n': Math.max(...view.rows.map(r => r.length)), paddingLeft: view.align ? 0 : (kr * 14) + 'px' }">
               <div class="kb-keys">
-                <div v-for="(k, ki) in krow" class="keycap" :class="{ one: level !== 'all' }">
+                <template v-for="(k, ki) in krow">
+                <div v-if="!k" class="keycap gap" title="Space bar"></div>
+                <div v-else class="keycap" :class="{ one: level !== 'all' }">
                   <template v-if="level === 'all'">
                     <div v-for="(ref_, lv) in k" class="kc" :class="[CORNER[lv], ...cellClass(ref_)]" :title="view.levels[lv] + ' · ' + hex(charAt(ref_) || ' ')"
                          @click="pick(ref_[0], ref_[1])"><FontText v-if="charAt(ref_).trim()" :path="pathFor(charAt(ref_))" :text="charAt(ref_)" /><template v-else>␣</template></div>
@@ -851,6 +854,7 @@ const LayoutPage = {
                   <div v-else-if="k[+level]" class="kc solo" :class="cellClass(k[+level])" :title="hex(charAt(k[+level]) || ' ')"
                        @click="pick(k[+level][0], k[+level][1])"><FontText v-if="charAt(k[+level]).trim()" :path="pathFor(charAt(k[+level]))" :text="charAt(k[+level])" /><template v-else>␣</template></div>
                 </div>
+                </template>
               </div>
             </div>
           </template>
