@@ -340,7 +340,7 @@ rows.</li>
     <tr>
       <td><code class="language-plaintext highlighter-rouge">GET /api/profiles/{m}</code></td>
       <td>—</td>
-      <td><code class="language-plaintext highlighter-rouge">[{name, values: {"section.key": value}, skipped, unset, active}]</code>. <code class="language-plaintext highlighter-rouge">active</code> means the current settings match the profile.</td>
+      <td><code class="language-plaintext highlighter-rouge">[{name, values: {"section.key": value}, skipped, unset, active, builtin}]</code>. <code class="language-plaintext highlighter-rouge">active</code> means the current settings match the profile. <code class="language-plaintext highlighter-rouge">builtin</code> profiles ship with the app (<code class="language-plaintext highlighter-rouge">v4/config/profiles/</code>) and can’t be renamed or deleted; a profile may name the one machine it’s for (<code class="language-plaintext highlighter-rouge">machine:</code> in its file), and only that machine lists it.</td>
     </tr>
     <tr>
       <td><code class="language-plaintext highlighter-rouge">POST /api/profiles/{m}</code></td>
@@ -363,6 +363,45 @@ rows.</li>
 <p>To apply a profile, the UI maps each <code class="language-plaintext highlighter-rouge">values</code> path to the field with that
 <code class="language-plaintext highlighter-rouge">path</code> and saves the result like any other edit. The engine has no “apply”
 call.</p>
+
+<h3 id="settings-files">Settings files</h3>
+
+<p>Every download carries the settings it was built from. A settings file is
+the running config YAML exactly as saved, under a comment header whose
+<code class="language-plaintext highlighter-rouge"># te-settings: {...}</code> line is JSON: machine, time, what was built, the
+caret’s total raise, and each font’s file name and a short SHA-256.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method &amp; path</th>
+      <th>Body</th>
+      <th>Returns</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/settings-file/{m}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{last_build?, engine?, app?}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{name, text}</code> - the current running config as a settings file.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/import-settings</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{text}</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{machine}</code> - the file (or any config YAML with a <code class="language-plaintext highlighter-rouge">machine:</code> key) became that machine’s running copy; load that machine.</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">GET /api/mapping/{m}</code></td>
+      <td>—</td>
+      <td>A calibration build’s position -&gt; tested-value mapping (404 otherwise).</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The in-browser engine adds <code class="language-plaintext highlighter-rouge">addSyncedFont(name, bytes)</code> (a font from a
+synced folder, session only) and <code class="language-plaintext highlighter-rouge">resolveFont(path)</code> -&gt; <code class="language-plaintext highlighter-rouge">{path, kind}</code> (this
+browser’s copy of a font path from elsewhere: <code class="language-plaintext highlighter-rouge">same</code>, <code class="language-plaintext highlighter-rouge">yours</code>, <code class="language-plaintext highlighter-rouge">bundled</code> or
+<code class="language-plaintext highlighter-rouge">missing</code>), and its config’s <code class="language-plaintext highlighter-rouge">font_substitutions</code> entries carry <code class="language-plaintext highlighter-rouge">kind</code>.</p>
 
 <hr />
 

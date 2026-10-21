@@ -63,12 +63,10 @@ async function init(b) {
   py.FS.mkdirTree("/persist");
   py.FS.mount(py.FS.filesystems.IDBFS, {}, "/persist");
   await syncfs(true);
-  // first visit: seed the font profiles that ship with v4
+  // (the built-in font profiles are read from /v4/config/profiles in place)
   py.runPython(`
-import os, shutil, sys
+import sys
 sys.path[:0] = ["/shim", "/v5", "/v4/lib", "/v4"]
-if not os.path.isdir("/persist/profiles") and os.path.isdir("/persist-seed/profiles"):
-    shutil.copytree("/persist-seed/profiles", "/persist/profiles")
 `);
   status("Starting Type Elements…", 0.6);
   eng = py.pyimport("webengine");
@@ -85,8 +83,8 @@ async function call({ id, method, args }) {
       return postMessage({ id, result: data }, [data.buffer]);
     }
     let raw;
-    if (method === "add_font") {
-      raw = eng.add_font(args[0], py.toPy(new Uint8Array(args[1])));
+    if (method === "add_font" || method === "add_synced_font") {
+      raw = eng[method](args[0], py.toPy(new Uint8Array(args[1])));
       raw = JSON.stringify({ result: raw.toJs({ dict_converter: Object.fromEntries }) });
     } else {
       raw = eng.call(method, JSON.stringify(args || []));
@@ -124,7 +122,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=5e2b0df014", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=5b0970e577", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;
@@ -200,6 +198,7 @@ async function job({ id, kind, machine, body, workers }) {
     if (rc === 0) {
       if (kind === "build" || body.tool === "type_test") take("stl", stl);
       if (body.tool === "legend") take("legend", legend);
+      if (kind === "build" && body.target === "calibration") take("mapping", stl.replace(/\.stl$/i, "") + "_mapping.txt");
       if (String(body.tool).startsWith("coverage")) take("report", report);
     }
     postMessage({ id, done: rc, files }, Object.values(files));

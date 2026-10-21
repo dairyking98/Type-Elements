@@ -1,7 +1,9 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=5e2b0df014";
-import { Viewer } from "./viewer.js?v=5e2b0df014";
-import { progressTracker } from "./progress.js?v=5e2b0df014";
+import { engine } from "./engine.js?v=5b0970e577";
+import { Viewer } from "./viewer.js?v=5b0970e577";
+import { progressTracker } from "./progress.js?v=5b0970e577";
+import * as fontsync from "./fontsync.js?v=5b0970e577";
+import { zip, readZipText } from "./zip.js?v=5b0970e577";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -9,7 +11,7 @@ import { progressTracker } from "./progress.js?v=5e2b0df014";
 // something in; any section no group claims lands in Element.
 const GROUPS = [
   { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment", "Type test"], custom: "profiles",
-    blurb: "Everything about the font: which one, size and alignment, a type-test plate to check spacing, saved profiles, and which fonts cover your layout." },
+    blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
   { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cosmetics", "Bands", "Rib", "Ticks"],
@@ -110,10 +112,12 @@ const S = reactive({
          phase: "", eta: null },
   build: { target: "element", crossSection: false, crossAngle: 0, cutBodies: false, stl: null, last: null },
   coverage: { chars: "", dir: "", deep: false, report: false },
-  legendStamp: 0, fonts: null, picker: null, toast: null,
+  legendStamp: 0, legendSettings: null, fonts: null, picker: null, toast: null,
   theme: localStorage.getItem("te.theme") || "auto", view: "settings", configs: null,
   engineDown: false, engineUrl: "", connecting: false, shared: false, forceDesktop: false,
   typeTestAuto: (() => { try { return !!localStorage.getItem("te.typeTestAuto"); } catch { return false; } })(),
+  sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
+  fontAdvanced: (() => { try { return !!localStorage.getItem("te.fontAdvanced"); } catch { return false; } })(),
   booting: false, engineStatus: null, bootedBefore: (() => { try { return !!localStorage.getItem("te.engineBooted"); } catch { return false; } })(), engineError: "", phoneLanding: false,
 });
 
@@ -155,7 +159,7 @@ async function loadMachine(m, force = false) {
   if (!force && dirty.value && !confirm("Discard unsaved changes?")) return;
   S.machine = m;
   localStorage.setItem("te.machine", m);
-  S.data = await engine.config(m);
+  S.data = await withSyncedFonts(m, await engine.config(m));
   S.edits = {}; S.rows = null; S.preset = null; S.sel = null;
   S.job.log = []; S.job.issues = []; S.job.state = ""; S.job.progress = 0;
   S.build.target = S.data.target;
@@ -165,7 +169,27 @@ async function loadMachine(m, force = false) {
   engine.profiles(m).then((p) => (S.profiles = p)).catch(() => (S.profiles = []));
   viewer?.clear();
   const lastStl = engine.stlUrl(m);   // null in the browser engine until something is built
-  try { S.build.stl = lastStl ? await viewer?.load(lastStl) : null; } catch { S.build.stl = null; }
+  try { S.build.stl = lastStl ? await viewer?.load(lastStl, { top: S.build.last?.kind === "type_test" }) : null; } catch { S.build.stl = null; }
+}
+
+// In the browser: a config font this browser doesn't have, but the synced
+// fonts folder does, is handed to the engine and the config re-read - the
+// engine then swaps its stand-in for the real font (webengine.get_config).
+async function withSyncedFonts(m, doc) {
+  if (engine.kind !== "browser" || fontsync.state.status !== "ready") return doc;
+  try {
+    if (await fontsync.provideMissing(engine, doc.font_substitutions)) return await engine.config(m);
+  } catch (e) { toast(`Fonts folder: ${e.message || e}`, "bad"); }
+  return doc;
+}
+
+// A font path from somewhere else (a profile, a settings file) -> this
+// browser's copy of it: the synced folder's, else the engine's own lookup.
+async function resolveFont(path) {
+  if (!path || engine.kind !== "browser") return { path, kind: "same" };
+  const f = fontsync.state.status === "ready" ? fontsync.match(path) : null;
+  if (f) return { path: await fontsync.provide(engine, f), kind: "yours" };
+  return engine.resolveFont(path);
 }
 
 function setVal(key, v) {
@@ -181,7 +205,7 @@ async function save() {
   if (S.rows !== null) { body.rows = S.rows; body.preset = S.preset; }
   let res;
   try { res = await engine.save(S.machine, body); } catch (e) { toast(String(e), "bad"); return false; }
-  S.data = res; S.edits = {}; S.rows = null; S.preset = null;
+  S.data = await withSyncedFonts(S.machine, res); S.edits = {}; S.rows = null; S.preset = null;
   if ((res.errors || []).length) { toast(res.errors.join(" · "), "bad"); refreshGlyphs(); return false; }
   toast(`Saved ${res.changed ?? ""} change${res.changed === 1 ? "" : "s"}`.replace("  ", " "), "ok");
   engine.profiles(S.machine).then((p) => (S.profiles = p));
@@ -198,6 +222,25 @@ async function openConfig(path) {
   S.configs = null;
   await loadMachine(S.machine, true);
   toast(`Opened ${baseName(path)}`);
+}
+
+// A settings file (from any download, or a config YAML) becomes its
+// machine's running copy - the way to rebuild a print exactly.
+async function importSettings(file) {
+  if (!file) return;
+  if (dirty.value && !confirm("Discard unsaved changes?")) return;
+  try {
+    let text;
+    if (/\.zip$/i.test(file.name)) {
+      const hit = await readZipText(file, (n) => /\.settings\.ya?ml$|\.ya?ml$/i.test(n));
+      if (!hit) throw new Error("no settings file inside that .zip");
+      text = hit.text;
+    } else text = await file.text();
+    const { machine } = await engine.importSettings(text);
+    S.configs = null;
+    await loadMachine(machine, true);
+    toast(`Loaded the settings from ${file.name}`, "ok");
+  } catch (e) { toast(String(e.message || e), "bad"); }
 }
 
 async function resetToMaster() {
@@ -231,9 +274,18 @@ const narrow = () => matchMedia("(max-width: 1279px)").matches;
 
 // One runner for every job (builds, type test, legend, coverage) - they all
 // share the progress bar, the log and the issue summary.
-async function runJob(label, start, after) {
+const APP_VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
+
+async function runJob(label, start, after, kind = null) {
   if (S.job.running) return;
   if (!(await save())) return;
+  // the settings this job is built from, taken now (after the save, before
+  // anything can change) so its download carries exactly them
+  const stem = kind ? fileStem(kind) : null;
+  const settings = kind ? engine.settingsFile(S.machine, {
+    last_build: { kind, target: kind === "type_test" ? "type_test" : S.build.target, name: stem },
+    engine: engine.kind, app: APP_VERSION,
+  }).catch(() => null) : null;
   const j = S.job;
   Object.assign(j, { running: true, label, progress: 0, state: "", log: [], partial: "", issues: [], phase: "", eta: null });
   if (narrow()) S.view = "build";
@@ -267,6 +319,8 @@ async function runJob(label, start, after) {
     j.progress = 1; j.state = "ok";
     j.log.push({ t: `${label} finished in ${j.elapsed.toFixed(1)}s`, c: "ok" });
     try { await after?.(); } catch (e) { j.log.push({ t: String(e.message || e), c: "e" }); }
+    if (kind) S.build.last = { ...(S.build.last || {}), kind, name: stem, settings: await settings,
+                               target: kind === "type_test" ? "type_test" : S.build.target, at: new Date().toISOString() };
   } else {
     j.state = "fail";
     if (rc > 0) j.log.push({ t: `${label} failed (exit ${rc})`, c: "e" });
@@ -280,7 +334,7 @@ async function runJob(label, start, after) {
 function fileStem(kind) {
   const d = new Date(), p = (n) => String(n).padStart(2, "0");
   const when = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
-  const what = kind === "preview" ? "_preview" : kind === "type_test" ? "_typetest" : "";
+  const what = kind === "preview" ? "_preview" : kind === "type_test" ? "_typetest" : kind === "legend" ? "_legend" : "";
   return `${S.data?.export_name || S.machine}${what}_${when}`;
 }
 
@@ -289,22 +343,49 @@ function runBuild(fast) {
   const opts = { fast, target: b.target, cross_section: b.crossSection, cross_section_angle: b.crossAngle, cut_bodies: b.cutBodies };
   return runJob(fast ? "Preview" : "Render", (on) => engine.build(S.machine, opts, on), async () => {
     b.stl = await viewer.load(engine.stlUrl(S.machine));
-    b.last = { kind: fast ? "preview" : "render", target: b.target, at: new Date().toISOString(), name: fileStem(fast ? "preview" : "render") };
-  });
+  }, fast ? "preview" : "render");
 }
 const runTypeTest = () => runJob("Type test", (on) => engine.tool(S.machine, { tool: "type_test" }, on), async () => {
   S.build.stl = await viewer.load(engine.stlUrl(S.machine), { top: true });
-  S.build.last = { kind: "type_test", at: new Date().toISOString(), name: fileStem("type_test") };
-});
+}, "type_test");
 const runLegend = () => runJob("Legend", (on) => engine.tool(S.machine, { tool: "legend" }, on),
-  async () => { S.legendStamp = Date.now(); });
+  async () => { S.legendStamp = Date.now(); S.legendSettings = await engine.settingsFile(S.machine, { last_build: { kind: "legend", name: fileStem("legend") }, engine: engine.kind, app: APP_VERSION }).catch(() => null); });
+
+// Every download is one .zip: the file itself, the settings it was made
+// from (loads straight back in: Open config > Load a settings file) and,
+// for a calibration build, its position -> tested value mapping.
+async function fetchBytes(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return new Uint8Array(await r.arrayBuffer());
+}
+async function downloadBundle(fileUrl, ext, last) {
+  try {
+    const stem = last?.name || fileStem(last?.kind || "render");
+    const entries = [{ name: `${stem}.${ext}`, data: await fetchBytes(fileUrl) }];
+    const settings = last?.settings || (await engine.settingsFile(S.machine, { last_build: last, engine: engine.kind, app: APP_VERSION }));
+    entries.push({ name: `${stem}.settings.yaml`, data: settings.text });
+    if (last?.target === "calibration") {
+      const m = engine.mappingUrl(S.machine);
+      if (m) { try { entries.push({ name: `${stem}_mapping.txt`, data: await fetchBytes(m) }); } catch {} }
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(zip(entries));
+    a.download = `${stem}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  } catch (e) { toast(`Download failed: ${e.message || e}`, "bad"); }
+}
+const downloadBuild = () => downloadBundle(engine.stlUrl(S.machine), "stl", S.build.last);
+const downloadLegend = () => downloadBundle(engine.legendUrl(S.machine, S.legendStamp), "svg", S.legendSettings ? { kind: "legend", name: S.legendSettings.name.replace(/\.settings\.yaml$/, ""), settings: S.legendSettings } : { kind: "legend" });
 const runCoverage = (current) => runJob(current ? "Font check" : "Font scan", (on) => engine.tool(S.machine, {
   tool: current ? "coverage_current" : "coverage", chars: S.coverage.chars, font_dir: S.coverage.dir, deep: S.coverage.deep,
 }, on), async () => { S.coverage.report = true; });
 
 async function saveCopy() {
   try {
-    const r = await engine.saveCopy(S.machine, { last_build: S.build.last });
+    const { settings, ...last } = S.build.last || {};
+    const r = await engine.saveCopy(S.machine, { last_build: last });
     toast(`Saved a copy: ${r.path}`, "ok");
   } catch (e) { toast(String(e.message || e), "bad"); }
 }
@@ -425,15 +506,16 @@ const FontField = {
     const changed = computed(() => props.f.key in S.edits);
     const pick = () => { S.picker = { key: props.f.key, label: props.f.label, current: path.value, sample: props.sample }; };
     const substituted = computed(() => (S.data.font_substitutions || []).find((s) => s.key === props.f.key && s.to === path.value));
-    return { path, fam, changed, pick, fontLabel, setVal, famStyle, substituted, baseName };
+    return { S, path, fam, changed, pick, fontLabel, setVal, famStyle, substituted, baseName };
   },
   template: `
   <div class="field wide" :id="'f-' + f.key">
     <label>{{ f.label }}<span v-if="changed" class="changed"></span></label>
     <div class="font-field">
-      <div v-if="substituted" class="note warn" style="margin:10px 12px 0">
-        <template v-if="baseName(substituted.from) === baseName(substituted.to)">Using the copy of {{ fontLabel(substituted.to) }} that ships with the app - this config's own file is on another computer.</template>
-        <template v-else>"{{ fontLabel(substituted.from) }}" isn't available in this browser - using {{ fontLabel(substituted.to) }} until you choose a font.</template>
+      <div v-if="substituted" class="note" :class="substituted.kind === 'stand-in' ? 'warn' : 'info'" style="margin:10px 12px 0">
+        <template v-if="substituted.kind === 'yours'">Using your copy of {{ fontLabel(substituted.from) }}{{ S.sync.name && substituted.to.startsWith('/fonts/synced/') ? ' from the ' + S.sync.name + ' folder' : '' }}.</template>
+        <template v-else-if="substituted.kind === 'bundled' || baseName(substituted.from) === baseName(substituted.to)">Using the copy of {{ fontLabel(substituted.to) }} that ships with the app - this config's own file is on another computer.</template>
+        <template v-else>"{{ fontLabel(substituted.from) }}" isn't in this browser - using {{ fontLabel(substituted.to) }} for now. Sync a fonts folder that has it (Choose… below), or choose another font.</template>
       </div>
       <div v-if="!path" class="font-missing" style="color:var(--text-3)">No font set{{ f.key === 'font2_path' ? ' - these characters use the main font.' : '.' }}</div>
       <div v-else class="spec" :style="fam === null ? { opacity: .35 } : {}">
@@ -484,47 +566,150 @@ const SectionCard = {
   </section>`,
 };
 
+// The Typeface page's main card. Most people only change the font and its
+// size, so those are all it shows; everything else that shapes the
+// characters (alignment nudges, caret and underscore, the second font,
+// draft angle) is one click away under Advanced.
+const SIMPLE_FONT_KEYS = ["path", "size_mm", "composer_cap_height"];
+const FontCard = {
+  props: ["s"],
+  components: { FieldInput, FontField },
+  setup(props) {
+    const simple = computed(() => SIMPLE_FONT_KEYS.map((k) => props.s.fields.find((f) => f.key === k)).filter(Boolean));
+    const adv = computed(() => props.s.fields.filter((f) => !SIMPLE_FONT_KEYS.includes(f.key) && !f.list));
+    const advFonts = computed(() => adv.value.filter((f) => FONT_KEYS.has(f.key)));
+    const advPlain = computed(() => adv.value.filter((f) => !FONT_KEYS.has(f.key)));
+    const advChanged = computed(() => adv.value.filter((f) => f.key in S.edits).length);
+    const toggle = (open) => { S.fontAdvanced = open; try { localStorage.setItem("te.fontAdvanced", open ? "1" : ""); } catch {} };
+    const sample = computed(() => (layoutRows.value || []).join("\n") || null);
+    const active = computed(() => S.profiles.find((p) => p.active && !p.builtin) || S.profiles.find((p) => p.active));
+    return { S, simple, advFonts, advPlain, advChanged, toggle, sample, active, FONT_KEYS, runTypeTest, fontsync };
+  },
+  template: `
+  <section class="card" id="font-card">
+    <div class="card-head"><h2>Font</h2><span class="sub">{{ active ? 'Profile: ' + active.name : 'Custom settings' }}</span>
+      <span class="spacer"></span>
+      <button class="btn small" :disabled="S.job.running" @click="runTypeTest" title="A flat plate of text in this font - quick to render, shown from above">Type test</button></div>
+    <div class="card-body">
+      <div v-if="S.sync.status === 'needs-permission'" class="note info" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="flex:1;min-width:200px">Your fonts folder <b>{{ S.sync.name }}</b> needs your OK again this visit (Chrome asks unless you chose "Allow on every visit").</span>
+        <button class="btn small primary" @click="fontsync.reconnect()">Reconnect</button></div>
+      <div class="fields">
+        <template v-for="f in simple" :key="f.key">
+          <FontField v-if="FONT_KEYS.has(f.key)" :f="f" :sample="sample" />
+          <FieldInput v-else :f="f" />
+        </template>
+      </div>
+      <details class="adv" :open="S.fontAdvanced" @toggle="toggle($event.target.open)">
+        <summary>Advanced: alignment, caret, second font, draft angle<span v-if="advChanged" class="chip dirty" style="margin-left:8px">{{ advChanged }} changed</span></summary>
+        <div class="fields" style="margin-top:12px">
+          <FontField v-for="f in advFonts" :key="f.key" :f="f" />
+          <FieldInput v-for="f in advPlain" :key="f.key" :f="f" />
+        </div>
+      </details>
+    </div>
+  </section>`,
+};
+
+// Find a font -> size it -> like it, save it as a profile -> render,
+// download, print -> come back, tweak, print again. Shown on the Typeface
+// page as five steps that tick themselves off.
+const WorkflowStrip = {
+  setup() {
+    const steps = computed(() => {
+      const last = S.build.last?.kind;
+      const prof = S.profiles.find((p) => p.active && !p.builtin) || S.profiles.find((p) => p.active);
+      return [
+        { n: 1, t: "Pick a font", done: !!val("path"), go: "font-card" },
+        { n: 2, t: "Size it with a type test", done: last === "type_test" || last === "render" || last === "preview", go: "font-card" },
+        { n: 3, t: "Save it as a profile", done: !!prof && !prof.builtin && !dirty.value, go: "profiles-card" },
+        { n: 4, t: "Render & download", done: last === "render", go: null },
+        { n: 5, t: "Print, tweak, repeat", done: false, go: null },
+      ];
+    });
+    const go = (st) => {
+      if (st.go) document.getElementById(st.go)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (narrow()) S.view = "build";
+    };
+    return { steps, go };
+  },
+  template: `<ol class="flow">
+    <li v-for="st in steps" :class="{ done: st.done }" @click="go(st)"><span class="n">{{ st.done ? '✓' : st.n }}</span>{{ st.t }}</li>
+  </ol>`,
+};
+
 const ProfilesCard = {
   setup() {
     const name = ref("");
-    const active = computed(() => S.profiles.find((p) => p.active));
-    const apply = (p) => {
+    const renaming = ref(null), renameTo = ref("");
+    const active = computed(() => S.profiles.find((p) => p.active && !p.builtin) || S.profiles.find((p) => p.active));
+    const mine = computed(() => S.profiles.filter((p) => !p.builtin));
+    const builtin = computed(() => S.profiles.filter((p) => p.builtin));
+    // Applying a profile: its font paths may come from another computer, so
+    // each is resolved to this browser's copy (synced folder, added fonts)
+    const apply = async (p) => {
       const byPath = Object.fromEntries(Object.values(fieldsByKey.value).map((f) => [f.path.join("."), f.key]));
       let n = 0;
-      for (const [path, v] of Object.entries(p.values)) if (byPath[path]) { setVal(byPath[path], v); n++; }
-      toast(`Applied "${p.name}" (${n} settings)${p.unset.length ? ` - ${p.unset.length} left as they were` : ""}. Save to keep.`);
+      const missing = [];
+      for (const [path, v] of Object.entries(p.values)) {
+        const key = byPath[path];
+        if (!key) continue;
+        let value = v;
+        if (FONT_KEYS.has(key) && v) {
+          const r = await resolveFont(v).catch(() => ({ path: v, kind: "missing" }));
+          value = r.path;
+          if (r.kind === "missing") missing.push(fontLabel(v));
+        }
+        setVal(key, value); n++;
+      }
+      if (missing.length) toast(`"${p.name}" uses ${missing.join(", ")}, which isn't in this browser - it builds with a stand-in until you sync a fonts folder that has it. Save to keep.`, "bad");
+      else toast(`Switched to "${p.name}" (${n} settings) - Save to keep it, or keep tweaking.`);
     };
-    const saveAs = async () => {
-      if (!name.value.trim()) return;
+    const saveAs = async (nm = name.value.trim()) => {
+      if (!nm) return;
       if (!(await save())) return;
-      S.profiles = await engine.saveProfile(S.machine, name.value.trim());
-      toast(`Saved profile "${name.value.trim()}"`, "ok"); name.value = "";
+      S.profiles = await engine.saveProfile(S.machine, nm);
+      toast(`Saved profile "${nm}"`, "ok"); name.value = "";
     };
-    const rename = async (p) => {
-      const n = prompt("Rename profile", p.name);
-      if (n && n !== p.name) S.profiles = await engine.renameProfile(S.machine, p.name, n).catch((e) => (toast(e.message, "bad"), S.profiles));
+    // overwrite the active profile with the current settings
+    const update = async (p) => { if (confirm(`Replace "${p.name}" with the current font settings?`)) await saveAs(p.name); };
+    const startRename = (p) => { renaming.value = p.name; renameTo.value = p.name; nextTick(() => document.getElementById("rename-input")?.select()); };
+    const finishRename = async () => {
+      const old = renaming.value, n = renameTo.value.trim();
+      renaming.value = null;
+      if (!old || !n || n === old) return;
+      S.profiles = await engine.renameProfile(S.machine, old, n).catch((e) => (toast(e.message, "bad"), S.profiles));
     };
     const del = async (p) => { if (confirm(`Delete profile "${p.name}"?`)) S.profiles = await engine.deleteProfile(S.machine, p.name); };
-    return { S, name, active, apply, saveAs, rename, del };
+    return { S, name, active, mine, builtin, apply, saveAs, update, renaming, renameTo, startRename, finishRename, del, dirty };
   },
   template: `
-  <section class="card">
-    <div class="card-head"><h2>Font profiles</h2><span class="sub">{{ active ? 'Active: ' + active.name : 'No profile matches the current settings' }}</span></div>
+  <section class="card" id="profiles-card">
+    <div class="card-head"><h2>Font profiles</h2><span class="sub">{{ active ? (dirty ? 'Edited from ' : 'Using ') + active.name : 'Current settings match no profile' }}</span></div>
     <div class="card-body">
-      <div v-if="S.profiles.length" class="profile-list">
-        <div v-for="p in S.profiles" class="profile" :class="{ on: p.active }">
-          <span class="pname">{{ p.name }}</span>
-          <span v-if="p.active" class="chip ok">active</span>
-          <span class="spacer"></span>
-          <button class="btn small" :disabled="p.active" @click="apply(p)">Apply</button>
-          <button class="btn small ghost" @click="rename(p)">Rename</button>
-          <button class="btn small ghost danger" @click="del(p)">Delete</button>
+      <p class="help" style="margin-top:0">A profile is a font plus everything on the Font card. Click one to switch to it; save one when you find a setting you like, and it's there for every machine.</p>
+      <div class="profile-list">
+        <div v-for="p in [...mine, ...builtin]" :key="p.name" class="profile" :class="{ on: p.active }" @click="!p.active && renaming !== p.name && apply(p)">
+          <template v-if="renaming === p.name">
+            <input id="rename-input" class="input" style="flex:1" v-model="renameTo" @click.stop @keyup.enter="finishRename" @keyup.esc="renaming = null" @blur="finishRename">
+          </template>
+          <template v-else>
+            <span class="pname">{{ p.name }}</span>
+            <span v-if="p.builtin" class="chip" title="Ships with the app">built-in</span>
+            <span v-if="p.active" class="chip ok">{{ dirty ? 'edited' : 'active' }}</span>
+            <span class="spacer"></span>
+            <template v-if="!p.builtin">
+              <button v-if="p.active" class="btn small ghost" @click.stop="update(p)" title="Save the current settings into this profile">Update</button>
+              <button class="btn small ghost" @click.stop="startRename(p)">Rename</button>
+              <button class="btn small ghost danger" @click.stop="del(p)">Delete</button>
+            </template>
+          </template>
         </div>
       </div>
-      <p v-else class="help" style="margin-top:0">No saved profiles yet.</p>
+      <p v-if="!S.profiles.length" class="help">No profiles yet.</p>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <input class="input" style="flex:1" v-model="name" placeholder="Save current font settings as…" @keyup.enter="saveAs">
-        <button class="btn" :disabled="!name.trim()" @click="saveAs">Save profile</button>
+        <input class="input" style="flex:1" v-model="name" placeholder="Name these settings, e.g. Antikor 3.0 - first print" @keyup.enter="saveAs()">
+        <button class="btn primary" :disabled="!name.trim()" @click="saveAs()">Save as profile</button>
       </div>
     </div>
   </section>`,
@@ -633,7 +818,7 @@ const ToolsPage = {
     const gauge = computed(() => section("Gauge"));
     const buildAs = (target) => { S.build.target = target; runBuild(true); };
     return { S, setVal, tt, legend, legendOut, legendUrl, runTypeTest, runLegend, runCoverage, presetNames, seedCoverage,
-             calib, gauge, buildAs, engine, layoutRows };
+             calib, gauge, buildAs, engine, layoutRows, downloadLegend };
   },
   template: `
   <SectionCard v-if="calib" :s="calib">
@@ -651,7 +836,7 @@ const ToolsPage = {
     </div>
     <div v-if="legendUrl" class="legend-preview">
       <img :src="legendUrl" alt="Generated legend">
-      <a class="btn small" :href="legendUrl" download>Download SVG</a>
+      <button class="btn small" @click="downloadLegend" title="The SVG plus the settings it was made from, in one .zip">Download</button>
     </div>
   </SectionCard>
 `,
@@ -813,8 +998,40 @@ const FontPicker = {
       return localFaces[f.ps] || null;
     }
     watch(localFonts, () => nextTick(observe));
+    // the synced fonts folder (fontsync.js): listed by file name, previews
+    // read from the folder as rows scroll into view, handed to the engine
+    // only when picked
+    const syncOk = fontsync.supported;
+    const shownSync = computed(() => {
+      if (S.sync.status !== "ready") return [];
+      const toks = q.value.toLowerCase().split(/\s+/).filter(Boolean);
+      return fontsync.state.files.filter((f) => { const h = f.rel.toLowerCase(); return toks.every((t) => h.includes(t)); }).slice(0, 600);
+    });
+    watch(shownSync, () => nextTick(observe));
+    const syncFaces = reactive({});
+    let syncSeq = 0;
+    function syncFamily(f) {
+      if (!visible["sync:" + f.rel]) return null;
+      if (!(f.rel in syncFaces)) {
+        syncFaces[f.rel] = null;
+        const nm = `tes${++syncSeq}`;
+        fontsync.bytes(f).then((buf) => new FontFace(nm, buf).load())
+          .then((ff) => { document.fonts.add(ff); syncFaces[f.rel] = nm; })
+          .catch(() => { syncFaces[f.rel] = ""; });
+      }
+      return syncFaces[f.rel] || null;
+    }
+    const syncErr = ref("");
+    const syncDo = async (fn) => { syncErr.value = ""; try { await fn(); } catch (e) { if (e.name !== "AbortError") syncErr.value = String(e.message || e); } };
+    const pickSync = async (f) => {
+      busy.value = "Loading " + f.name + "…";
+      try { choose(await fontsync.provide(engine, f)); } catch (e) { localErr.value = String(e.message || e); }
+      busy.value = "";
+    };
+    const fontLabelOf = (f) => f.name.replace(/\.(ttf|otf|ttc|otc)$/i, "");
     return { S, q, manual, shown, list, listEl, visible, sample, choose, close,
-             browserMode, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localFamily };
+             browserMode, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localFamily,
+             syncOk, shownSync, syncFamily, syncErr, syncDo, pickSync, fontsync, fontLabelOf };
   },
   template: `
   <div class="modal-bg" @click.self="close" @keydown.esc="close">
@@ -825,11 +1042,19 @@ const FontPicker = {
         <span class="chip" v-if="list && !browserMode">{{ shown.length }}{{ shown.length === 800 ? '+' : '' }} / {{ list.length }}</span>
       </div>
       <div v-if="browserMode" class="tools" style="flex-wrap:wrap">
-        <button v-if="canLocal && !localFonts" class="btn small primary" @click="loadLocal">Show fonts installed on this computer</button>
+        <template v-if="syncOk">
+          <button v-if="S.sync.status === 'none'" class="btn small primary" @click="syncDo(fontsync.choose)" title="Pick your fonts folder once - it's re-read every visit, and every font setting can use it">Sync a fonts folder…</button>
+          <button v-else-if="S.sync.status === 'needs-permission'" class="btn small primary" @click="syncDo(fontsync.reconnect)">Reconnect the {{ S.sync.name }} folder</button>
+          <span v-else-if="S.sync.status === 'scanning'" class="help">Reading {{ S.sync.name }}…</span>
+          <template v-else-if="S.sync.status === 'ready'"><span class="chip ok">{{ S.sync.name }} · {{ S.sync.count }} fonts</span>
+            <button class="btn small ghost" @click="syncDo(fontsync.choose)">Change folder</button></template>
+        </template>
+        <button v-if="canLocal && !localFonts" class="btn small" @click="loadLocal">Show fonts installed on this computer</button>
         <label class="btn small">Upload a font file…<input type="file" accept=".ttf,.otf,.ttc,.otc" style="display:none" @change="upload"></label>
         <span v-if="busy" class="help">{{ busy }}</span>
         <span v-if="localErr" class="help" style="color:var(--bad)">{{ localErr }}</span>
-        <span v-if="!canLocal" class="help">This browser can't list installed fonts (Chrome and Edge can) - upload a font file instead.</span>
+        <span v-if="!canLocal" class="help">This browser can't list installed fonts or sync a folder (Chrome and Edge can) - upload a font file instead.</span>
+        <span v-if="syncErr" class="help" style="color:var(--bad)">{{ syncErr }}</span>
       </div>
       <div class="list" ref="listEl">
         <div v-if="!list" style="padding:20px;color:var(--text-3)">Loading fonts…</div>
@@ -838,6 +1063,13 @@ const FontPicker = {
           <div class="preview"><FontText v-if="visible[f.path]" :path="f.path" :text="sample" /><span v-else style="color:var(--text-3)">{{ sample }}</span></div>
           <div class="fam" :title="f.path">{{ f.family }} <span style="color:var(--text-3)">{{ f.style }}</span></div>
         </div>
+        <template v-if="browserMode && S.sync.status === 'ready'">
+          <div class="list-label">Your fonts folder · {{ S.sync.name }} · {{ shownSync.length }}{{ shownSync.length === 600 ? '+' : '' }} of {{ S.sync.count }}</div>
+          <div v-for="f in shownSync" :key="f.rel" class="font-row" :data-path="'sync:' + f.rel" @click="pickSync(f)">
+            <div class="preview" :style="syncFamily(f) ? { fontFamily: syncFamily(f) + ', var(--sans)' } : { color: 'var(--text-3)' }">{{ sample }}</div>
+            <div class="fam" :title="f.rel">{{ fontLabelOf(f) }}</div>
+          </div>
+        </template>
         <template v-if="browserMode && localFonts">
           <div class="list-label">On this computer · {{ localFonts.length }} fonts · click one to add it</div>
           <div v-for="f in shownLocal" :key="f.ps" class="font-row" :data-path="'local:' + f.ps" @click="pickLocal(f)">
@@ -856,7 +1088,7 @@ const FontPicker = {
 };
 
 const App = {
-  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontPicker, TypeTestCard, FontCoverageCard },
+  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, FontCoverageCard },
   setup() {
     const viewerEl = ref(null);
     const logRef = ref(null);
@@ -897,6 +1129,15 @@ const App = {
       S.connecting = false; S.booting = false;
       if (ok && engine.kind === "browser") { try { localStorage.setItem("te.engineBooted", "1"); } catch {} }
       if (!ok) { S.engineDown = true; S.engineUrl = engine.base; return; }
+      if (engine.kind === "browser") {
+        fontsync.onChange((st) => {
+          const wasReady = S.sync.status === "ready";
+          Object.assign(S.sync, { status: st.status, name: st.name, count: st.files.length, error: st.error });
+          // a folder that just became readable may hold this config's fonts
+          if (!wasReady && st.status === "ready" && S.machine && S.data && !dirty.value) loadMachine(S.machine, true);
+        });
+        fontsync.restore();
+      }
       S.machines = (await engine.machines()).groups;
       const all = S.machines.flatMap((g) => g.machines.filter((m) => m.available).map((m) => m.key));
       await loadMachine(all.includes(S.machine) ? S.machine : all[0], true);
@@ -912,7 +1153,7 @@ const App = {
     }
     const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy,
+    return { S, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
@@ -1018,6 +1259,7 @@ const App = {
         </template>
         <template v-else-if="currentGroup">
           <div class="page-head"><h1>{{ currentGroup.label }}</h1><p>{{ currentGroup.blurb }}</p></div>
+          <WorkflowStrip v-if="currentGroup.id === 'typeface'" />
           <div v-if="S.data.warning" class="note advanced machine-warning">
             <b>{{ S.data.warning.short }}</b>
             <details><summary>Why</summary><p style="margin:6px 0 0;font-weight:400">{{ S.data.warning.long }}</p></details>
@@ -1025,8 +1267,8 @@ const App = {
           <LayoutPage v-if="currentGroup.custom === 'layout' && S.data.cfg.layout && S.data.cfg.layout.rows" />
           <template v-for="name in (currentGroup.custom === 'tools' ? [] : currentGroup.sections)" :key="name">
             <TypeTestCard v-if="name === 'Type test'" :s="section(name)" />
+            <template v-else-if="name === 'Font & Alignment'"><FontCard :s="section(name)" /><ProfilesCard /></template>
             <SectionCard v-else :s="section(name)" />
-            <ProfilesCard v-if="name === 'Font & Alignment'" />
           </template>
           <FontCoverageCard v-if="currentGroup.id === 'typeface'" />
           <ToolsPage v-if="currentGroup.custom === 'tools'" />
@@ -1070,8 +1312,9 @@ const App = {
           </div>
           <div v-if="S.job.running && S.job.phase" class="help" style="margin-top:-4px">{{ S.job.label }}: {{ S.job.phase }}</div>
           <div class="row" v-if="S.build.stl && !S.job.running">
-            <a class="btn small" :href="engine.stlUrl(S.machine)" :download="(S.build.last?.name || S.machine) + '.stl'">Download STL</a>
-            <button class="btn small" @click="saveCopy" title="Timestamped copy + config sidecar in output/saved">Save a copy</button>
+            <button class="btn small primary" @click="downloadBuild" title="One .zip: the STL, the settings it was built from (load them back with Open config), and a calibration's mapping">Download STL + settings</button>
+            <button v-if="engine.kind !== 'browser'" class="btn small" @click="saveCopy" title="Timestamped copy + config sidecar in output/saved">Save a copy</button>
+            <span class="help" style="flex-basis:100%">The .zip also holds every setting this was built from - Open config &gt; Load a settings file rebuilds it exactly.</span>
           </div>
           <details>
             <summary class="help" style="cursor:pointer">Debug views</summary>
@@ -1094,7 +1337,10 @@ const App = {
     <div v-if="S.configs" class="modal-bg" @click.self="S.configs = null">
       <div class="modal small" role="dialog" aria-modal="true">
         <div class="head"><h2>Open a config for {{ S.data.label }}</h2><span class="spacer"></span><button class="btn small ghost" @click="S.configs = null">✕</button></div>
-        <div class="tools"><p class="help" style="margin:0">Edits go to a running copy next to the config you open; the config itself is never changed.</p></div>
+        <div class="tools" style="flex-wrap:wrap">
+          <label class="btn small primary">Load a settings file…<input type="file" accept=".yaml,.yml,.zip" style="display:none" @change="importSettings($event.target.files[0]); $event.target.value = ''"></label>
+          <span class="help">A download's .zip or its .settings.yaml - rebuilds that print exactly, on whichever machine it was for.</span>
+          <p class="help" style="margin:0;flex-basis:100%">Or open a config below. Edits go to a running copy next to it; the config itself is never changed.</p></div>
         <div class="list">
           <div v-for="c in S.configs.configs" class="font-row" :class="{ sel: c.path === S.configs.current }" @click="openConfig(c.path)" style="grid-template-columns:1fr auto">
             <div><div>{{ c.label }}</div><div class="help" style="font-size:12px;color:var(--text-3)">{{ c.path }}</div></div>

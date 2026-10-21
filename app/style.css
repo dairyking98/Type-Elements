@@ -291,3 +291,18 @@ textarea.input.textblock { height: auto; min-height: 96px; padding: 8px 10px; fo
 .list-label { padding: 8px 18px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
 .brand-link { color: inherit; text-decoration: none; border-radius: 8px; }
 .brand-link:hover .label { text-decoration: underline; }
+
+/* Typeface page: workflow steps, the Font card's Advanced fold, profiles */
+.flow { list-style: none; display: flex; gap: 6px; flex-wrap: wrap; padding: 0; margin: -4px 0 16px; counter-reset: none; }
+.flow li { display: flex; align-items: center; gap: 7px; padding: 5px 11px 5px 6px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+.flow li:hover { border-color: var(--accent); }
+.flow li .n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); font-size: 11px; font-weight: 600; }
+.flow li.done { color: var(--text); }
+.flow li.done .n { background: var(--ok-soft); color: var(--ok); }
+details.adv { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+details.adv > summary { cursor: pointer; font-size: 13px; color: var(--text-2); padding: 4px 0; }
+details.adv > summary:hover { color: var(--text); }
+.profile { cursor: pointer; }
+.profile:not(.on):hover { border-color: var(--accent); background: var(--accent-soft); }
+.profile.on { cursor: default; }

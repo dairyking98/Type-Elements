@@ -49,6 +49,10 @@ export const httpEngine = {
   cancel: () => fetch(api("/api/build-cancel"), { method: "POST" }).then(json),
   defaultFontDir: () => fetch(api("/api/default-font-dir")).then(json).then((r) => r.path),
   saveCopy: (m, body) => post(api(`/api/save-copy/${m}`), body),
+  settingsFile: (m, body) => post(api(`/api/settings-file/${m}`), body),
+  importSettings: (text) => post(api("/api/import-settings"), { text }),
+  mappingUrl: (m) => api(`/api/mapping/${m}?t=${Date.now()}`),   // 404 unless the last build was a calibration
+  resolveFont: (path) => Promise.resolve({ path, kind: "same" }),   // the local engine reads the disk directly
   profiles: (m) => fetch(api(`/api/profiles/${m}`)).then(json),
   saveProfile: (m, name) => post(api(`/api/profiles/${m}`), { name }),
   renameProfile: (m, old_, new_) => post(api(`/api/profiles/${m}/rename`), { old: old_, new: new_ }),
