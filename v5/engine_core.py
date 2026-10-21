@@ -162,12 +162,6 @@ def extra_sections(machine, cfg):
                      "Include the right half of the split shuttle in the build.")]
     secs["Build"] = build
     lay = cfg.get("layout") or {}
-    if machine == "blickensderfer":
-        secs["Keyboard"] = [_f("keyboard", ["layout", "keyboard"], "select", "Keyboard",
-                               "Which keyboard the machine has - the Scientific (DHIATENSOR) and Universal (QWERTY) "
-                               "keyboards strike the wheel differently. Auto picks it from the layout.",
-                               [("Auto (from the layout)", "auto"), ("Scientific (DHIATENSOR)", "scientific"),
-                                ("Universal (QWERTY)", "universal")])]
     if "baseline_row" in lay:
         secs["Row baselines"] = [
             _f("baseline_row", ["layout", "baseline_row"], "floatlist", "Baseline per row (mm)",
@@ -248,8 +242,8 @@ _LEVELS = ["lowercase", "UPPERCASE", "figures", "math"]
 # top to bottom, all centred:
 #   Scientific (DHIATENSOR):  ZXKGBVQJ / .PWFULCMY, / DHIATENSOR
 #   Universal (QWERTY):       QWERTYUIOP / ASDFGHJKL. / ZXCVBNM,
-# read against the DHIATENSOR and QWERTY wheels. layout.keyboard picks one;
-# "auto" uses the keyboard of the preset the current rows are closest to
+# read against the DHIATENSOR and QWERTY wheels. The keyboard follows the
+# layout's preset - for edited rows, the preset they're closest to
 # (CHARIENSTU and the other language wheels are Scientific-keyboard ones).
 _BLICK_KEY_ROWS = {
     "scientific": [[0, 1, 2, 3, 24, 25, 26, 27], [4, 5, 6, 7, 8, 19, 20, 21, 22, 23], list(range(9, 19))],
@@ -258,9 +252,6 @@ _BLICK_KEY_ROWS = {
 
 
 def blick_keyboard(lay):
-    want = (lay.get("keyboard") or "auto").lower()
-    if want in _BLICK_KEY_ROWS:
-        return want
     rows = [r for r in (lay.get("rows") or []) if isinstance(r, str)]
     best, score = "universal", -1
     for name, preset in LAYOUT_PRESETS_BY_MACHINE.get("blickensderfer", {}).items():
@@ -271,11 +262,17 @@ def blick_keyboard(lay):
 
 
 def _blick_keyboard(lay, rows, key):
+    """Both keyboards' key rows ("variants"), so the page can switch the
+    moment the layout's preset changes, saved or not; "rows" is the one for
+    the saved config. "variant_of_preset" maps each preset to its keyboard."""
     kb = blick_keyboard(lay)
+    variants = {name: [[key(i) for i in krow] for krow in krows] for name, krows in _BLICK_KEY_ROWS.items()}
     return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "align": "center",
-            "rows": [[key(i) for i in krow] for krow in _BLICK_KEY_ROWS[kb]], "levels": _LEVELS[:len(rows)],
-            "note": ("Scientific (DHIATENSOR) keyboard." if kb == "scientific" else "Universal (QWERTY) keyboard.")
-                    + (" Picked from the layout - set Keyboard below to change it." if (lay.get("keyboard") or "auto") == "auto" else "")}
+            "rows": variants[kb], "variant": kb, "variants": variants,
+            "variant_labels": {"scientific": "Scientific (DHIATENSOR) keyboard.", "universal": "Universal (QWERTY) keyboard."},
+            "variant_of_preset": {n: ("universal" if n.upper().startswith("QWERTY") else "scientific")
+                                  for n in LAYOUT_PRESETS_BY_MACHINE.get("blickensderfer", {})},
+            "levels": _LEVELS[:len(rows)], "note": None}
 
 
 def _hammond_keyboard(element_order, key, n_rows):

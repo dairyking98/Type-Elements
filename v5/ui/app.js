@@ -14,7 +14,7 @@ import { zip, readZipText } from "./zip.js";
 const GROUPS = [
   { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment", "Type test"], custom: "profiles",
     blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
-  { id: "layout", label: "Layout", icon: "⌨", sections: ["Keyboard", "Character", "Row baselines"], custom: "layout",
+  { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
   { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cut groove & rib fit", "Cosmetics", "Bands", "Ticks"],
     blurb: "Physical dimensions of the element body - mostly real machine measurements." },
@@ -789,7 +789,26 @@ const LayoutPage = {
       try { want = localStorage.getItem(viewKey.value); } catch {}
       viewId.value = vs.find((v) => v.id === want)?.id || vs[0]?.id || null;
     }, { immediate: true });
-    const view = computed(() => views.value.find((v) => v.id === viewId.value) || null);
+    // A view with keyboard variants (Blickensderfer: Scientific / Universal)
+    // follows the layout's preset - the one picked (saved or not), else the
+    // preset the rows on screen are closest to.
+    const variantOf = (v) => {
+      const named = v.variant_of_preset[activePreset.value];
+      if (named) return named;
+      let best = v.variant, score = -1;
+      const rows = layoutRows.value || [];
+      for (const [name, preset] of Object.entries(S.data.presets || {})) {
+        let sc = 0;
+        rows.forEach((r, ri) => { const a = [...r], b = [...(preset[ri] || "")]; a.forEach((c, i) => { if (c === b[i]) sc++; }); });
+        if (sc > score && v.variant_of_preset[name]) { score = sc; best = v.variant_of_preset[name]; }
+      }
+      return best;
+    };
+    const view = computed(() => {
+      const v = views.value.find((x) => x.id === viewId.value) || null;
+      if (!v || !v.variants) return v;
+      return { ...v, rows: v.variants[variantOf(v)], note: v.variant_labels[variantOf(v)] };
+    });
     const setView = (id) => { viewId.value = id; showText.value = false; try { localStorage.setItem(viewKey.value, id); } catch {} };
     const level = ref("all");                    // keys view: every level on each key, or one
     watch(view, () => { if (level.value !== "all" && !(view.value?.levels || [])[+level.value]) level.value = "all"; });
@@ -841,9 +860,10 @@ const LayoutPage = {
         <div v-if="view.note" class="help" style="margin:0 0 8px">{{ view.note }}</div>
         <div class="kb-scroll"><div class="kb">
           <template v-if="view.kind === 'keys'">
-            <div v-for="(krow, kr) in view.rows" class="kb-row keyrow" :class="view.align ? 'align-' + view.align : ''"
+            <div v-for="(krow, kr) in view.rows" class="kb-row keyrow"
+                 :class="[view.align ? 'align-' + view.align : '', view.align === 'stagger' && kr === (view.offset_row ?? 0) ? 'offset' : '']"
                  :style="{ '--n': Math.max(...view.rows.map(r => r.length)) + (view.align === 'stagger' ? 0.5 : 0),
-                          paddingLeft: view.align === 'stagger' ? (kr === (view.offset_row ?? 0) ? 'calc(var(--kw) * 0.66)' : 0) : view.align ? 0 : (kr * 14) + 'px' }">
+                          paddingLeft: view.align ? 0 : (kr * 14) + 'px' }">
               <div class="kb-keys">
                 <template v-for="(k, ki) in krow">
                 <div v-if="!k" class="keycap gap" :title="view.align === 'grid' ? 'Space bar' : 'No key'"></div>
