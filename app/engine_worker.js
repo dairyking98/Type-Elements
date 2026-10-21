@@ -112,7 +112,7 @@ function captureOutput(id) {
       for (const line of parts) {
         // pass 1 found every draft angle cached, so it is the whole render:
         // from here on it's assembly (share 0 = no loop; progress.js)
-        if (line.startsWith(ONE_PASS)) postMessage({ id, phase: [0.2, 1, "one pass: assembling", 0] });
+        if (line.startsWith(ONE_PASS)) postMessage({ id, phase: [0.17, 1, "one pass: assembling", 0] });
         postMessage({ id, line });
       }
       if (buf) postMessage({ id, partial: buf });
@@ -124,7 +124,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=f1bf0ba3eb", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=5e2b0df014", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;
@@ -169,7 +169,8 @@ async function job({ id, kind, machine, body, workers }) {
       // refill; share = how much of the slice its [n/N] loop is (progress.js).
       // The slices are measured, not guessed: a Hammond render spent 11% in
       // pass 1, 13% in the pool, then 14% replaying the characters and 62%
-      // assembling.
+      // assembling. (Only for a first run: after one, the tail is timed from
+      // what it took last time - progress.js.)
       eng.pool_record(spec.result.glyph_loops || 1);
       postMessage({ id, phase: [0, 0.12, "placing characters (1 of 3)", 1] });
       postMessage({ id, line: "--- pass 1: placing characters; draft angles cached or recorded for the worker pool" });
@@ -182,7 +183,7 @@ async function job({ id, kind, machine, body, workers }) {
         const results = await minkowskiPool(jobs, workers, id);
         postMessage({ id, line: `--- ${jobs.length} Minkowski sums on ${workers} workers in ${((performance.now() - t) / 1000).toFixed(1)}s` });
         eng.pool_replay(py.toPy(results.map((r) => [new Uint8Array(r.v), new Uint8Array(r.f)])));
-        postMessage({ id, phase: [0.27, 1, "assembling (3 of 3)", 0.2] });
+        postMessage({ id, phase: [0.27, 1, "assembling (3 of 3)", 0.17] });
         postMessage({ id, line: "--- pass 2: building with the pool's results" });
         rc = eng.run_job(toPyList(argv));
       }
