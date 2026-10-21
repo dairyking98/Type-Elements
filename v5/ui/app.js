@@ -500,7 +500,9 @@ const FieldInput = {
     const changed = computed(() => props.f.key in S.edits);
     const textFam = computed(() => (props.f.type === "textblock" ? fontFamily(val("path")) : null));
     const setItem = (i, x) => { const a = [...(v.value || [])]; a[i] = x === "" ? 0 : Number(x); setVal(props.f.key, a); };
-    const rowLabel = (i) => ["lowercase", "uppercase", "figures", "math"][i] ? `Row ${i + 1} · ${["lowercase", "uppercase", "figures", "math"][i]}` : `Row ${i + 1}`;
+    // rows are shift levels only on the 3-4 row machines (not the Mignon's 7-row index)
+    const rowLabel = (i) => ((layoutRows.value || []).length <= 4 && ["lowercase", "uppercase", "figures", "math"][i]
+      ? `Row ${i + 1} · ${["lowercase", "uppercase", "figures", "math"][i]}` : `Row ${i + 1}`);
     const ALIGN = ["left", "center", "right", "justify"];
     const isAlign = computed(() => props.f.options.length > 1 && props.f.options.every((o) => ALIGN.includes(o.value)));
     // paragraph-alignment glyph: [x, width] per bar
@@ -777,17 +779,44 @@ const LayoutPage = {
     watch(selChar, (c) => (typed.value = c ?? ""));
     const applyTyped = () => { if (sel.value && typed.value) setChar(sel.value.r, sel.value.i, [...typed.value][0]); };
     const showText = ref(false);
+    // keyboard / element views (engine layout_views): every cell is a
+    // [row, index] reference, so either view edits the same slots
+    const views = computed(() => S.data.layout_views || []);
+    const viewKey = computed(() => "te.layoutView." + S.machine);
+    const viewId = ref(null);
+    watch(views, (vs) => {
+      let want = null;
+      try { want = localStorage.getItem(viewKey.value); } catch {}
+      viewId.value = vs.find((v) => v.id === want)?.id || vs[0]?.id || null;
+    }, { immediate: true });
+    const view = computed(() => views.value.find((v) => v.id === viewId.value) || null);
+    const setView = (id) => { viewId.value = id; showText.value = false; try { localStorage.setItem(viewKey.value, id); } catch {} };
+    const level = ref("all");                    // keys view: every level on each key, or one
+    watch(view, () => { if (level.value !== "all" && !(view.value?.levels || [])[+level.value]) level.value = "all"; });
+    const charAt = (ref_) => [...(layoutRows.value[ref_[0]] || "")][ref_[1]] ?? "";
+    const isSel = (ref_) => sel.value && sel.value.r === ref_[0] && sel.value.i === ref_[1];
+    const cellClass = (ref_) => {
+      const c = charAt(ref_);
+      return [S.glyphs.status[c] && S.glyphs.status[c] !== "ok" ? S.glyphs.status[c] : "", isSel(ref_) ? "sel" : "",
+              c.trim() ? "" : "space", font2Chars.value.includes(c) ? "f2" : ""];
+    };
+    // corner of a key cap for each level: UPPER top-left, lower bottom-left, figures top-right, math bottom-right
+    const CORNER = ["bl", "tl", "tr", "br"];
     const origLen = (r) => [...(S.data.cfg.layout.rows[r] || "")].length;
     const lenBad = (r, row) => S.data.fixed_row_lengths && !S.preset && [...row].length !== origLen(r);
     return { S, fam, famFor, mainPath, pathFor, pick, sel, selChar, presetNames, activePreset, applyPreset, setChar, setRowText,
-             typed, applyTyped, showText, badGlyphs, layoutRows, font2Chars, famStyle, hex, lenBad, origLen };
+             typed, applyTyped, showText, badGlyphs, layoutRows, font2Chars, famStyle, hex, lenBad, origLen,
+             views, view, viewId, setView, level, charAt, cellClass, CORNER };
   },
   template: `
   <section class="card">
     <div class="card-head">
       <h2>Keyboard layout</h2><span class="sub">{{ activePreset ? activePreset : 'Custom' }} · {{ layoutRows.length }} rows</span>
       <span class="spacer"></span>
-      <button class="btn small" @click="showText = !showText">{{ showText ? 'Show grid' : 'Edit as text' }}</button>
+      <div class="seg show" role="tablist" aria-label="Layout view">
+        <button v-for="v in views" :class="{ on: !showText && viewId === v.id }" @click="setView(v.id)" :title="v.note || v.label">{{ v.label }}</button>
+        <button :class="{ on: showText }" @click="showText = !showText" title="Edit each stored row as a line of text">{{ views.length ? 'Text' : (showText ? 'Show grid' : 'Edit as text') }}</button>
+      </div>
     </div>
     <div class="card-body">
       <div v-if="presetNames.length" class="field" style="margin-bottom:12px">
@@ -804,7 +833,40 @@ const LayoutPage = {
       </div>
       <div v-else-if="Object.keys(S.glyphs.status).length" class="note ok">Every character is in the font.</div>
       <div v-if="S.data.fixed_row_lengths" class="help" style="margin:-4px 0 10px">On this machine each row maps onto fixed ball positions, so rows keep their exact length - swap characters, don't add or remove them.</div>
-      <div v-if="!showText" class="kb-scroll"><div class="kb">
+      <template v-if="!showText && view">
+        <div v-if="view.kind === 'keys'" class="seg show small level-seg" role="radiogroup" aria-label="Shift level">
+          <button :class="{ on: level === 'all' }" @click="level = 'all'">All levels</button>
+          <button v-for="(lv, n) in view.levels" :class="{ on: level === String(n) }" @click="level = String(n)">{{ lv }}</button>
+        </div>
+        <div v-if="view.note" class="help" style="margin:0 0 8px">{{ view.note }}</div>
+        <div class="kb-scroll"><div class="kb">
+          <template v-if="view.kind === 'keys'">
+            <div v-for="(krow, kr) in view.rows" class="kb-row keyrow" :style="{ '--n': krow.length, paddingLeft: (kr * 14) + 'px' }">
+              <div class="kb-keys">
+                <div v-for="(k, ki) in krow" class="keycap" :class="{ one: level !== 'all' }">
+                  <template v-if="level === 'all'">
+                    <div v-for="(ref_, lv) in k" class="kc" :class="[CORNER[lv], ...cellClass(ref_)]" :title="view.levels[lv] + ' · ' + hex(charAt(ref_) || ' ')"
+                         @click="pick(ref_[0], ref_[1])"><FontText v-if="charAt(ref_).trim()" :path="pathFor(charAt(ref_))" :text="charAt(ref_)" /><template v-else>␣</template></div>
+                  </template>
+                  <div v-else-if="k[+level]" class="kc solo" :class="cellClass(k[+level])" :title="hex(charAt(k[+level]) || ' ')"
+                       @click="pick(k[+level][0], k[+level][1])"><FontText v-if="charAt(k[+level]).trim()" :path="pathFor(charAt(k[+level]))" :text="charAt(k[+level])" /><template v-else>␣</template></div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <div v-for="(grow, gr) in view.rows" class="kb-row" :style="{ '--n': grow.length }">
+              <span class="rn" :title="(view.row_labels || [])[gr]">{{ gr + 1 }}</span>
+              <div class="kb-keys">
+                <div v-for="(ref_, gi) in grow" class="key" :class="[...cellClass(ref_), view.shifted && view.shifted[ref_[0]] && view.shifted[ref_[0]][ref_[1]] ? 'shifted' : '']"
+                     :title="hex(charAt(ref_) || ' ') + (view.shifted && view.shifted[ref_[0]] && view.shifted[ref_[0]][ref_[1]] ? ' · typed with Shift' : '')"
+                     @click="pick(ref_[0], ref_[1])"><FontText v-if="charAt(ref_).trim()" :path="pathFor(charAt(ref_))" :text="charAt(ref_)" /><template v-else>␣</template></div>
+              </div>
+            </div>
+          </template>
+        </div></div>
+      </template>
+      <div v-else-if="!showText" class="kb-scroll"><div class="kb">
         <div v-for="(row, r) in layoutRows" class="kb-row" :style="{ '--n': [...row].length }">
           <span class="rn">{{ r + 1 }}</span>
           <div class="kb-keys">

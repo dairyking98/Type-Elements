@@ -221,6 +221,113 @@ def schema(machine, cfg):
     return out
 
 
+# ------------------------------------------------------------------ layout views
+# The same layout.rows slots, arranged two ways for the Layout page:
+#   "keyboard" - the typewriter's keys, each with its shift levels (or, on
+#                the Mignon, its index card);
+#   "element"  - where each character physically sits on the wheel / ball /
+#                shuttle.
+# Every cell is a [row, index] reference into layout.rows, so either view
+# edits the same characters. Derived from each machine's own build
+# mapping (placement_map, char_legend, hemisphere maps, the Hammond legend's
+# key grid); a machine whose keyboard plate isn't known (Blickensderfer,
+# Helios) gets the element view only. Key-row splits marked inferred were
+# read from the layouts' structure, not from a transcribed keyboard.
+
+_LEVELS = ["lowercase", "UPPERCASE", "figures", "math"]
+
+
+def layout_views(machine, cfg):
+    lay = cfg.get("layout") or {}
+    rows = [list(r) for r in (lay.get("rows") or []) if isinstance(r, str)]
+    if not rows:
+        return []
+    n_rows, width = len(rows), min(len(r) for r in rows)
+    views = []
+
+    def key(slot, levels=None):
+        return [[r, slot] for r in (levels if levels is not None else range(n_rows))]
+
+    def keyboard(splits, slot_of, note=None):
+        out, k = [], 0
+        for length in splits:
+            out.append([key(slot_of(k + j)) for j in range(length)])
+            k += length
+        return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "rows": out,
+                "levels": _LEVELS[:n_rows], "note": note}
+
+    def element(order, rows_top_down=None, note=None, labels=None):
+        rr = rows_top_down if rows_top_down is not None else list(range(n_rows))
+        return {"id": "element", "label": "Element order", "kind": "grid",
+                "rows": [[[r, i] for i in order] for r in rr],
+                "row_labels": labels or [_LEVELS[r] if r < 4 else f"Row {r + 1}" for r in rr], "note": note}
+
+    pm = lay.get("placement_map")
+    legend = lay.get("char_legend") or list(range(width))
+
+    if machine in ("blickensderfer", "postal", "bennett", "helios") and pm and len(pm) == width:
+        inv = [0] * width
+        for slot, pos in enumerate(pm):
+            inv[pos] = slot
+        views.append(element([legend[inv[p]] for p in range(width)],
+                             note="Around the wheel from the starting position; rows top to bottom."))
+        if machine == "postal" and width == 28:
+            inv_m = [14, 17, 20, 23, 26, 1, 4, 7, 10, 13, 15, 18, 21, 24, 27, 2, 5, 8, 11,
+                     16, 19, 22, 25, 0, 3, 6, 9, 12]
+            views.insert(0, keyboard([10, 9, 9], lambda k: inv_m[k],
+                                     "Key rows 10/9/9 inferred from the layout - no keyboard plate transcribed."))
+        elif machine == "bennett" and width == 28:
+            views.insert(0, keyboard([8, 10, 10], lambda k: k,
+                                     "Key rows 8/10/10 inferred from the character legend - no keyboard plate transcribed."))
+    elif machine == "hammond" and pm and len(pm) == width:
+        order = sorted(range(width), key=lambda i: -pm[i])          # +angle first, like the catalog
+        views.append(element(order, note="Across the shuttle from the Q end; rows top to bottom."))
+        if width == 30:
+            views.insert(0, {**keyboard([], None), "rows": [[key(29 - (3 * c + kr)) for c in range(10)] for kr in range(3)]})
+    elif machine == "hammond_split":
+        views.append(element(list(range(width)), note="Across the shuttle from the Q end; rows top to bottom."))
+        if width == 30:
+            views.insert(0, {**keyboard([], None), "rows": [[key(3 * c + kr) for c in range(10)] for kr in range(3)],
+                             "note": "Same 3 x 10 key grid as the Hammond (checked against the Universal catalog)."})
+    elif machine == "mignon":
+        fill = (cfg.get("legend") or {}).get("circle_fill") or []
+        shifted = [[bool(fill[r][i]) if r < len(fill) and i < len(fill[r]) else False for i in range(width)]
+                   for r in range(n_rows)]
+        views.append({"id": "keyboard", "label": "Index order", "kind": "grid",
+                      "rows": [[[r, i] for i in range(width)] for r in range(n_rows)],
+                      "row_labels": [f"Row {r + 1}" for r in range(n_rows)], "shifted": shifted,
+                      "note": "As on the index card; a dot marks characters typed with Shift."})
+        views.append(element([legend[p] for p in range(width)], rows_top_down=list(range(n_rows))[::-1],
+                             labels=[f"Row {r + 1}" for r in range(n_rows)][::-1],
+                             note="Around the element; top of the element first."))
+    elif machine in ("selectric12", "selectric3", "selectric_composer") and n_rows == 8:
+        from lib.layouts import selectric12_layout, selectric3_layout, selectric_composer_layout
+        if machine == "selectric_composer":
+            mp, cols = selectric_composer_layout.COMPOSER_HEMISPHERE_MAP, 11
+        else:
+            mod = selectric12_layout if machine == "selectric12" else selectric3_layout
+            mp = mod.HEMISPHERE_MAPS.get(lay.get("hemisphere_map") or "us") or next(iter(mod.HEMISPHERE_MAPS.values()))
+            cols = 11 if machine == "selectric12" else 12
+        flat = [(r, i) for r in range(4) for i in range(len(rows[r]))]
+        if len(mp) == len(flat) == 4 * cols:
+            inv = {h: k for k, h in enumerate(mp)}
+            ball = []
+            for lat in range(4):
+                line = []
+                for L in range(2 * cols):
+                    case, col = divmod(L, cols)
+                    r, i = flat[inv[lat * cols + col]]
+                    line.append([r + 4 * case, i])
+                ball.append(line)
+            views.append({"id": "element", "label": "Element order", "kind": "grid", "rows": ball,
+                          "row_labels": ["Top row", "Row 2", "Row 3", "Bottom row"],
+                          "note": "Around the ball: the lowercase half, then the uppercase half."})
+        views.insert(0, {"id": "keyboard", "label": "Keyboard order", "kind": "keys",
+                         "rows": [[[[r, i], [r + 4, i]] for i in range(len(rows[r]))] for r in range(4)],
+                         "levels": ["lowercase", "UPPERCASE"], "note": None})
+    return views
+
+
 def build_targets(machine, cfg):
     """Build-target choices exactly as tune.py's #build-select offers them,
     plus the current value derived from the config."""
@@ -309,6 +416,7 @@ def get_config(machine):
     current_preset = next((n for n, rows in presets.items() if rows == lay.get("rows")), None)
     return {"machine": machine, "label": tune.MACHINES[machine][0], "cfg": cfg,
             "schema": schema(machine, cfg), "migrated": migrated, "section_targets": tune.SECTION_TARGETS,
+            "layout_views": layout_views(machine, cfg),
             "running_path": running, "master_path": master,
             "presets": presets, "current_preset": current_preset,
             # baselines a preset sets when saved (Hammond: a 4-row Math preset adds a 4th)
