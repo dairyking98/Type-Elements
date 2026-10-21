@@ -869,6 +869,13 @@ def join_front_back(mesh_front, mesh_back, front_outline):
     return trimesh.Trimesh(vertices=v_all, faces=np.array(faces))
 
 
+class EmptyGlyph(ValueError):
+    """build_flat_text()/build_flat_text_drafted() was asked for a character
+    the font lacks or draws empty (e.g. "\u00a9" in OCR-A). Callers setting a
+    line of label/logo text skip that character; get_glyph_contours_and_
+    advance() has already recorded it, so the build still warns."""
+
+
 def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_path=None, align_kwargs=None):
     """Plain flat linear_extrude(depth) of one character - no platen
     scallop, no draft taper. Used for LogoText() (an engraved surface
@@ -895,6 +902,8 @@ def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_
     if align_kwargs is not None:
         x_shift, y_shift = alignment_offset(char, advance_mm, **align_kwargs)
         contours_mm = [c + np.array([x_shift, y_shift]) for c in contours_mm]
+    if not contours_mm:
+        raise EmptyGlyph(f"{char!r} is not in {os.path.basename(fp)}")
     flat = classify_and_triangulate(contours_mm)
     front = make_front(flat, 0.0, 0.0, depth)
     back, front_outline = make_back(front, 0.0)
@@ -928,6 +937,8 @@ def build_flat_text_drafted(char, flatness_tolerance_mm, depth, font_size_mm=Non
     if align_kwargs is not None:
         x_shift, y_shift = alignment_offset(char, advance_mm, **align_kwargs)
         contours_mm = [c + np.array([x_shift, y_shift]) for c in contours_mm]
+    if not contours_mm:
+        raise EmptyGlyph(f"{char!r} is not in {os.path.basename(fp)}")
     flat = classify_and_triangulate(contours_mm)
 
     expansion_width_mm = depth * np.tan(np.radians(draft_angle_deg / 2.0))

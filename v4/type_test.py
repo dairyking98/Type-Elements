@@ -24,7 +24,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
-from glyph_poc import build_flat_text, ALIGN_MODE, ALIGN_CENTER_OFFSET_MM, ALIGN_LEFT_OFFSET_MM, \
+from glyph_poc import build_flat_text, EmptyGlyph, ALIGN_MODE, ALIGN_CENTER_OFFSET_MM, ALIGN_LEFT_OFFSET_MM, \
     ALIGN_MODIFIED_LEFT_CHARS, ALIGN_MODIFIED_LEFT_OFFSET_MM, ALIGN_MODIFIED_RIGHT_CHARS, \
     ALIGN_MODIFIED_RIGHT_OFFSET_MM, ALIGN_CARET_DROP_MM, \
     ALIGN_UNDERSCORE_LIFT_MM  # noqa: E402
@@ -116,8 +116,11 @@ def build_type_test_line(text, cpi, font_path, font_size_mm, flatness_tolerance_
             is_mod = bool(mod_chars) and ch in mod_chars and mod_font_path and mod_font_size_mm
             ch_font_path = mod_font_path if is_mod else font_path
             ch_font_size_mm = mod_font_size_mm if is_mod else font_size_mm
-            mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=ch_font_size_mm, font_path=ch_font_path,
-                                    align_kwargs=align_kwargs)
+            try:
+                mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=ch_font_size_mm, font_path=ch_font_path,
+                                        align_kwargs=align_kwargs)
+            except EmptyGlyph:
+                continue                 # not in the font - warned after the build
             if proportional:
                 mode = (align_kwargs or {}).get("mode", "center")
                 if mode == "left":

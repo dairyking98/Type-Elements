@@ -32,7 +32,7 @@ font2:
   font2_chars: ""
 
 logo:
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   text: "Leonard Chau 2026"
   text_size_mm: 2.5
   text_spacing: 7.0

@@ -37,7 +37,7 @@ font:
 label:
   # v2's real value is "Courier New:style=bold", not a file path/not
   # installed here - nearest real bold monospace-ish file on disk.
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime-Bold.ttf"
+  font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   label1a: "Leonard"     # Shuttle_Label1a
   label1b: "Chau"        # Shuttle_Label1b
   label2: "2025"         # Shuttle_Label2

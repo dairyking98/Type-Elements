@@ -133,8 +133,8 @@ label:
   show_number: true            # v2: `if (Render_Mode!=0)` in Labels() (ibm.scad:988) - true for Selectric I/II and III, false for Composer
   label_no: "10"                # v2 Label_No (ibm.scad:373)
   label_text_override: ""       # v2 Label_Text_Override (ibm.scad:375)
-  label_no_font_override: ""    # v2 Label_No_Font_Override (ibm.scad:377)
-  label_font_override: ""       # v2 Label_Font_Override (ibm.scad:379)
+  label_no_font_override: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"    # v2 Label_No_Font_Override (ibm.scad:377)
+  label_font_override: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"       # v2 Label_Font_Override (ibm.scad:379)
   no_label_size: 2.0            # v2 No_Label_Size (ibm.scad:381)
   no_label_offset: 0.0          # v2 No_Label_Offset (ibm.scad:383)
   font_label_size: 2.0          # v2 Font_Label_Size (ibm.scad:385)

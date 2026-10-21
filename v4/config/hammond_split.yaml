@@ -64,7 +64,7 @@ font2:
 label:
   # Logo (v2:169-180) - engraved surface label, read directly (never
   # struck) - same convention as every other machine's Logo/Label text.
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/OCR-A II Regular.ttf"
+  font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   label1: "Leonard Chau"           # Logo_Text_1
   label2: "2025"                   # Logo_Text_2
   label_size_mm: 1.9               # Logo_Size

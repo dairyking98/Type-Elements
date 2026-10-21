@@ -169,7 +169,7 @@ details.adv[open] > summary::before { content: "▾ "; }
 .buildbar { border-top: 1px solid var(--line); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .buildbar .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .progress { height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden; flex: 1; border: 1px solid var(--line); }
-.progress > div { height: 100%; background: var(--accent); transition: width .15s linear; }
+.progress > div { height: 100%; background: var(--accent); }   /* no transition: the bar moves in real steps (progress.js) */
 .progress.fail > div { background: var(--bad); }
 .progress.ok > div { background: var(--ok); }
 .log { font: 12px/1.5 var(--mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-word; }

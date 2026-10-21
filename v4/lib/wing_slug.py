@@ -358,9 +358,12 @@ def CopyrightText():
         except Exception as e:
             print(f"CopyrightText: skipping {ch!r} ({e})", flush=True)
             continue
-        from glyph_poc import build_flat_text
-        m = build_flat_text(ch, DEFAULT_FLATNESS_TOLERANCE_MM, Copyright_Depth + 0.01,
-                             font_size_mm=Body_Slot_Width * 0.75, font_path=Copyright_Font)
+        from glyph_poc import build_flat_text, EmptyGlyph
+        try:
+            m = build_flat_text(ch, DEFAULT_FLATNESS_TOLERANCE_MM, Copyright_Depth + 0.01,
+                                 font_size_mm=Body_Slot_Width * 0.75, font_path=Copyright_Font)
+        except EmptyGlyph:
+            continue                     # not in this font - warned after the build
         parts.append(sp.translate(m, [cursor, 0, 0]))
         cursor += adv
     if not parts:

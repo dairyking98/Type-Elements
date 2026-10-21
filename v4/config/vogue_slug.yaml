@@ -89,7 +89,7 @@ label:
   # here - substituted with Courier Prime, the same metric-compatible
   # typewriter-style substitute config/postal.yaml's FreeMono swap
   # already establishes as this fleet's convention for a missing font.
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime.ttf"
+  font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   label_depth_mm: 0.1                          # v1 Copyright_Depth
 
 element:

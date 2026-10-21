@@ -378,13 +378,16 @@ def _render_engraved_text(text, text_size, text_spacing, position_offset, height
     for n, ch in enumerate(text):
         if ch == " ":
             continue
-        if Minkowski_Text:
-            mesh = build_flat_text_drafted(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
-                                            font_path=font_path, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
-                                            cone_segments=DEFAULT_CONE_SEGMENTS)
-        else:
-            mesh = build_flat_text(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
-                                    font_path=font_path)
+        try:
+            if Minkowski_Text:
+                mesh = build_flat_text_drafted(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
+                                                font_path=font_path, draft_angle_deg=DEFAULT_DRAFT_ANGLE_DEG,
+                                                cone_segments=DEFAULT_CONE_SEGMENTS)
+            else:
+                mesh = build_flat_text(ch, flatness_tolerance_mm, text_depth, font_size_mm=text_size,
+                                        font_path=font_path)
+        except glyph_poc.EmptyGlyph:
+            continue                     # not in the font - warned after the build
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
         angle_n = text_spacing * n + position_offset - (n_chars - 1) * text_spacing / 2

@@ -46,7 +46,7 @@ logo:
   # itself, "Iosevka Etoile", as placeholder label text) isn't a
   # meaningful real value to port literally - using a real label instead,
   # matching Blickensderfer/Postal's own logo.text convention.
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Iosevka Etoile.ttf"
+  font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   text: "Leonard Chau 2026"
   # Cylinder_Label_Size_Override=0 -> 0.51*Type_Size = 0.51*2.45
   text_size_mm: 1.2495
@@ -96,7 +96,7 @@ logo:
 # the wrong one - every YAML key patch_yaml_value can touch must be
 # globally unique in the file (see GAUGE_FIELDS' matching comment in tune.py).
 label:
-  label_font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Iosevka Etoile.ttf"
+  label_font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   label_text: ""
   label_text_size_mm: 1.2495
   label_text_spacing: 15.0

@@ -308,7 +308,7 @@ def get_config(machine):
     presets = LAYOUT_PRESETS_BY_MACHINE.get(machine, {})
     current_preset = next((n for n, rows in presets.items() if rows == lay.get("rows")), None)
     return {"machine": machine, "label": tune.MACHINES[machine][0], "cfg": cfg,
-            "schema": schema(machine, cfg), "migrated": migrated,
+            "schema": schema(machine, cfg), "migrated": migrated, "section_targets": tune.SECTION_TARGETS,
             "running_path": running, "master_path": master,
             "presets": presets, "current_preset": current_preset,
             # baselines a preset sets when saved (Hammond: a 4-row Math preset adds a 4th)
@@ -680,7 +680,7 @@ def settings_file(machine, body=None):
     fonts = {}
     for s in schema(machine, cfg):
         for f in s["fields"]:
-            if f["key"] in ("path", "font2_path", "font_path", "label_font_path", "legend_font_path") and f["value"]:
+            if f["key"] in ("path", "font2_path", "font_path", "label_font_path", "legend_font_path", "label_font_override", "label_no_font_override") and f["value"]:
                 fonts[f["key"]] = {"file": os.path.basename(str(f["value"])), "sha256_16": _font_fingerprint(str(f["value"]))}
     meta = {"machine": machine, "saved": datetime.now().isoformat(timespec="seconds"),
             "build": body.get("last_build"), "engine": body.get("engine"), "app": body.get("app"),

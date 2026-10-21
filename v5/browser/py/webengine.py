@@ -26,7 +26,7 @@ USER_FONTS = "/persist/fonts"
 # session only, as they're needed - a whole font library is too big to keep
 # in browser storage, and the folder itself is re-read on every visit
 SYNCED = "/fonts/synced"
-FONT_KEYS = ("path", "font2_path", "font_path", "label_font_path", "legend_font_path")
+FONT_KEYS = ("path", "font2_path", "font_path", "label_font_path", "legend_font_path", "label_font_override", "label_no_font_override")
 FONT_EXTS = (".ttf", ".otf", ".ttc", ".otc")
 
 sys.path[:0] = ["/shim", "/v5", "/v4/lib", "/v4"]

@@ -128,8 +128,8 @@ label:
   show_number: true             # v2: `if (Render_Mode!=0)` (ibm.scad:988) - true for Selectric III
   label_no: "10"
   label_text_override: ""
-  label_no_font_override: ""
-  label_font_override: ""
+  label_no_font_override: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
+  label_font_override: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"
   no_label_size: 2.0
   no_label_offset: 0.0
   font_label_size: 2.0

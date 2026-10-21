@@ -16,11 +16,11 @@ const GROUPS = [
     blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
-  { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cosmetics", "Bands", "Rib", "Ticks"],
+  { id: "element", label: "Element", icon: "◎", sections: ["Element", "Cut groove & rib fit", "Cosmetics", "Bands", "Ticks"],
     blurb: "Physical dimensions of the element body - mostly real machine measurements." },
   { id: "branding", label: "Logo & label", icon: "✎", sections: ["Logo", "Label"],
     blurb: "Text and marks engraved on the element itself." },
-  { id: "print", label: "Print prep", icon: "⬓", sections: ["Build", "Resin"],
+  { id: "print", label: "Print prep", icon: "⬓", sections: ["Build", "Rib print", "Resin"],
     blurb: "Resin supports, print orientation, and the overhang check that runs after every build." },
   { id: "quality", label: "Quality", icon: "◆", sections: ["Quality"],
     blurb: "Facet counts and tessellation. Higher is smoother and slower." },
@@ -28,7 +28,7 @@ const GROUPS = [
     blurb: "Calibration sweeps, the shaft gauge and legend sheets." },
 ];
 const TOOL_SECTIONS = ["Legend", "Legend output"];   // drawn inside the Tools page's own cards
-const FONT_KEYS = new Set(["path", "font2_path", "font_path", "label_font_path", "legend_font_path"]);
+const FONT_KEYS = new Set(["path", "font2_path", "font_path", "label_font_path", "legend_font_path", "label_font_override", "label_no_font_override"]);
 
 // ---------------------------------------------------------------- fonts
 const faces = reactive({});   // path -> css family name once loaded | "error"
@@ -136,7 +136,13 @@ const val = (key) => (key in S.edits ? S.edits[key] : fieldsByKey.value[key]?.va
 const dirty = computed(() => Object.keys(S.edits).length > 0 || S.rows !== null);
 const layoutRows = computed(() => S.rows ?? S.data?.cfg?.layout?.rows ?? null);
 const font2Chars = computed(() => String(val("font2_chars") ?? ""));
-const section = (name) => (S.data?.schema || []).find((s) => s.section === name);
+// A section only some build targets use (engine section_targets, e.g.
+// Hammond's cut-groove settings) is hidden for the others.
+const sectionApplies = (name) => {
+  const t = S.data?.section_targets?.[name];
+  return !t || t.includes(S.build.target);
+};
+const section = (name) => (sectionApplies(name) ? (S.data?.schema || []).find((s) => s.section === name) : undefined);
 
 const groups = computed(() => {
   if (!S.data) return [];
@@ -551,7 +557,7 @@ const FontField = {
   <div class="field wide" :id="'f-' + f.key">
     <label>{{ f.label }}<span v-if="changed" class="changed"></span><HelpButton :k="f.key" :help="f.help" /></label>
     <div class="font-field">
-      <div v-if="substituted" class="note" :class="substituted.kind === 'stand-in' ? 'warn' : 'info'" style="margin:10px 12px 0">
+      <div v-if="substituted && substituted.kind !== 'bundled'" class="note" :class="substituted.kind === 'stand-in' ? 'warn' : 'info'" style="margin:10px 12px 0">
         <template v-if="substituted.kind === 'yours'">Using your copy of {{ fontLabel(substituted.from) }}{{ S.sync.name && substituted.to.startsWith('/fonts/synced/') ? ' from the ' + S.sync.name + ' folder' : '' }}.</template>
         <template v-else-if="substituted.kind === 'bundled' || baseName(substituted.from) === baseName(substituted.to)">Using the copy of {{ fontLabel(substituted.to) }} that ships with the app - this config's own file is on another computer.</template>
         <template v-else>"{{ fontLabel(substituted.from) }}" isn't in this browser - using {{ fontLabel(substituted.to) }} for now. Sync a fonts folder that has it (Choose… below), or choose another font.</template>

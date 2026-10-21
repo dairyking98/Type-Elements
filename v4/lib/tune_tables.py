@@ -815,19 +815,17 @@ ELEMENT_FIELDS_HAMMOND = [
     # out of ELEMENT_FIELDS_HAMMOND/self.FIELDS entirely now - _collect_
     # values/_refresh_widgets_from_cfg handle it explicitly, same as
     # target/resin_support below it.
-    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used for Build target Shuttle/Rib (the without-rib/groove body and its interface flange)."),
-    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used for Build target Shuttle (the without-rib/groove body's own cut slot - Rib's flange omits the tab, see hammond.py)."),
-    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used for Build target Shuttle (the without-rib/groove body)."),
     ("support_groove_thickness", ["element", "support_groove_thickness"], float, "Resin chamfer thickness (mm)", "Its ResinChamfer() consumer is currently disabled (commented out) - only used by the Resin tab's Cut Groove support method now (unrelated feature, same constant - see config comment)."),
 ]
 
-# v4-specific "Rib" tab (Hammond only) - FDM print-fit tuning for the
-# standalone Build target Rib part (RibOnly()), kept separate from the
-# Element tab's real-machine-dimension fields since every value here is
-# purely a v4 print-fit knob, not a v2/real-machine number. Every field's
-# help text should make clear it only affects Rib-only FDM printing, not
-# the fused Shuttle-with-Rib resin print or the Shuttle body itself.
-RIB_FIELDS_HAMMOND = [
+# The groove variant (Build target Shuttle / Rib / Calibration Shuttle: a
+# shuttle with a cut slot, and the separately printed rib that fits it).
+# None of these touch a Shuttle with Rib, so the app shows the section only
+# for those targets (SECTION_TARGETS).
+GROOVE_FIELDS_HAMMOND = [
+    ("shuttle_groove_nub_angle", ["element", "shuttle_groove_nub_angle"], float, "Groove nub angle (deg)", "Only used for Build target Shuttle/Rib (the without-rib/groove body and its interface flange)."),
+    ("groove_tab_width", ["element", "groove_tab_width"], float, "Groove tab width (mm)", "Only used for Build target Shuttle (the without-rib/groove body's own cut slot - Rib's flange omits the tab, see hammond.py)."),
+    ("groove_opening_offset", ["element", "groove_opening_offset"], float, "Groove opening offset (mm)", "Only used for Build target Shuttle (the without-rib/groove body)."),
     ("rib_interface_offset_mm", ["element", "rib_interface_offset_mm"], float, "Interface offset (mm)",
      "FDM print-fit clearance for the Rib-only flange (Build target Rib) - shrinks the "
      "flange (the piece being test-fit into a Shuttle body's cut slot) so it actually slides "
@@ -837,11 +835,23 @@ RIB_FIELDS_HAMMOND = [
      "FDM print-fit margin for the Rib-only flange's 4 nub-clearance cutouts, independent of "
      "Interface offset above. Increase if the flange's clearance holes print too tight to "
      "clear the Shuttle's nub geometry. Only affects Build target Rib."),
+]
+
+# How the Rib-only part (Build target Rib, an FDM print) sits on the plate -
+# print prep, and only for that target.
+RIB_PRINT_FIELDS_HAMMOND = [
     ("rib_flat_bottom", ["element", "rib_flat_bottom"], bool, "Flat bottom",
      "Only render the bottom pin support boss, not the top one, so the Rib-only part can be "
      "printed flat on the buildplate with no overhang on the other side. Only affects Build "
      "target Rib."),
 ]
+
+# Sections that only matter for some build targets (the app hides them
+# otherwise); values are build-target dropdown values.
+SECTION_TARGETS = {
+    "Cut groove & rib fit": ["shuttle", "rib", "calibration"],
+    "Rib print": ["rib"],
+}
 
 # Split Hammond 1 Shuttle - a SEPARATE machine from Hammond (see lib/
 # hammond_split.py's module docstring). "draft_angle_deg" is replaced by
@@ -1350,7 +1360,8 @@ SECTIONS_BY_MACHINE = {
     # "Label" tab instead, same convention as Bennett.
     "hammond": {**SECTIONS_COMMON, "Font & Alignment": FONT_FIELDS_CYLINDER, "Label": LABEL_FIELDS_HAMMOND,
                 "Quality": _quality_with_core(QUALITY_FIELDS_HAMMOND), "Resin": RESIN_FIELDS_HAMMOND,
-                "Element": ELEMENT_FIELDS_HAMMOND, "Rib": RIB_FIELDS_HAMMOND,
+                "Element": ELEMENT_FIELDS_HAMMOND, "Cut groove & rib fit": GROOVE_FIELDS_HAMMOND,
+                "Rib print": RIB_PRINT_FIELDS_HAMMOND,
                 "Legend": LEGEND_FIELDS_HAMMOND},
     # no "Gauge"/"Logo" key - same reasons as Hammond above. "Font &
     # Alignment" is overridden (not the shared SECTIONS_COMMON one) - see
@@ -1442,10 +1453,11 @@ SECTION_INTROS = {
         "\"Actual Size\"/100%, not \"Fit to Page\", or the mm units get "
         "silently rescaled.",
         "picker-help"),
-    "Rib": ("v4-specific FDM print-fit tuning, not real machine dimensions - these values are "
-            "for Build target Rib only (the standalone printed flange), never the fused "
-            "Shuttle with Rib resin print or the Shuttle body itself.",
-            "advanced-warning"),
+    "Cut groove & rib fit": ("For the groove variant only: a Shuttle with a cut slot, and the separately "
+                             "printed Rib that slides into it. None of this affects a Shuttle with Rib.",
+                             "advanced-warning"),
+    "Rib print": ("How the Rib-only part (Build target Rib, usually an FDM print) sits on the build plate.",
+                  "picker-help"),
     "Gauge": (
         "Small 6-pocket calibration print, not the real element. Each "
         "pocket bores its shaft passage at offset_start + n*offset_int. "

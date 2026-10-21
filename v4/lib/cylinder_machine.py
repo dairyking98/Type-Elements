@@ -43,7 +43,7 @@ import time
 import numpy as np
 import trimesh
 
-from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance, em_to_mm_scale, load_font_face
+from glyph_poc import build_glyph, build_flat_text, get_glyph_contours_and_advance, em_to_mm_scale, load_font_face, EmptyGlyph
 import scad_primitives as sp
 import resin_support
 import build_log
@@ -824,8 +824,11 @@ def LogoText(flatness_tolerance_mm=0.005):
     for n, ch in enumerate(Logo_Text):
         if ch == " ":
             continue
-        mesh = build_flat_text(ch, flatness_tolerance_mm, 0.4, font_size_mm=Logo_Text_Size,
-                                font_path=LOGO_FONT_PATH)
+        try:
+            mesh = build_flat_text(ch, flatness_tolerance_mm, 0.4, font_size_mm=Logo_Text_Size,
+                                    font_path=LOGO_FONT_PATH)
+        except EmptyGlyph:
+            continue                     # not in the logo font - warned after the build
         center_x = (mesh.bounds[0][0] + mesh.bounds[1][0]) / 2.0
         mesh.apply_translation([-center_x, 0, 0])
 
@@ -861,8 +864,11 @@ def build_text_string(text, size, font_path, depth, flatness_tolerance_mm=0.005)
     for ch in text:
         _, advance_mm = get_glyph_contours_and_advance(ch, flatness_tolerance_mm, scale, font_path=font_path)
         if ch != " ":
-            mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=size, font_path=font_path)
-            parts.append(sp.translate(mesh, [cursor, 0, 0]))
+            try:
+                mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=size, font_path=font_path)
+                parts.append(sp.translate(mesh, [cursor, 0, 0]))
+            except EmptyGlyph:
+                pass                         # not in the font - warned after the build
         cursor += advance_mm
     whole = sp.union_all(parts)
     return sp.translate(whole, [-cursor / 2.0, 0, 0])
@@ -1109,9 +1115,12 @@ def GaugeText(offset):
     cursor = 0.0
     for ch in label:
         _, advance_mm = get_glyph_contours_and_advance(ch, 8.0, scale, font_path=LOGO_FONT_PATH)
-        mesh = build_flat_text(ch, 8.0, depth, font_size_mm=size_mm, font_path=LOGO_FONT_PATH)
-        mesh.apply_translation([cursor, 0, 0])
-        parts.append(mesh)
+        try:
+            mesh = build_flat_text(ch, 8.0, depth, font_size_mm=size_mm, font_path=LOGO_FONT_PATH)
+            mesh.apply_translation([cursor, 0, 0])
+            parts.append(mesh)
+        except EmptyGlyph:
+            pass                             # not in the font (or a space) - warned after the build
         advances.append(advance_mm)
         cursor += advance_mm
     total_width = cursor

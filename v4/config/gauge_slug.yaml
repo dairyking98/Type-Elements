@@ -73,7 +73,7 @@ logo:
 
 label:
   text: "© Leonard Chau 2023"          # v1 Copyright_Text (GaugeTypeSlugSlug.scad:63)
-  font_path: "/home/lchau/fonts/Library/Typewriter & Monospace/Courier Prime.ttf"  # v1 Copyright_Font "Courier Prime"
+  font_path: "/home/lchau/github/Type-Elements/v5/browser/fonts/OCRA-TE.ttf"  # v1 Copyright_Font "Courier Prime"
   label_depth_mm: 0.1                          # v1 Copyright_Depth (:61)
 
 element:

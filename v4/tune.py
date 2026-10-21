@@ -2095,8 +2095,11 @@ class TuneApp(App):
         # builds (see its "Wheel cosmetics" section).
         if "Cosmetics" in self.SECTIONS:
             specs.append(section("Cosmetics"))
-        if "Rib" in self.SECTIONS:
-            specs.append(section("Rib"))
+        # Hammond's groove variant (Shuttle / Rib targets) and the Rib-only
+        # print - see GROOVE_FIELDS_HAMMOND/RIB_PRINT_FIELDS_HAMMOND
+        for name in ("Cut groove & rib fit", "Rib print"):
+            if name in self.SECTIONS:
+                specs.append(section(name))
         # only machines with an actual v1 index/legend card ported (see
         # lib/mignon_legend.py/lib/hammond_legend.py) get this tab - not
         # every machine has one.

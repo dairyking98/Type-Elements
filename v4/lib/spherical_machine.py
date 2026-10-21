@@ -458,7 +458,7 @@ def Labels():
     whose own name contains a glyph that font can't cleanly triangulate
     (confirmed: PxPlus IBM MDA's 'u', in "Plus") would otherwise hard-crash
     every build via this unconditional label text, not just Type Test."""
-    from glyph_poc import build_flat_text
+    from glyph_poc import build_flat_text, EmptyGlyph
     parts = []
     if Labels_Show_Number:
         no_font = Label_No_Font_Override or FONT_PATH
@@ -687,6 +687,9 @@ def TextGauge(text, cpi):
     for i, ch in enumerate(text):
         if ch == " ":
             continue
-        m = build_flat_text(ch, DEFAULT_FLATNESS_TOLERANCE_MM, 0.4, font_size_mm=Font_Size, font_path=FONT_PATH)
+        try:
+            m = build_flat_text(ch, DEFAULT_FLATNESS_TOLERANCE_MM, 0.4, font_size_mm=Font_Size, font_path=FONT_PATH)
+        except EmptyGlyph:
+            continue                     # not in the font - warned after the build
         parts.append(sp.translate(m, [8 + i * 22.0 / cpi, 8, 0]))
     return sp.union_all(parts)
