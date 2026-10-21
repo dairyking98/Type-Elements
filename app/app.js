@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=f2770b6b01";
-import { Viewer } from "./viewer.js?v=f2770b6b01";
-import { progressTracker } from "./progress.js?v=f2770b6b01";
-import * as fontsync from "./fontsync.js?v=f2770b6b01";
-import * as localfonts from "./localfonts.js?v=f2770b6b01";
-import { missingIn } from "./coverage.js?v=f2770b6b01";
-import { zip, readZipText } from "./zip.js?v=f2770b6b01";
+import { engine } from "./engine.js?v=f5c56ddf33";
+import { Viewer } from "./viewer.js?v=f5c56ddf33";
+import { progressTracker } from "./progress.js?v=f5c56ddf33";
+import * as fontsync from "./fontsync.js?v=f5c56ddf33";
+import * as localfonts from "./localfonts.js?v=f5c56ddf33";
+import { missingIn } from "./coverage.js?v=f5c56ddf33";
+import { zip, readZipText } from "./zip.js?v=f5c56ddf33";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -843,7 +843,7 @@ const LayoutPage = {
           <template v-if="view.kind === 'keys'">
             <div v-for="(krow, kr) in view.rows" class="kb-row keyrow" :class="view.align ? 'align-' + view.align : ''"
                  :style="{ '--n': Math.max(...view.rows.map(r => r.length)) + (view.align === 'stagger' ? 0.5 : 0),
-                          paddingLeft: view.align === 'stagger' ? (kr === 0 ? 'calc(var(--kw) * 0.66)' : 0) : view.align ? 0 : (kr * 14) + 'px' }">
+                          paddingLeft: view.align === 'stagger' ? (kr === (view.offset_row ?? 0) ? 'calc(var(--kw) * 0.66)' : 0) : view.align ? 0 : (kr * 14) + 'px' }">
               <div class="kb-keys">
                 <template v-for="(k, ki) in krow">
                 <div v-if="!k" class="keycap gap" :title="view.align === 'grid' ? 'Space bar' : 'No key'"></div>
