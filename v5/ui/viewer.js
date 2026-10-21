@@ -17,6 +17,10 @@ export class Viewer {
     this.camera.up.set(0, 0, 1);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
+    // real shadows: the key light casts them, the part shades itself (raised
+    // characters, grooves and bores read in depth) and drops one on the floor
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     el.appendChild(this.renderer.domElement);
     this.ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.01, 5000);
     this.ortho.up.set(0, 1, 0);
@@ -26,8 +30,13 @@ export class Viewer {
     this.flat = false;
 
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 1.6));
-    const key = new THREE.DirectionalLight(0xffffff, 1.6);
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
     key.position.set(60, -80, 120);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.bias = -0.0004;
+    key.shadow.normalBias = 0.02;
+    this.scene.add(key.target);
     this.scene.add(key);
     const rim = new THREE.DirectionalLight(0xffffff, 0.6);
     rim.position.set(-80, 60, 40);
@@ -43,6 +52,12 @@ export class Viewer {
     this.grid.rotation.x = Math.PI / 2;
     this.scene.add(this.grid);
     this.material = new THREE.MeshStandardMaterial({ color: 0xd9dde3, roughness: 0.55, metalness: 0.05 });
+    this.modelColor = null;      // user's part colour (null = the theme's)
+    // the floor only shows the part's shadow
+    this.floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.22 }));
+    this.floor.receiveShadow = true;
+    this.floor.visible = false;
+    this.scene.add(this.floor);
     // type-test plates read like a printed page: near-black type on white,
     // whatever the theme or the chosen background
     this.inkMaterial = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.9, metalness: 0 });
@@ -99,8 +114,14 @@ export class Viewer {
     this.el.style.background = this.flat ? "#ffffff" : (this.background || "");
   }
 
+  setModelColor(color) {
+    this.modelColor = color || null;
+    this.material.color.set(this.modelColor || (this.dark ? 0xc7ccd4 : 0xd9dde3));
+  }
+
   setTheme(dark) {
-    this.material.color.set(dark ? 0xc7ccd4 : 0xd9dde3);
+    this.dark = dark;
+    this.material.color.set(this.modelColor || (dark ? 0xc7ccd4 : 0xd9dde3));
     this.grid.material.color?.set?.(dark ? 0x3a4049 : 0xc9ced6);
   }
 
@@ -110,6 +131,7 @@ export class Viewer {
     geom.computeBoundingBox();
     if (this.mesh) { this.scene.remove(this.mesh); this.mesh.geometry.dispose(); }
     this.mesh = new THREE.Mesh(geom, top ? this.inkMaterial : this.material);
+    this.mesh.castShadow = this.mesh.receiveShadow = !top;
     this.scene.add(this.mesh);
     const box = geom.boundingBox;
     const size = box.getSize(new THREE.Vector3());
@@ -118,9 +140,9 @@ export class Viewer {
     this.controls.target.copy(center);
     this.grid.visible = !top;
     this.rake.intensity = top ? 2.6 : 0;
-    this.key.intensity = top ? 0.5 : 1.6;
+    this.key.intensity = top ? 0.5 : 2.2;
     this.rim.intensity = top ? 0 : 0.6;
-    if (this.hemi) this.hemi.intensity = top ? 0.9 : 1.6;
+    if (this.hemi) this.hemi.intensity = top ? 0.9 : 1.2;
     this.setFlat(top);
     this.applyBackground();
     if (top) {
@@ -136,7 +158,18 @@ export class Viewer {
     } else {
       this.camera.position.set(center.x + r * 0.9, center.y - r * 1.6, center.z + r * 1.1);
       this.camera.near = r / 100; this.camera.far = r * 100;
+      // aim the shadow-casting key light at the part and fit its shadow box
+      const k = this.key;
+      k.position.set(center.x + r * 1.2, center.y - r * 1.6, center.z + r * 2.4);
+      k.target.position.copy(center);
+      k.target.updateMatrixWorld();
+      const sc = k.shadow.camera;
+      Object.assign(sc, { left: -r * 1.6, right: r * 1.6, top: r * 1.6, bottom: -r * 1.6, near: r * 0.5, far: r * 7 });
+      sc.updateProjectionMatrix();
+      this.floor.scale.set(r * 8, r * 8, 1);
+      this.floor.position.set(center.x, center.y, box.min.z - 0.01);
     }
+    this.floor.visible = !top;
     this.camera.updateProjectionMatrix();
     this.controls.update();
     this.grid.position.set(center.x, center.y, box.min.z);
