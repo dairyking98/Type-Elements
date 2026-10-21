@@ -162,6 +162,12 @@ def extra_sections(machine, cfg):
                      "Include the right half of the split shuttle in the build.")]
     secs["Build"] = build
     lay = cfg.get("layout") or {}
+    if machine == "blickensderfer":
+        secs["Keyboard"] = [_f("keyboard", ["layout", "keyboard"], "select", "Keyboard",
+                               "Which keyboard the machine has - the Scientific (DHIATENSOR) and Universal (QWERTY) "
+                               "keyboards strike the wheel differently. Auto picks it from the layout.",
+                               [("Auto (from the layout)", "auto"), ("Scientific (DHIATENSOR)", "scientific"),
+                                ("Universal (QWERTY)", "universal")])]
     if "baseline_row" in lay:
         secs["Row baselines"] = [
             _f("baseline_row", ["layout", "baseline_row"], "floatlist", "Baseline per row (mm)",
@@ -237,6 +243,41 @@ def schema(machine, cfg):
 _LEVELS = ["lowercase", "UPPERCASE", "figures", "math"]
 
 
+# Blickensderfer: which wheel column each key strikes depends on the
+# keyboard, and the two keyboards differ (Leonard, 2026-10-20). Key rows,
+# top to bottom, all centred:
+#   Scientific (DHIATENSOR):  ZXKGBVQJ / .PWFULCMY, / DHIATENSOR
+#   Universal (QWERTY):       QWERTYUIOP / ASDFGHJKL. / ZXCVBNM,
+# read against the DHIATENSOR and QWERTY wheels. layout.keyboard picks one;
+# "auto" uses the keyboard of the preset the current rows are closest to
+# (CHARIENSTU and the other language wheels are Scientific-keyboard ones).
+_BLICK_KEY_ROWS = {
+    "scientific": [[0, 1, 2, 3, 24, 25, 26, 27], [4, 5, 6, 7, 8, 19, 20, 21, 22, 23], list(range(9, 19))],
+    "universal": [[0, 1, 2, 3, 4, 23, 24, 25, 26, 27], [5, 6, 7, 8, 9, 18, 19, 20, 21, 22], list(range(10, 18))],
+}
+
+
+def blick_keyboard(lay):
+    want = (lay.get("keyboard") or "auto").lower()
+    if want in _BLICK_KEY_ROWS:
+        return want
+    rows = [r for r in (lay.get("rows") or []) if isinstance(r, str)]
+    best, score = "universal", -1
+    for name, preset in LAYOUT_PRESETS_BY_MACHINE.get("blickensderfer", {}).items():
+        sc = sum(a == b for r, pr in zip(rows, preset) for a, b in zip(r, pr))
+        if sc > score:
+            best, score = ("universal" if name.upper().startswith("QWERTY") else "scientific"), sc
+    return best
+
+
+def _blick_keyboard(lay, rows, key):
+    kb = blick_keyboard(lay)
+    return {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "align": "center",
+            "rows": [[key(i) for i in krow] for krow in _BLICK_KEY_ROWS[kb]], "levels": _LEVELS[:len(rows)],
+            "note": ("Scientific (DHIATENSOR) keyboard." if kb == "scientific" else "Universal (QWERTY) keyboard.")
+                    + (" Picked from the layout - set Keyboard below to change it." if (lay.get("keyboard") or "auto") == "auto" else "")}
+
+
 def layout_views(machine, cfg):
     lay = cfg.get("layout") or {}
     rows = [list(r) for r in (lay.get("rows") or []) if isinstance(r, str)]
@@ -265,6 +306,8 @@ def layout_views(machine, cfg):
     pm = lay.get("placement_map")
     legend = lay.get("char_legend") or list(range(width))
 
+    if machine == "blickensderfer" and width == 28:
+        views.append(_blick_keyboard(lay, rows, key))
     if machine in ("blickensderfer", "postal", "bennett", "helios") and pm and len(pm) == width:
         inv = [0] * width
         for slot, pos in enumerate(pm):
@@ -277,8 +320,13 @@ def layout_views(machine, cfg):
             views.insert(0, keyboard([10, 9, 9], lambda k: inv_m[k],
                                      "Key rows 10/9/9 inferred from the layout - no keyboard plate transcribed."))
         elif machine == "bennett" and width == 28:
-            views.insert(0, keyboard([8, 10, 10], lambda k: k,
-                                     "Key rows 8/10/10 inferred from the character legend - no keyboard plate transcribed."))
+            # a grid of 10 x 3; the top row has the space bar in the two
+            # places between R and U (None = no key)
+            top = [0, 1, 2, 3, None, None, 4, 5, 6, 7]
+            views.insert(0, {"id": "keyboard", "label": "Keyboard order", "kind": "keys", "levels": _LEVELS[:n_rows],
+                             "rows": [[key(i) if i is not None else None for i in top],
+                                      [key(i) for i in range(8, 18)], [key(i) for i in range(18, 28)]],
+                             "align": "grid", "note": "The gap in the top row is the space bar."})
     elif machine == "hammond" and pm and len(pm) == width:
         order = sorted(range(width), key=lambda i: -pm[i])          # +angle first, like the catalog
         views.append(element(order, note="Across the shuttle from the Q end; rows top to bottom."))

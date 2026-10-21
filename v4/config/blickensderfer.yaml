@@ -120,6 +120,10 @@ quality:
 # absolute), latitude spacing, and the DHIATENSOR physical layout + its
 # keyboard->physical column remap (Element_Layout_Array_Map).
 layout:
+  # Which keyboard strikes this wheel - Scientific (DHIATENSOR) and
+  # Universal (QWERTY) keys map onto the wheel's columns differently (see
+  # v5/engine_core.py _BLICK_KEY_ROWS). "auto" = from the layout's preset.
+  keyboard: auto
   baseline_row: [-4.0, -10.3, -16.1]
   cutout_row: [-2.55, -8.66, -14.45]
   latitude_columns: 28
