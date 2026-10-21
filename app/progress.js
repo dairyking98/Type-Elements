@@ -38,6 +38,9 @@ export function signature(text) {
 
 // slope-1 ramp that eases into 1 instead of reaching it
 const ease = (x) => (x <= 0.8 ? Math.max(0, x) : 0.8 + 0.2 * (1 - Math.exp(-(x - 0.8) / 0.2)));
+// the same, easing off more slowly: for a guessed duration, which may well
+// run long - it keeps visibly moving (87% at 1x, 95% at 1.5x, 98% at 2x)
+const creep = (x) => (x <= 0.8 ? Math.max(0, x) : 0.8 + 0.2 * (1 - Math.exp(-(x - 0.8) / 0.5)));
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
 export function progressTracker(key) {
@@ -52,13 +55,26 @@ export function progressTracker(key) {
   // fallback model, kept up to date even while a timeline is in use
   const fb = { lo: 0, hi: 1, share: 0.65, t0: 0, n: null, loopT0: null, loopEnd: null };
   function stage(p) { Object.assign(fb, { lo: p[0], hi: p[1], share: p[3] ?? 0.65, t0: now(), n: null, loopT0: null, loopEnd: null }); }
+  // -> [fraction, seconds left | null]
   function fallback() {
-    const t = now(), span = fb.hi - fb.lo;
-    if (fb.n === null) return fb.lo + span * 0.04 * (1 - Math.exp(-(t - fb.t0) / 4));   // before any counter
-    if (fb.loopEnd === null) return fb.lo + span * (0.04 + (fb.share - 0.04) * fb.n);
-    if (fb.share >= 1) return fb.hi;
-    const tail = Math.max(2, ((fb.loopEnd - fb.loopT0) * (1 - fb.share)) / fb.share);
-    return fb.lo + span * (fb.share + (1 - fb.share) * (1 - Math.exp(-1.6 * (t - fb.loopEnd) / tail)));
+    const t = now(), span = fb.hi - fb.lo, last = fb.hi >= 1;
+    const tailFrom = (start, tail) => {
+      const v = fb.lo + span * (fb.share + (1 - fb.share) * creep((t - start) / tail));
+      return [v, last && start + tail > t ? start + tail - t : null];
+    };
+    if (fb.share <= 0) {                                   // no loop: the rest at the pace the bar has gone so far
+      const tail = Math.max(2, (fb.t0 * span) / Math.max(fb.lo, 0.05));
+      return tailFrom(fb.t0, tail);
+    }
+    if (fb.n === null) return [fb.lo + span * 0.04 * (1 - Math.exp(-(t - fb.t0) / 4)), null];   // before any counter
+    const loopDur = fb.loopEnd === null ? (t - fb.loopT0) / Math.max(fb.n, 0.02) : fb.loopEnd - fb.loopT0;
+    const tail = Math.max(2, (loopDur * (1 - fb.share)) / fb.share);
+    if (fb.loopEnd === null) {
+      const v = fb.lo + span * (0.04 + (fb.share - 0.04) * fb.n);
+      return [v, last && fb.n > 0.05 ? loopDur * (1 - fb.n) + (fb.share < 1 ? tail : 0) : null];
+    }
+    if (fb.share >= 1) return [fb.hi, null];
+    return tailFrom(fb.loopEnd, tail);
   }
 
   function reanchor() {
@@ -90,7 +106,7 @@ export function progressTracker(key) {
       if (m) {
         counter = +m[1] / Math.max(+m[2], 1);
         if (fb.n !== null && counter < fb.n - 0.5) {        // a second loop in this stage (Hammond split: one per half)
-          fb.lo = fallback(); fb.n = null; fb.loopT0 = null; fb.loopEnd = null;
+          fb.lo = fallback()[0]; fb.n = null; fb.loopT0 = null; fb.loopEnd = null;
         }
         if (fb.loopT0 === null) fb.loopT0 = now();
         fb.n = counter;
@@ -108,14 +124,16 @@ export function progressTracker(key) {
         const x = Math.max(span > 0 ? (now() - anchorT) / span : 0, counter !== null ? counter * 0.98 : 0);
         est = anchorF + (next - anchorF) * ease(x);
       } else {
-        est = fallback();
+        est = fallback()[0];
       }
       best = Math.max(best, Math.min(est, 0.995));
       return best;
     },
     remaining() {
       if (hist) return Math.max(0, (1 - best) * pace() * hist.total);
-      return best > 0.15 ? (now() * (1 - best)) / best : null;   // a guess: this run's pace so far
+      const left = fallback()[1];
+      if (left !== null) return left;
+      return fb.hi < 1 && best > 0.1 ? (now() * (1 - best)) / best : null;   // an earlier stage: this run's pace so far
     },
     finish(ok) {
       const total = now();
