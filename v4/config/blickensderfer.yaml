@@ -292,13 +292,11 @@ type_test:
   cpi: 10.0
   lpi: 6.0
   text: |-
-    Hamburgefonstiv
-    mmm iii WWW lll 111
-    (a, b. c; d: e! f?)
-    "say" 'hi' x^2 y_z
-    0123456789 &$%/-
-    Pack my box with five
-    dozen liquor jugs.
+    Hello World! iTiZ4n1c3d4y2d4y
+    Stop. Consider, then ACT! Yes? 6,789
+    #1 - $3 25% (S&N) ^4 **
+    _abc_ Status: unfinished;
+    WWW iii lll qpdb mn
 # lib/gauge (v2's [Shaft Gauge Test] section, blickensderfer.scad:265-267/
 # 517-589) - a 6-pocket "revolver" test print for calibrating
 # element.core_id_offset: each pocket bores the shaft passage at
