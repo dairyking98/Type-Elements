@@ -121,6 +121,7 @@ const S = reactive({
   sync: { status: "none", name: null, count: 0, error: "" },   // fonts folder (fontsync.js)
   local: { status: "unknown", count: 0, error: "" },            // this computer's fonts (localfonts.js)
   access: false, previewText: "",
+  fontQuery: (() => { try { return localStorage.getItem("te.fontQuery") || ""; } catch { return ""; } })(),
   helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
   helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
   fontAdvanced: (() => { try { return !!localStorage.getItem("te.fontAdvanced"); } catch { return false; } })(),
@@ -1253,7 +1254,10 @@ const AccessPrompt = {
 const FontPicker = {
   components: { FontText },
   setup() {
-    const q = ref("");
+    // the search survives closing the picker (S.fontQuery); on reopening it
+    // is pre-selected, so typing replaces it
+    const q = ref(S.fontQuery || "");
+    watch(q, (v) => { S.fontQuery = v; try { localStorage.setItem("te.fontQuery", v); } catch {} });
     const manual = ref(S.picker.current || "");
     const list = ref(null);
     const listEl = ref(null);
@@ -1269,7 +1273,10 @@ const FontPicker = {
       if (!S.fonts) S.fonts = await engine.fonts();
       list.value = S.fonts;
       await nextTick();
-      document.getElementById("font-q")?.focus();
+      const box = document.getElementById("font-q");
+      box?.focus();
+      box?.select();
+      listEl.value?.querySelector(".font-row.sel")?.scrollIntoView({ block: "center" });   // the font in use
       observe();
     });
     const shown = computed(() => {
