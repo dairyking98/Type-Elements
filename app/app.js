@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=1c052568e7";
-import { Viewer } from "./viewer.js?v=1c052568e7";
-import { progressTracker } from "./progress.js?v=1c052568e7";
-import * as fontsync from "./fontsync.js?v=1c052568e7";
-import * as localfonts from "./localfonts.js?v=1c052568e7";
-import { missingIn } from "./coverage.js?v=1c052568e7";
-import { zip, readZipText } from "./zip.js?v=1c052568e7";
+import { engine } from "./engine.js?v=394c746e0f";
+import { Viewer } from "./viewer.js?v=394c746e0f";
+import { progressTracker } from "./progress.js?v=394c746e0f";
+import * as fontsync from "./fontsync.js?v=394c746e0f";
+import * as localfonts from "./localfonts.js?v=394c746e0f";
+import { missingIn } from "./coverage.js?v=394c746e0f";
+import { zip, readZipText } from "./zip.js?v=394c746e0f";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -1304,6 +1304,10 @@ const FontPicker = {
     // Access, asks permission once) or as uploaded files. Both are kept in
     // browser storage for next time.
     const browserMode = engine.kind === "browser";
+    // either engine can take a font from the page (the local one keeps it on
+    // its computer); installed fonts and folders need a secure (https) page
+    const canAdd = typeof engine.addFont === "function";
+    const insecure = !window.isSecureContext;
     // this computer's fonts: one shared list (localfonts.js), loaded once allowed
     const localFonts = computed(() => (S.local.status === "granted" ? localfonts.state.fonts : null));
     const localErr = ref("");
@@ -1375,8 +1379,8 @@ const FontPicker = {
     };
     const fontLabelOf = (f) => f.name.replace(/\.(ttf|otf|ttc|otc)$/i, "");
     return { S, q, manual, shown, list, listEl, visible, sample, choose, close,
-             browserMode, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localFamily,
-             syncOk, shownSync, syncFamily, syncErr, syncDo, pickSync, fontsync, fontLabelOf };
+             browserMode, canAdd, insecure, localFonts, localErr, busy, canLocal, loadLocal, shownLocal, pickLocal, upload, localFamily,
+             syncOk, shownSync, syncFamily, syncErr, syncDo, pickSync, fontsync, fontLabelOf, location };
   },
   template: `
   <div class="modal-bg" @click.self="close" @keydown.esc="close">
@@ -1387,8 +1391,8 @@ const FontPicker = {
         <input class="input" style="flex:1;min-width:180px" v-model="S.previewText" placeholder="Preview your own text…" title="Every preview shows this text while it isn't empty" @keydown.esc="close">
         <span class="chip" v-if="list && !browserMode">{{ shown.length }}{{ shown.length === 800 ? '+' : '' }} / {{ list.length }}</span>
       </div>
-      <div v-if="browserMode" class="tools" style="flex-wrap:wrap">
-        <template v-if="syncOk">
+      <div v-if="canAdd" class="tools" style="flex-wrap:wrap">
+        <template v-if="syncOk && browserMode">
           <button v-if="S.sync.status === 'none'" class="btn small primary" @click="syncDo(fontsync.choose)" title="Pick your fonts folder once - it's re-read every visit, and every font setting can use it">Sync a fonts folder…</button>
           <button v-else-if="S.sync.status === 'needs-permission'" class="btn small primary" @click="syncDo(fontsync.reconnect)">Reconnect the {{ S.sync.name }} folder</button>
           <span v-else-if="S.sync.status === 'scanning'" class="help">Reading {{ S.sync.name }}…</span>
@@ -1399,7 +1403,9 @@ const FontPicker = {
         <label class="btn small">Upload a font file…<input type="file" accept=".ttf,.otf,.ttc,.otc" style="display:none" @change="upload"></label>
         <span v-if="busy" class="help">{{ busy }}</span>
         <span v-if="localErr" class="help" style="color:var(--bad)">{{ localErr }}</span>
-        <span v-if="!canLocal" class="help">This browser can't list installed fonts or sync a folder (Chrome and Edge can) - upload a font file instead.</span>
+        <span v-if="insecure" class="help" style="flex-basis:100%">This page is plain http ({{ location.host }}), so Chrome blocks access to this computer's fonts and folders. Upload font files instead, or let Chrome treat it as secure: open <b>chrome://flags/#unsafely-treat-insecure-origin-as-secure</b>, add <b>{{ location.origin }}</b>, and relaunch.</span>
+        <span v-else-if="!canLocal" class="help">This browser can't list installed fonts or sync a folder (Chrome and Edge can) - upload a font file instead.</span>
+        <span v-if="!browserMode" class="help" style="flex-basis:100%">Fonts you add here are kept on the engine's computer, so builds can use them.</span>
         <span v-if="syncErr" class="help" style="color:var(--bad)">{{ syncErr }}</span>
       </div>
       <div class="list" ref="listEl">
@@ -1416,7 +1422,7 @@ const FontPicker = {
             <div class="fam" :title="f.rel">{{ fontLabelOf(f) }}</div>
           </div>
         </template>
-        <template v-if="browserMode && localFonts">
+        <template v-if="localFonts">
           <div class="list-label">On this computer · {{ localFonts.length }} fonts · click one to use it</div>
           <div v-for="f in shownLocal" :key="f.ps" class="font-row" :data-path="'local:' + f.ps" @click="pickLocal(f)">
             <div class="preview" :style="localFamily(f) ? { fontFamily: localFamily(f) + ', var(--sans)' } : {}">{{ sample }}</div>
@@ -1478,6 +1484,13 @@ const App = {
       S.connecting = false; S.booting = false;
       if (ok && engine.kind === "browser") { try { localStorage.setItem("te.engineBooted", "1"); } catch {} }
       if (!ok) { S.engineDown = true; S.engineUrl = engine.base; return; }
+      // this computer's installed fonts: for either engine (the local one keeps an added font on its computer)
+      localfonts.onChange((st) => {
+        const was = S.local.status;
+        Object.assign(S.local, { status: st.status, count: st.fonts.length, error: st.error });
+        if (engine.kind === "browser" && was !== "granted" && st.status === "granted" && S.machine && S.data && !dirty.value) loadMachine(S.machine, true);
+      });
+      if (engine.kind !== "browser") localfonts.restore();
       if (engine.kind === "browser") {
         fontsync.onChange((st) => {
           const wasReady = S.sync.status === "ready";
@@ -1485,11 +1498,7 @@ const App = {
           // a folder that just became readable may hold this config's fonts
           if (!wasReady && st.status === "ready" && S.machine && S.data && !dirty.value) loadMachine(S.machine, true);
         });
-        localfonts.onChange((st) => {
-          const was = S.local.status;
-          Object.assign(S.local, { status: st.status, count: st.fonts.length, error: st.error });
-          if (was !== "granted" && st.status === "granted" && S.machine && S.data && !dirty.value) loadMachine(S.machine, true);
-        });
+
         // ask on open unless both are in place (or the user said not to)
         Promise.all([fontsync.restore(), localfonts.restore()]).then(() => {
           let skip = false;

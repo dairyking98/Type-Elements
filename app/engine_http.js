@@ -51,6 +51,10 @@ export const httpEngine = {
   saveCopy: (m, body) => post(api(`/api/save-copy/${m}`), body),
   settingsFile: (m, body) => post(api(`/api/settings-file/${m}`), body),
   coverageScan: (body) => post(api("/api/coverage-scan"), body),
+  // a font from the page (an upload, or this computer's installed font) kept with the engine
+  addFont: (name, buffer) => fetch(api(`/api/add-font?name=${encodeURIComponent(name)}`), {
+    method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: buffer,
+  }).then(json),
   importSettings: (text) => post(api("/api/import-settings"), { text }),
   mappingUrl: (m) => api(`/api/mapping/${m}?t=${Date.now()}`),   // 404 unless the last build was a calibration
   resolveFont: (path) => Promise.resolve({ path, kind: "same" }),   // the local engine reads the disk directly
