@@ -1,6 +1,6 @@
 # Bundled fonts
 
-GNU FreeFont (FreeMono, FreeSans, FreeSerif), copied from Debian/Ubuntu's
+GNU FreeFont (FreeMono, FreeSans, FreeSerif - FreeSerif is the Selectric Composer's default), copied from Debian/Ubuntu's
 `fonts-freefont-ttf` package (FreeSerif: the same release, from the font library). https://savannah.gnu.org/projects/freefont/
 
 Copyright 2002-2012 GNU FreeFont contributors. Licensed GPL-3.0-or-later
@@ -17,12 +17,6 @@ The default face. A lighter FreeMono derived by Leonard Chau (outline
 thinning in FontForge, `~/fonts/tools/make-freemono-weight.py`, weight 200
 "ExtraLight"), so it is GNU FreeFont too: GPL-3.0-or-later with the font
 exception, the same as above.
-
-## Glass Antiqua.ttf
-
-The Selectric Composer's default face. Copyright (c) 2011 Denis Masharov,
-SIL Open Font License 1.1 (http://scripts.sil.org/OFL). It has no ¼ ½ ¾ -
-the Composer layout's fraction slots warn as missing, as they always have.
 
 ## OCRA-TE.ttf
 

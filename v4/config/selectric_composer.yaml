@@ -17,9 +17,9 @@
 machine: selectric_composer
 
 font:
-  # Default face: Glass Antiqua (SIL OFL, bundled in v5/browser/fonts) - the Composer
-  # keeps its own proportional-type defaults, not the fixed-pitch machines' FreeMono.
-  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/Glass Antiqua.ttf"
+  # Default face: FreeSerif (GNU FreeFont, bundled in v5/browser/fonts) - the Composer
+  # is proportional, so it keeps its own defaults, not the fixed-pitch machines' FreeMono.
+  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeSerif.ttf"
   # Composer sizes type by CAP HEIGHT (in points), not direct point size -
   # v2: Font_Size_Selected = Composer_Cap_Height/2.834 (ibm.scad:186,190).
   # This is a fixed numeric conversion (matches v2 exactly), not a real

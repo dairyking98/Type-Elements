@@ -1,6 +1,6 @@
-# Built-in Font & Alignment profile - see lib/font_profiles.py. Glass Antiqua
-# ships with the app (v5/browser/fonts, SIL OFL). Tuned for this one machine.
-name: Glass Antiqua 7.0pt cap (Selectric Composer)
+# Built-in Font & Alignment profile - see lib/font_profiles.py. FreeSerif
+# ships with the app (v5/browser/fonts, GPL font exception). Tuned for this one machine.
+name: FreeSerif 7.0pt cap (Selectric Composer)
 machine: selectric_composer
 values:
   alignment.caret_auto_drop: false
@@ -15,7 +15,7 @@ values:
   alignment.y_pos_offset: -1.3
   build.draft_angle_deg: 55.0
   font.composer_cap_height: 7.0
-  font.path: /home/lchau/github/Type-Elements/v5/browser/fonts/Glass Antiqua.ttf
+  font.path: /home/lchau/github/Type-Elements/v5/browser/fonts/FreeSerif.ttf
   font2.font2_chars: ''
   font2.font2_composer_cap_height: 5.0
   font2.font2_path: /home/lchau/fonts/Library/Serif Text/FreeSerif.ttf
