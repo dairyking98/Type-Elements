@@ -135,7 +135,7 @@ build:
   # byte-identical from 6.0 down to 1.0). What must reach into the body is
   # the CONE, not this.
   pre_minkowski_char_height_mm: 1.0
-  resin_support: true              # v1 Resin_Support (:81) - now a build-time toggle (ResinPrint vs FullElement), see lib/wing_slug.py's module docstring
+  resin_support: false              # v1 Resin_Support (:81) - now a build-time toggle (ResinPrint vs FullElement), see lib/wing_slug.py's module docstring
   target: "element"
 
 quality:

@@ -225,7 +225,7 @@ build:
   # draft skirt cannot bleed into the neighbouring character. See
   # cylinder_machine._clip_to_cell. Off = the historical behavior.
   clip_to_cell: false
-  resin_support: true
+  resin_support: false
   target: "element"
   minkowski_enabled: true
   draft_angle_deg: 55.0

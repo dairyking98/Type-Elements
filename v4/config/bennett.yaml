@@ -210,7 +210,7 @@ build:
   # cylinder_machine._clip_to_cell. Off = the historical behavior.
   clip_to_cell: false
   render_core_groove: true
-  resin_support: true          # Generate_Support
+  resin_support: false          # Generate_Support
   target: "element"
   minkowski_enabled: true
   draft_angle_deg: 55.0        # Mink_Draft_Angle - v2 comment: never a calibrated
