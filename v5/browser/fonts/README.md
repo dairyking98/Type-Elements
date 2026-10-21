@@ -11,6 +11,13 @@ The in-browser engine uses them as defaults. A config's own font paths point
 at files on someone else's computer, so wherever a font is missing in the
 browser, one of these is substituted, and the app says so.
 
+## FreeMono-ExtraLight.ttf
+
+The default face. A lighter FreeMono derived by Leonard Chau (outline
+thinning in FontForge, `~/fonts/tools/make-freemono-weight.py`, weight 200
+"ExtraLight"), so it is GNU FreeFont too: GPL-3.0-or-later with the font
+exception, the same as above.
+
 ## OCRA-TE.ttf
 
 Stand-in for Monotype's **OCR-A II** (used by several logos and labels),

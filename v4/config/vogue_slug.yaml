@@ -12,11 +12,12 @@
 machine: vogue_slug
 
 font:
-  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced True_Vogue_final(1)_really_THIS_ONE.ttf at 3.15 mm;
-  # the notes below are about that earlier face.
+  # Default face (2026-10-20): FreeMono ExtraLight (bundled, GPL font exception) at 3.0 mm, 10 CPI
+  # - before that Antikor Mono Hairline at 3.0 mm, 10 CPI, which replaced True_Vogue_final(1)_really_THIS_ONE.ttf at 3.15 mm;
+  # the notes below are about the original face.
   # The real "True_Vogue" font Leo built for this replica (confirmed via
   # its own embedded family name, not a filename guess).
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf"
   size_mm: 3.0           # was 3.15: v1 Type_Size ("True_Vogue" preset)
   name: "True_Vogue"
 

@@ -12,9 +12,10 @@
 machine: blickensderfer
 
 font:
-  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced FreeMono - Thin Weight (Leonard Chau).ttf at 3.7 mm;
-  # the notes below are about that earlier face.
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  # Default face (2026-10-20): FreeMono ExtraLight (bundled, GPL font exception) at 3.0 mm, 10 CPI
+  # - before that Antikor Mono Hairline at 3.0 mm, 10 CPI, which replaced FreeMono - Thin Weight (Leonard Chau).ttf at 3.7 mm;
+  # the notes below are about the original face.
+  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf"
   size_mm: 3.0
 
 # Secondary font - characters listed in font2_chars are struck in this

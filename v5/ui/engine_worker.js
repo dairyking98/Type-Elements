@@ -167,8 +167,7 @@ async function job({ id, kind, machine, body, workers }) {
       // refill; share = how much of the slice its [n/N] loop is (progress.js).
       // The slices are measured, not guessed: a Hammond render spent 11% in
       // pass 1, 13% in the pool, then 14% replaying the characters and 62%
-      // assembling. (Only for a first run: after one, the tail is timed from
-      // what it took last time - progress.js.)
+      // assembling.
       eng.pool_record(spec.result.glyph_loops || 1);
       postMessage({ id, phase: [0, 0.12, "placing characters (1 of 3)", 1] });
       postMessage({ id, line: "--- pass 1: placing characters; draft angles cached or recorded for the worker pool" });

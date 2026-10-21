@@ -17,11 +17,12 @@
 machine: bennett
 
 font:
-  # Default face (2026-10-20): Antikor Mono Hairline at 3.0 mm, 10 CPI - replaced AverageMono.otf at 3.00 mm;
-  # the notes below are about that earlier face.
+  # Default face (2026-10-20): FreeMono ExtraLight (bundled, GPL font exception) at 3.0 mm, 10 CPI
+  # - before that Antikor Mono Hairline at 3.0 mm, 10 CPI, which replaced AverageMono.otf at 3.00 mm;
+  # the notes below are about the original face.
   # v2's real value is the font family name "Average Mono" (Type_Size=
   # 3.00), not a file path - this is that font's real file.
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf"
   size_mm: 3.0
 
 # Bennett's only engraved-text feature (Shuttle_Label1a/1b/Shuttle_Label2,

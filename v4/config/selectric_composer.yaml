@@ -17,9 +17,10 @@
 machine: selectric_composer
 
 font:
-  # Default face (2026-10-20): Antikor Mono Hairline - replaced Glass Antiqua.ttf;
-  # the notes below are about that earlier face.
-  path: "/home/lchau/fonts/Library/Typewriter & Monospace/Antikor Mono-Hairline.ttf"
+  # Default face (2026-10-20): FreeMono ExtraLight (bundled, GPL font exception) at 3.0 mm, 10 CPI
+  # - before that Antikor Mono Hairline, which replaced Glass Antiqua.ttf;
+  # the notes below are about the original face.
+  path: "/home/lchau/github/Type-Elements/v5/browser/fonts/FreeMono-ExtraLight.ttf"
   # Composer sizes type by CAP HEIGHT (in points), not direct point size -
   # v2: Font_Size_Selected = Composer_Cap_Height/2.834 (ibm.scad:186,190).
   # This is a fixed numeric conversion (matches v2 exactly), not a real
