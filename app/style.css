@@ -345,3 +345,4 @@ details.adv > summary:hover { color: var(--text); }
 .gauge-steps ol { margin: 0 0 8px; padding-left: 22px; } .gauge-steps li { margin-bottom: 4px; }
 .keyrow.align-center .kb-keys { justify-content: center; width: 100%; }
 .keycap.gap { border-style: dashed; background: none; opacity: .5; }
+.keycap.special { place-items: center; display: grid; font-size: 11px; color: var(--text-2); background: var(--panel-2); }
