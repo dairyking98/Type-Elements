@@ -331,8 +331,7 @@ def layout_views(machine, cfg):
         if machine == "postal" and width == 28:
             inv_m = [14, 17, 20, 23, 26, 1, 4, 7, 10, 13, 15, 18, 21, 24, 27, 2, 5, 8, 11,
                      16, 19, 22, 25, 0, 3, 6, 9, 12]
-            views.insert(0, keyboard([10, 9, 9], lambda k: inv_m[k],
-                                     "Key rows 10/9/9 inferred from the layout - no keyboard plate transcribed."))
+            views.insert(0, keyboard([10, 9, 9], lambda k: inv_m[k]))
         elif machine == "bennett" and width == 28:
             # a grid of 10 x 3; the top row has the space bar in the two
             # places between R and U (None = no key)
@@ -354,8 +353,10 @@ def layout_views(machine, cfg):
         fill = (cfg.get("legend") or {}).get("circle_fill") or []
         shifted = [[bool(fill[r][i]) if r < len(fill) and i < len(fill[r]) else False for i in range(width)]
                    for r in range(n_rows)]
+        # read as the index card shows it - each stored row right to left
+        # (mignon_legend draws cell i at column 11 - i; confirmed by Leonard)
         views.append({"id": "keyboard", "label": "Index order", "kind": "grid",
-                      "rows": [[[r, i] for i in range(width)] for r in range(n_rows)],
+                      "rows": [[[r, i] for i in reversed(range(width))] for r in range(n_rows)],
                       "row_labels": [f"Row {r + 1}" for r in range(n_rows)], "shifted": shifted,
                       "note": "As on the index card; a dot marks characters typed with Shift."})
         views.append(element([legend[p] for p in range(width)], rows_top_down=list(range(n_rows))[::-1],
