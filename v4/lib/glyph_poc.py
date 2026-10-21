@@ -423,8 +423,8 @@ ALIGN_MODIFIED_RIGHT_OFFSET_MM = 0.0
 # cap height in some, lower in others - so it rarely lines up with the
 # rest of a typewriter face. Two ways to place it, combinable:
 #   * alignment.caret_auto_raise (effective_caret_raise_mm() below): move the caret so
-#     its top sits on the AVERAGE top ("roofline") of every character the
-#     layout uses - the raised caret typewriters usually had, whatever font;
+#     its top sits on the font's topline (its declared cap height) - the
+#     raised caret typewriters usually had, whatever font;
 #   * caret_raise_mm: a manual nudge on top of that (or the whole shift
 #     with auto off). A Blickensderfer-style caret on the baseline is a
 #     negative raise of about 0.6-0.65 x the font size.
@@ -547,17 +547,35 @@ def _ink_top_mm(face, char, scale, font_path):
     return max(tops) if tops else None
 
 
-# characters averaged when a layout gives nothing to go on (a slug strikes one)
-_ROOFLINE_FALLBACK = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+# tall glyphs whose tops make the topline when a font doesn't record one
+_TOPLINE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+
+def font_cap_height_mm(font_path, size_mm):
+    """The font's own topline - its declared cap height (OS/2 sCapHeight) in
+    mm at size_mm - or, for a font that doesn't declare one, the average ink
+    top of its capitals and digits (tall glyphs only: lowercase would drag
+    it down to the x-height). None if neither can be had."""
+    face = load_font_face(font_path)
+    scale = em_to_mm_scale(size_mm, face.units_per_EM)
+    try:
+        from fontTools.ttLib import TTFont
+        os2 = TTFont(font_path, fontNumber=0, lazy=True)["OS/2"]
+        cap = getattr(os2, "sCapHeight", 0) or 0
+        if cap > 0:
+            return cap * scale
+    except Exception:
+        pass
+    tops = [t for t in (_ink_top_mm(face, c, scale, font_path) for c in _TOPLINE_CHARS) if t is not None]
+    return sum(tops) / len(tops) if tops else None
 
 
 def effective_caret_raise_mm(cfg, chars=None):
     """The caret's total upward shift (mm) for a config: alignment.
     caret_raise_mm, plus - with alignment.caret_auto_raise on - the shift
-    that puts the caret's top on the average top of the characters in use
-    (`chars`, else the config's layout rows). Each character is measured in
-    the font and size it is actually struck in (font2_chars use font 2).
-    0.0 for a config with neither key."""
+    that puts the caret's top on the topline of the font it is struck in
+    (font_cap_height_mm: the font's declared cap height). 0.0 for a config
+    with neither key. `chars` is accepted for older callers and unused."""
     align = cfg.get("alignment") or {}
     raise_mm = float(align.get("caret_raise_mm", 0.0) or 0.0)
     if not align.get("caret_auto_raise"):
@@ -572,36 +590,21 @@ def effective_caret_raise_mm(cfg, chars=None):
             return float(sec[cap_key]) / 2.834
         return None
 
-    main = (font.get("path"), size_of(font, "size_mm", "composer_cap_height"))
-    second = (font2.get("font2_path") or main[0],
-              size_of(font2, "font2_size_mm", "font2_composer_cap_height") or main[1])
-    f2chars = font2.get("font2_chars") or ""
-    if not main[0] or not main[1]:
+    path, size = font.get("path"), size_of(font, "size_mm", "composer_cap_height")
+    if ALIGN_CARET_CHARS[0] in (font2.get("font2_chars") or ""):     # the caret is struck in font 2
+        path = font2.get("font2_path") or path
+        size = size_of(font2, "font2_size_mm", "font2_composer_cap_height") or size
+    if not path or not size:
         return raise_mm
-    if chars is None:
-        rows = (cfg.get("layout") or {}).get("rows") or []
-        chars = "".join(r for r in rows if isinstance(r, str))
-    faces = {}
-
-    def top(c):
-        path, size = second if c in f2chars else main
-        if path not in faces:
-            try:
-                fc = load_font_face(path)
-            except Exception:
-                fc = None
-            faces[path] = fc
-        fc = faces[path]
-        return None if fc is None else _ink_top_mm(fc, c, em_to_mm_scale(size, fc.units_per_EM), path)
-
-    used = [c for c in dict.fromkeys(chars) if not c.isspace() and c not in ALIGN_CARET_CHARS + ALIGN_UNDERSCORE_CHARS]
-    tops = [t for t in map(top, used) if t is not None]
-    if len(tops) < 3:
-        tops = [t for t in map(top, _ROOFLINE_FALLBACK) if t is not None]
-    caret = top(ALIGN_CARET_CHARS[0])
-    if not tops or caret is None:
+    try:
+        face = load_font_face(path)
+        caret = _ink_top_mm(face, ALIGN_CARET_CHARS[0], em_to_mm_scale(size, face.units_per_EM), path)
+        top = font_cap_height_mm(path, size)
+    except Exception:
         return raise_mm
-    return raise_mm + sum(tops) / len(tops) - caret
+    if caret is None or top is None:
+        return raise_mm
+    return raise_mm + top - caret
 
 # Anything smaller than this (mm^2) is floating-point noise from boolean-op
 # cleanup (buffer(0)/difference() on self-intersecting input can leave

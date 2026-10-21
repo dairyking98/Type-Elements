@@ -26,8 +26,8 @@ alignment:
   modified_right_offset_mm: 0.0
   # Per-character baseline overrides, y-axis counterparts to the
   # modified_left/right_chars nudges above (see glyph_poc.alignment_offset).
-  # caret_auto_raise puts the top of "^" on the average top of the
-  # layout's characters (the raised typewriter caret, in any font);
+  # caret_auto_raise puts the top of "^" on the font\'s cap height (from
+  # the font\'s own data: the raised typewriter caret, in any font);
   # caret_raise_mm moves it further, up positive. underscore_lift_mm shifts
   # "_" UP - many TTFs sink U+005F well below the baseline to clear
   # descenders in running text, which drops it out of the character cell on
