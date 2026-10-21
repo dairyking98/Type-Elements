@@ -19,7 +19,7 @@ let lastStatus = { text: "Engine not started", progress: 0 };
 
 function boot() {
   if (ready) return ready;
-  worker = new Worker(new URL("engine_worker.js?v=3b67d75d24", import.meta.url), { type: "module" });
+  worker = new Worker(new URL("engine_worker.js?v=4e916e0aef", import.meta.url), { type: "module" });
   ready = new Promise((resolve, reject) => {
     worker.onmessage = ({ data }) => {
       if (data.type === "status") { lastStatus = data; statusListeners.forEach((fn) => fn(data)); return; }
@@ -45,6 +45,9 @@ function boot() {
 async function call(method, ...args) {
   await boot();
   const id = nextId++;
+  // plain copies of objects: the page's reactive (Vue proxy) values can't be
+  // posted to a worker; font bytes (ArrayBuffers) go across as they are
+  args = args.map((a) => (a && typeof a === "object" && !(a instanceof ArrayBuffer) ? JSON.parse(JSON.stringify(a)) : a));
   const transfer = args.filter((a) => a instanceof ArrayBuffer);
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
