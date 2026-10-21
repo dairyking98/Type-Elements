@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=f06aed5ec3";
-import { Viewer } from "./viewer.js?v=f06aed5ec3";
-import { progressTracker } from "./progress.js?v=f06aed5ec3";
-import * as fontsync from "./fontsync.js?v=f06aed5ec3";
-import * as localfonts from "./localfonts.js?v=f06aed5ec3";
-import { missingIn } from "./coverage.js?v=f06aed5ec3";
-import { zip, readZipText } from "./zip.js?v=f06aed5ec3";
+import { engine } from "./engine.js?v=3b67d75d24";
+import { Viewer } from "./viewer.js?v=3b67d75d24";
+import { progressTracker } from "./progress.js?v=3b67d75d24";
+import * as fontsync from "./fontsync.js?v=3b67d75d24";
+import * as localfonts from "./localfonts.js?v=3b67d75d24";
+import { missingIn } from "./coverage.js?v=3b67d75d24";
+import { zip, readZipText } from "./zip.js?v=3b67d75d24";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -122,6 +122,7 @@ const S = reactive({
   local: { status: "unknown", count: 0, error: "" },            // this computer's fonts (localfonts.js)
   access: false, previewText: "",
   viewBg: (() => { try { return localStorage.getItem("te.viewBg") || null; } catch { return null; } })(),
+  viewModel: (() => { try { return localStorage.getItem("te.viewModel") || null; } catch { return null; } })(),
   fontQuery: (() => { try { return localStorage.getItem("te.fontQuery") || ""; } catch { return ""; } })(),
   helpAll: (() => { try { return localStorage.getItem("te.helpAll") === "1"; } catch { return false; } })(),   // show every setting's help
   helpOpen: {}, helpClosed: {},                                 // field key -> shown / hidden for just that one                               // the font-access popup; the picker's own preview text
@@ -440,6 +441,12 @@ function setViewBg(c) {
   S.viewBg = c;
   try { c ? localStorage.setItem("te.viewBg", c) : localStorage.removeItem("te.viewBg"); } catch {}
   viewer?.setBackground?.(c);
+}
+
+function setViewModel(c) {
+  S.viewModel = c;
+  try { c ? localStorage.setItem("te.viewModel", c) : localStorage.removeItem("te.viewModel"); } catch {}
+  viewer?.setModelColor?.(c);
 }
 
 function applyTheme() {
@@ -1458,6 +1465,7 @@ const App = {
     onMounted(async () => {
       viewer = new Viewer(viewerEl.value);
       viewer.setBackground?.(S.viewBg);
+      viewer.setModelColor?.(S.viewModel);
       logEl = logRef.value;
       applyTheme();
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
@@ -1510,7 +1518,7 @@ const App = {
     }
     const tryOnPhone = () => { S.forceDesktop = true; start(); };
     const retryEngine = () => { engine.setBase(S.engineUrl); location.reload(); };
-    return { S, setHelpAll, setViewBg, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
+    return { S, setHelpAll, setViewBg, setViewModel, groups, currentGroup, section, dirty, save, discard, resetToMaster, openConfigs, openConfig, retryEngine, phone, shareLink, tryOnPhone, loadMachine, runBuild, saveCopy, downloadBuild, importSettings,
              viewerEl, logRef, searchHits, jumpTo, groupOf, engine, applyTheme, badGlyphs, openGroup,
              cancel: () => engine.cancel(), baseName, location,
              // the site's home page: same origin on the hosted site, the public site otherwise
@@ -1651,10 +1659,11 @@ const App = {
 
       <aside class="side">
         <div class="viewer" ref="viewerEl">
-          <label class="bg-pick" title="Background colour behind element builds (type tests always show on white)">
-            <input type="color" :value="S.viewBg || '#eef0f3'" @input="setViewBg($event.target.value)">
-            <button v-if="S.viewBg" class="btn small ghost" @click.prevent="setViewBg(null)" title="Back to the theme's background">↺</button>
-          </label>
+          <div class="bg-pick">
+            <label title="Colour of the part (type tests always show black on white)"><input type="color" :value="S.viewModel || '#d9dde3'" @input="setViewModel($event.target.value)"><span>Part</span></label>
+            <label title="Background behind the part (type tests always show on white)"><input type="color" :value="S.viewBg || '#eef0f3'" @input="setViewBg($event.target.value)"><span>Back</span></label>
+            <button v-if="S.viewBg || S.viewModel" class="btn small ghost" @click="setViewBg(null); setViewModel(null)" title="Back to the theme's colours">↺</button>
+          </div>
           <div class="overlay">
             <span v-if="S.build.stl" class="chip">{{ S.build.stl.size.x.toFixed(1) }} × {{ S.build.stl.size.y.toFixed(1) }} × {{ S.build.stl.size.z.toFixed(1) }} mm</span>
             <span v-if="S.build.stl" class="chip">{{ Math.round(S.build.stl.triangles).toLocaleString() }} triangles</span>
