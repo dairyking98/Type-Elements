@@ -24,6 +24,12 @@ Hammond Split's second font, for the per sign (U+214C) - one of the few
 free fonts that has it. Copyright 2022 The Noto Project Authors, SIL Open
 Font License 1.1.
 
+## Glass Antiqua.ttf
+
+The Selectric Composer's default face. Copyright (c) 2011 Denis Masharov,
+SIL Open Font License 1.1 (http://scripts.sil.org/OFL). It has no ¼ ½ ¾ -
+the Composer layout's fraction slots warn as missing, as they always have.
+
 ## OCRA-TE.ttf
 
 Stand-in for Monotype's **OCR-A II** (used by several logos and labels),
