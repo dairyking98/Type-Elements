@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=bba6a0c5d9";
-import { Viewer } from "./viewer.js?v=bba6a0c5d9";
-import { progressTracker } from "./progress.js?v=bba6a0c5d9";
-import * as fontsync from "./fontsync.js?v=bba6a0c5d9";
-import * as localfonts from "./localfonts.js?v=bba6a0c5d9";
-import { missingIn } from "./coverage.js?v=bba6a0c5d9";
-import { zip, readZipText } from "./zip.js?v=bba6a0c5d9";
+import { engine } from "./engine.js?v=17f200f7b5";
+import { Viewer } from "./viewer.js?v=17f200f7b5";
+import { progressTracker } from "./progress.js?v=17f200f7b5";
+import * as fontsync from "./fontsync.js?v=17f200f7b5";
+import * as localfonts from "./localfonts.js?v=17f200f7b5";
+import { missingIn } from "./coverage.js?v=17f200f7b5";
+import { zip, readZipText } from "./zip.js?v=17f200f7b5";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -334,12 +334,11 @@ async function runJob(label, start, after, kind = null) {
   Object.assign(j, { running: true, label, progress: 0, state: "", log: [], partial: "", issues: [], phase: "", eta: null });
   if (narrow()) S.view = "build";
   const t0 = Date.now();
-  // see progress.js: timed from this job's previous runs, ticked smoothly
-  const prog = progressTracker([engine.mode, S.machine, label, S.build.target].join("|"));
+  // see progress.js: steps from what the job reports, no estimates
+  const prog = progressTracker();
   const tick = setInterval(() => {
     j.elapsed = (Date.now() - t0) / 1000;
     j.progress = prog.value();
-    j.eta = prog.remaining();
   }, 100);
   let rc = -1;
   try {
@@ -356,7 +355,6 @@ async function runJob(label, start, after, kind = null) {
     });
   } catch (e) { j.log.push({ t: String(e.message || e), c: "e" }); }
   clearInterval(tick);
-  prog.finish(rc === 0);
   j.running = false; j.eta = null;
   j.elapsed = (Date.now() - t0) / 1000;
   if (rc === 0) {
@@ -1661,7 +1659,7 @@ const App = {
           </div>
           <div class="row">
             <div class="progress" :class="S.job.state"><div :style="{ width: (S.job.progress * 100) + '%' }"></div></div>
-            <span class="chip" style="min-width:64px;justify-content:center">{{ S.job.running ? S.job.label + ' ' : '' }}{{ S.job.elapsed ? S.job.elapsed.toFixed(0) + 's' : '—' }}<template v-if="S.job.running && S.job.eta != null && S.job.elapsed > 2">&nbsp;· ~{{ Math.max(1, Math.round(S.job.eta)) }}s left</template></span>
+            <span class="chip" style="min-width:64px;justify-content:center">{{ S.job.running ? S.job.label + ' ' : '' }}{{ S.job.elapsed ? S.job.elapsed.toFixed(0) + 's' : '—' }}</span>
           </div>
           <div v-if="S.job.running && S.job.phase" class="help" style="margin-top:-4px">{{ S.job.label }}: {{ S.job.phase }}</div>
           <div class="row" v-if="S.build.stl && !S.job.running">
