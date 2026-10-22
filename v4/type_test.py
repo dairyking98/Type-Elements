@@ -183,13 +183,18 @@ if __name__ == "__main__":
                               "no-op for other machines.")
     parser.add_argument("--weight-offset-mm", type=float, default=0.0,
                          help="Font adjustment: grow (+) / thin (-) every character's outline by this much per side")
+    parser.add_argument("--weight-algorithm", default="buffer", choices=["buffer", "clipper", "skeleton"])
     parser.add_argument("--weight-join", default="mitre", choices=["mitre", "round", "bevel"])
+    parser.add_argument("--skeleton-vertical-weight", type=float, default=1.0)
+    parser.add_argument("--skeleton-horizontal-weight", type=float, default=1.0)
     parser.add_argument("--weight-mitre-limit", type=float, default=10.0)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     import glyph_poc
-    glyph_poc.configure_weight({"font_adjust": {"weight_offset_mm": args.weight_offset_mm, "weight_join": args.weight_join,
-                                                "weight_mitre_limit": args.weight_mitre_limit}})
+    glyph_poc.configure_weight({"font_adjust": {"weight_offset_mm": args.weight_offset_mm, "weight_algorithm": args.weight_algorithm,
+                                                "weight_join": args.weight_join, "weight_mitre_limit": args.weight_mitre_limit,
+                                                "skeleton_vertical_weight": args.skeleton_vertical_weight,
+                                                "skeleton_horizontal_weight": args.skeleton_horizontal_weight}})
 
     align_kwargs = dict(
         mode=args.align_mode,

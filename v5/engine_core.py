@@ -169,14 +169,25 @@ def extra_sections(machine, cfg):
                "Thickens (+) or thins (-) every struck character by this much on each side, so a stroke changes "
                "width by twice this. For a face that prints or looks too heavy (or too light) on this machine. "
                "Logos, labels and legend sheets keep the font as drawn. 0 = the font as drawn."),
+            _f("weight_algorithm", ["font_adjust", "weight_algorithm"], "select", "Algorithm",
+               "How the outline is moved. Buffer (GEOS) and Clipper (Vatti) push every edge out or in by the "
+               "same distance and differ only in how they cut corners; the straight skeleton slides edges "
+               "parallel at their own speeds, so it can thin vertical strokes more than horizontal ones.",
+               [("Buffer (GEOS)", "buffer"), ("Clipper (Vatti)", "clipper"), ("Straight skeleton", "skeleton")]),
             _f("weight_join", ["font_adjust", "weight_join"], "select", "Corners",
-               "How corners are cut as the outline moves. Thinning only changes INSIDE corners (crotches, where "
-               "a stem meets a bowl); thickening only changes OUTSIDE corners. Mitre keeps them sharp (best for "
-               "geometric faces), round rounds them, bevel cuts them flat.",
-               [("Mitre (sharp)", "mitre"), ("Round", "round"), ("Bevel (flat)", "bevel")]),
+               "Buffer and Clipper: how corners are cut as the outline moves. Thinning only changes INSIDE corners "
+               "(crotches, where a stem meets a bowl); thickening only OUTSIDE ones. Mitre keeps them sharp (best "
+               "for geometric faces), round rounds them, bevel/square cuts them flat. The skeleton is always sharp.",
+               [("Mitre (sharp)", "mitre"), ("Round", "round"), ("Bevel / square (flat)", "bevel")]),
             _f("weight_mitre_limit", ["font_adjust", "weight_mitre_limit"], "float", "Mitre limit",
                "Mitre corners only: how far a sharp corner may reach, in multiples of the stroke weight, before "
-               "it is squared off. Raise it (10+) to keep very acute corners like the inside of V and W pointed.")]
+               "it is squared off. Raise it (10+) to keep very acute corners like the inside of V and W pointed."),
+            _f("skeleton_vertical_weight", ["font_adjust", "skeleton_vertical_weight"], "float", "Skeleton: vertical strokes x",
+               "Straight skeleton only: how fast edges facing sideways move - the sides of vertical strokes "
+               "(stems of H, l, the sides of O) - as a multiple of the stroke weight. 1 = the same as everything else."),
+            _f("skeleton_horizontal_weight", ["font_adjust", "skeleton_horizontal_weight"], "float", "Skeleton: horizontal strokes x",
+               "Straight skeleton only: how fast edges facing up or down move - horizontal strokes (bars of e, t, "
+               "H, serifs, the top and bottom of O). Below 1 keeps thin horizontals from vanishing while stems thin.")]
     lay = cfg.get("layout") or {}
     if "baseline_row" in lay:
         secs["Row baselines"] = [
@@ -1028,7 +1039,13 @@ def weight_preview(body):
     font2_chars = body.get("font2_chars", v.get("font2_chars")) or ""
     size2 = size_of("font2_size_mm", "font2_composer_cap_height") if font2_chars else size
     w = glyph_poc.weight_settings({"font_adjust": {k: body.get(k) for k in
-                                                   ("weight_offset_mm", "weight_join", "weight_mitre_limit")}})
+                                                   ("weight_offset_mm", "weight_algorithm", "weight_join", "weight_mitre_limit",
+                                                    "skeleton_vertical_weight", "skeleton_horizontal_weight")}})
+    compare = bool(body.get("compare")) and w["offset_mm"]
+
+    def moved(geom, algorithm):
+        return glyph_poc.offset_geometry(geom, w["offset_mm"], algorithm, w["join"], w["mitre_limit"],
+                                         w["v_weight"], w["h_weight"])
     out, x = [], 0.0
     for ch in str(body.get("text") or "")[:40]:
         fp, fs = (font2, size2) if ch in font2_chars else (font, size)
@@ -1038,12 +1055,14 @@ def weight_preview(body):
         scale = glyph_poc.em_to_mm_scale(fs, face.units_per_EM)
         contours, adv = glyph_poc.get_glyph_contours_and_advance(ch, 0.01, scale, font_path=fp)
         before = glyph_poc.compose_glyph_polygon(contours) if contours else None
-        after, gone = before, False
+        after, gone, others = before, False, {}
         if before is not None and w["offset_mm"]:
-            after = before.buffer(w["offset_mm"], quad_segs=8, join_style=w["join"], mitre_limit=w["mitre_limit"])
-            gone = after.is_empty or after.area < 1e-6
+            after = moved(before, w["algorithm"])
+            gone = after is None
+            if compare:
+                others = {a: _geom_svg(moved(before, a)) for a in glyph_poc.WEIGHT_ALGORITHMS if a != w["algorithm"]}
         out.append({"char": ch, "x": round(x, 3), "adv": round(adv, 3), "before": _geom_svg(before),
-                    "after": "" if gone else _geom_svg(after), "gone": gone,
+                    "after": "" if gone else _geom_svg(after), "gone": gone, "others": others,
                     "area_before": round(before.area, 4) if before is not None else 0,
                     "area_after": 0 if gone or after is None else round(after.area, 4)})
         x += adv
@@ -1168,8 +1187,9 @@ def type_test_command(machine, cfg):
     import glyph_poc
     w = glyph_poc.weight_settings(cfg)   # Font adjustment, as the element gets it
     if w["offset_mm"]:
-        cmd += ["--weight-offset-mm", str(w["offset_mm"]), "--weight-join", w["join"],
-                "--weight-mitre-limit", str(w["mitre_limit"])]
+        cmd += ["--weight-offset-mm", str(w["offset_mm"]), "--weight-algorithm", w["algorithm"],
+                "--weight-join", w["join"], "--weight-mitre-limit", str(w["mitre_limit"]),
+                "--skeleton-vertical-weight", str(w["v_weight"]), "--skeleton-horizontal-weight", str(w["h_weight"])]
     return cmd + ["--out", output_path(cfg)]
 
 

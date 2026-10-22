@@ -1,4 +1,5 @@
 shapely
+pyclipper
 trimesh
 python-fcl
 triangle

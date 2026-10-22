@@ -864,24 +864,42 @@ def compose_glyph_polygon(contours_mm):
 
 
 # Font adjustment (a config's font_adjust: section): every STRUCK
-# character's outline grown (+) or thinned (-) by offset_mm on each side
-# before it is extruded, so a stroke changes width by 2 x offset_mm - for a
-# face that prints too heavy or too light on a given machine. Logos,
-# labels and legend sheets are drawn from the raw outlines and stay as
-# they are. The join is how inside corners (thinning) or outside corners
-# (thickening) are cut: mitre keeps them sharp up to mitre_limit x the
-# offset, then squares them off; round rounds them; bevel cuts them flat.
+# character's outline grown (+) or thinned (-) by offset_mm before it is
+# extruded, so a stroke changes width by 2 x offset_mm - for a face that
+# prints too heavy or too light on a given machine. Logos, labels and
+# legend sheets are drawn from the raw outlines and stay as they are.
+# Three ways to move the outline (weight_algorithm):
+#   buffer   - GEOS's buffer (shapely): every point of the outline pushed
+#              out/in by the distance; join = mitre / round / bevel.
+#   clipper  - Clipper's polygon offset (pyclipper, Angus Johnson's
+#              Vatti-clipping library): each edge offset, corners joined
+#              (mitre / round / square), the raw result cleaned up with a
+#              positive-winding union.
+#   skeleton - the straight skeleton's wavefront at this depth: every edge
+#              slides parallel to itself, neighbours meet at sharp corners,
+#              edge collapses and splits resolved by winding. Weighted:
+#              edges facing sideways (the sides of vertical strokes) move
+#              at skeleton_vertical_weight x the offset, edges facing up or
+#              down (horizontal strokes) at skeleton_horizontal_weight x.
 # Set per build by configure_weight() (generate.py / type_test.py).
-WEIGHT = {"offset_mm": 0.0, "join": "mitre", "mitre_limit": 10.0}
+WEIGHT = {"offset_mm": 0.0, "algorithm": "buffer", "join": "mitre", "mitre_limit": 10.0,
+          "v_weight": 1.0, "h_weight": 1.0}
 _WEIGHT_WARNED = set()
+WEIGHT_ALGORITHMS = ("buffer", "clipper", "skeleton")
+_CLIP_SCALE = 1e5          # mm -> Clipper's integer grid (10 nm)
 
 
 def weight_settings(cfg):
     fa = (cfg or {}).get("font_adjust") or {}
     join = str(fa.get("weight_join") or "mitre").lower()
-    return {"offset_mm": float(fa.get("weight_offset_mm") or 0.0),
+    alg = str(fa.get("weight_algorithm") or "buffer").lower()
+    num = lambda k, d: d if fa.get(k) is None else float(fa.get(k))
+    return {"offset_mm": num("weight_offset_mm", 0.0),
+            "algorithm": alg if alg in WEIGHT_ALGORITHMS else "buffer",
             "join": join if join in ("mitre", "round", "bevel") else "mitre",
-            "mitre_limit": max(1.0, float(fa.get("weight_mitre_limit") or 10.0))}
+            "mitre_limit": max(1.0, num("weight_mitre_limit", 10.0)),
+            "v_weight": max(0.0, num("skeleton_vertical_weight", 1.0)),
+            "h_weight": max(0.0, num("skeleton_horizontal_weight", 1.0))}
 
 
 def configure_weight(cfg):
@@ -889,28 +907,114 @@ def configure_weight(cfg):
     _WEIGHT_WARNED.clear()
     if WEIGHT["offset_mm"]:
         import build_log
+        how = (f"straight skeleton, vertical x{WEIGHT['v_weight']:g} / horizontal x{WEIGHT['h_weight']:g}"
+               if WEIGHT["algorithm"] == "skeleton" else f"{WEIGHT['algorithm']}, {WEIGHT['join']} corners")
         build_log.note("Font adjustment",
                        f"strokes {'thickened' if WEIGHT['offset_mm'] > 0 else 'thinned'} by "
-                       f"{abs(WEIGHT['offset_mm']):.3f} mm per side ({WEIGHT['join']} corners)")
+                       f"{abs(WEIGHT['offset_mm']):.4f} mm per side ({how})")
 
 
-def adjust_weight(geom, offset_mm=None, join=None, mitre_limit=None, label=None):
-    """geom grown/thinned by offset_mm (WEIGHT's values by default). A
-    shape that thins away entirely is kept as it was, with a warning -
-    better a heavy character than a missing one."""
-    offset_mm = WEIGHT["offset_mm"] if offset_mm is None else offset_mm
-    if not offset_mm or geom is None or geom.is_empty:
+def _rings(geom):
+    """Every ring of geom, material on the LEFT (exteriors CCW, holes CW)."""
+    from shapely.geometry.polygon import orient
+    out = []
+    for poly in getattr(geom, "geoms", [geom]):
+        if poly.is_empty:
+            continue
+        p = orient(poly, 1.0)
+        for ring in [p.exterior, *p.interiors]:
+            pts = np.asarray(ring.coords)[:-1]
+            if len(pts) >= 3:
+                out.append(pts)
+    return out
+
+
+def _from_clipper(paths):
+    """Clipper output paths (integer grid) -> one shapely geometry; nesting
+    by depth parity, as a glyph's own contours are composed."""
+    contours = [np.asarray(p, dtype=float) / _CLIP_SCALE for p in paths if len(p) >= 3]
+    return compose_glyph_polygon(contours) if contours else None
+
+
+def _to_clipper(rings):
+    return [[(int(round(x * _CLIP_SCALE)), int(round(y * _CLIP_SCALE))) for x, y in r] for r in rings]
+
+
+def _offset_clipper(geom, d, join, mitre_limit):
+    import pyclipper
+    jt = {"mitre": pyclipper.JT_MITER, "round": pyclipper.JT_ROUND, "bevel": pyclipper.JT_SQUARE}[join]
+    pco = pyclipper.PyclipperOffset(mitre_limit, 0.002 * _CLIP_SCALE)   # round joins to 2 um
+    pco.AddPaths(_to_clipper(_rings(geom)), jt, pyclipper.ET_CLOSEDPOLYGON)
+    return _from_clipper(pco.Execute(d * _CLIP_SCALE))
+
+
+def _offset_skeleton(geom, d, v_weight, h_weight):
+    """The (weighted) straight skeleton's wavefront at depth d: each edge
+    moved along its outward normal by d x its weight, each vertex where its
+    two edges' moved lines meet (a sharp, unlimited mitre - the skeleton's
+    own corner). Where edges collapse or a reflex corner runs through the
+    far side, the raw rings cross themselves; a positive-winding union
+    keeps exactly the region the wavefront still encloses."""
+    import pyclipper
+    raw = []
+    for pts in _rings(geom):
+        nxt = np.roll(pts, -1, axis=0)
+        e = nxt - pts
+        L = np.hypot(e[:, 0], e[:, 1])
+        keep = L > 1e-9
+        pts, e, L = pts[keep], e[keep], L[keep]
+        if len(pts) < 3:
+            continue
+        dirs = e / L[:, None]
+        nrm = np.stack([dirs[:, 1], -dirs[:, 0]], axis=1)          # outward: material is on the left
+        speed = np.hypot(v_weight * nrm[:, 0], h_weight * nrm[:, 1])
+        base = pts + nrm * (d * speed)[:, None]                     # a point on each moved edge line
+        out = []
+        n = len(pts)
+        for i in range(n):
+            j = i - 1                                               # edge j ends at vertex i, edge i starts there
+            p1, d1, p2, d2 = base[j], dirs[j], base[i], dirs[i]
+            cr = d1[0] * d2[1] - d1[1] * d2[0]
+            if abs(cr) < 1e-9:                                      # (nearly) straight on: no corner to mitre
+                out.append((p1 + d1 * L[j] + p2) / 2.0)
+            else:
+                t = ((p2[0] - p1[0]) * d2[1] - (p2[1] - p1[1]) * d2[0]) / cr
+                out.append(p1 + d1 * t)
+        raw.append(np.asarray(out))
+    pc = pyclipper.Pyclipper()
+    pc.AddPaths(_to_clipper(raw), pyclipper.PT_SUBJECT, True)
+    return _from_clipper(pc.Execute(pyclipper.CT_UNION, pyclipper.PFT_POSITIVE, pyclipper.PFT_POSITIVE))
+
+
+def offset_geometry(geom, offset_mm, algorithm="buffer", join="mitre", mitre_limit=10.0, v_weight=1.0, h_weight=1.0):
+    """geom grown (+) / thinned (-) by offset_mm with the chosen algorithm;
+    None when nothing is left."""
+    if algorithm == "clipper":
+        out = _offset_clipper(geom, offset_mm, join, mitre_limit)
+    elif algorithm == "skeleton":
+        out = _offset_skeleton(geom, offset_mm, v_weight, h_weight)
+    else:
+        out = geom.buffer(offset_mm, quad_segs=8, join_style=join, mitre_limit=mitre_limit)
+    if out is None or out.is_empty or out.area < 1e-6:
+        return None
+    return out
+
+
+def adjust_weight(geom, label=None, **over):
+    """geom with Font adjustment applied (WEIGHT's values, any of them
+    overridden by keyword). A shape that thins away entirely is kept as it
+    was, with a warning - better a heavy character than a missing one."""
+    w = {**WEIGHT, **over}
+    if not w["offset_mm"] or geom is None or geom.is_empty:
         return geom
-    join = join or WEIGHT["join"]
-    mitre_limit = WEIGHT["mitre_limit"] if mitre_limit is None else mitre_limit
-    out = geom.buffer(offset_mm, quad_segs=8, join_style=join, mitre_limit=mitre_limit)
-    if out.is_empty or out.area < 1e-6:
-        key = (label, offset_mm)
+    out = offset_geometry(geom, w["offset_mm"], w["algorithm"], w["join"], w["mitre_limit"], w["v_weight"], w["h_weight"])
+    if out is None:
+        key = (label, w["offset_mm"])
         if key not in _WEIGHT_WARNED:
             _WEIGHT_WARNED.add(key)
             import build_log
             build_log.warn("Font adjustment",
-                           f"{label or 'a character'} thins away completely at {offset_mm} mm - kept at its normal weight")
+                           f"{label or 'a character'} thins away completely at {w['offset_mm']} mm - kept at its normal weight")
         return geom
     return _open_touching_geometry(out)
 

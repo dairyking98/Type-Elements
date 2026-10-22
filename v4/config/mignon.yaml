@@ -415,9 +415,13 @@ legend:
   legend_flatness_tolerance_mm: 0.01   # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
 
 # Font adjustment: every struck character grown (+) / thinned (-) by
-# weight_offset_mm per side before it is extruded (glyph_poc.adjust_weight).
+# weight_offset_mm per side before it is extruded (glyph_poc.adjust_weight,
+# which explains the three algorithms).
 # Logos, labels and legends keep the font as drawn.
 font_adjust:
   weight_offset_mm: 0.0
+  weight_algorithm: "buffer"  # buffer (GEOS) | clipper (Vatti / Clipper offset) | skeleton (straight skeleton)
   weight_join: "mitre"      # mitre | round | bevel - how the corners the offset moves are cut
   weight_mitre_limit: 10.0  # mitre only: max corner reach, in multiples of the offset
+  skeleton_vertical_weight: 1.0    # skeleton: speed of edges facing sideways (sides of vertical strokes)
+  skeleton_horizontal_weight: 1.0  # skeleton: speed of edges facing up/down (horizontal strokes)

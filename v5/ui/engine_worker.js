@@ -55,7 +55,7 @@ async function init(b) {
   status("Starting Python…", 0.1);
   py = await loadPyodide();
   status("Loading Python libraries…", 0.2);
-  await py.loadPackage(["numpy", "scipy", "shapely", "pyyaml", "fonttools", "networkx", "micropip"]);
+  await py.loadPackage(["numpy", "scipy", "shapely", "pyyaml", "fonttools", "networkx", "pyclipper", "micropip"]);
   await py.runPythonAsync(`import micropip\nawait micropip.install("${TRIMESH}")`);
   status("Loading Type Elements…", 0.5);
   await geometry;
