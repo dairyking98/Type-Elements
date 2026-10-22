@@ -362,3 +362,14 @@ details.adv > summary:hover { color: var(--text); }
 .card-head.fold:hover h2 { color: var(--accent); }
 .fold-arrow { width: 14px; color: var(--text-3); font-size: 13px; }
 .card.folded .card-head { border-bottom: 0; }
+
+/* Font adjustment: stroke weight steps and the before/after preview */
+.weight-steps { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+.weight-steps .btn { min-width: 48px; font-variant-numeric: tabular-nums; }
+.weight-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 8px; }
+.weight-paper { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-height: 120px; transition: opacity .15s; }
+.weight-paper.busy { opacity: .6; }
+.weight-paper svg { display: block; width: 100%; height: auto; max-height: 320px; }
+.wp-after { fill: var(--ink); fill-rule: evenodd; }
+.wp-before { fill: none; stroke: var(--accent); stroke-width: 0.03; stroke-dasharray: 0.12 0.08; fill-rule: evenodd; }
+.wp-base { stroke: var(--text-3); stroke-width: 0.02; stroke-dasharray: 0.2 0.15; }

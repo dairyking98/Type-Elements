@@ -244,6 +244,11 @@ tune.py does.</li>
       <td>The font file itself. Use it with <code class="language-plaintext highlighter-rouge">new FontFace(name, "url(...)")</code>.</td>
     </tr>
     <tr>
+      <td><code class="language-plaintext highlighter-rouge">POST /api/weight-preview</code></td>
+      <td><code class="language-plaintext highlighter-rouge">{machine, text, weight_offset_mm, weight_join, weight_mitre_limit}</code> (+ optional <code class="language-plaintext highlighter-rouge">font</code>, <code class="language-plaintext highlighter-rouge">size_mm</code>, <code class="language-plaintext highlighter-rouge">font2</code>, <code class="language-plaintext highlighter-rouge">font2_size_mm</code>, <code class="language-plaintext highlighter-rouge">font2_chars</code> overrides)</td>
+      <td><code class="language-plaintext highlighter-rouge">{glyphs: [{char, x, adv, before, after, gone, area_before, area_after}], width, ascender, descender, size_mm, offset_mm, join, mitre_limit}</code>. Font adjustment’s preview: each character’s outline before and after the stroke-weight change, SVG path data in mm, y up, un-mirrored (as printed); draw with <code class="language-plaintext highlighter-rouge">fill-rule: evenodd</code>.</td>
+    </tr>
+    <tr>
       <td><code class="language-plaintext highlighter-rouge">POST /api/outlines</code></td>
       <td><code class="language-plaintext highlighter-rouge">{font, chars}</code></td>
       <td><code class="language-plaintext highlighter-rouge">{upem, ascender, descender, glyphs: {char: {d, adv} \| null}}</code>. <code class="language-plaintext highlighter-rouge">d</code> is SVG path data in font units with y pointing up, so flip it when drawing. Use this when the browser refuses a font file (<code class="language-plaintext highlighter-rouge">FontFace.load()</code> rejects); FreeType, and therefore the build, often reads such fonts fine.</td>
