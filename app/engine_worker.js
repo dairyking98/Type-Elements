@@ -55,7 +55,7 @@ async function init(b) {
   status("Starting Python…", 0.1);
   py = await loadPyodide();
   status("Loading Python libraries…", 0.2);
-  await py.loadPackage(["numpy", "scipy", "shapely", "pyyaml", "fonttools", "networkx", "micropip"]);
+  await py.loadPackage(["numpy", "scipy", "shapely", "pyyaml", "fonttools", "networkx", "pyclipper", "micropip"]);
   await py.runPythonAsync(`import micropip\nawait micropip.install("${TRIMESH}")`);
   status("Loading Type Elements…", 0.5);
   await geometry;
@@ -122,7 +122,7 @@ function captureOutput(id) {
 }
 
 async function minkowskiPool(jobs, n, id) {
-  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=a0a420ad58", import.meta.url), { type: "module" }));
+  const workers = Array.from({ length: n }, () => new Worker(new URL("minkowski_worker.js?v=a1db94e579", import.meta.url), { type: "module" }));
   const queue = jobs.map((j, i) => ({ i, ...j })).sort((a, b) => b.weight - a.weight);
   const out = new Array(jobs.length);
   let done = 0;

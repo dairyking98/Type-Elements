@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=a0a420ad58";
-import { Viewer } from "./viewer.js?v=a0a420ad58";
-import { progressTracker } from "./progress.js?v=a0a420ad58";
-import * as fontsync from "./fontsync.js?v=a0a420ad58";
-import * as localfonts from "./localfonts.js?v=a0a420ad58";
-import { missingIn } from "./coverage.js?v=a0a420ad58";
-import { zip, readZipText } from "./zip.js?v=a0a420ad58";
+import { engine } from "./engine.js?v=a1db94e579";
+import { Viewer } from "./viewer.js?v=a1db94e579";
+import { progressTracker } from "./progress.js?v=a1db94e579";
+import * as fontsync from "./fontsync.js?v=a1db94e579";
+import * as localfonts from "./localfonts.js?v=a1db94e579";
+import { missingIn } from "./coverage.js?v=a1db94e579";
+import { zip, readZipText } from "./zip.js?v=a1db94e579";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -1081,15 +1081,37 @@ const TypeTestCard = {
 
 // Font adjustment: the stroke-weight settings plus a live preview of the
 // characters before (outline) and after (ink), drawn from the engine's own
-// geometry - the same thinning the build applies.
-const WEIGHT_RANGE = { min: -0.15, max: 0.1, step: 0.001 };   // the slider; the box takes any value
+// geometry - the same offset the build applies. Every number has a long,
+// fine slider and a box that takes any value.
+const WEIGHT_SLIDERS = {
+  weight_offset_mm: { min: -0.15, max: 0.1, step: 0.0005, lo: "thinner", hi: "thicker", unit: "mm" },
+  weight_mitre_limit: { min: 1, max: 30, step: 0.05, lo: "squares off sooner", hi: "sharper", unit: "×" },
+  skeleton_vertical_weight: { min: 0, max: 3, step: 0.005, lo: "stems stay", hi: "stems move more", unit: "×" },
+  skeleton_horizontal_weight: { min: 0, max: 3, step: 0.005, lo: "bars stay", hi: "bars move more", unit: "×" },
+};
+const WEIGHT_ALGOS = [
+  { id: "buffer", name: "Buffer", by: "GEOS",
+    what: "Every point of the outline is pushed in or out by the same distance - as if a small circle rolled along the edge and the shape kept (or lost) everything it swept. Straight edges just move; the options only differ at corners: round follows the circle, mitre runs the two edges on until they meet, bevel cuts straight across.",
+    why: "The geometry library behind shapely - fast and very robust, and the one the rest of the engine already uses." },
+  { id: "clipper", name: "Clipper", by: "Vatti",
+    what: "Angus Johnson's Clipper: each edge is shifted parallel and neighbouring edges are joined (mitre, round or square). Where strokes collapse, that raw outline loops over itself, so Clipper cleans it with Vatti's sweep-line clipping - a horizontal line sweeps up through every vertex, tracking which edges it crosses, and keeps only the area wound the positive way.",
+    why: "Works on an integer grid (10 nm here), so near-degenerate font outlines - overlapping contours, hairline slivers - never trip it up. The standard in CAM and slicers." },
+  { id: "skeleton", name: "Straight skeleton", by: "Aichholzer & Aurenhammer",
+    what: "Every edge slides parallel to itself at a steady speed; the corners trace straight lines - the skeleton - and stopping at a given depth gives the new outline. Two events reshape it: an edge shrinks to nothing (its neighbours meet), or a concave corner runs into the far side (the shape splits). Corners always stay perfectly sharp.",
+    why: "Each edge can have its own speed (a weighted skeleton), so stems can thin faster than thin horizontal bars - something a plain offset can't do. Lift each point by when the wavefront reached it and you get a roof of equal slopes: a uniform draft angle. Here the wavefront at your depth is computed directly (edges moved, neighbours intersected, collapses and splits resolved by winding) rather than the whole skeleton tree." },
+];
+const ALGO_COLORS = { buffer: "#e8590c", clipper: "#2f9e44", skeleton: "#7048e8" };
 const WeightCard = {
   props: ["s"],
-  components: { SectionCard },
-  setup() {
+  components: { FieldInput, HelpButton },
+  setup(props) {
     const text = ref((() => { try { return localStorage.getItem("te.weightText") || ""; } catch { return ""; } })() || "VAMW agyk 0&?");
-    const showBefore = ref(true);
+    const showBefore = ref(true), compare = ref(false), showInfo = ref(true);
     const prev = ref(null), err = ref(""), busy = ref(false);
+    const field = (k) => props.s.fields.find((f) => f.key === k);
+    const num = (k, d) => { const v = Number(val(k)); return Number.isFinite(v) && val(k) !== "" && val(k) != null ? v : d; };
+    const algo = computed(() => val("weight_algorithm") || "buffer");
+    const algoInfo = computed(() => WEIGHT_ALGOS.find((a) => a.id === algo.value) || WEIGHT_ALGOS[0]);
     let timer = null, seq = 0;
     const refresh = () => {
       clearTimeout(timer);
@@ -1098,9 +1120,10 @@ const WeightCard = {
         busy.value = true;
         try {
           const r = await engine.weightPreview({
-            machine: S.machine, text: text.value,
-            weight_offset_mm: Number(val("weight_offset_mm")) || 0, weight_join: val("weight_join"),
-            weight_mitre_limit: Number(val("weight_mitre_limit")) || 10,
+            machine: S.machine, text: text.value, compare: compare.value,
+            weight_offset_mm: num("weight_offset_mm", 0), weight_algorithm: algo.value, weight_join: val("weight_join"),
+            weight_mitre_limit: num("weight_mitre_limit", 10),
+            skeleton_vertical_weight: num("skeleton_vertical_weight", 1), skeleton_horizontal_weight: num("skeleton_horizontal_weight", 1),
             font: val("path"), font2: val("font2_path"), font2_chars: font2Chars.value,
             ...(val("size_mm") != null ? { size_mm: Number(val("size_mm")) } : {}),
             ...(val("font2_size_mm") != null ? { font2_size_mm: Number(val("font2_size_mm")) } : {}),
@@ -1108,16 +1131,16 @@ const WeightCard = {
           if (my === seq) { prev.value = r; err.value = ""; }
         } catch (e) { if (my === seq) err.value = e.message || String(e); }
         if (my === seq) busy.value = false;
-      }, 200);
+      }, 120);
     };
-    watch(() => [text.value, val("weight_offset_mm"), val("weight_join"), val("weight_mitre_limit"), val("path"),
-                 val("size_mm"), val("font2_path"), val("font2_size_mm"), font2Chars.value, S.machine], refresh, { immediate: true });
+    watch(() => [text.value, compare.value, ...Object.keys(WEIGHT_SLIDERS).map(val), val("weight_algorithm"), val("weight_join"),
+                 val("path"), val("size_mm"), val("font2_path"), val("font2_size_mm"), font2Chars.value, S.machine], refresh, { immediate: true });
     watch(text, (t) => { try { localStorage.setItem("te.weightText", t); } catch {} });
     const box = computed(() => {
       const p = prev.value;
       if (!p || !p.glyphs.length) return null;
       const top = (p.ascender ?? p.size_mm) + 0.3, bot = (p.descender ?? -p.size_mm * 0.3) - 0.3;
-      return { vb: `-0.3 ${-top} ${p.width + 0.6} ${top - bot}`, base: 0 };
+      return `-0.3 ${-top} ${p.width + 0.6} ${top - bot}`;
     });
     const gone = computed(() => (prev.value?.glyphs || []).filter((g) => g.gone).map((g) => g.char));
     const change = computed(() => {
@@ -1125,51 +1148,103 @@ const WeightCard = {
       const a = g.reduce((t, x) => t + x.area_before, 0), b = g.reduce((t, x) => t + x.area_after, 0);
       return a ? Math.round((b / a - 1) * 100) : 0;
     });
-    const offset = computed(() => Number(val("weight_offset_mm")) || 0);
-    const step = (v) => { if (v !== "" && !isNaN(Number(v))) setVal("weight_offset_mm", Number(v)); };
-    return { S, text, showBefore, prev, err, busy, box, gone, change, offset, step, WEIGHT_RANGE };
+    const offset = computed(() => num("weight_offset_mm", 0));
+    const set = (k, v) => { if (v !== "" && !isNaN(Number(v))) setVal(k, Number(v)); };
+    const sliders = computed(() => ["weight_offset_mm",
+      ...(algo.value === "skeleton" ? ["skeleton_vertical_weight", "skeleton_horizontal_weight"]
+        : val("weight_join") === "mitre" ? ["weight_mitre_limit"] : [])].map((k) => field(k)).filter(Boolean));
+    const clamp = (k, v) => Math.min(WEIGHT_SLIDERS[k].max, Math.max(WEIGHT_SLIDERS[k].min, v));
+    const defaults = { weight_offset_mm: 0, weight_mitre_limit: 10, skeleton_vertical_weight: 1, skeleton_horizontal_weight: 1 };
+    return { S, text, showBefore, compare, showInfo, prev, err, busy, box, gone, change, offset, set, sliders, clamp, num, field,
+             algo, algoInfo, defaults, runTypeTest, pickAlgo: (id) => setVal('weight_algorithm', id), WEIGHT_SLIDERS, WEIGHT_ALGOS, ALGO_COLORS, helpShown };
   },
   template: `
-  <section-card :s="s" title="Stroke weight">
-    <template #top>
-      <div class="weight-slider">
-        <span class="wl">thinner</span>
-        <input type="range" :min="WEIGHT_RANGE.min" :max="WEIGHT_RANGE.max" :step="WEIGHT_RANGE.step"
-          :value="Math.min(WEIGHT_RANGE.max, Math.max(WEIGHT_RANGE.min, offset))" @input="step($event.target.value)"
-          aria-label="Stroke weight, mm per side" list="weight-zero">
-        <datalist id="weight-zero"><option value="0"></option></datalist>
-        <span class="wl">thicker</span>
-        <input class="input wv" type="number" step="0.001" :value="offset" @change="step($event.target.value)"
-          aria-label="Stroke weight value, mm per side" title="Any value, mm per side">
-        <span class="wl">mm</span>
-        <button class="btn small ghost" :disabled="!offset" @click="step(0)" title="Back to the font as drawn">0</button>
+  <section class="card" id="weight-card">
+    <div class="card-head"><h2>Stroke weight</h2><span class="sub">{{ algoInfo.name }}</span><span class="spacer"></span>
+      <button class="btn small primary" :disabled="S.job.running" @click="runTypeTest"
+        title="Render the type test plate with these settings - the flat printed sample, shown from above">Update type sample</button></div>
+    <div class="card-body">
+      <div class="algo-pick" role="radiogroup" aria-label="Algorithm">
+        <button v-for="a in WEIGHT_ALGOS" :key="a.id" role="radio" :aria-checked="algo === a.id" class="algo-btn" :class="{ on: algo === a.id }"
+          @click="pickAlgo(a.id)">
+          <span class="algo-dot" :style="{ background: ALGO_COLORS[a.id] }"></span><b>{{ a.name }}</b><small>{{ a.by }}</small></button>
+        <button class="btn small ghost" @click="showInfo = !showInfo" :title="showInfo ? 'Hide how it works' : 'How it works'">{{ showInfo ? 'Hide' : 'How it works' }}</button>
       </div>
-    </template>
-    <div class="weight-preview">
-      <div class="weight-bar">
-        <input class="input" v-model="text" maxlength="40" placeholder="Characters to preview" aria-label="Characters to preview" style="flex:1;min-width:120px">
-        <label class="switch"><input type="checkbox" v-model="showBefore"><span>Show the original outline</span></label>
-      </div>
-      <div class="weight-paper" :class="{ busy }">
-        <svg v-if="box" :viewBox="box.vb" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="'Preview of ' + text">
-          <line :x1="-0.3" :x2="prev.width + 0.3" y1="0" y2="0" class="wp-base" />
-          <g v-for="(g, i) in prev.glyphs" :key="i" :transform="'translate(' + g.x + ',0) scale(1,-1)'">
-            <path v-if="g.after" :d="g.after" class="wp-after" />
-            <path v-if="showBefore && g.before" :d="g.before" class="wp-before" />
-          </g>
+      <div v-if="showInfo" class="infolet">
+        <svg class="infolet-fig" viewBox="0 0 120 80" aria-hidden="true">
+          <template v-if="algo === 'buffer'">
+            <path d="M10 70 L60 12 L110 70" class="if-orig" />
+            <path d="M22 70 L60 26 L98 70" class="if-new" />
+            <circle cx="35" cy="41" r="8" class="if-tool" /><circle cx="60" cy="12" r="8" class="if-tool" />
+            <path d="M52 21 A11 11 0 0 1 68 21" class="if-hint" />
+          </template>
+          <template v-else-if="algo === 'clipper'">
+            <path d="M10 70 L60 12 L110 70" class="if-orig" />
+            <path d="M24 70 L60 30 L96 70" class="if-new" />
+            <path d="M50 30 L60 18 L70 30 L60 42 Z" class="if-loop" />
+            <line x1="4" y1="52" x2="116" y2="52" class="if-scan" /><text x="6" y="49" class="if-txt">sweep line</text>
+          </template>
+          <template v-else>
+            <path d="M10 70 L60 12 L110 70 Z" class="if-orig" />
+            <path d="M10 70 L60 46 L110 70 M60 12 L60 46" class="if-skel" />
+            <path d="M26 64 L60 28 L94 64 Z" class="if-new" />
+            <path d="M40 66 L44 60 M80 66 L76 60 M58 22 L58 30" class="if-hint" />
+          </template>
         </svg>
-        <div v-else-if="!err" class="help" style="padding:20px">Type some characters above.</div>
+        <div><p><b>{{ algoInfo.name }}</b> - {{ algoInfo.what }}</p><p class="help" style="margin:6px 0 0">{{ algoInfo.why }}</p></div>
       </div>
-      <p v-if="err" class="note bad">{{ err }}</p>
-      <p v-else-if="prev" class="help" style="margin:8px 0 0">
-        <template v-if="offset">Strokes {{ offset < 0 ? 'thinned' : 'thickened' }} by {{ Math.abs(offset) }} mm per side
-          ({{ +(Math.abs(offset) * 2).toFixed(4) }} mm across a stroke) - ink area {{ change > 0 ? '+' : '' }}{{ change }}%.</template>
-        <template v-else>The font as drawn. Pick a step above or type a value to see it thinned or thickened.</template>
-        <span v-if="showBefore"> Dashed line: the original outline; solid: what gets cut.</span>
-        <b v-if="gone.length" style="color:var(--bad)"> {{ gone.join(' ') }} thin{{ gone.length === 1 ? 's' : '' }} away completely - the build keeps {{ gone.length === 1 ? 'it' : 'them' }} at normal weight.</b>
-      </p>
+
+      <div v-for="f in sliders" :key="f.key" class="wslider">
+        <div class="wslider-head">
+          <label :for="'ws-' + f.key">{{ f.label }}</label><HelpButton :k="f.key" :help="f.help" />
+          <span v-if="f.key in S.edits" class="dot-changed" title="Changed">●</span>
+          <span class="spacer"></span>
+          <input :id="'ws-' + f.key" class="input wv" type="number" :step="WEIGHT_SLIDERS[f.key].step" :value="num(f.key, defaults[f.key])"
+            @change="set(f.key, $event.target.value)" title="Any value">
+          <span class="wl">{{ WEIGHT_SLIDERS[f.key].unit }}</span>
+          <button class="btn small ghost" :disabled="num(f.key, defaults[f.key]) === defaults[f.key]" @click="set(f.key, defaults[f.key])"
+            :title="'Back to ' + defaults[f.key]">↺</button>
+        </div>
+        <input type="range" class="wrange" :min="WEIGHT_SLIDERS[f.key].min" :max="WEIGHT_SLIDERS[f.key].max" :step="WEIGHT_SLIDERS[f.key].step"
+          :value="clamp(f.key, num(f.key, defaults[f.key]))" @input="set(f.key, $event.target.value)" :aria-label="f.label">
+        <div class="wslider-ends"><span>{{ WEIGHT_SLIDERS[f.key].lo }} · {{ WEIGHT_SLIDERS[f.key].min }}</span><span>{{ WEIGHT_SLIDERS[f.key].max }} · {{ WEIGHT_SLIDERS[f.key].hi }}</span></div>
+        <p v-if="helpShown(f.key)" class="help">{{ f.help }}</p>
+      </div>
+      <div v-if="algo !== 'skeleton' && field('weight_join')" class="fields" style="margin-top:4px"><FieldInput :f="field('weight_join')" /></div>
+
+      <div class="weight-preview">
+        <div class="weight-bar">
+          <input class="input" v-model="text" maxlength="40" placeholder="Characters to preview" aria-label="Characters to preview" style="flex:1;min-width:120px">
+          <label class="switch"><input type="checkbox" v-model="showBefore"><span>Original outline</span></label>
+          <label class="switch"><input type="checkbox" v-model="compare"><span>Compare algorithms</span></label>
+        </div>
+        <div class="weight-paper" :class="{ busy }">
+          <svg v-if="box" :viewBox="box" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="'Preview of ' + text">
+            <line x1="-0.3" :x2="prev.width + 0.3" y1="0" y2="0" class="wp-base" />
+            <g v-for="(g, i) in prev.glyphs" :key="i" :transform="'translate(' + g.x + ',0) scale(1,-1)'">
+              <path v-if="g.after" :d="g.after" class="wp-after" />
+              <template v-if="compare"><path v-for="(d, a) in g.others" :key="a" :d="d" class="wp-other" :style="{ stroke: ALGO_COLORS[a] }" /></template>
+              <path v-if="showBefore && g.before" :d="g.before" class="wp-before" />
+            </g>
+          </svg>
+          <div v-else-if="!err" class="help" style="padding:20px">Type some characters above.</div>
+        </div>
+        <div v-if="compare && offset" class="wp-legend">
+          <span><i class="sw ink"></i>{{ algoInfo.name }} (cut)</span>
+          <span v-for="a in WEIGHT_ALGOS.filter(x => x.id !== algo)" :key="a.id"><i class="sw" :style="{ borderColor: ALGO_COLORS[a.id] }"></i>{{ a.name }}</span>
+        </div>
+        <p v-if="err" class="note bad">{{ err }}</p>
+        <p v-else-if="prev" class="help" style="margin:8px 0 0">
+          <template v-if="offset">Strokes {{ offset < 0 ? 'thinned' : 'thickened' }} by {{ Math.abs(offset) }} mm per side
+            ({{ +(Math.abs(offset) * 2).toFixed(4) }} mm across a stroke) - ink area {{ change > 0 ? '+' : '' }}{{ change }}%.</template>
+          <template v-else>The font as drawn. Drag the slider or type a value to see it thinned or thickened.</template>
+          <span v-if="showBefore"> Dashed: the original outline; solid: what gets cut.</span>
+          <span v-if="compare && offset"> Coloured outlines: the other algorithms at the same setting - with mitre corners and a high limit they coincide; they part ways at corners and with the skeleton's weights.</span>
+          <b v-if="gone.length" style="color:var(--bad)"> {{ gone.join(' ') }} thin{{ gone.length === 1 ? 's' : '' }} away completely - the build keeps {{ gone.length === 1 ? 'it' : 'them' }} at normal weight.</b>
+        </p>
+      </div>
     </div>
-  </section-card>`,
+  </section>`,
 };
 
 // In the browser engine the check runs here in the page: each font's
