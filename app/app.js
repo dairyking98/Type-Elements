@@ -1,11 +1,11 @@
 import { createApp, reactive, ref, computed, watch, nextTick, onMounted } from "vue";
-import { engine } from "./engine.js?v=ac66bd553c";
-import { Viewer } from "./viewer.js?v=ac66bd553c";
-import { progressTracker } from "./progress.js?v=ac66bd553c";
-import * as fontsync from "./fontsync.js?v=ac66bd553c";
-import * as localfonts from "./localfonts.js?v=ac66bd553c";
-import { missingIn } from "./coverage.js?v=ac66bd553c";
-import { zip, readZipText } from "./zip.js?v=ac66bd553c";
+import { engine } from "./engine.js?v=a0a420ad58";
+import { Viewer } from "./viewer.js?v=a0a420ad58";
+import { progressTracker } from "./progress.js?v=a0a420ad58";
+import * as fontsync from "./fontsync.js?v=a0a420ad58";
+import * as localfonts from "./localfonts.js?v=a0a420ad58";
+import { missingIn } from "./coverage.js?v=a0a420ad58";
+import { zip, readZipText } from "./zip.js?v=a0a420ad58";
 
 // ---------------------------------------------------------------- grouping
 // tune.py's per-machine sections (plus the controls it built by hand),
@@ -1082,7 +1082,7 @@ const TypeTestCard = {
 // Font adjustment: the stroke-weight settings plus a live preview of the
 // characters before (outline) and after (ink), drawn from the engine's own
 // geometry - the same thinning the build applies.
-const WEIGHT_STEPS = [-0.1, -0.05, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.05];
+const WEIGHT_RANGE = { min: -0.15, max: 0.1, step: 0.001 };   // the slider; the box takes any value
 const WeightCard = {
   props: ["s"],
   components: { SectionCard },
@@ -1126,16 +1126,23 @@ const WeightCard = {
       return a ? Math.round((b / a - 1) * 100) : 0;
     });
     const offset = computed(() => Number(val("weight_offset_mm")) || 0);
-    const step = (v) => setVal("weight_offset_mm", v);
-    return { S, text, showBefore, prev, err, busy, box, gone, change, offset, step, WEIGHT_STEPS };
+    const step = (v) => { if (v !== "" && !isNaN(Number(v))) setVal("weight_offset_mm", Number(v)); };
+    return { S, text, showBefore, prev, err, busy, box, gone, change, offset, step, WEIGHT_RANGE };
   },
   template: `
   <section-card :s="s" title="Stroke weight">
     <template #top>
-      <div class="weight-steps" role="group" aria-label="Quick stroke weight">
-        <button v-for="v in WEIGHT_STEPS" :key="v" class="btn small" :class="{ primary: Math.abs(offset - v) < 1e-9 }"
-          :title="v === 0 ? 'The font as drawn' : (v < 0 ? 'Thin' : 'Thicken') + ' every stroke by ' + Math.abs(v) + ' mm per side'"
-          @click="step(v)">{{ v > 0 ? '+' + v : v }}</button>
+      <div class="weight-slider">
+        <span class="wl">thinner</span>
+        <input type="range" :min="WEIGHT_RANGE.min" :max="WEIGHT_RANGE.max" :step="WEIGHT_RANGE.step"
+          :value="Math.min(WEIGHT_RANGE.max, Math.max(WEIGHT_RANGE.min, offset))" @input="step($event.target.value)"
+          aria-label="Stroke weight, mm per side" list="weight-zero">
+        <datalist id="weight-zero"><option value="0"></option></datalist>
+        <span class="wl">thicker</span>
+        <input class="input wv" type="number" step="0.001" :value="offset" @change="step($event.target.value)"
+          aria-label="Stroke weight value, mm per side" title="Any value, mm per side">
+        <span class="wl">mm</span>
+        <button class="btn small ghost" :disabled="!offset" @click="step(0)" title="Back to the font as drawn">0</button>
       </div>
     </template>
     <div class="weight-preview">
@@ -1156,7 +1163,7 @@ const WeightCard = {
       <p v-if="err" class="note bad">{{ err }}</p>
       <p v-else-if="prev" class="help" style="margin:8px 0 0">
         <template v-if="offset">Strokes {{ offset < 0 ? 'thinned' : 'thickened' }} by {{ Math.abs(offset) }} mm per side
-          ({{ (Math.abs(offset) * 2).toFixed(2) }} mm across a stroke) - ink area {{ change > 0 ? '+' : '' }}{{ change }}%.</template>
+          ({{ +(Math.abs(offset) * 2).toFixed(4) }} mm across a stroke) - ink area {{ change > 0 ? '+' : '' }}{{ change }}%.</template>
         <template v-else>The font as drawn. Pick a step above or type a value to see it thinned or thickened.</template>
         <span v-if="showBefore"> Dashed line: the original outline; solid: what gets cut.</span>
         <b v-if="gone.length" style="color:var(--bad)"> {{ gone.join(' ') }} thin{{ gone.length === 1 ? 's' : '' }} away completely - the build keeps {{ gone.length === 1 ? 'it' : 'them' }} at normal weight.</b>

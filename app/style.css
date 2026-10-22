@@ -364,8 +364,10 @@ details.adv > summary:hover { color: var(--text); }
 .card.folded .card-head { border-bottom: 0; }
 
 /* Font adjustment: stroke weight steps and the before/after preview */
-.weight-steps { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
-.weight-steps .btn { min-width: 48px; font-variant-numeric: tabular-nums; }
+.weight-slider { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.weight-slider input[type=range] { flex: 1; min-width: 100px; height: 4px; accent-color: var(--text-3); }
+.weight-slider .wl { font-size: 11px; color: var(--text-3); }
+.weight-slider .wv { width: 84px; flex: none; font-variant-numeric: tabular-nums; }
 .weight-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 8px; }
 .weight-paper { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-height: 120px; transition: opacity .15s; }
 .weight-paper.busy { opacity: .6; }
