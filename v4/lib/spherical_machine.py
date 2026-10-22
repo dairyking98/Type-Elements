@@ -208,7 +208,7 @@ def SingleMinkowskiChar(char, longitude, latitude, plat_offset, base_offset,
                                     custom_h_offset, custom_v_offset,
                                     caret_drop_mm=Align_Caret_Drop_Mm,
                                     underscore_lift_mm=Align_Underscore_Lift_Mm)
-    flat = classify_and_triangulate(contours_mm)
+    flat = classify_and_triangulate(contours_mm, struck=True, label=repr(char))
     if flat is None:
         return None  # matches v2 rendering an empty/invisible character (e.g. space)
 

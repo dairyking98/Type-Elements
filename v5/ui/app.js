@@ -14,6 +14,8 @@ import { zip, readZipText } from "./zip.js";
 const GROUPS = [
   { id: "typeface", label: "Typeface", icon: "Aa", sections: ["Font & Alignment", "Type test"], custom: "profiles",
     blurb: "Pick a font and size it - a type test shows it flat, like a printed page. When you like it, save it as a profile, then render and print." },
+  { id: "adjust", label: "Font adjustment", icon: "◐", sections: ["Font adjustment"],
+    blurb: "Thin or thicken the font's strokes - for a face that prints or looks too heavy (or too light) on this machine. The preview shows each character before and after, as it will be cut." },
   { id: "layout", label: "Layout", icon: "⌨", sections: ["Character", "Row baselines"], custom: "layout",
     blurb: "Which character sits in which slot, drawn in the real font. Anything the font lacks is flagged red." },
   { id: "element", label: "Element", icon: "◎", sections: ["Cosmetics", "Bands", "Ticks", "Cut groove & rib fit", "Element", "Per-row and per-half values"],
@@ -1077,6 +1079,92 @@ const TypeTestCard = {
   </section-card>`,
 };
 
+// Font adjustment: the stroke-weight settings plus a live preview of the
+// characters before (outline) and after (ink), drawn from the engine's own
+// geometry - the same thinning the build applies.
+const WEIGHT_STEPS = [-0.1, -0.05, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.05];
+const WeightCard = {
+  props: ["s"],
+  components: { SectionCard },
+  setup() {
+    const text = ref((() => { try { return localStorage.getItem("te.weightText") || ""; } catch { return ""; } })() || "VAMW agyk 0&?");
+    const showBefore = ref(true);
+    const prev = ref(null), err = ref(""), busy = ref(false);
+    let timer = null, seq = 0;
+    const refresh = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const my = ++seq;
+        busy.value = true;
+        try {
+          const r = await engine.weightPreview({
+            machine: S.machine, text: text.value,
+            weight_offset_mm: Number(val("weight_offset_mm")) || 0, weight_join: val("weight_join"),
+            weight_mitre_limit: Number(val("weight_mitre_limit")) || 10,
+            font: val("path"), font2: val("font2_path"), font2_chars: font2Chars.value,
+            ...(val("size_mm") != null ? { size_mm: Number(val("size_mm")) } : {}),
+            ...(val("font2_size_mm") != null ? { font2_size_mm: Number(val("font2_size_mm")) } : {}),
+          });
+          if (my === seq) { prev.value = r; err.value = ""; }
+        } catch (e) { if (my === seq) err.value = e.message || String(e); }
+        if (my === seq) busy.value = false;
+      }, 200);
+    };
+    watch(() => [text.value, val("weight_offset_mm"), val("weight_join"), val("weight_mitre_limit"), val("path"),
+                 val("size_mm"), val("font2_path"), val("font2_size_mm"), font2Chars.value, S.machine], refresh, { immediate: true });
+    watch(text, (t) => { try { localStorage.setItem("te.weightText", t); } catch {} });
+    const box = computed(() => {
+      const p = prev.value;
+      if (!p || !p.glyphs.length) return null;
+      const top = (p.ascender ?? p.size_mm) + 0.3, bot = (p.descender ?? -p.size_mm * 0.3) - 0.3;
+      return { vb: `-0.3 ${-top} ${p.width + 0.6} ${top - bot}`, base: 0 };
+    });
+    const gone = computed(() => (prev.value?.glyphs || []).filter((g) => g.gone).map((g) => g.char));
+    const change = computed(() => {
+      const g = (prev.value?.glyphs || []).filter((x) => x.area_before > 0);
+      const a = g.reduce((t, x) => t + x.area_before, 0), b = g.reduce((t, x) => t + x.area_after, 0);
+      return a ? Math.round((b / a - 1) * 100) : 0;
+    });
+    const offset = computed(() => Number(val("weight_offset_mm")) || 0);
+    const step = (v) => setVal("weight_offset_mm", v);
+    return { S, text, showBefore, prev, err, busy, box, gone, change, offset, step, WEIGHT_STEPS };
+  },
+  template: `
+  <section-card :s="s" title="Stroke weight">
+    <template #top>
+      <div class="weight-steps" role="group" aria-label="Quick stroke weight">
+        <button v-for="v in WEIGHT_STEPS" :key="v" class="btn small" :class="{ primary: Math.abs(offset - v) < 1e-9 }"
+          :title="v === 0 ? 'The font as drawn' : (v < 0 ? 'Thin' : 'Thicken') + ' every stroke by ' + Math.abs(v) + ' mm per side'"
+          @click="step(v)">{{ v > 0 ? '+' + v : v }}</button>
+      </div>
+    </template>
+    <div class="weight-preview">
+      <div class="weight-bar">
+        <input class="input" v-model="text" maxlength="40" placeholder="Characters to preview" aria-label="Characters to preview" style="flex:1;min-width:120px">
+        <label class="switch"><input type="checkbox" v-model="showBefore"><span>Show the original outline</span></label>
+      </div>
+      <div class="weight-paper" :class="{ busy }">
+        <svg v-if="box" :viewBox="box.vb" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="'Preview of ' + text">
+          <line :x1="-0.3" :x2="prev.width + 0.3" y1="0" y2="0" class="wp-base" />
+          <g v-for="(g, i) in prev.glyphs" :key="i" :transform="'translate(' + g.x + ',0) scale(1,-1)'">
+            <path v-if="g.after" :d="g.after" class="wp-after" />
+            <path v-if="showBefore && g.before" :d="g.before" class="wp-before" />
+          </g>
+        </svg>
+        <div v-else-if="!err" class="help" style="padding:20px">Type some characters above.</div>
+      </div>
+      <p v-if="err" class="note bad">{{ err }}</p>
+      <p v-else-if="prev" class="help" style="margin:8px 0 0">
+        <template v-if="offset">Strokes {{ offset < 0 ? 'thinned' : 'thickened' }} by {{ Math.abs(offset) }} mm per side
+          ({{ (Math.abs(offset) * 2).toFixed(2) }} mm across a stroke) - ink area {{ change > 0 ? '+' : '' }}{{ change }}%.</template>
+        <template v-else>The font as drawn. Pick a step above or type a value to see it thinned or thickened.</template>
+        <span v-if="showBefore"> Dashed line: the original outline; solid: what gets cut.</span>
+        <b v-if="gone.length" style="color:var(--bad)"> {{ gone.join(' ') }} thin{{ gone.length === 1 ? 's' : '' }} away completely - the build keeps {{ gone.length === 1 ? 'it' : 'them' }} at normal weight.</b>
+      </p>
+    </div>
+  </section-card>`,
+};
+
 // In the browser engine the check runs here in the page: each font's
 // character map is read straight from the file (coverage.js), across the
 // app's own fonts, this computer's installed fonts and the synced folder -
@@ -1444,7 +1532,7 @@ const FontPicker = {
 };
 
 const App = {
-  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, BrowserCoverageCard, AccessPrompt },
+  components: { SectionCard, LayoutPage, ToolsPage, ProfilesCard, FontCard, WorkflowStrip, FontPicker, TypeTestCard, WeightCard, BrowserCoverageCard, AccessPrompt },
   setup() {
     const viewerEl = ref(null);
     const logRef = ref(null);
@@ -1645,6 +1733,7 @@ const App = {
           <LayoutPage v-if="currentGroup.custom === 'layout' && S.data.cfg.layout && S.data.cfg.layout.rows" />
           <template v-for="name in (currentGroup.custom === 'tools' ? [] : currentGroup.sections)" :key="name">
             <TypeTestCard v-if="name === 'Type test'" :s="section(name)" />
+            <WeightCard v-else-if="name === 'Font adjustment'" :s="section(name)" />
             <template v-else-if="name === 'Font & Alignment'"><FontCard :s="section(name)" /><ProfilesCard /></template>
             <SectionCard v-else :s="section(name)" />
           </template>

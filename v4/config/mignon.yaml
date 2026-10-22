@@ -413,3 +413,11 @@ legend:
     - [0,0,0,0,0,0,1,1,1,1,1,0]
     - [0,0,0,0,0,0,0,0,0,0,0,0]
   legend_flatness_tolerance_mm: 0.01   # adaptive glyph-outline tolerance (see glyph_poc.py) - a paper legend needs far less precision than a struck element
+
+# Font adjustment: every struck character grown (+) / thinned (-) by
+# weight_offset_mm per side before it is extruded (glyph_poc.adjust_weight).
+# Logos, labels and legends keep the font as drawn.
+font_adjust:
+  weight_offset_mm: 0.0
+  weight_join: "mitre"      # mitre | round | bevel - how the corners the offset moves are cut
+  weight_mitre_limit: 10.0  # mitre only: max corner reach, in multiples of the offset

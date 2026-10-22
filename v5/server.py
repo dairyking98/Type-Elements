@@ -122,6 +122,11 @@ def outlines(body: dict = Body(...)):
     return core.outlines(body)
 
 
+@app.post("/api/weight-preview")
+def weight_preview(body: dict = Body(...)):
+    return core.weight_preview(body)
+
+
 @app.post("/api/glyphs")
 def glyphs(body: dict = Body(...)):
     return core.glyphs(body)

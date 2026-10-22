@@ -863,7 +863,59 @@ def compose_glyph_polygon(contours_mm):
     return _open_touching_geometry(result)
 
 
-def classify_and_triangulate(contours_mm):
+# Font adjustment (a config's font_adjust: section): every STRUCK
+# character's outline grown (+) or thinned (-) by offset_mm on each side
+# before it is extruded, so a stroke changes width by 2 x offset_mm - for a
+# face that prints too heavy or too light on a given machine. Logos,
+# labels and legend sheets are drawn from the raw outlines and stay as
+# they are. The join is how inside corners (thinning) or outside corners
+# (thickening) are cut: mitre keeps them sharp up to mitre_limit x the
+# offset, then squares them off; round rounds them; bevel cuts them flat.
+# Set per build by configure_weight() (generate.py / type_test.py).
+WEIGHT = {"offset_mm": 0.0, "join": "mitre", "mitre_limit": 10.0}
+_WEIGHT_WARNED = set()
+
+
+def weight_settings(cfg):
+    fa = (cfg or {}).get("font_adjust") or {}
+    join = str(fa.get("weight_join") or "mitre").lower()
+    return {"offset_mm": float(fa.get("weight_offset_mm") or 0.0),
+            "join": join if join in ("mitre", "round", "bevel") else "mitre",
+            "mitre_limit": max(1.0, float(fa.get("weight_mitre_limit") or 10.0))}
+
+
+def configure_weight(cfg):
+    WEIGHT.update(weight_settings(cfg))
+    _WEIGHT_WARNED.clear()
+    if WEIGHT["offset_mm"]:
+        import build_log
+        build_log.note("Font adjustment",
+                       f"strokes {'thickened' if WEIGHT['offset_mm'] > 0 else 'thinned'} by "
+                       f"{abs(WEIGHT['offset_mm']):.3f} mm per side ({WEIGHT['join']} corners)")
+
+
+def adjust_weight(geom, offset_mm=None, join=None, mitre_limit=None, label=None):
+    """geom grown/thinned by offset_mm (WEIGHT's values by default). A
+    shape that thins away entirely is kept as it was, with a warning -
+    better a heavy character than a missing one."""
+    offset_mm = WEIGHT["offset_mm"] if offset_mm is None else offset_mm
+    if not offset_mm or geom is None or geom.is_empty:
+        return geom
+    join = join or WEIGHT["join"]
+    mitre_limit = WEIGHT["mitre_limit"] if mitre_limit is None else mitre_limit
+    out = geom.buffer(offset_mm, quad_segs=8, join_style=join, mitre_limit=mitre_limit)
+    if out.is_empty or out.area < 1e-6:
+        key = (label, offset_mm)
+        if key not in _WEIGHT_WARNED:
+            _WEIGHT_WARNED.add(key)
+            import build_log
+            build_log.warn("Font adjustment",
+                           f"{label or 'a character'} thins away completely at {offset_mm} mm - kept at its normal weight")
+        return geom
+    return _open_touching_geometry(out)
+
+
+def classify_and_triangulate(contours_mm, struck=False, label=None):
     """Mirrors MeshMaker.py: classify each closed contour as outer island
     or hole via containment, boolean-compose them into real filled
     polygons (union same-depth material, subtract same-depth holes,
@@ -872,6 +924,8 @@ def classify_and_triangulate(contours_mm):
     result = compose_glyph_polygon(contours_mm)
     if result is None:
         return None
+    if struck:                       # a struck character: Font adjustment applies
+        result = adjust_weight(result, label=label)
     mesh_compound = None
     for poly in _polygon_parts(result):
         vertices, faces = trimesh.creation.triangulate_polygon(
@@ -973,7 +1027,8 @@ class EmptyGlyph(ValueError):
     advance() has already recorded it, so the build still warns."""
 
 
-def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_path=None, align_kwargs=None):
+def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_path=None, align_kwargs=None,
+                    struck=False):
     """Plain flat linear_extrude(depth) of one character - no platen
     scallop, no draft taper. Used for LogoText() (an engraved surface
     label, not a struck type character): reuses the same
@@ -990,7 +1045,11 @@ def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_
     convention. None (the default) applies no shift at all, i.e. the
     glyph sits at its raw FreeType pen origin - LogoText() relies on
     this to do its own separate ink-bbox centering for baseline
-    alignment across a radial run of characters."""
+    alignment across a radial run of characters.
+
+    struck=True applies Font adjustment (adjust_weight) the way the real
+    element's characters get it - type_test.py, so the plate shows the
+    adjusted weight; engraved logo/label text leaves it False."""
     fp = font_path or FONT_PATH
     fs = font_size_mm or FONT_SIZE_MM
     face = load_font_face(fp)
@@ -1001,7 +1060,7 @@ def build_flat_text(char, flatness_tolerance_mm, depth, font_size_mm=None, font_
         contours_mm = [c + np.array([x_shift, y_shift]) for c in contours_mm]
     if not contours_mm:
         raise EmptyGlyph(f"{char!r} is not in {os.path.basename(fp)}")
-    flat = classify_and_triangulate(contours_mm)
+    flat = classify_and_triangulate(contours_mm, struck=struck, label=repr(char))
     front = make_front(flat, 0.0, 0.0, depth)
     back, front_outline = make_back(front, 0.0)
     return join_front_back(front, back, front_outline)
@@ -1177,7 +1236,7 @@ def build_glyph(char, flatness_tolerance_mm, expansion_width_mm=None,
     if platen_radius_mm is None:
         platen_radius_mm = PLATEN_RADIUS_MM
 
-    flat = classify_and_triangulate(contours_mm)
+    flat = classify_and_triangulate(contours_mm, struck=True, label=repr(char))
 
     # Minkowski sum ADDS extents in each dimension - a full-pre_minkowski_char_height_mm
     # prism summed with a full-pre_minkowski_char_height_mm cone doubles the Z depth

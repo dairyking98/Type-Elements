@@ -40,6 +40,7 @@ export const httpEngine = {
   fonts: () => fetch(api("/api/fonts")).then(json),
   fontUrl: (path) => api(`/api/font?path=${encodeURIComponent(path)}`),
   outlines: (font, chars) => post(api("/api/outlines"), { font, chars }),
+  weightPreview: (body) => post(api("/api/weight-preview"), body),
   glyphs: (body) => fetch(api("/api/glyphs"), {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   }).then(json),

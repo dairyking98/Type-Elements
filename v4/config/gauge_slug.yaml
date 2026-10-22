@@ -178,3 +178,11 @@ type_test:
     (a, b. c; d: e! f?) #1 - $3 25% (S&N)
     "say" 'hi' x^2 _abc_ ** 1/2 0123456789
     Pack my box with five dozen liquor jugs.
+
+# Font adjustment: every struck character grown (+) / thinned (-) by
+# weight_offset_mm per side before it is extruded (glyph_poc.adjust_weight).
+# Logos, labels and legends keep the font as drawn.
+font_adjust:
+  weight_offset_mm: 0.0
+  weight_join: "mitre"      # mitre | round | bevel - how the corners the offset moves are cut
+  weight_mitre_limit: 10.0  # mitre only: max corner reach, in multiples of the offset

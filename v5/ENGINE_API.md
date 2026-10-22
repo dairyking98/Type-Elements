@@ -133,6 +133,7 @@ keyboard row. To change them, send `rows` in the PUT.
 |---|---|---|
 | `GET /api/fonts` | — | `[{path, family, style}]`: every installed font (thousands; filter client-side). |
 | `GET /api/font?path=` | — | The font file itself. Use it with `new FontFace(name, "url(...)")`. |
+| `POST /api/weight-preview` | `{machine, text, weight_offset_mm, weight_join, weight_mitre_limit}` (+ optional `font`, `size_mm`, `font2`, `font2_size_mm`, `font2_chars` overrides) | `{glyphs: [{char, x, adv, before, after, gone, area_before, area_after}], width, ascender, descender, size_mm, offset_mm, join, mitre_limit}`. Font adjustment's preview: each character's outline before and after the stroke-weight change, SVG path data in mm, y up, un-mirrored (as printed); draw with `fill-rule: evenodd`. |
 | `POST /api/outlines` | `{font, chars}` | `{upem, ascender, descender, glyphs: {char: {d, adv} \| null}}`. `d` is SVG path data in font units with y pointing up, so flip it when drawing. Use this when the browser refuses a font file (`FontFace.load()` rejects); FreeType, and therefore the build, often reads such fonts fine. |
 | `POST /api/glyphs` | `{font, chars, font2?, font2_chars?}` | `{status: {char: "ok"\|"missing"\|"blank"}, unused: {letters\|digits/numbers\|punctuation\|symbols: [char]}}`. `missing` and `blank` would build as an empty slot or a box. `unused` lists glyphs the font has that the character set doesn't use, as swap candidates. |
 | `GET /api/default-font-dir` | — | `{path}`: a font folder that exists on this machine. |

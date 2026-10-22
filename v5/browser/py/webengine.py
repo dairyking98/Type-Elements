@@ -457,7 +457,7 @@ def pool_clear():
 
 # ------------------------------------------------------------------ dispatch
 
-_CORE = {"machines", "list_configs", "outlines", "glyphs", "stl_path", "legend_path"}
+_CORE = {"machines", "list_configs", "outlines", "glyphs", "weight_preview", "stl_path", "legend_path"}
 
 
 def call(method, args_json):

@@ -163,6 +163,20 @@ def extra_sections(machine, cfg):
                   _f("render_right", ["build", "render_right"], "bool", "Render right half",
                      "Include the right half of the split shuttle in the build.")]
     secs["Build"] = build
+    if "font_adjust" in cfg:
+        secs["Font adjustment"] = [
+            _f("weight_offset_mm", ["font_adjust", "weight_offset_mm"], "float", "Stroke weight (mm per side)",
+               "Thickens (+) or thins (-) every struck character by this much on each side, so a stroke changes "
+               "width by twice this. For a face that prints or looks too heavy (or too light) on this machine. "
+               "Logos, labels and legend sheets keep the font as drawn. 0 = the font as drawn."),
+            _f("weight_join", ["font_adjust", "weight_join"], "select", "Corners",
+               "How corners are cut as the outline moves. Thinning only changes INSIDE corners (crotches, where "
+               "a stem meets a bowl); thickening only changes OUTSIDE corners. Mitre keeps them sharp (best for "
+               "geometric faces), round rounds them, bevel cuts them flat.",
+               [("Mitre (sharp)", "mitre"), ("Round", "round"), ("Bevel (flat)", "bevel")]),
+            _f("weight_mitre_limit", ["font_adjust", "weight_mitre_limit"], "float", "Mitre limit",
+               "Mitre corners only: how far a sharp corner may reach, in multiples of the stroke weight, before "
+               "it is squared off. Raise it (10+) to keep very acute corners like the inside of V and W pointed.")]
     lay = cfg.get("layout") or {}
     if "baseline_row" in lay:
         secs["Row baselines"] = [
@@ -977,6 +991,70 @@ def outlines(body):
     return {"upem": face.units_per_EM, "ascender": face.ascender, "descender": face.descender, "glyphs": out}
 
 
+def _geom_svg(geom):
+    """A shapely (Multi)Polygon as SVG path data (mm, y up; draw evenodd)."""
+    if geom is None or geom.is_empty:
+        return ""
+    parts = getattr(geom, "geoms", [geom])
+    d = []
+    for poly in parts:
+        for ring in [poly.exterior, *poly.interiors]:
+            pts = list(ring.coords)[:-1]
+            if len(pts) >= 3:
+                d.append("M" + "L".join(f"{x:.3f} {y:.3f}" for x, y in pts) + "Z")
+    return "".join(d)
+
+
+def weight_preview(body):
+    """Font adjustment's live preview: each character of `text` before and
+    after glyph_poc.adjust_weight, as the build would thin/thicken it -
+    un-mirrored (as printed), mm, y up. The font, size and second font come
+    from the machine's saved settings unless the body overrides them (the
+    page sends its unsaved values)."""
+    import glyph_poc
+    machine = body.get("machine")
+    v = {}
+    if machine:
+        cfg, _t, _m = load_running(machine)
+        v = {f["key"]: f["value"] for s in schema(machine, cfg) for f in s["fields"]}
+    def size_of(mm_key, cap_key):
+        val = body.get(mm_key, v.get(mm_key))
+        if val is None and v.get(cap_key) is not None:
+            val = float(v[cap_key]) / 2.834
+        return float(val or 3.0)
+    font = os.path.expanduser(str(body.get("font") or v.get("path") or ""))
+    size = size_of("size_mm", "composer_cap_height")
+    font2 = os.path.expanduser(str(body.get("font2") or v.get("font2_path") or "")) or font
+    font2_chars = body.get("font2_chars", v.get("font2_chars")) or ""
+    size2 = size_of("font2_size_mm", "font2_composer_cap_height") if font2_chars else size
+    w = glyph_poc.weight_settings({"font_adjust": {k: body.get(k) for k in
+                                                   ("weight_offset_mm", "weight_join", "weight_mitre_limit")}})
+    out, x = [], 0.0
+    for ch in str(body.get("text") or "")[:40]:
+        fp, fs = (font2, size2) if ch in font2_chars else (font, size)
+        if not allowed_font(fp):
+            raise EngineError(404, f"font not available: {os.path.basename(fp)}")
+        face = glyph_poc.load_font_face(fp)
+        scale = glyph_poc.em_to_mm_scale(fs, face.units_per_EM)
+        contours, adv = glyph_poc.get_glyph_contours_and_advance(ch, 0.01, scale, font_path=fp)
+        before = glyph_poc.compose_glyph_polygon(contours) if contours else None
+        after, gone = before, False
+        if before is not None and w["offset_mm"]:
+            after = before.buffer(w["offset_mm"], quad_segs=8, join_style=w["join"], mitre_limit=w["mitre_limit"])
+            gone = after.is_empty or after.area < 1e-6
+        out.append({"char": ch, "x": round(x, 3), "adv": round(adv, 3), "before": _geom_svg(before),
+                    "after": "" if gone else _geom_svg(after), "gone": gone,
+                    "area_before": round(before.area, 4) if before is not None else 0,
+                    "area_after": 0 if gone or after is None else round(after.area, 4)})
+        x += adv
+    face = glyph_poc.load_font_face(font) if allowed_font(font) else None
+    asc = desc = None
+    if face is not None:
+        sc = glyph_poc.em_to_mm_scale(size, face.units_per_EM)
+        asc, desc = face.ascender * sc, face.descender * sc
+    return {"glyphs": out, "width": round(x, 3), "ascender": asc, "descender": desc, "size_mm": size, **w}
+
+
 def glyphs(body):
     """Per-character status of `chars` in `font` (font2 for font2_chars),
     plus the font's unused glyphs - font_coverage's own checks."""
@@ -1087,6 +1165,11 @@ def type_test_command(machine, cfg):
                 "--mod-font-size-mm", str(f2size)]
     if machine == "selectric_composer":
         cmd += ["--composer-config", running]
+    import glyph_poc
+    w = glyph_poc.weight_settings(cfg)   # Font adjustment, as the element gets it
+    if w["offset_mm"]:
+        cmd += ["--weight-offset-mm", str(w["offset_mm"]), "--weight-join", w["join"],
+                "--weight-mitre-limit", str(w["mitre_limit"])]
     return cmd + ["--out", output_path(cfg)]
 
 

@@ -227,6 +227,9 @@ def main():
 
     bd = _load_machine(args.config)
     bd.configure(args.config)
+    import glyph_poc
+    with open(args.config) as f:
+        glyph_poc.configure_weight(yaml.safe_load(f))   # Font adjustment
 
     # Minkowski_Text is a plain module global (like Logo_Text/Cylinder_Shape/
     # etc.), not threaded through build_fn's kwargs the way minkowski_enabled

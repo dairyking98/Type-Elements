@@ -124,7 +124,7 @@ def build_type_test_line(text, cpi, font_path, font_size_mm, flatness_tolerance_
             build_log.progress_line("TypeTest", done, total_chars, repr(ch))
             try:
                 mesh = build_flat_text(ch, flatness_tolerance_mm, depth, font_size_mm=ch_font_size_mm, font_path=ch_font_path,
-                                        align_kwargs=align_kwargs)
+                                        align_kwargs=align_kwargs, struck=True)
             except EmptyGlyph:
                 continue                 # not in the font - warned after the build
             if proportional:
@@ -181,8 +181,15 @@ if __name__ == "__main__":
                               "section (Selectric Composer's real proportional-spacing convention, config/"
                               "selectric_composer.yaml). Replaces --cpi's fixed slot spacing entirely when given - "
                               "no-op for other machines.")
+    parser.add_argument("--weight-offset-mm", type=float, default=0.0,
+                         help="Font adjustment: grow (+) / thin (-) every character's outline by this much per side")
+    parser.add_argument("--weight-join", default="mitre", choices=["mitre", "round", "bevel"])
+    parser.add_argument("--weight-mitre-limit", type=float, default=10.0)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
+    import glyph_poc
+    glyph_poc.configure_weight({"font_adjust": {"weight_offset_mm": args.weight_offset_mm, "weight_join": args.weight_join,
+                                                "weight_mitre_limit": args.weight_mitre_limit}})
 
     align_kwargs = dict(
         mode=args.align_mode,

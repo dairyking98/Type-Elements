@@ -107,6 +107,7 @@ export const browserEngine = {
   mappingUrl: (m) => urls.mapping[m] || null,
   outlines: (font, chars) => call("outlines", { font, chars }),
   glyphs: (body) => call("glyphs", body),
+  weightPreview: (body) => call("weight_preview", body),
   defaultFontDir: () => call("default_dir").then((r) => r.path),
   profiles: (m) => call("profiles", m),
   saveProfile: (m, name) => call("profile_save", m, { name }),

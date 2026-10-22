@@ -250,7 +250,7 @@ def DraftText(flatness_tolerance_mm=None, minkowski_enabled=None, draft_angle_de
             contours.append(c + np.array([x_shift, y + y_shift]))
     contours = [c * np.array([-1.0, 1.0]) for c in contours]  # mirror([1,0,0]) - struck character
 
-    flat = classify_and_triangulate(contours)
+    flat = classify_and_triangulate(contours, struck=True)
     prism = trimesh.creation.extrude_triangulation(flat.vertices[:, :2], flat.faces, Character_Block_Height_Mm)
 
     scalloped = sp.to_manifold(prism)
